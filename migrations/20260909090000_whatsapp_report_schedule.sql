@@ -28,14 +28,15 @@
 --   04:00 UTC + 2h = 06:00 SAST, same day; "* * 1" is Monday in both, "1 * *" is the 1st in both.
 --
 -- WHY THE DAILY IS 17:00 SAST AND NOT 06:00. With an empty body, send-daily-production-report
--- resolves the date from report_sast_today() (index.ts:183-194) — i.e. TODAY in SAST — and then
--- reseeds and reports on that same date (index.ts:196-213). It refuses to send unless that date
--- already has cracking or packing captured: has_production is (cracked > 0 OR packed > 0) for that
--- date (20260825091000_daily_production_report.sql:330) and the sender returns
--- {skipped:'no_production'} otherwise (index.ts:224-226). At 06:00 SAST the current SAST day has
--- had no factory capture yet, so a 0 4 * * * job would skip almost every morning, silently. 17:00
--- SAST is also the schedule the function's own header already documents (index.ts:2,6), so the
--- code and the schedule now agree instead of contradicting each other. The weekly/monthly sender
+-- resolves the date from report_sast_today() — i.e. TODAY in SAST — and reads get_daily_digest()
+-- for that day (the same figures the on-demand "Production today" WhatsApp menu item shows: kernel
+-- cracked/packed today+week, oil today+week, batches in production). It sends every day it runs,
+-- even when every figure is zero — a deliberate choice, so subscribers can tell "confirmed zero
+-- production today" apart from "the push silently failed". At 06:00 SAST the current SAST day has
+-- had no factory capture yet, so a 0 4 * * * job would push an all-zero message every single
+-- morning instead of an end-of-day summary. 17:00 SAST is also the schedule the function's own
+-- header already documents, so the code and the schedule now agree instead of contradicting each
+-- other. The weekly/monthly sender
 -- has no such same-day dependency — it resolves the latest PUBLISHED report_instances row
 -- (index.ts:172-186) and skips with {skipped:'no_published_instance'} when there is none — so it
 -- keeps the 06:00 SAST slot.

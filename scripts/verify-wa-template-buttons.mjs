@@ -4,8 +4,9 @@
  * buttons and the inbound dispatch that answers a tap on them:
  *   scripts/wa-template-daily-production.mjs                    (the offline template definition)
  *   supabase/functions/whatsapp-inbound/index.ts                (TEMPLATE_BUTTON_ROUTES + dispatch)
- *   supabase/functions/send-daily-production-report/index.ts    (TEMPLATE_NAME, the seven params,
- *                                                                 formatFigure, sanitizeParam)
+ *   supabase/functions/send-daily-production-report/index.ts    (TEMPLATE_NAME_BY_WEEKDAY, the
+ *                                                                 eight params, formatFigure,
+ *                                                                 sanitizeParam)
  *   supabase/functions/_shared/wa-limits.ts                      (MAX_BUTTON_CTA, MAX_BUTTONS)
  *
  * Follows the same discipline as scripts/verify-wa-plumbing.mjs and scripts/verify-wa-staff-menu.mjs:
@@ -72,7 +73,7 @@ function between(source, startLiteral, endLiteral, label) {
 // check() is synchronous (same harness as verify-wa-staff-menu.mjs) and cannot await a promise
 // inside it, so this one import is done directly, with the same try/catch/passCount shape check()
 // uses, rather than through check() itself.
-let definitionModule = { TEMPLATE_BUTTONS: [], TEMPLATE: {} };
+let definitionModule = { TEMPLATE_BUTTONS: [], TEMPLATES: [] };
 {
   const description = 'scripts/wa-template-daily-production.mjs imports cleanly with no environment configured';
   const originalLog = console.log;
@@ -88,7 +89,11 @@ let definitionModule = { TEMPLATE_BUTTONS: [], TEMPLATE: {} };
 }
 
 const TEMPLATE_BUTTONS = definitionModule.TEMPLATE_BUTTONS ?? [];
-const TEMPLATE = definitionModule.TEMPLATE ?? {};
+// One descriptor per weekday (Monday–Friday) — see wa-template-daily-production.mjs's own header.
+// All five share identical body/buttons; only `name` differs, so most checks below just use the
+// first entry, and the name-parity check (#5) compares the full set against the sender's map.
+const TEMPLATES = definitionModule.TEMPLATES ?? [];
+const TEMPLATE = TEMPLATES[0] ?? {};
 
 // ================================================================================================
 // 1 & 2. Exactly two buttons, both quick_reply, in this exact order and wording.
@@ -160,31 +165,44 @@ check('TEMPLATE_BUTTON_ROUTES keys exactly match the template button labels (bot
 });
 
 // ================================================================================================
-// 5. The template name is not duplicated as a second literal — it must equal TEMPLATE_NAME in the
-//    sender function.
+// 5. The five template names are not duplicated as separate literals — the set of TEMPLATES[].name
+//    must exactly equal the set of values in the sender's TEMPLATE_NAME_BY_WEEKDAY map.
 // ================================================================================================
 
-check('TEMPLATE.name equals TEMPLATE_NAME in send-daily-production-report/index.ts', () => {
-  const m = senderSrc.match(/const TEMPLATE_NAME\s*=\s*'([^']+)'/);
-  assert.ok(m, `could not find "const TEMPLATE_NAME = '...'" in ${REL_SENDER}`);
-  assert.equal(
-    TEMPLATE.name,
-    m[1],
-    `TEMPLATE.name (${JSON.stringify(TEMPLATE.name)}) must equal TEMPLATE_NAME in ${REL_SENDER} (${JSON.stringify(m[1])})`
+check('TEMPLATES declares exactly 5 entries, one per weekday Monday–Friday', () => {
+  assert.equal(TEMPLATES.length, 5, `expected exactly 5 template descriptors, got ${TEMPLATES.length}`);
+});
+
+check('TEMPLATES[].name exactly matches the values of TEMPLATE_NAME_BY_WEEKDAY in send-daily-production-report/index.ts', () => {
+  const body = between(senderSrc, 'const TEMPLATE_NAME_BY_WEEKDAY', '\n};', 'TEMPLATE_NAME_BY_WEEKDAY');
+  const senderNames = [...body.matchAll(/'([^']+)'/g)].map((m) => m[1]).sort();
+  const definitionNames = TEMPLATES.map((t) => t.name).sort();
+  assert.deepEqual(
+    definitionNames,
+    senderNames,
+    `wa-template-daily-production.mjs's TEMPLATES names (${JSON.stringify(definitionNames)}) must exactly ` +
+      `match TEMPLATE_NAME_BY_WEEKDAY's values in ${REL_SENDER} (${JSON.stringify(senderNames)})`
   );
 });
 
+check('all 5 template descriptors share identical body and buttons — only name differs', () => {
+  for (const t of TEMPLATES) {
+    assert.equal(t.body, TEMPLATE.body, `${t.name}'s body must equal ${TEMPLATE.name}'s body`);
+    assert.deepEqual(t.buttons, TEMPLATE.buttons, `${t.name}'s buttons must equal ${TEMPLATE.name}'s buttons`);
+  }
+});
+
 // ================================================================================================
-// 6. The body carries all seven placeholders, each exactly once, and no {{8}}.
+// 6. The body carries all eight placeholders, each exactly once, and no {{9}}.
 // ================================================================================================
 
-check('TEMPLATE.body contains {{1}} through {{7}} each exactly once, and no {{8}}', () => {
-  for (let i = 1; i <= 7; i++) {
+check('TEMPLATE.body contains {{1}} through {{8}} each exactly once, and no {{9}}', () => {
+  for (let i = 1; i <= 8; i++) {
     const needle = `{{${i}}}`;
     const count = TEMPLATE.body.split(needle).length - 1;
     assert.equal(count, 1, `expected ${JSON.stringify(needle)} to appear exactly once in TEMPLATE.body, found ${count}`);
   }
-  assert.ok(!TEMPLATE.body.includes('{{8}}'), 'TEMPLATE.body must not contain {{8}} — only 7 parameters are built');
+  assert.ok(!TEMPLATE.body.includes('{{9}}'), 'TEMPLATE.body must not contain {{9}} — only 8 parameters are built');
 });
 
 // ================================================================================================
@@ -192,18 +210,19 @@ check('TEMPLATE.body contains {{1}} through {{7}} each exactly once, and no {{8}
 //    non-breaking thousands separator getting mangled by a \s that also matches U+00A0.
 // ================================================================================================
 
-check('buildTemplateParams still builds exactly seven entries, in order', () => {
+check('buildTemplateParams still builds exactly eight entries, in order, from kernel_stats/oil_stats', () => {
   const body = between(senderSrc, 'const raw = [', '\n  ];', 'buildTemplateParams raw array');
   // Count top-level entries by counting line-leading commas is fragile across wrapping; instead
   // count the known field references, which is what actually matters here.
   const expectedFields = [
     'dateLabel',
-    "formatFigure(report.cracked_kg",
-    "formatFigure(report.sk_packed_kg",
-    "formatFigure(report.wholes_pct",
-    "formatFigure(report.nis_kg",
-    "formatFigure(report.wtd_cracked_kg",
-    "formatFigure(report.wtd_target_kg",
+    'formatFigure(ks.kg_cracked_today',
+    'formatFigure(ks.kg_cracked_week',
+    'formatFigure(ks.kg_packed_today',
+    'formatFigure(ks.kg_packed_week',
+    'formatFigure(oil.litres_today',
+    'formatFigure(oil.litres_week',
+    'formatFigure(ks.batches_in_production',
   ];
   for (const field of expectedFields) {
     assert.ok(body.includes(field), `expected buildTemplateParams's raw array to include ${JSON.stringify(field)}`);
