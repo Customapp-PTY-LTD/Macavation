@@ -4,8 +4,9 @@
  * buttons and the inbound dispatch that answers a tap on them:
  *   scripts/wa-template-daily-production.mjs                    (the offline template definition)
  *   supabase/functions/whatsapp-inbound/index.ts                (TEMPLATE_BUTTON_ROUTES + dispatch)
- *   supabase/functions/send-daily-production-report/index.ts    (TEMPLATE_NAME, the seven params,
- *                                                                 formatFigure, sanitizeParam)
+ *   supabase/functions/send-daily-production-report/index.ts    (TEMPLATE_NAME_BY_WEEKDAY, the
+ *                                                                 eight params, formatFigure,
+ *                                                                 sanitizeParam)
  *   supabase/functions/_shared/wa-limits.ts                      (MAX_BUTTON_CTA, MAX_BUTTONS)
  *
  * Follows the same discipline as scripts/verify-wa-plumbing.mjs and scripts/verify-wa-staff-menu.mjs:
@@ -192,16 +193,16 @@ check('all 5 template descriptors share identical body and buttons — only name
 });
 
 // ================================================================================================
-// 6. The body carries all seven placeholders, each exactly once, and no {{8}}.
+// 6. The body carries all eight placeholders, each exactly once, and no {{9}}.
 // ================================================================================================
 
-check('TEMPLATE.body contains {{1}} through {{7}} each exactly once, and no {{8}}', () => {
-  for (let i = 1; i <= 7; i++) {
+check('TEMPLATE.body contains {{1}} through {{8}} each exactly once, and no {{9}}', () => {
+  for (let i = 1; i <= 8; i++) {
     const needle = `{{${i}}}`;
     const count = TEMPLATE.body.split(needle).length - 1;
     assert.equal(count, 1, `expected ${JSON.stringify(needle)} to appear exactly once in TEMPLATE.body, found ${count}`);
   }
-  assert.ok(!TEMPLATE.body.includes('{{8}}'), 'TEMPLATE.body must not contain {{8}} — only 7 parameters are built');
+  assert.ok(!TEMPLATE.body.includes('{{9}}'), 'TEMPLATE.body must not contain {{9}} — only 8 parameters are built');
 });
 
 // ================================================================================================
@@ -209,18 +210,19 @@ check('TEMPLATE.body contains {{1}} through {{7}} each exactly once, and no {{8}
 //    non-breaking thousands separator getting mangled by a \s that also matches U+00A0.
 // ================================================================================================
 
-check('buildTemplateParams still builds exactly seven entries, in order', () => {
+check('buildTemplateParams still builds exactly eight entries, in order, from kernel_stats/oil_stats', () => {
   const body = between(senderSrc, 'const raw = [', '\n  ];', 'buildTemplateParams raw array');
   // Count top-level entries by counting line-leading commas is fragile across wrapping; instead
   // count the known field references, which is what actually matters here.
   const expectedFields = [
     'dateLabel',
-    "formatFigure(report.cracked_kg",
-    "formatFigure(report.sk_packed_kg",
-    "formatFigure(report.wholes_pct",
-    "formatFigure(report.nis_kg",
-    "formatFigure(report.wtd_cracked_kg",
-    "formatFigure(report.wtd_target_kg",
+    'formatFigure(ks.kg_cracked_today',
+    'formatFigure(ks.kg_cracked_week',
+    'formatFigure(ks.kg_packed_today',
+    'formatFigure(ks.kg_packed_week',
+    'formatFigure(oil.litres_today',
+    'formatFigure(oil.litres_week',
+    'formatFigure(ks.batches_in_production',
   ];
   for (const field of expectedFields) {
     assert.ok(body.includes(field), `expected buildTemplateParams's raw array to include ${JSON.stringify(field)}`);
