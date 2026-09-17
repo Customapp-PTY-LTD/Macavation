@@ -25,6 +25,12 @@
  * 17:00 or they ask for it themselves. If either wording changes, re-derive the other from it and
  * re-check this comment.
  *
+ * The trailing "." after {{8}} is required, not decorative: Meta rejects a template body whose
+ * literal last (or first) token is a variable placeholder ("Variables can't be at the start or end
+ * of the template", error code 100/2388299 — hit and confirmed live against Control Room's
+ * templates-api on 2026-09-17 submitting these exact five templates before this fix). Never let the
+ * body's last characters be `{{n}}` with nothing after it.
+ *
  * No dependency, no import beyond Node stdlib (none needed at all). Safe to run with zero
  * environment configured.
  */
@@ -39,7 +45,7 @@ const BODY = [
   'Kernel cracked: {{2}} kg today, {{3}} kg this week',
   'Kernel packed: {{4}} kg today, {{5}} kg this week',
   'Oil: {{6}} L today, {{7}} L this week',
-  'Batches in production: {{8}}',
+  'Batches in production: {{8}}.',
 ].join('\n');
 
 const WEEKDAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
