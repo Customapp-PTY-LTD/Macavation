@@ -294,7 +294,7 @@ Deno.serve(async (req) => {
     `Kernel cracked: ${params[1]} kg today, ${params[2]} kg this week`,
     `Kernel packed: ${params[3]} kg today, ${params[4]} kg this week`,
     `Oil: ${params[5]} L today, ${params[6]} L this week`,
-    `Batches in production: ${params[7]}`,
+    `Batches in production: ${params[7]}.`,
   ].join('\n');
 
   const results: RecipientResult[] = [];
