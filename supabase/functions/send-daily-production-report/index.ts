@@ -1,8 +1,9 @@
 /**
  * Supabase Edge Function: the 17:00 SAST daily production push, sent unprompted to every active
- * daily subscriber via one of five approved WhatsApp templates, one per weekday
- * (`daily_production_template_monday` … `_friday` — see TEMPLATE_NAME_BY_WEEKDAY below). No
- * template exists for Saturday/Sunday, so the function skips outright on those days.
+ * daily subscriber via one of five approved WhatsApp templates, one per weekday, named per
+ * Control Room's Daily variation standard (`daily_production_template_<suffix>` where suffix is
+ * `m`/`t`/`w`/`th`/`f` — see TEMPLATE_NAME_BY_WEEKDAY below). No template exists for
+ * Saturday/Sunday, so the function skips outright on those days.
  *
  * Content mirrors the on-demand "Production today" menu reply exactly (see MENU_ITEMS' `production`
  * entry in whatsapp-inbound/index.ts) — same get_daily_digest() source, same four figures, so
@@ -60,11 +61,11 @@ const corsHeaders = {
 type AnyRow = Record<string, any>;
 
 const TEMPLATE_NAME_BY_WEEKDAY: Record<number, string> = {
-  1: 'daily_production_template_monday',
-  2: 'daily_production_template_tuesday',
-  3: 'daily_production_template_wednesday',
-  4: 'daily_production_template_thursday',
-  5: 'daily_production_template_friday',
+  1: 'daily_production_template_m',
+  2: 'daily_production_template_t',
+  3: 'daily_production_template_w',
+  4: 'daily_production_template_th',
+  5: 'daily_production_template_f',
 };
 const MAX_RECIPIENTS = 25;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -290,7 +291,7 @@ Deno.serve(async (req) => {
   // Plain-text audit rendering of what was sent. Never passed to sendTemplate — the template
   // parameter rules (no newline, no run of 4+ spaces) apply only to `params`/`bodyComponent`.
   const renderedBodyText = [
-    `Production · ${params[0]}`,
+    `Production · ${params[0]} report`,
     `Kernel cracked: ${params[1]} kg today, ${params[2]} kg this week`,
     `Kernel packed: ${params[3]} kg today, ${params[4]} kg this week`,
     `Oil: ${params[5]} L today, ${params[6]} L this week`,

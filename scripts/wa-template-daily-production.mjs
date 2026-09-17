@@ -1,5 +1,5 @@
 /**
- * The five `daily_production_template_<weekday>` WhatsApp template definitions — repo-local
+ * The five `daily_production_template_<suffix>` WhatsApp template definitions — repo-local
  * DESCRIPTORS, not a Meta template-creation payload. This file makes no network call, reads no
  * environment variable, reads no credential, names no Control Room URL and no Supabase project
  * ref. It is not a submission client (this repo has none — see scripts/verify-wa-template-buttons.mjs's
@@ -9,7 +9,10 @@
  * verifiable from this checkout, and mapping TEMPLATE_BUTTONS onto it is that human's job, not
  * this file's.
  *
- * There are five templates, one per weekday (Monday–Friday) — see
+ * There are five templates, one per weekday (Monday–Friday), named per Control Room's Daily
+ * variation standard: `daily_production_template_` + a short suffix (`m`/`t`/`w`/`th`/`f`), never
+ * the weekday spelled out — Control Room's send-template locates the rest of the set by appending
+ * that exact suffix, so a spelled-out name is never rotated to. See
  * supabase/functions/send-daily-production-report/index.ts's TEMPLATE_NAME_BY_WEEKDAY, which picks
  * one of these five names by the report date's weekday and skips outright on Saturday/Sunday, since
  * no template exists for those two days. All five share identical body wording and buttons; only
@@ -40,18 +43,26 @@ export const TEMPLATE_BUTTONS = [
   { kind: 'quick_reply', text: 'Menu' },
 ];
 
+// {{1}} cannot be the last token on its line: Meta's "variable can't be at the start or end"
+// check (100/2388299) also trips when a variable is the last token before a line break, not
+// only at the very end of the whole body — confirmed live against Control Room's templates-api
+// on 2026-09-17 (all 5 daily templates failed at Meta with this error despite the body's overall
+// last character being a literal "." after {{8}}, because {{1}} sat right before the line 1 \n).
+// A trailing "report" after {{1}} keeps it from ending line 1.
 const BODY = [
-  'Production · {{1}}',
+  'Production · {{1}} report',
   'Kernel cracked: {{2}} kg today, {{3}} kg this week',
   'Kernel packed: {{4}} kg today, {{5}} kg this week',
   'Oil: {{6}} L today, {{7}} L this week',
   'Batches in production: {{8}}.',
 ].join('\n');
 
-const WEEKDAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+// Control Room's Daily variation standard: send-template locates the rest of a weekday set by
+// appending this exact suffix, so it must be the short form, never the weekday spelled out.
+const WEEKDAY_SUFFIXES = ['m', 't', 'w', 'th', 'f'];
 
-export const TEMPLATES = WEEKDAYS.map((weekday) => ({
-  name: `daily_production_template_${weekday}`,
+export const TEMPLATES = WEEKDAY_SUFFIXES.map((suffix) => ({
+  name: `daily_production_template_${suffix}`,
   language: 'en',
   category: 'UTILITY',
   body: BODY,
