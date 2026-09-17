@@ -19,7 +19,7 @@
  */
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const CONTROL_ROOM_BASE_URL = 'https://ejnncypummmvyojhovme.supabase.co/functions/v1';
+const CONTROL_ROOM_BASE_URL = 'https://warfvygsmibtsmboktqu.supabase.co/functions/v1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

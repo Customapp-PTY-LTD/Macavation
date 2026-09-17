@@ -685,7 +685,7 @@ check('buildReportUrl: the host comes from SUPABASE_URL, never a hardcoded domai
 check('CONTROL_ROOM_BASE_URL is still present — every outbound reply depends on it', () => {
   assert.ok(
     inboundSrc.includes(
-      "const CONTROL_ROOM_BASE_URL = 'https://ejnncypummmvyojhovme.supabase.co/functions/v1';"
+      "const CONTROL_ROOM_BASE_URL = 'https://warfvygsmibtsmboktqu.supabase.co/functions/v1';"
     ),
     'CONTROL_ROOM_BASE_URL was changed or removed — the function can no longer send anything'
   );
