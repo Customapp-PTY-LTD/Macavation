@@ -164,25 +164,6 @@ function buildTemplateParams(digest: AnyRow, dateFallback: string): string[] {
   return raw.map(sanitizeParam);
 }
 
-/**
- * Whether there is genuinely nothing to report for today, mirroring the old report RPC's
- * has_production guard ("a silent day is better than '0 kg' every Sunday" — this repo's own
- * design note for this send). get_daily_digest()'s kernel_stats/oil_stats are COALESCE(...,0) —
- * a true zero and "nothing captured" are the same value here (see
- * migrations/20260914090000_dashboard_reads_data_production_daily.sql's own header) — so this
- * checks every figure the template shows, not just one, before staying silent.
- */
-function hasNothingToReport(digest: AnyRow): boolean {
-  const ks = (digest.kernel_stats as AnyRow) ?? {};
-  const oil = (digest.oil_stats as AnyRow) ?? {};
-  return (
-    Number(ks.batches_in_production ?? 0) === 0 &&
-    Number(ks.kg_cracked_today ?? 0) === 0 &&
-    Number(ks.kg_packed_today ?? 0) === 0 &&
-    Number(oil.litres_today ?? 0) === 0
-  );
-}
-
 type RecipientResult = {
   phone: string | null;
   display_name: string | null;
@@ -254,12 +235,7 @@ Deno.serve(async (req) => {
   }
   const digest = (Array.isArray(digestData) ? digestData[0] : digestData) ?? {};
 
-  // ---- 3. Suppress guard — never bypassed by `force` -------------------------------------------
-  if (hasNothingToReport(digest)) {
-    return jsonResponse(200, { skipped: 'no_production', date: d });
-  }
-
-  // ---- 4. Idempotency guard — `force` bypasses ONLY this guard --------------------------------
+  // ---- 3. Idempotency guard — `force` bypasses ONLY this guard --------------------------------
   if (!force) {
     const { data: alreadySent, error: alreadyErr } = await sb.rpc('daily_report_already_sent', { p_date: d });
     if (alreadyErr) {
@@ -274,7 +250,7 @@ Deno.serve(async (req) => {
     }
   }
 
-  // ---- 5. Recipients ----------------------------------------------------------------------------
+  // ---- 4. Recipients ----------------------------------------------------------------------------
   let recipients: AnyRow[];
   try {
     recipients = await rpcRows(sb, 'report_daily_recipients');
@@ -292,10 +268,10 @@ Deno.serve(async (req) => {
     recipients = recipients.slice(0, MAX_RECIPIENTS);
   }
 
-  // ---- 6. Compose the eight parameters once ------------------------------------------------------
+  // ---- 5. Compose the eight parameters once ------------------------------------------------------
   const params = buildTemplateParams(digest, d);
 
-  // ---- 7. dry_run — sends nothing, writes no delivery row ------------------------------------------
+  // ---- 6. dry_run — sends nothing, writes no delivery row ------------------------------------------
   if (dryRun) {
     return jsonResponse(200, {
       date: d,
@@ -305,7 +281,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  // ---- 8. Send, one recipient at a time, sequentially ------------------------------------------------
+  // ---- 7. Send, one recipient at a time, sequentially ------------------------------------------------
   const bodyComponent: WaTemplateComponent = {
     type: 'body',
     parameters: params.map((text) => ({ type: 'text' as const, text })),
@@ -425,6 +401,6 @@ Deno.serve(async (req) => {
     }
   }
 
-  // ---- 9. Respond — 200 even when every send failed --------------------------------------------
+  // ---- 8. Respond — 200 even when every send failed --------------------------------------------
   return jsonResponse(200, { date: d, sent, failed, results });
 });
