@@ -22,7 +22,8 @@
  * the standing "unconfirmed external contract" decision now retired at
  * whatsapp-inbound/index.ts:186-197.
  * That comment was written when nobody here had read the gateway. Somebody now has: the deployed
- * `meta-proxy` source on the devtools project (`ejnncypummmvyojhovme`) was read directly, and its
+ * `meta-proxy` source (then on the devtools project, `ejnncypummmvyojhovme`, since superseded by
+ * `warfvygsmibtsmboktqu` — see the 2026-09-17 note above) was read directly, and its
  * `shapeMetaContent(type, content)` reshapes `content` per type before building
  * `{ messaging_product, recipient_type:'individual', to, type, [type]: metaContent }`:
  *
@@ -47,11 +48,17 @@
  * one of the three that can open a window.
  *
  * The fallback base URL below is byte-identical to the literal already hardcoded at
- * send-report-whatsapp/index.ts:33 and whatsapp-inbound/index.ts:188. If any of the three
- * changes, all three must change together. This checkout contains no evidence about which
- * Control Room project is correct — do not change this value on the basis of anything other than
- * a confirmed instruction from someone with Control Room access. The env override exists so the
- * value can be rotated by configuration rather than by a code change.
+ * send-report-whatsapp/index.ts, send-whatsapp-message/index.ts, send-daily-digest-whatsapp/index.ts,
+ * and whatsapp-inbound/index.ts. If any of these changes, all must change together.
+ *
+ * UPDATED 2026-09-17: `ejnncypummmvyojhovme` ("devtools") was Control Room's project until a
+ * cutover on 2026-08-17, after which it became a frozen rollback-only backup — Control Room's own
+ * CLAUDE.md says explicitly not to deploy to it. The live project since that cutover is
+ * `warfvygsmibtsmboktqu`. Both run the identical `control_room` schema with independent data, so a
+ * channel's Forward Secret rotated through the live project's UI never reaches devtools' copy of
+ * that channel row — this is what silently broke outbound sends (they kept signing against
+ * devtools, which still had the pre-cutover secret). Do not change this value again without a
+ * similarly confirmed instruction from someone with Control Room access.
  */
 import {
   MAX_BUTTON_CTA,
@@ -63,7 +70,7 @@ import {
 } from './wa-limits.ts';
 
 const CONTROL_ROOM_BASE_URL =
-  Deno.env.get('CONTROL_ROOM_BASE_URL') ?? 'https://ejnncypummmvyojhovme.supabase.co/functions/v1';
+  Deno.env.get('CONTROL_ROOM_BASE_URL') ?? 'https://warfvygsmibtsmboktqu.supabase.co/functions/v1';
 const CONTROL_ROOM_URL = `${CONTROL_ROOM_BASE_URL}/meta-proxy`;
 const FORWARD_SECRET = Deno.env.get('CONTROL_ROOM_FORWARD_SECRET') ?? '';
 const CHANNEL_SLUG = Deno.env.get('CONTROL_ROOM_CHANNEL_SLUG') ?? '';
