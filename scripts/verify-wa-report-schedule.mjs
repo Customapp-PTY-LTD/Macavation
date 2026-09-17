@@ -159,8 +159,8 @@ check(
       '0 15 * * *',
       `send-daily-whatsapp-report must be scheduled "0 15 * * *" (17:00 SAST). A 06:00 SAST ` +
         `("0 4 * * *") send would run before the current SAST day has any production captured, so ` +
-        `send-daily-production-report's hasNothingToReport guard would skip almost every morning ` +
-        `silently. Found: "${daily.schedule}"`
+        `it would push an all-zero "Production today" message every single morning instead of an ` +
+        `end-of-day summary. Found: "${daily.schedule}"`
     );
   }
 );

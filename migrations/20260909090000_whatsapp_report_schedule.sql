@@ -30,12 +30,13 @@
 -- WHY THE DAILY IS 17:00 SAST AND NOT 06:00. With an empty body, send-daily-production-report
 -- resolves the date from report_sast_today() — i.e. TODAY in SAST — and reads get_daily_digest()
 -- for that day (the same figures the on-demand "Production today" WhatsApp menu item shows: kernel
--- cracked/packed today+week, oil today+week, batches in production). It refuses to send when every
--- one of those figures is genuinely zero for today, returning {skipped:'no_production'} instead
--- (send-daily-production-report/index.ts's hasNothingToReport). At 06:00 SAST the current SAST day
--- has had no factory capture yet, so a 0 4 * * * job would skip almost every morning, silently.
--- 17:00 SAST is also the schedule the function's own header already documents, so the code and the
--- schedule now agree instead of contradicting each other. The weekly/monthly sender
+-- cracked/packed today+week, oil today+week, batches in production). It sends every day it runs,
+-- even when every figure is zero — a deliberate choice, so subscribers can tell "confirmed zero
+-- production today" apart from "the push silently failed". At 06:00 SAST the current SAST day has
+-- had no factory capture yet, so a 0 4 * * * job would push an all-zero message every single
+-- morning instead of an end-of-day summary. 17:00 SAST is also the schedule the function's own
+-- header already documents, so the code and the schedule now agree instead of contradicting each
+-- other. The weekly/monthly sender
 -- has no such same-day dependency — it resolves the latest PUBLISHED report_instances row
 -- (index.ts:172-186) and skips with {skipped:'no_published_instance'} when there is none — so it
 -- keeps the 06:00 SAST slot.
