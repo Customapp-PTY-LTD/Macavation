@@ -1,31 +1,38 @@
 /**
- * Supabase Edge Function: the 17:00 SAST daily production report, sent unprompted to every
- * active daily subscriber via the approved WhatsApp template `macavation_daily_production`.
+ * Supabase Edge Function: the 17:00 SAST daily production push, sent unprompted to every active
+ * daily subscriber via one of five approved WhatsApp templates, one per weekday, named per
+ * Control Room's Daily variation standard (`daily_production_template_<suffix>` where suffix is
+ * `m`/`t`/`w`/`th`/`f` — see TEMPLATE_NAME_BY_WEEKDAY below). No template exists for
+ * Saturday/Sunday, so the function skips outright on those days.
+ *
+ * Content mirrors the on-demand "Production today" menu reply exactly (see MENU_ITEMS' `production`
+ * entry in whatsapp-inbound/index.ts) — same get_daily_digest() source, same four figures, so
+ * what gets pushed unprompted at 17:00 is what a member would also see by tapping that menu item.
+ * That on-demand reply is untouched by this file: it renders fresh from the same RPC on every tap,
+ * independent of this push.
  *
  * Deploy: supabase functions deploy send-daily-production-report --project-ref nmdmddugxclpqrwylyfa
  * Intended schedule (set up outside this repo): cron `0 15 * * *` UTC == 17:00 SAST. SAST
  * (Africa/Johannesburg) carries no daylight saving, so a fixed UTC offset is safe year-round.
  *
  * Auth gate — what it does and does not prove.
- *   This function runs as service-role and reads two RPCs deliberately revoked from
- *   anon/authenticated (get_daily_production_report, report_daily_recipients — see the REVOKE/
- *   GRANT statements in the migrations named below). verify_jwt in this function's own
- *   config.toml proves only that the caller holds SOME valid project JWT — this repo's anon-key
- *   JWTs are committed in source (WebPortal/js/macavation-supabase.js:16,22), so that alone is
- *   not a real gate. The actual control, implemented below: the request's `Authorization: Bearer
- *   <token>` is compared, in constant time, against SUPABASE_SERVICE_ROLE_KEY. An empty header or
- *   an empty env var is ALWAYS treated as a non-match and rejected with 401 — never as a match —
- *   because timingSafeEqual('', '') would otherwise be true. This runs before any body parsing
- *   and before any RPC or send.
+ *   This function runs as service-role and reads RPCs deliberately revoked from
+ *   anon/authenticated (report_daily_recipients — see the REVOKE/GRANT statements in the
+ *   migrations named below). verify_jwt in this function's own config.toml proves only that the
+ *   caller holds SOME valid project JWT — this repo's anon-key JWTs are committed in source
+ *   (WebPortal/js/macavation-supabase.js:16,22), so that alone is not a real gate. The actual
+ *   control, implemented below: the request's `Authorization: Bearer <token>` is compared, in
+ *   constant time, against SUPABASE_SERVICE_ROLE_KEY. An empty header or an empty env var is
+ *   ALWAYS treated as a non-match and rejected with 401 — never as a match — because
+ *   timingSafeEqual('', '') would otherwise be true. This runs before any body parsing and before
+ *   any RPC or send.
  *
  * RPCs called, and how each return shape is read (see the plan this function was built from for
  * the full contract; summarised here for anyone reading only this file):
  *   - report_sast_today()                                   -> date (bare string). Read directly.
- *   - reseed_data_production_daily(p_date_from, p_date_to,
- *       p_actor_user_id)                                     -> TABLE(success, error,
- *       rows_reseeded). Envelope — rows[0].success === 1 required.
- *   - get_daily_production_report(p_date)                    -> jsonb (a single object). Read
- *       directly, no envelope, no rows[0].
+ *   - get_daily_digest()                                     -> jsonb (a single object, carrying
+ *       kernel_stats and oil_stats sub-objects — the same payload the on-demand "Production
+ *       today" menu item reads). Read directly, no envelope, no rows[0].
  *   - daily_report_already_sent(p_date)                      -> boolean. Read directly.
  *   - report_daily_recipients()                              -> TABLE(recipient_id,
  *       display_name, phone, is_staff). Plain row array, no success/error columns.
@@ -53,9 +60,27 @@ const corsHeaders = {
 // deno-lint-ignore no-explicit-any
 type AnyRow = Record<string, any>;
 
-const TEMPLATE_NAME = 'macavation_daily_production';
+const TEMPLATE_NAME_BY_WEEKDAY: Record<number, string> = {
+  1: 'daily_production_template_m',
+  2: 'daily_production_template_t',
+  3: 'daily_production_template_w',
+  4: 'daily_production_template_th',
+  5: 'daily_production_template_f',
+};
 const MAX_RECIPIENTS = 25;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Resolves the approved template name for a SAST calendar date string. Weekday is computed from
+ * the date string itself, not "now" — a Y-M-D calendar date's weekday is unambiguous regardless
+ * of timezone, so reading it via UTC components here does not reintroduce the "never new Date()
+ * for today" problem this file otherwise avoids (report_sast_today() still owns "what day is it
+ * now"). Returns null for Saturday/Sunday: no template exists for those days.
+ */
+function resolveTemplateName(dateStr: string): string | null {
+  const weekday = new Date(`${dateStr}T00:00:00Z`).getUTCDay();
+  return TEMPLATE_NAME_BY_WEEKDAY[weekday] ?? null;
+}
 
 function jsonResponse(status: number, body: Record<string, unknown>): Response {
   return new Response(JSON.stringify(body), {
@@ -71,11 +96,11 @@ function makeServiceClient(): SupabaseClient {
 }
 
 /**
- * Normalises a TABLE-returning RPC's result into a plain row array. For the four TABLE-returning
- * RPCs ONLY (reseed_data_production_daily, report_daily_recipients, begin_report_delivery,
- * complete_report_delivery) — report_sast_today, get_daily_production_report and
- * daily_report_already_sent are read directly from `data` and must never be routed through this,
- * because a bare boolean/string would collapse both `true` and `false` to the same `[]`.
+ * Normalises a TABLE-returning RPC's result into a plain row array. For the three TABLE-returning
+ * RPCs ONLY (report_daily_recipients, begin_report_delivery, complete_report_delivery) —
+ * report_sast_today, get_daily_digest and daily_report_already_sent are read directly from `data`
+ * and must never be routed through this, because a bare boolean/string would collapse both `true`
+ * and `false` to the same `[]`.
  */
 async function rpcRows(sb: SupabaseClient, fn: string, params: Record<string, unknown> = {}): Promise<AnyRow[]> {
   const { data, error } = await sb.rpc(fn, params);
@@ -116,22 +141,26 @@ function sanitizeParam(s: string): string {
 }
 
 /**
- * Builds the seven sanitised template body parameters, in the fixed order Meta approved the
+ * Builds the eight sanitised template body parameters, in the fixed order Meta approved the
  * template with. Called exactly once per request — both the dry_run response and the send loop
- * read this same array.
+ * read this same array. `digest` is get_daily_digest()'s payload; `kernel_stats` and `oil_stats`
+ * are read straight off it, matching MENU_ITEMS' `production` render function in
+ * whatsapp-inbound/index.ts exactly.
  */
-function buildTemplateParams(report: AnyRow): string[] {
-  const dateLabel =
-    typeof report.date_label === 'string' && report.date_label.trim() ? report.date_label : 'not captured';
+function buildTemplateParams(digest: AnyRow, dateFallback: string): string[] {
+  const ks = (digest.kernel_stats as AnyRow) ?? {};
+  const oil = (digest.oil_stats as AnyRow) ?? {};
+  const dateLabel = typeof digest.date === 'string' && digest.date.trim() ? digest.date : dateFallback;
 
   const raw = [
     dateLabel,
-    formatFigure(report.cracked_kg, 0),
-    formatFigure(report.sk_packed_kg, 0),
-    formatFigure(report.wholes_pct, 1),
-    formatFigure(report.nis_kg, 0),
-    formatFigure(report.wtd_cracked_kg, 0),
-    formatFigure(report.wtd_target_kg, 0),
+    formatFigure(ks.kg_cracked_today, 0),
+    formatFigure(ks.kg_cracked_week, 0),
+    formatFigure(ks.kg_packed_today, 0),
+    formatFigure(ks.kg_packed_week, 0),
+    formatFigure(oil.litres_today, 0),
+    formatFigure(oil.litres_week, 0),
+    formatFigure(ks.batches_in_production, 0),
   ];
   return raw.map(sanitizeParam);
 }
@@ -193,39 +222,21 @@ Deno.serve(async (req) => {
     d = String(data);
   }
 
-  // ---- 2. Refresh the factory mirror for this date ------------------------------------------
-  let reseedRows: AnyRow[];
-  try {
-    reseedRows = await rpcRows(sb, 'reseed_data_production_daily', {
-      p_date_from: d,
-      p_date_to: d,
-      p_actor_user_id: null,
-    });
-  } catch (e) {
-    console.error('[send-daily-production-report] reseed_data_production_daily threw:', e);
-    return jsonResponse(502, { success: false, error: 'Could not refresh production figures.' });
-  }
-  if (reseedRows[0]?.success !== 1) {
-    return jsonResponse(502, {
-      success: false,
-      error: reseedRows[0]?.error || 'Could not refresh production figures.',
-    });
+  // ---- 1.5 Weekday guard — no approved template for Saturday/Sunday, skip before any RPC work ---
+  const templateName = resolveTemplateName(d);
+  if (!templateName) {
+    return jsonResponse(200, { skipped: 'weekend', date: d });
   }
 
-  // ---- 3. Read the figures --------------------------------------------------------------------
-  const { data: reportData, error: reportError } = await sb.rpc('get_daily_production_report', { p_date: d });
-  if (reportError) {
-    console.error('[send-daily-production-report] get_daily_production_report failed:', reportError.message);
-    return jsonResponse(502, { success: false, error: 'Could not load the daily production report.' });
+  // ---- 2. Read today's digest — the same RPC the on-demand "Production today" menu item uses ----
+  const { data: digestData, error: digestError } = await sb.rpc('get_daily_digest');
+  if (digestError) {
+    console.error('[send-daily-production-report] get_daily_digest failed:', digestError.message);
+    return jsonResponse(502, { success: false, error: 'Could not load the daily digest.' });
   }
-  const report = (reportData ?? {}) as AnyRow;
+  const digest = (Array.isArray(digestData) ? digestData[0] : digestData) ?? {};
 
-  // ---- 4. Suppress guard — never bypassed by `force` -------------------------------------------
-  if (report.has_production !== true) {
-    return jsonResponse(200, { skipped: 'no_production', date: d });
-  }
-
-  // ---- 5. Idempotency guard — `force` bypasses ONLY this guard --------------------------------
+  // ---- 3. Idempotency guard — `force` bypasses ONLY this guard --------------------------------
   if (!force) {
     const { data: alreadySent, error: alreadyErr } = await sb.rpc('daily_report_already_sent', { p_date: d });
     if (alreadyErr) {
@@ -240,7 +251,7 @@ Deno.serve(async (req) => {
     }
   }
 
-  // ---- 6. Recipients ----------------------------------------------------------------------------
+  // ---- 4. Recipients ----------------------------------------------------------------------------
   let recipients: AnyRow[];
   try {
     recipients = await rpcRows(sb, 'report_daily_recipients');
@@ -258,19 +269,20 @@ Deno.serve(async (req) => {
     recipients = recipients.slice(0, MAX_RECIPIENTS);
   }
 
-  // ---- 7. Compose the seven parameters once ------------------------------------------------------
-  const params = buildTemplateParams(report);
+  // ---- 5. Compose the eight parameters once ------------------------------------------------------
+  const params = buildTemplateParams(digest, d);
 
-  // ---- 8. dry_run — sends nothing, writes no delivery row ------------------------------------------
+  // ---- 6. dry_run — sends nothing, writes no delivery row ------------------------------------------
   if (dryRun) {
     return jsonResponse(200, {
       date: d,
+      template: templateName,
       params,
       recipients: recipients.map((r) => ({ display_name: r.display_name ?? null, phone: r.phone ?? null })),
     });
   }
 
-  // ---- 9. Send, one recipient at a time, sequentially ------------------------------------------------
+  // ---- 7. Send, one recipient at a time, sequentially ------------------------------------------------
   const bodyComponent: WaTemplateComponent = {
     type: 'body',
     parameters: params.map((text) => ({ type: 'text' as const, text })),
@@ -279,13 +291,11 @@ Deno.serve(async (req) => {
   // Plain-text audit rendering of what was sent. Never passed to sendTemplate — the template
   // parameter rules (no newline, no run of 4+ spaces) apply only to `params`/`bodyComponent`.
   const renderedBodyText = [
-    `Daily production report for ${params[0]}`,
-    `Cracked: ${params[1]} kg`,
-    `SK packed: ${params[2]} kg`,
-    `Wholes: ${params[3]}%`,
-    `NIS received: ${params[4]} kg`,
-    `WTD cracked: ${params[5]} kg`,
-    `WTD target: ${params[6]} kg`,
+    `Production · ${params[0]} report`,
+    `Kernel cracked: ${params[1]} kg today, ${params[2]} kg this week`,
+    `Kernel packed: ${params[3]} kg today, ${params[4]} kg this week`,
+    `Oil: ${params[5]} L today, ${params[6]} L this week`,
+    `Batches in production: ${params[7]}.`,
   ].join('\n');
 
   const results: RecipientResult[] = [];
@@ -327,7 +337,7 @@ Deno.serve(async (req) => {
         p_report_kind: 'daily',
         p_report_date: d,
         p_message_kind: 'template',
-        p_template_name: TEMPLATE_NAME,
+        p_template_name: templateName,
       });
       const beginRow = beginRows[0];
 
@@ -345,7 +355,7 @@ Deno.serve(async (req) => {
       }
 
       const deliveryId = beginRow.id;
-      const result = await sendTemplate(phone, TEMPLATE_NAME, 'en', [bodyComponent]);
+      const result = await sendTemplate(phone, templateName, 'en', [bodyComponent]);
 
       try {
         const completeRows = await rpcRows(sb, 'complete_report_delivery', {
@@ -392,6 +402,6 @@ Deno.serve(async (req) => {
     }
   }
 
-  // ---- 10. Respond — 200 even when every send failed --------------------------------------------
+  // ---- 8. Respond — 200 even when every send failed --------------------------------------------
   return jsonResponse(200, { date: d, sent, failed, results });
 });
