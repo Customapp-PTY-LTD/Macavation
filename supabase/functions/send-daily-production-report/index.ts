@@ -15,17 +15,38 @@
  * Intended schedule (set up outside this repo): cron `0 15 * * *` UTC == 17:00 SAST. SAST
  * (Africa/Johannesburg) carries no daylight saving, so a fixed UTC offset is safe year-round.
  *
- * Auth gate — what it does and does not prove.
+ * Auth gate — what it does and does not prove, and why it compares against WA_CRON_AUTH_SECRET
+ * instead of the platform-injected SUPABASE_SERVICE_ROLE_KEY.
  *   This function runs as service-role and reads RPCs deliberately revoked from
  *   anon/authenticated (report_daily_recipients — see the REVOKE/GRANT statements in the
  *   migrations named below). verify_jwt in this function's own config.toml proves only that the
  *   caller holds SOME valid project JWT — this repo's anon-key JWTs are committed in source
- *   (WebPortal/js/macavation-supabase.js:16,22), so that alone is not a real gate. The actual
- *   control, implemented below: the request's `Authorization: Bearer <token>` is compared, in
- *   constant time, against SUPABASE_SERVICE_ROLE_KEY. An empty header or an empty env var is
- *   ALWAYS treated as a non-match and rejected with 401 — never as a match — because
- *   timingSafeEqual('', '') would otherwise be true. This runs before any body parsing and before
- *   any RPC or send.
+ *   (WebPortal/js/macavation-supabase.js:16,22), so that alone is not a real gate.
+ *
+ *   The actual control used to compare the caller's Authorization header against
+ *   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'), the platform-auto-injected env var. That stopped
+ *   working on this project: confirmed live on 2026-09-17 that the value the platform injects as
+ *   SUPABASE_SERVICE_ROLE_KEY into this function's runtime does NOT match the service_role key
+ *   shown on the project's own API-keys dashboard (compared by SHA-256 digest both ways — the
+ *   dashboard value matches what migrations/20260909090000_whatsapp_report_schedule.sql's cron
+ *   wrapper sends exactly; `supabase secrets list`'s digest for SUPABASE_SERVICE_ROLE_KEY matches
+ *   neither), and a fresh redeploy of this function did not resync it. `supabase secrets set` also
+ *   refuses to touch any SUPABASE_-prefixed name ("Env name cannot start with SUPABASE_, skipping"
+ *   — confirmed live), so there is no supported way to correct the injected value directly.
+ *
+ *   Until that is resolved with Supabase, this function instead compares against its own
+ *   dedicated, non-reserved secret, WA_CRON_AUTH_SECRET — set via
+ *   `supabase secrets set WA_CRON_AUTH_SECRET=<value>` to the SAME value already stored in Vault
+ *   as `wa_cron_service_role_key` (see that migration, which builds the pg_net caller's
+ *   Authorization header from that Vault entry). No new Postgres RPC or trust boundary was added
+ *   for this: the value is a plain function secret, read the same way every other non-reserved
+ *   secret in this function's environment already is. `makeServiceClient()` below still uses
+ *   SUPABASE_SERVICE_ROLE_KEY for the *outgoing* Supabase client used for RPC calls once the
+ *   caller is authorized — only the incoming-request comparison moved off it, since that
+ *   comparison is the actual access-control gate. If the env var has also broken the outgoing
+ *   client, that surfaces as a 502 from the RPC calls below, not as an auth failure, and is not
+ *   masked by this change. WA_CRON_AUTH_SECRET and Vault's wa_cron_service_role_key must be kept
+ *   equal by hand until this is resolved — nothing here re-syncs them automatically.
  *
  * RPCs called, and how each return shape is read (see the plan this function was built from for
  * the full contract; summarised here for anyone reading only this file):
@@ -41,8 +62,9 @@
  *   - complete_report_delivery(...)                          -> TABLE(success, error). Envelope.
  *
  * Env vars read: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (both auto-provided by the runtime and
- * used for the service client + the auth gate), plus CONTROL_ROOM_BASE_URL / _FORWARD_SECRET /
- * _CHANNEL_SLUG, which are read inside ../_shared/wa-send.ts, not here.
+ * used for the service client used for RPC calls once a caller is authorized), WA_CRON_AUTH_SECRET
+ * (this function's own auth-gate secret — see above), plus CONTROL_ROOM_BASE_URL / _FORWARD_SECRET
+ * / _CHANNEL_SLUG, which are read inside ../_shared/wa-send.ts, not here.
  *
  * Sends via sendTemplate from ../_shared/wa-send.ts (never a hand-built Control Room payload) —
  * an approved template is the only send that can reach a recipient who has not messaged in the
@@ -125,7 +147,7 @@ function formatFigure(value: unknown, decimals = 0): string {
   const negative = fixed.startsWith('-');
   const abs = negative ? fixed.slice(1) : fixed;
   const [intPart, fracPart] = abs.split('.');
-  const withThousands = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0');
+  const withThousands = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
   const combined = fracPart ? `${withThousands}.${fracPart}` : withThousands;
   return negative ? `-${combined}` : combined;
 }
@@ -182,10 +204,13 @@ Deno.serve(async (req) => {
   }
 
   // ---- Auth gate — before any body parsing, any RPC, any send -----------------------------
+  // Compares the caller's Authorization header against WA_CRON_AUTH_SECRET, a dedicated function
+  // secret kept equal to Vault's wa_cron_service_role_key by hand — see the file header for why
+  // this no longer compares against the platform-injected SUPABASE_SERVICE_ROLE_KEY env var.
   // Never treat an empty header or an empty configured secret as a match: timingSafeEqual('','')
   // is true, so both sides must be checked non-empty first.
   const provided = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
-  const expected = (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '').trim();
+  const expected = (Deno.env.get('WA_CRON_AUTH_SECRET') || '').trim();
   if (!provided || !expected || !timingSafeEqual(provided, expected)) {
     return jsonResponse(401, { success: false, error: 'Service key required.' });
   }
