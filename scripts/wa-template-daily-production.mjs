@@ -17,10 +17,13 @@
  *
  * Body wording is derived from `renderedBodyText` in
  * supabase/functions/send-daily-production-report/index.ts (the plain-text audit rendering of
- * what is actually sent), with `{{1}}`..`{{7}}` standing in for `params[0]`..`params[6]` — the
- * seven-parameter, fixed-order array `buildTemplateParams` in that same file returns. If that
- * function's wording or parameter order ever changes, re-derive this body from it and re-check
- * this comment.
+ * what is actually sent), with `{{1}}`..`{{8}}` standing in for `params[0]`..`params[7]` — the
+ * eight-parameter, fixed-order array `buildTemplateParams` in that same file returns. This wording
+ * deliberately matches the on-demand "Production today" menu reply (MENU_ITEMS' `production` entry
+ * in supabase/functions/whatsapp-inbound/index.ts) word for word, since both read the same
+ * get_daily_digest() figures — a member should see the same thing whether it is pushed to them at
+ * 17:00 or they ask for it themselves. If either wording changes, re-derive the other from it and
+ * re-check this comment.
  *
  * No dependency, no import beyond Node stdlib (none needed at all). Safe to run with zero
  * environment configured.
@@ -32,13 +35,11 @@ export const TEMPLATE_BUTTONS = [
 ];
 
 const BODY = [
-  'Daily production report for {{1}}',
-  'Cracked: {{2}} kg',
-  'SK packed: {{3}} kg',
-  'Wholes: {{4}}%',
-  'NIS received: {{5}} kg',
-  'WTD cracked: {{6}} kg',
-  'WTD target: {{7}} kg',
+  'Production · {{1}}',
+  'Kernel cracked: {{2}} kg today, {{3}} kg this week',
+  'Kernel packed: {{4}} kg today, {{5}} kg this week',
+  'Oil: {{6}} L today, {{7}} L this week',
+  'Batches in production: {{8}}',
 ].join('\n');
 
 const WEEKDAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
