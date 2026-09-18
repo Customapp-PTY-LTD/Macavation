@@ -22,8 +22,8 @@
  * the standing "unconfirmed external contract" decision now retired at
  * whatsapp-inbound/index.ts:186-197.
  * That comment was written when nobody here had read the gateway. Somebody now has: the deployed
- * `meta-proxy` source (then on the devtools project, `ejnncypummmvyojhovme`, since superseded by
- * `warfvygsmibtsmboktqu` — see the 2026-09-17 note above) was read directly, and its
+ * `meta-proxy` source (then on the devtools project, `ejnncypummmvyojhovme` — see the 2026-09-18
+ * note below for what replaced it) was read directly, and its
  * `shapeMetaContent(type, content)` reshapes `content` per type before building
  * `{ messaging_product, recipient_type:'individual', to, type, [type]: metaContent }`:
  *
@@ -51,14 +51,16 @@
  * send-report-whatsapp/index.ts, send-whatsapp-message/index.ts, send-daily-digest-whatsapp/index.ts,
  * and whatsapp-inbound/index.ts. If any of these changes, all must change together.
  *
- * UPDATED 2026-09-17: `ejnncypummmvyojhovme` ("devtools") was Control Room's project until a
- * cutover on 2026-08-17, after which it became a frozen rollback-only backup — Control Room's own
- * CLAUDE.md says explicitly not to deploy to it. The live project since that cutover is
- * `warfvygsmibtsmboktqu`. Both run the identical `control_room` schema with independent data, so a
- * channel's Forward Secret rotated through the live project's UI never reaches devtools' copy of
- * that channel row — this is what silently broke outbound sends (they kept signing against
- * devtools, which still had the pre-cutover secret). Do not change this value again without a
- * similarly confirmed instruction from someone with Control Room access.
+ * UPDATED 2026-09-17, SUPERSEDED 2026-09-18: `ejnncypummmvyojhovme` ("devtools") was Control
+ * Room's project until a cutover on 2026-08-17, after which it became a frozen rollback-only
+ * backup. The 2026-09-17 fix pointed this at `warfvygsmibtsmboktqu` on the strength of Control
+ * Room's own CLAUDE.md — which was itself already out of date: Control Room moved again, to
+ * af-south-1, on 2026-09-14, one day before that note was read. Confirmed directly with Control
+ * Room's admin on 2026-09-18: the actual stable address is the custom domain below, NOT a raw
+ * Supabase project ref — project refs have changed twice in five weeks and the custom domain is
+ * what does not move when the backing project does. Do not hardcode a project-ref URL here again;
+ * if this ever needs to change, get it from whoever administers Control Room directly, not from a
+ * doc that may predate their most recent migration.
  */
 import {
   MAX_BUTTON_CTA,
@@ -70,7 +72,7 @@ import {
 } from './wa-limits.ts';
 
 const CONTROL_ROOM_BASE_URL =
-  Deno.env.get('CONTROL_ROOM_BASE_URL') ?? 'https://warfvygsmibtsmboktqu.supabase.co/functions/v1';
+  Deno.env.get('CONTROL_ROOM_BASE_URL') ?? 'https://dev-control-room-supabase.customapp.co.za/functions/v1';
 const CONTROL_ROOM_URL = `${CONTROL_ROOM_BASE_URL}/meta-proxy`;
 const FORWARD_SECRET = Deno.env.get('CONTROL_ROOM_FORWARD_SECRET') ?? '';
 const CHANNEL_SLUG = Deno.env.get('CONTROL_ROOM_CHANNEL_SLUG') ?? '';

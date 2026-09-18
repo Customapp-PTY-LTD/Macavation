@@ -14,7 +14,7 @@
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
-const CONTROL_ROOM_BASE_URL = 'https://warfvygsmibtsmboktqu.supabase.co/functions/v1';
+const CONTROL_ROOM_BASE_URL = 'https://dev-control-room-supabase.customapp.co.za/functions/v1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
