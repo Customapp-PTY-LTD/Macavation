@@ -225,7 +225,7 @@ function isMissingRpc(err: Any): boolean {
 // the shared senders read CONTROL_ROOM_* at module scope. Leave the split alone.
 // ============================================================================
 
-const CONTROL_ROOM_BASE_URL = 'https://warfvygsmibtsmboktqu.supabase.co/functions/v1';
+const CONTROL_ROOM_BASE_URL = 'https://dev-control-room-supabase.customapp.co.za/functions/v1';
 
 /**
  * Sends a plain-text WhatsApp reply via Control Room's meta-proxy. Never throws — a failed
