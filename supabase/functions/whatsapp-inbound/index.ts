@@ -583,13 +583,15 @@ const MENU_ITEMS: MenuItem[] = [
       const ext = d?.extended_kpis ?? {};
       const runway = d?.runway ?? {};
       const weeks = runway.weeks_cover;
+      const nisRunOut = d?.nis_runway?.final_depletion_date;
       return (
         `*Stock & runway*\n\n` +
         `Kernel on hand: ${num(ext.kernel_soh_kg, 2)} kg\n` +
         `Oil finished: ${num(ext.oil_finished_soh_kg, 2)} kg\n` +
         `Oil raw material: ${num(ext.oil_rm_soh_kg, 2)} kg\n` +
         `Weekly demand: ${num(runway.weekly_demand_kg, 2)} kg\n` +
-        `Cover: ${weeks == null ? 'not calculable — no demand recorded' : `${num(weeks, 1)} weeks`}`
+        `Cover: ${weeks == null ? 'not calculable — no demand recorded' : `${num(weeks, 1)} weeks`}\n` +
+        `NIS cover: ${nisRunOut == null ? 'not calculable — no crack rate configured' : `runs out ${shortDate(nisRunOut)}`}`
       );
     },
   },
@@ -653,6 +655,7 @@ const MENU_ITEMS: MenuItem[] = [
         `Recovery: ${pct(ext.sound_kernel_recovery_pct)} · Yield: ${pct(ext.oil_yield_pct)}\n` +
         `Kernel on hand: ${num(ext.kernel_soh_kg, 2)} kg\n` +
         `Cover: ${runway.weeks_cover == null ? '—' : `${num(runway.weeks_cover, 1)} wks`}\n` +
+        `NIS cover: ${d?.nis_runway?.final_depletion_date == null ? '—' : shortDate(d.nis_runway.final_depletion_date)}\n` +
         `Against target: ${pvt.variance_kg == null ? '—' : `${num(pvt.variance_kg)} kg`}\n` +
         `Open alerts: ${alerts.length}\n` +
         `Intake today: ${num(proc.deliveries_today)} deliveries, ${num(proc.predicted_kg_today)} kg`
