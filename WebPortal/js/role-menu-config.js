@@ -325,8 +325,8 @@ var _roleMenuConfig = function () {
                 route: 'kernel-production-forecast-grid',
                 icon: 'fas fa-clipboard-list',
                 label: 'Kernel forecast',
-                category: 'kernel',
-                parent: 'kernelCollapse'
+                category: 'business',
+                parent: 'businessCollapse'
             },
             'stock-management-kernel': {
                 route: 'stock-management-kernel',
@@ -346,8 +346,8 @@ var _roleMenuConfig = function () {
                 route: 'oil-production-forecast-grid',
                 icon: 'fas fa-clipboard-list',
                 label: 'Oil forecast',
-                category: 'oil',
-                parent: 'oilCollapse'
+                category: 'business',
+                parent: 'businessCollapse'
             },
             'supplier-intake-grid': {
                 route: 'supplier-intake-grid',
@@ -431,15 +431,15 @@ var _roleMenuConfig = function () {
                 route: 'report-targets-grid',
                 icon: 'fas fa-bullseye',
                 label: 'Targets',
-                category: 'user-management',
-                parent: 'userManagementCollapse'
+                category: 'business',
+                parent: 'businessCollapse'
             },
             'stock-alert-rules-grid': {
                 route: 'stock-alert-rules-grid',
                 icon: 'fas fa-flag',
                 label: 'Stock Alert Rules',
-                category: 'user-management',
-                parent: 'userManagementCollapse'
+                category: 'business',
+                parent: 'businessCollapse'
             }
         },
 
