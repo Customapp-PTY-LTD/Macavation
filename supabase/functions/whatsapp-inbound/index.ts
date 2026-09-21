@@ -79,7 +79,7 @@
  *   placeholder body recording the type and media id.
  */
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { buildReplyId, parseReplyId, sendList, toWaPhone } from '../_shared/wa-send.ts';
+import { buildReplyId, parseReplyId, sendButtons, sendList, toWaPhone } from '../_shared/wa-send.ts';
 import { MAX_LIST_ROWS, MAX_LIST_TITLE, truncate } from '../_shared/wa-limits.ts';
 import { classifyMessage } from '../_shared/wa-inbound.ts';
 
@@ -810,6 +810,36 @@ function menuFallbackText(displayName: string, items: MenuItem[]): string {
   );
 }
 
+/** The id of the one quick-reply button every menu-item reply carries. Matches the "menu" key in
+ * TEMPLATE_BUTTON_ROUTES below, so this button and the daily report template's own "Menu" button
+ * dispatch through the exact same route. */
+const MENU_BUTTON_ID = 'menu';
+
+/**
+ * Sends `bodyText` with a single "Menu" quick-reply button in place of the old "Reply 99 for the
+ * menu." text line, falling back to that text (appended, unchanged) if the interactive send is
+ * rejected — same fallback shape commandMenu uses for the list send above.
+ *
+ * Returns `reply: null` on success BECAUSE IT HAS ALREADY SENT — see commandMenu's own comment on
+ * why a handler that sends its own interactive message must not also return reply text.
+ */
+async function sendWithMenuButton(
+  ctx: CommandContext,
+  bodyText: string,
+  command: string
+): Promise<CommandResult> {
+  const result = await sendButtons(toWaPhone(ctx.phone), bodyText, [
+    { id: MENU_BUTTON_ID, title: 'Menu' },
+  ]);
+
+  if (!result.ok) {
+    console.error(`[whatsapp-inbound] menu-item button send failed, falling back to text: ${result.error}`);
+    return { outcome: 'ok', reply: `${bodyText}\n\nReply 99 for the menu.`, command, detail: 'button send failed; text fallback' };
+  }
+
+  return { outcome: 'ok', reply: null, command };
+}
+
 /**
  * Sends the main menu as an interactive list, falling back to numbered text if the list send is
  * rejected.
@@ -886,11 +916,7 @@ async function renderMenuItem(ctx: CommandContext, action: string): Promise<Comm
   // different feature failing.
   if (item.resolve) {
     try {
-      return {
-        outcome: 'ok',
-        reply: `${await item.resolve(ctx)}\n\nReply 99 for the menu.`,
-        command: `MENU:${action.toUpperCase()}`,
-      };
+      return await sendWithMenuButton(ctx, await item.resolve(ctx), `MENU:${action.toUpperCase()}`);
     } catch (e) {
       console.error(`[whatsapp-inbound] resolve failed for ${action}:`, e);
       return {
@@ -930,11 +956,7 @@ async function renderMenuItem(ctx: CommandContext, action: string): Promise<Comm
   // `feature`, already checked above). Resolved here so `render` stays synchronous and pure.
   const canAct = item.needsAction ? await hasAction(ctx.sb, ctx.userId, item.needsAction) : false;
 
-  return {
-    outcome: 'ok',
-    reply: `${item.render!(digest, canAct)}\n\nReply 99 for the menu.`,
-    command: `MENU:${action.toUpperCase()}`,
-  };
+  return await sendWithMenuButton(ctx, item.render!(digest, canAct), `MENU:${action.toUpperCase()}`);
 }
 
 /** A typed number: position in the role's own visible list. 0 and 99 never reach here. */
@@ -1932,8 +1954,16 @@ const COMMAND_HANDLERS: Record<string, (ctx: CommandContext) => Promise<CommandR
   N: commandNo,
   CANCEL: commandNo,
   // Typed shortcuts to menu items, for members who would rather type than tap. Each one goes
-  // through renderMenuItem, so the role's CURRENT feature set is re-checked exactly as for a tap.
+  // through renderMenuItem, so the role's CURRENT feature set is re-checked exactly as for a tap
+  // — typing a shortcut for an item outside the role's current visible set gets exactly the same
+  // "not available to you" reply a stale tap would, never the figures themselves.
   REPORT: (ctx) => renderMenuItem(ctx, 'report'),
+  PRODUCTION: (ctx) => renderMenuItem(ctx, 'production'),
+  STOCK: (ctx) => renderMenuItem(ctx, 'stock'),
+  YIELD: (ctx) => renderMenuItem(ctx, 'yield'),
+  ALERTS: (ctx) => renderMenuItem(ctx, 'alerts'),
+  INTAKE: (ctx) => renderMenuItem(ctx, 'intake'),
+  DIGEST: (ctx) => renderMenuItem(ctx, 'digest'),
   // ACK <n> — stages an alert acknowledgement, applied by YES.
   ACK: commandAck,
   // RESUME — lifts a paused daily report subscription. Post-gate: STOP is the pre-gate opt-out
@@ -2026,7 +2056,10 @@ async function handleCommand(ctx: CommandContext): Promise<CommandResult> {
     };
   }
 
-  const collapsed = ctx.rawBody.trim().replace(/\s+/g, ' ');
+  // A leading '/' is optional sugar over the same bare-word commands below ('/stock' and 'stock'
+  // reach the identical handler) — stripped here, once, so COMMAND_HANDLERS never needs a second,
+  // slash-prefixed copy of every key.
+  const collapsed = ctx.rawBody.trim().replace(/\s+/g, ' ').replace(/^\//, '');
   const verb = (collapsed.split(' ')[0] || '').toUpperCase();
 
   if (verb === 'HELP') {
