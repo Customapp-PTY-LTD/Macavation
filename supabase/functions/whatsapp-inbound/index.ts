@@ -586,61 +586,20 @@ function statsAsOfSAST(): string {
 }
 
 /**
- * Launches the "Full report" Flow (supabase/flows/daily-report-menu.flow.json), a richer,
- * tap-through version of the same six digest-backed MENU_ITEMS below. Degrades to a plain-text
- * reply — the existing 'digest' item's own render() — when WA_DAILY_REPORT_FLOW_ID is unset,
- * exactly like shopaholic-whatsapp's ADMIN_STATS_FLOW_ID/handleAdminStatsMenuCommand degrade.
+ * Builds the Flow rows for the six digest-backed MENU_ITEMS (production, stock, yield, alerts,
+ * intake, digest) — one row per item, each opening the Flow's DETAIL screen with that item's own
+ * render() output. Reused verbatim by commandMenu's Flow-first branch below, so the Flow screen
+ * and the plain-text degrade for the same item can never disagree.
  *
  * FROZEN AT SEND TIME, not live: every row's figures are baked into the Flow launch payload from
- * ONE get_daily_digest() call made here, never re-fetched while the member is browsing the Flow's
- * screens. Opening this Flow at 22:00 still shows whatever get_daily_digest() returned when this
- * function ran, same staleness the plain-text menu already has. A live, re-fetch-per-screen
- * version needs Meta's `data_exchange` Flow mode, which needs a working encryption handshake AND a
- * Control Room routing path this repo does not have yet — see
- * .cursor/plans/wa-flow-data-exchange-spike.md.
+ * the ONE `digest` passed in, never re-fetched while the member is browsing the Flow's screens.
+ * Opening the Flow at 22:00 still shows whatever get_daily_digest() returned when it was sent,
+ * same staleness the plain-text menu already has. A live, re-fetch-per-screen version needs
+ * Meta's `data_exchange` Flow mode, which needs a working encryption handshake AND a Control Room
+ * routing path this repo does not have yet — see .cursor/plans/wa-flow-data-exchange-spike.md.
  */
-async function commandFullReportFlow(ctx: CommandContext): Promise<CommandResult> {
-  const featureKeys = await loadFeatureKeys(ctx.sb, ctx.roleId);
-  // Only the items this role can already see in the plain-text menu — the Flow must never show
-  // more than a tap on the text menu already would.
-  const items = visibleItems(featureKeys).filter((i) => i.render);
-
-  let digest: Any;
-  try {
-    const { data, error } = await ctx.sb.rpc('get_daily_digest');
-    if (error) throw error;
-    digest = Array.isArray(data) ? data[0] : data;
-  } catch (e) {
-    console.error('[whatsapp-inbound] commandFullReportFlow: get_daily_digest failed:', e);
-    return {
-      outcome: 'error',
-      reply: `Sorry ${ctx.displayName}, I could not read the figures just now. Please try again shortly.`,
-      command: 'MENU:FULL_REPORT',
-      detail: String(e),
-    };
-  }
-
-  if (!digest || items.length === 0) {
-    return {
-      outcome: 'error',
-      reply: `Sorry ${ctx.displayName}, there are no figures available right now.`,
-      command: 'MENU:FULL_REPORT',
-      detail: 'empty digest or no visible items',
-    };
-  }
-
-  if (!WA_DAILY_REPORT_FLOW_ID) {
-    // Degrade: the existing 'digest' item's own render(), same figures, plain text.
-    const digestItem = items.find((i) => i.action === 'digest') ?? items[0];
-    return {
-      outcome: 'ok',
-      reply: `${digestItem.render!(digest, false)}\n\nReply 99 for the menu.`,
-      command: 'MENU:FULL_REPORT',
-      detail: 'WA_DAILY_REPORT_FLOW_ID not set; degraded to text',
-    };
-  }
-
-  const rows: WaFlowRow[] = items.map((item) => {
+function buildDigestFlowRows(items: MenuItem[], digest: Any): WaFlowRow[] {
+  return items.map((item) => {
     const rendered = item.render!(digest, false);
     // metadata: a short one-line preview under the row title — first non-empty line after the
     // render()'s own leading "*Title*" heading, truncated defensively (Meta's own metadata field
@@ -658,29 +617,6 @@ async function commandFullReportFlow(ctx: CommandContext): Promise<CommandResult
       },
     };
   });
-
-  const result = await sendFlow(
-    toWaPhone(ctx.phone),
-    `Hi ${ctx.displayName}, here's the full report.`,
-    WA_DAILY_REPORT_FLOW_ID,
-    WA_DAILY_REPORT_FLOW_ENTRY_SCREEN_ID,
-    'View report',
-    crypto.randomUUID(),
-    rows
-  );
-
-  if (!result.ok) {
-    console.error(`[whatsapp-inbound] commandFullReportFlow: Flow send failed, falling back to text: ${result.error}`);
-    const digestItem = items.find((i) => i.action === 'digest') ?? items[0];
-    return {
-      outcome: 'ok',
-      reply: `${digestItem.render!(digest, false)}\n\nReply 99 for the menu.`,
-      command: 'MENU:FULL_REPORT',
-      detail: 'Flow send failed; text fallback',
-    };
-  }
-
-  return { outcome: 'ok', reply: null, command: 'MENU:FULL_REPORT' };
 }
 
 const MENU_ITEMS: MenuItem[] = [
@@ -845,16 +781,6 @@ const MENU_ITEMS: MenuItem[] = [
     feature: null,
     subMenu: commandMySettings,
   },
-  {
-    // Gated on 'dashboard' — the same feature key production/yield/alerts/intake already use,
-    // since this item shows exactly their combined figures, just as a tap-through Flow instead of
-    // one reply per item. See commandFullReportFlow's own header for the frozen-at-send-time
-    // caveat and the WA_DAILY_REPORT_FLOW_ID degrade.
-    action: 'full_report',
-    title: 'Full report',
-    feature: 'dashboard',
-    subMenu: commandFullReportFlow,
-  },
 ];
 
 /**
@@ -994,6 +920,39 @@ async function sendWithMenuButton(
  * message must return null or the member would receive the menu twice. The fallback path returns
  * text and lets the caller send it in the usual way.
  */
+async function sendMenuAsList(ctx: CommandContext, items: MenuItem[], detail?: string): Promise<CommandResult> {
+  const rows = items.map((item) => ({ id: buildReplyId(MENU_NS, item.action), title: item.title }));
+
+  const result = await sendList(toWaPhone(ctx.phone), menuBodyText(ctx.displayName), 'Choose', [
+    { title: 'Macavation', rows },
+  ]);
+
+  if (!result.ok) {
+    console.error(`[whatsapp-inbound] menu list send failed, falling back to text: ${result.error}`);
+    return {
+      outcome: 'ok',
+      reply: menuFallbackText(ctx.displayName, items),
+      command: 'MENU',
+      detail: 'list send failed; text fallback',
+    };
+  }
+
+  return { outcome: 'ok', reply: null, command: 'MENU', detail };
+}
+
+/**
+ * The main menu entry point. When WA_DAILY_REPORT_FLOW_ID is set, sends the six digest-backed
+ * items (production, stock, yield, alerts, intake, digest) as ONE tap-through Flow — replacing
+ * the old arrangement where those six were plain-text list rows AND a separate "Full report" row
+ * re-listed them again as a Flow. "Latest report" and "My reports" are not digest-render()-backed
+ * (one calls a per-phone RPC, the other opens its own sub-list) and cannot be Flow rows, so they
+ * are sent as a short follow-up native list right after the Flow, same sendList pattern
+ * commandMySettings uses for its own list.
+ *
+ * Falls back to the plain native list (today's unchanged behaviour, all items in one list) when
+ * WA_DAILY_REPORT_FLOW_ID is unset, the digest fetch fails, or the Flow send itself fails — so a
+ * broken Flow can never leave a member with no menu at all.
+ */
 async function commandMenu(ctx: CommandContext): Promise<CommandResult> {
   const featureKeys = await loadFeatureKeys(ctx.sb, ctx.roleId);
   const items = visibleItems(featureKeys);
@@ -1009,19 +968,66 @@ async function commandMenu(ctx: CommandContext): Promise<CommandResult> {
     };
   }
 
-  const rows = items.map((item) => ({ id: buildReplyId(MENU_NS, item.action), title: item.title }));
+  const digestItems = items.filter((i) => i.render);
+  const followUpItems = items.filter((i) => !i.render);
 
-  const result = await sendList(toWaPhone(ctx.phone), menuBodyText(ctx.displayName), 'Choose', [
-    { title: 'Macavation', rows },
-  ]);
+  if (!WA_DAILY_REPORT_FLOW_ID || digestItems.length === 0) {
+    return sendMenuAsList(ctx, items, 'WA_DAILY_REPORT_FLOW_ID not set; native list');
+  }
 
-  if (!result.ok) {
-    console.error(`[whatsapp-inbound] menu list send failed, falling back to text: ${result.error}`);
+  let digest: Any;
+  try {
+    const { data, error } = await ctx.sb.rpc('get_daily_digest');
+    if (error) throw error;
+    digest = Array.isArray(data) ? data[0] : data;
+  } catch (e) {
+    console.error('[whatsapp-inbound] commandMenu: get_daily_digest failed, falling back to native list:', e);
+    return sendMenuAsList(ctx, items, 'get_daily_digest failed; native list');
+  }
+
+  if (!digest) {
+    return sendMenuAsList(ctx, items, 'empty digest; native list');
+  }
+
+  const rows = buildDigestFlowRows(digestItems, digest);
+  const flowResult = await sendFlow(
+    toWaPhone(ctx.phone),
+    menuBodyText(ctx.displayName),
+    WA_DAILY_REPORT_FLOW_ID,
+    WA_DAILY_REPORT_FLOW_ENTRY_SCREEN_ID,
+    'Choose',
+    crypto.randomUUID(),
+    rows
+  );
+
+  if (!flowResult.ok) {
+    console.error(`[whatsapp-inbound] commandMenu: Flow send failed, falling back to native list: ${flowResult.error}`);
+    return sendMenuAsList(ctx, items, 'Flow send failed; native list');
+  }
+
+  if (followUpItems.length === 0) {
+    return { outcome: 'ok', reply: null, command: 'MENU' };
+  }
+
+  // Latest report / My reports: not Flow-representable, sent as a small follow-up native list.
+  // A failure here is reported on its own — the Flow itself already sent successfully above, so
+  // this must never fall back to re-sending the full native list (that would duplicate the menu
+  // the member just received as a Flow).
+  const followUpRows = followUpItems.map((item) => ({ id: buildReplyId(MENU_NS, item.action), title: item.title }));
+  const followUpResult = await sendList(
+    toWaPhone(ctx.phone),
+    `More options for ${ctx.displayName}:`,
+    'Choose',
+    [{ title: 'Macavation', rows: followUpRows }]
+  );
+
+  if (!followUpResult.ok) {
+    console.error(`[whatsapp-inbound] commandMenu: follow-up list send failed: ${followUpResult.error}`);
     return {
       outcome: 'ok',
-      reply: menuFallbackText(ctx.displayName, items),
+      reply: menuFallbackText(ctx.displayName, followUpItems),
       command: 'MENU',
-      detail: 'list send failed; text fallback',
+      detail: 'follow-up list send failed; text fallback',
     };
   }
 
