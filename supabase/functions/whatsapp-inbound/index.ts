@@ -79,7 +79,15 @@
  *   placeholder body recording the type and media id.
  */
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { buildReplyId, parseReplyId, sendButtons, sendList, toWaPhone } from '../_shared/wa-send.ts';
+import {
+  buildReplyId,
+  parseReplyId,
+  sendButtons,
+  sendFlow,
+  sendList,
+  toWaPhone,
+  type WaFlowRow,
+} from '../_shared/wa-send.ts';
 import { MAX_LIST_ROWS, MAX_LIST_TITLE, truncate } from '../_shared/wa-limits.ts';
 import { classifyMessage } from '../_shared/wa-inbound.ts';
 
@@ -558,6 +566,123 @@ function buildReportUrl(linkCode: unknown): string | null {
   return `${base}/functions/v1/r/${encodeURIComponent(code)}`;
 }
 
+/**
+ * A markdown table wrapping ONE menu item's render() output — reused verbatim from MENU_ITEMS
+ * below rather than re-derived, so the Flow screen and the plain-text WhatsApp reply for the same
+ * item can never disagree. render() already returns WhatsApp markdown (*bold*, not #/|), which
+ * renders correctly enough inside a Flow's RichText for this frozen-at-send-time spike — a
+ * cleaner Flow-specific renderer is future work, not required for this first version.
+ */
+function flowDetailMarkdown(title: string, rendered: string): string {
+  return `# ${title}\n\n${rendered}\n\nAs of ${statsAsOfSAST()}`;
+}
+
+/** Same "As of {time}" stamp shopaholic-whatsapp's admin-stats Flow uses, SAST, since a Flow
+ * bubble (unlike a text message) never expires and could be tapped long after the numbers went
+ * stale. */
+function statsAsOfSAST(): string {
+  const sast = new Date(Date.now() + 2 * 60 * 60 * 1000);
+  return `${sast.toISOString().slice(0, 16).replace('T', ' ')} SAST`;
+}
+
+/**
+ * Launches the "Full report" Flow (supabase/flows/daily-report-menu.flow.json), a richer,
+ * tap-through version of the same six digest-backed MENU_ITEMS below. Degrades to a plain-text
+ * reply — the existing 'digest' item's own render() — when WA_DAILY_REPORT_FLOW_ID is unset,
+ * exactly like shopaholic-whatsapp's ADMIN_STATS_FLOW_ID/handleAdminStatsMenuCommand degrade.
+ *
+ * FROZEN AT SEND TIME, not live: every row's figures are baked into the Flow launch payload from
+ * ONE get_daily_digest() call made here, never re-fetched while the member is browsing the Flow's
+ * screens. Opening this Flow at 22:00 still shows whatever get_daily_digest() returned when this
+ * function ran, same staleness the plain-text menu already has. A live, re-fetch-per-screen
+ * version needs Meta's `data_exchange` Flow mode, which needs a working encryption handshake AND a
+ * Control Room routing path this repo does not have yet — see
+ * .cursor/plans/wa-flow-data-exchange-spike.md.
+ */
+async function commandFullReportFlow(ctx: CommandContext): Promise<CommandResult> {
+  const featureKeys = await loadFeatureKeys(ctx.sb, ctx.roleId);
+  // Only the items this role can already see in the plain-text menu — the Flow must never show
+  // more than a tap on the text menu already would.
+  const items = visibleItems(featureKeys).filter((i) => i.render);
+
+  let digest: Any;
+  try {
+    const { data, error } = await ctx.sb.rpc('get_daily_digest');
+    if (error) throw error;
+    digest = Array.isArray(data) ? data[0] : data;
+  } catch (e) {
+    console.error('[whatsapp-inbound] commandFullReportFlow: get_daily_digest failed:', e);
+    return {
+      outcome: 'error',
+      reply: `Sorry ${ctx.displayName}, I could not read the figures just now. Please try again shortly.`,
+      command: 'MENU:FULL_REPORT',
+      detail: String(e),
+    };
+  }
+
+  if (!digest || items.length === 0) {
+    return {
+      outcome: 'error',
+      reply: `Sorry ${ctx.displayName}, there are no figures available right now.`,
+      command: 'MENU:FULL_REPORT',
+      detail: 'empty digest or no visible items',
+    };
+  }
+
+  if (!WA_DAILY_REPORT_FLOW_ID) {
+    // Degrade: the existing 'digest' item's own render(), same figures, plain text.
+    const digestItem = items.find((i) => i.action === 'digest') ?? items[0];
+    return {
+      outcome: 'ok',
+      reply: `${digestItem.render!(digest, false)}\n\nReply 99 for the menu.`,
+      command: 'MENU:FULL_REPORT',
+      detail: 'WA_DAILY_REPORT_FLOW_ID not set; degraded to text',
+    };
+  }
+
+  const rows: WaFlowRow[] = items.map((item) => {
+    const rendered = item.render!(digest, false);
+    // metadata: a short one-line preview under the row title — first non-empty line after the
+    // render()'s own leading "*Title*" heading, truncated defensively (Meta's own metadata field
+    // has a real length cap this repo has not needed to measure yet, since every existing render()
+    // output is already short).
+    const lines = rendered.split('\n').filter((l) => l.trim().length > 0);
+    const preview = (lines[1] ?? lines[0] ?? '').replace(/^\*|\*$/g, '').slice(0, 80);
+    return {
+      id: item.action,
+      'main-content': { title: item.title, metadata: preview },
+      'on-click-action': {
+        name: 'navigate',
+        next: { type: 'screen', name: 'DETAIL' },
+        payload: { body_markdown: flowDetailMarkdown(item.title, rendered) },
+      },
+    };
+  });
+
+  const result = await sendFlow(
+    toWaPhone(ctx.phone),
+    `Hi ${ctx.displayName}, here's the full report.`,
+    WA_DAILY_REPORT_FLOW_ID,
+    WA_DAILY_REPORT_FLOW_ENTRY_SCREEN_ID,
+    'View report',
+    crypto.randomUUID(),
+    rows
+  );
+
+  if (!result.ok) {
+    console.error(`[whatsapp-inbound] commandFullReportFlow: Flow send failed, falling back to text: ${result.error}`);
+    const digestItem = items.find((i) => i.action === 'digest') ?? items[0];
+    return {
+      outcome: 'ok',
+      reply: `${digestItem.render!(digest, false)}\n\nReply 99 for the menu.`,
+      command: 'MENU:FULL_REPORT',
+      detail: 'Flow send failed; text fallback',
+    };
+  }
+
+  return { outcome: 'ok', reply: null, command: 'MENU:FULL_REPORT' };
+}
+
 const MENU_ITEMS: MenuItem[] = [
   {
     action: 'production',
@@ -720,6 +845,16 @@ const MENU_ITEMS: MenuItem[] = [
     feature: null,
     subMenu: commandMySettings,
   },
+  {
+    // Gated on 'dashboard' — the same feature key production/yield/alerts/intake already use,
+    // since this item shows exactly their combined figures, just as a tap-through Flow instead of
+    // one reply per item. See commandFullReportFlow's own header for the frozen-at-send-time
+    // caveat and the WA_DAILY_REPORT_FLOW_ID degrade.
+    action: 'full_report',
+    title: 'Full report',
+    feature: 'dashboard',
+    subMenu: commandFullReportFlow,
+  },
 ];
 
 /**
@@ -776,6 +911,16 @@ function visibleItems(featureKeys: Set<string>): MenuItem[] {
 }
 
 const MENU_NS = 'menu';
+
+/**
+ * Meta's real Flow id for supabase/flows/daily-report-menu.flow.json, once published — this
+ * repo cannot publish a Flow itself (draft-only via Control Room's create_flow/update_flow_json;
+ * publish_flow requires access this repo's Control Room key does not have as of 2026-09-21).
+ * Until this is set, the "Full report" menu item degrades to the existing plain-text digest
+ * reply — same degrade-on-missing-id pattern as shopaholic-whatsapp's ADMIN_STATS_FLOW_ID.
+ */
+const WA_DAILY_REPORT_FLOW_ID = Deno.env.get('WA_DAILY_REPORT_FLOW_ID') ?? '';
+const WA_DAILY_REPORT_FLOW_ENTRY_SCREEN_ID = 'REPORT_MENU';
 
 /**
  * Reply-id namespace for a WhatsApp PUSH template's per-alert button — currently only "Mark
