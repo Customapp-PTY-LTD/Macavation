@@ -1,0 +1,93 @@
+{
+  "version": "7.3",
+  "screens": [
+    {
+      "id": "REPORT_MENU",
+      "title": "Macavation",
+      "data": {
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "main-content": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string" },
+                  "metadata": { "type": "string" }
+                }
+              },
+              "on-click-action": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "next": {
+                    "type": "object",
+                    "properties": {
+                      "type": { "type": "string" },
+                      "name": { "type": "string" }
+                    }
+                  },
+                  "payload": { "type": "object" }
+                }
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "production",
+              "main-content": { "title": "Production today", "metadata": "0 kg cracked, 22,274 kg this week" },
+              "on-click-action": {
+                "name": "navigate",
+                "next": { "type": "screen", "name": "DETAIL" },
+                "payload": { "body_markdown": "# Production today\n\n| Metric | Value |\n|---|---|\n| Kernel cracked today | 0 kg |\n| Kernel cracked this week | 22,274 kg |\n| Kernel packed today | 0 kg |\n| Kernel packed this week | 12,191 kg |\n| Oil today | 0 L |\n| Oil this week | 0 L |\n| Batches in production | 2 |\n\nAs of 2026-09-21 17:00 SAST" }
+              }
+            },
+            {
+              "id": "stock",
+              "main-content": { "title": "Stock & runway", "metadata": "58,151.60 kg kernel on hand" },
+              "on-click-action": {
+                "name": "navigate",
+                "next": { "type": "screen", "name": "DETAIL" },
+                "payload": { "body_markdown": "# Stock & runway\n\n| Metric | Value |\n|---|---|\n| Kernel on hand | 58,151.60 kg |\n| Oil finished | 244,255.00 kg |\n| Oil raw material | 282,338.04 kg |\n| Weekly demand | 0.00 kg |\n| Cover | not calculable |\n\nAs of 2026-09-21 17:00 SAST" }
+              }
+            }
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          { "type": "NavigationList", "name": "rows", "list-items": "${data.rows}" }
+        ]
+      }
+    },
+    {
+      "id": "DETAIL",
+      "title": "Macavation",
+      "terminal": true,
+      "success": true,
+      "data": {
+        "body_markdown": {
+          "type": "string",
+          "__example__": "# Production today\n\n| Metric | Value |\n|---|---|\n| Kernel cracked today | 0 kg |\n\nAs of 2026-09-21 17:00 SAST"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          { "type": "RichText", "text": "${data.body_markdown}" },
+          {
+            "type": "Footer",
+            "label": "Close",
+            "on-click-action": {
+              "name": "complete",
+              "payload": { "flow": "daily_report_menu" }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
