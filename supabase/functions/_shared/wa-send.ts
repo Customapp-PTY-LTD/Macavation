@@ -89,6 +89,15 @@ export type WaMessageBody = { to: string; type: string; content: unknown };
 export type WaButton = { id: string; title: string };
 export type WaListRow = { id: string; title: string };
 export type WaListSection = { title: string; rows: WaListRow[] };
+export type WaFlowRow = {
+  id: string;
+  'main-content': { title: string; metadata?: string };
+  'on-click-action': {
+    name: 'navigate';
+    next: { type: 'screen'; name: string };
+    payload: Record<string, unknown>;
+  };
+};
 export type WaTemplateComponent = {
   type: 'header' | 'body' | 'button';
   sub_type?: 'url' | 'quick_reply';
@@ -170,6 +179,60 @@ export function buildListBody(
       type: 'list',
       body: { text: bodyText },
       action: { button: buttonLabel, sections },
+    },
+  };
+}
+
+/**
+ * A native Meta WhatsApp Flow launch — an in-chat multi-screen form. Same 24-hour-window caveat
+ * as `sendButtons`/`sendList` above: this can only reach someone with an already-open window, so
+ * it can never be the message that first reaches a member (that must be `sendTemplate`) — only a
+ * reply sent from inside `whatsapp-inbound`'s command dispatch, itself triggered by a tap/reply
+ * that already opened the window.
+ *
+ * This is deliberately the simpler `navigate`-mode launch, NOT `data_exchange` — the entry
+ * screen's content is fully seeded by `rows` at send time (frozen at the moment this is called),
+ * never fetched live by a server endpoint after the fact. `flowActionPayload` must carry BOTH
+ * `screen` and `data` for navigate mode; omitting `screen` here would be the data_exchange shape,
+ * which requires a live endpoint this repo does not have — see
+ * .cursor/plans/wa-flow-data-exchange-spike.md for why that path was deliberately not built.
+ *
+ * `flowToken` should be unique per send (e.g. `crypto.randomUUID()`) — Meta's own docs treat it as
+ * an opaque per-launch identifier; nothing in this repo currently reads it back, so any unique
+ * string is sufficient today.
+ */
+export function buildFlowLaunchBody(
+  to: string,
+  bodyText: string,
+  flowId: string,
+  entryScreenId: string,
+  ctaText: string,
+  flowToken: string,
+  rows: WaFlowRow[]
+): WaMessageBody {
+  if (!flowId) {
+    throw new WaSendError('buildFlowLaunchBody: flowId must not be empty.');
+  }
+  if (!rows || rows.length === 0) {
+    throw new WaSendError('buildFlowLaunchBody: rows must not be empty.');
+  }
+  return {
+    to,
+    type: 'interactive',
+    content: {
+      type: 'flow',
+      body: { text: bodyText },
+      action: {
+        name: 'flow',
+        parameters: {
+          flow_message_version: '3',
+          flow_token: flowToken,
+          flow_id: flowId,
+          flow_cta: ctaText.slice(0, 20),
+          flow_action: 'navigate',
+          flow_action_payload: { screen: entryScreenId, data: { rows } },
+        },
+      },
     },
   };
 }
@@ -368,6 +431,20 @@ export async function sendList(
   sections: WaListSection[]
 ): Promise<WaSendResult> {
   const body = buildListBody(to, bodyText, buttonLabel, sections);
+  return sendViaControlRoom(body);
+}
+
+/** buildFlowLaunchBody + sendViaControlRoom. Same 24-hour-window caveat as `sendButtons`/`sendList`. */
+export async function sendFlow(
+  to: string,
+  bodyText: string,
+  flowId: string,
+  entryScreenId: string,
+  ctaText: string,
+  flowToken: string,
+  rows: WaFlowRow[]
+): Promise<WaSendResult> {
+  const body = buildFlowLaunchBody(to, bodyText, flowId, entryScreenId, ctaText, flowToken, rows);
   return sendViaControlRoom(body);
 }
 
