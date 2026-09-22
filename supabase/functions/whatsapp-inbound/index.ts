@@ -839,6 +839,15 @@ function visibleItems(featureKeys: Set<string>): MenuItem[] {
 const MENU_NS = 'menu';
 
 /**
+ * The `menu:` action that means "send me the Reports list now" — the quick-reply button
+ * commandMenu sends alongside the Flow, in place of the old unconditional follow-up list. This is
+ * not a MENU_ITEMS entry: it has no row of its own on any menu, no feature gate, and no
+ * render/resolve/subMenu — renderMenuItem special-cases it before the MENU_ITEMS lookup, exactly
+ * like SETTINGS_NS/ALERT_NS are handled as sibling namespaces rather than fake rows.
+ */
+const REPORTS_BUTTON_ACTION = 'reports';
+
+/**
  * Meta's real Flow id for supabase/flows/daily-report-menu.flow.json, once published — this
  * repo cannot publish a Flow itself (draft-only via Control Room's create_flow/update_flow_json;
  * publish_flow requires access this repo's Control Room key does not have as of 2026-09-21).
@@ -940,14 +949,67 @@ async function sendMenuAsList(ctx: CommandContext, items: MenuItem[], detail?: s
   return { outcome: 'ok', reply: null, command: 'MENU', detail };
 }
 
+/** The items commandMenu cannot put in the Flow — no `.render`, so no digest-backed content. */
+function followUpItemsOf(items: MenuItem[]): MenuItem[] {
+  return items.filter((i) => !i.render);
+}
+
+/**
+ * Text fallback for sendReportsFollowUpList, when the list send itself is rejected. Deliberately
+ * NOT menuFallbackText: that numbers items by their position in the FULL visible menu (matching
+ * renderMenuPosition's `items[position - 1]` indexing), but `items` here is the follow-up subset —
+ * numbering it 1., 2., … would print numbers that resolve to the WRONG items if replied to.
+ *
+ * Does not tell the member to type an item's name: only single-word titles have a COMMAND_HANDLERS
+ * shortcut (`REPORT` for the "Latest report" item; "My reports" has none), so a name-based
+ * instruction would be true for one item and false for the other. 99 (commandMenu, which resends
+ * this same Reports button) is the only reply this can honestly promise works for both.
+ */
+function reportsFallbackText(displayName: string, items: MenuItem[]): string {
+  const names = items.map((i) => i.title).join(' or ');
+  return `Hi ${displayName}, here are your report options: ${names}. Reply 99 to try again.`;
+}
+
+/**
+ * Sends "Latest report" / "My reports" as their own native list, on request. Used both by
+ * commandMenu (when offered via the Reports button) and by the REPORTS_BUTTON_ACTION handler
+ * below (when the member actually taps it). Kept separate from sendMenuAsList's body/button text
+ * so the two sends never look identical in the chat — the Flow's own trigger message already
+ * used the "Choose" button label.
+ */
+async function sendReportsFollowUpList(ctx: CommandContext, items: MenuItem[]): Promise<CommandResult> {
+  const rows = items.map((item) => ({ id: buildReplyId(MENU_NS, item.action), title: item.title }));
+  const result = await sendList(
+    toWaPhone(ctx.phone),
+    `Reports for ${ctx.displayName}:`,
+    'Open',
+    [{ title: 'Macavation', rows }]
+  );
+
+  if (!result.ok) {
+    console.error(`[whatsapp-inbound] sendReportsFollowUpList: list send failed: ${result.error}`);
+    return {
+      outcome: 'ok',
+      reply: reportsFallbackText(ctx.displayName, items),
+      command: 'MENU',
+      detail: 'reports list send failed; text fallback',
+    };
+  }
+
+  return { outcome: 'ok', reply: null, command: 'MENU' };
+}
+
 /**
  * The main menu entry point. When WA_DAILY_REPORT_FLOW_ID is set, sends the six digest-backed
  * items (production, stock, yield, alerts, intake, digest) as ONE tap-through Flow — replacing
  * the old arrangement where those six were plain-text list rows AND a separate "Full report" row
  * re-listed them again as a Flow. "Latest report" and "My reports" are not digest-render()-backed
  * (one calls a per-phone RPC, the other opens its own sub-list) and cannot be Flow rows, so they
- * are sent as a short follow-up native list right after the Flow, same sendList pattern
- * commandMySettings uses for its own list.
+ * are offered via a single "Reports" quick-reply button sent right after the Flow — tapping it is
+ * what actually triggers sendReportsFollowUpList, via REPORTS_BUTTON_ACTION below. This used to be
+ * an unconditional follow-up list sent to every member on every MENU open regardless of whether
+ * they wanted it; that surprised members with a second message they never asked for, so it is now
+ * opt-in, exactly like tapping "Choose" is what the Flow itself already required.
  *
  * Falls back to the plain native list (today's unchanged behaviour, all items in one list) when
  * WA_DAILY_REPORT_FLOW_ID is unset, the digest fetch fails, or the Flow send itself fails — so a
@@ -969,7 +1031,7 @@ async function commandMenu(ctx: CommandContext): Promise<CommandResult> {
   }
 
   const digestItems = items.filter((i) => i.render);
-  const followUpItems = items.filter((i) => !i.render);
+  const followUpItems = followUpItemsOf(items);
 
   if (!WA_DAILY_REPORT_FLOW_ID || digestItems.length === 0) {
     return sendMenuAsList(ctx, items, 'WA_DAILY_REPORT_FLOW_ID not set; native list');
@@ -1009,25 +1071,20 @@ async function commandMenu(ctx: CommandContext): Promise<CommandResult> {
     return { outcome: 'ok', reply: null, command: 'MENU' };
   }
 
-  // Latest report / My reports: not Flow-representable, sent as a small follow-up native list.
-  // A failure here is reported on its own — the Flow itself already sent successfully above, so
-  // this must never fall back to re-sending the full native list (that would duplicate the menu
-  // the member just received as a Flow).
-  const followUpRows = followUpItems.map((item) => ({ id: buildReplyId(MENU_NS, item.action), title: item.title }));
-  const followUpResult = await sendList(
-    toWaPhone(ctx.phone),
-    `More options for ${ctx.displayName}:`,
-    'Choose',
-    [{ title: 'Macavation', rows: followUpRows }]
-  );
+  // Latest report / My reports: not Flow-representable. Offered as a button, not sent
+  // automatically — a failure here is reported on its own, since the Flow itself already sent
+  // successfully above and must never be duplicated by a fallback that re-sends the full list.
+  const buttonResult = await sendButtons(toWaPhone(ctx.phone), 'Need your latest report or your delivery settings?', [
+    { id: buildReplyId(MENU_NS, REPORTS_BUTTON_ACTION), title: 'Reports' },
+  ]);
 
-  if (!followUpResult.ok) {
-    console.error(`[whatsapp-inbound] commandMenu: follow-up list send failed: ${followUpResult.error}`);
+  if (!buttonResult.ok) {
+    console.error(`[whatsapp-inbound] commandMenu: Reports button send failed: ${buttonResult.error}`);
     return {
       outcome: 'ok',
-      reply: menuFallbackText(ctx.displayName, followUpItems),
+      reply: `${menuFallbackText(ctx.displayName, followUpItems)}`,
       command: 'MENU',
-      detail: 'follow-up list send failed; text fallback',
+      detail: 'Reports button send failed; text fallback',
     };
   }
 
@@ -1043,7 +1100,25 @@ async function commandMenu(ctx: CommandContext): Promise<CommandResult> {
  */
 async function renderMenuItem(ctx: CommandContext, action: string): Promise<CommandResult> {
   const featureKeys = await loadFeatureKeys(ctx.sb, ctx.roleId);
-  const item = visibleItems(featureKeys).find((i) => i.action === action);
+  const visible = visibleItems(featureKeys);
+
+  // Not a MENU_ITEMS row — the "Reports" button commandMenu sends alongside the Flow. Re-derive
+  // followUpItems from the CURRENT visible set, same re-check reasoning as the rest of this
+  // function: a member can tap a button from a menu sent before their role changed.
+  if (action === REPORTS_BUTTON_ACTION) {
+    const followUpItems = followUpItemsOf(visible);
+    if (followUpItems.length === 0) {
+      return {
+        outcome: 'denied',
+        reply: `Sorry ${ctx.displayName}, that option is not available to you. Reply 99 for the menu.`,
+        command: 'MENU:REPORTS',
+        detail: 'no follow-up items in current visible set',
+      };
+    }
+    return sendReportsFollowUpList(ctx, followUpItems);
+  }
+
+  const item = visible.find((i) => i.action === action);
 
   if (!item) {
     return {
