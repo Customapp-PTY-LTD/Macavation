@@ -640,6 +640,20 @@ const CLASSIFY_MESSAGE_LITERAL = block([
   "    return { kind: 'button_reply', from, id, replyId, replyTitle, senderName };",
   '  }',
   '',
+  '  // A shared WhatsApp contact card (the paperclip > Contact attachment, not a typed message).',
+  "  // whatsapp-inbound/index.ts's /contact draft reads msg.contacts[0] directly rather than through",
+  '  // this classifier (see that file\'s processCommandForMessage for why), but this branch exists so',
+  '  // classifyMessage/extractMessage stay a complete, accurate classification of every message type',
+  '  // this line can receive, for any other caller (and for the plumbing tests in',
+  '  // scripts/verify-wa-plumbing.mjs) to rely on.',
+  "  if (type === 'contacts') {",
+  '    const contactsArr = Array.isArray(m.contacts) ? (m.contacts as unknown[]) : [];',
+  '    if (contactsArr.length > 0) {',
+  "      return { kind: 'contacts', from, id, contacts: contactsArr, senderName };",
+  '    }',
+  "    return { kind: 'unsupported' };",
+  '  }',
+  '',
   "  return { kind: 'unsupported' };",
   '}',
 ]);
@@ -697,6 +711,14 @@ function classifyMessage(msg, senderName) {
     const replyTitle = isNonEmptyString(text) ? text : payload;
     const replyId = isNonEmptyString(payload) ? payload : text;
     return { kind: 'button_reply', from, id, replyId, replyTitle, senderName };
+  }
+
+  if (type === 'contacts') {
+    const contactsArr = Array.isArray(m.contacts) ? m.contacts : [];
+    if (contactsArr.length > 0) {
+      return { kind: 'contacts', from, id, contacts: contactsArr, senderName };
+    }
+    return { kind: 'unsupported' };
   }
 
   return { kind: 'unsupported' };
@@ -1127,6 +1149,24 @@ check('extractMessage: message missing id -> unsupported', () => {
 
 check("extractMessage: type:'image' -> unsupported", () => {
   const msg = { from: '27821234567', id: 'wamid.7', type: 'image', image: { id: 'media1' } };
+  assert.equal(extractMessage(envelope(msg)).kind, 'unsupported');
+});
+
+check("extractMessage: type:'contacts' with a shared contact card -> kind:'contacts'", () => {
+  const msg = {
+    from: '27821234567',
+    id: 'wamid.8',
+    type: 'contacts',
+    contacts: [{ name: { formatted_name: 'Jane Smith' }, org: { company: 'Acme' } }],
+  };
+  const r = extractMessage(envelope(msg));
+  assert.equal(r.kind, 'contacts');
+  assert.equal(r.contacts.length, 1);
+  assert.equal(r.contacts[0].org.company, 'Acme');
+});
+
+check("extractMessage: type:'contacts' with an EMPTY contacts array -> unsupported", () => {
+  const msg = { from: '27821234567', id: 'wamid.9', type: 'contacts', contacts: [] };
   assert.equal(extractMessage(envelope(msg)).kind, 'unsupported');
 });
 

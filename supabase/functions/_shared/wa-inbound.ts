@@ -80,6 +80,7 @@ export type ExtractedMessage =
   | { kind: 'text'; from: string; id: string; text: string; senderName?: string }
   | { kind: 'button_reply'; from: string; id: string; replyId: string; replyTitle: string; senderName?: string }
   | { kind: 'list_reply'; from: string; id: string; replyId: string; replyTitle: string; senderName?: string }
+  | { kind: 'contacts'; from: string; id: string; contacts: unknown[]; senderName?: string } // a shared contact card
   | { kind: 'status' } // delivery/read receipts — classify and ignore
   | { kind: 'unsupported' }; // images, unknown types, unparseable
 
@@ -168,6 +169,20 @@ export function classifyMessage(msg: unknown, senderName: string | undefined): E
     const replyTitle = isNonEmptyString(text) ? text : (payload as string);
     const replyId = isNonEmptyString(payload) ? payload : (text as string);
     return { kind: 'button_reply', from, id, replyId, replyTitle, senderName };
+  }
+
+  // A shared WhatsApp contact card (the paperclip > Contact attachment, not a typed message).
+  // whatsapp-inbound/index.ts's /contact draft reads msg.contacts[0] directly rather than through
+  // this classifier (see that file's processCommandForMessage for why), but this branch exists so
+  // classifyMessage/extractMessage stay a complete, accurate classification of every message type
+  // this line can receive, for any other caller (and for the plumbing tests in
+  // scripts/verify-wa-plumbing.mjs) to rely on.
+  if (type === 'contacts') {
+    const contactsArr = Array.isArray(m.contacts) ? (m.contacts as unknown[]) : [];
+    if (contactsArr.length > 0) {
+      return { kind: 'contacts', from, id, contacts: contactsArr, senderName };
+    }
+    return { kind: 'unsupported' };
   }
 
   return { kind: 'unsupported' };
