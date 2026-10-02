@@ -88,6 +88,55 @@
           }
         ]
       }
+    },
+    {
+      "id": "ADD_CONTACT",
+      "title": "Add contact",
+      "terminal": true,
+      "success": true,
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "Form",
+            "name": "add_contact_form",
+            "children": [
+              {
+                "type": "Dropdown",
+                "name": "contact_type",
+                "label": "Contact type",
+                "required": true,
+                "data-source": [
+                  { "id": "nis_supplier", "title": "NIS Supplier" },
+                  { "id": "oil_processor", "title": "Oil Processor" },
+                  { "id": "oil_ingredient_supplier", "title": "Oil Ingredient Supplier" },
+                  { "id": "oil_protein_customer", "title": "Oil & Protein Customer" },
+                  { "id": "kernel_customer", "title": "Kernel Customer" }
+                ]
+              },
+              { "type": "TextInput", "name": "company_name", "label": "Company name", "input-type": "text", "required": true },
+              { "type": "TextInput", "name": "contact_name", "label": "Contact person", "input-type": "text", "required": false },
+              { "type": "TextInput", "name": "mobile", "label": "Mobile", "input-type": "phone", "required": false },
+              { "type": "TextInput", "name": "email", "label": "Email", "input-type": "email", "required": false },
+              {
+                "type": "Footer",
+                "label": "Next",
+                "on-click-action": {
+                  "name": "complete",
+                  "payload": {
+                    "form": "add_contact",
+                    "contact_type": "${form.contact_type}",
+                    "company_name": "${form.company_name}",
+                    "contact_name": "${form.contact_name}",
+                    "mobile": "${form.mobile}",
+                    "email": "${form.email}"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }

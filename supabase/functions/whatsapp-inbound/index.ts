@@ -598,6 +598,18 @@ function statsAsOfSAST(): string {
  * Meta's `data_exchange` Flow mode, which needs a working encryption handshake AND a Control Room
  * routing path this repo does not have yet — see .cursor/plans/wa-flow-data-exchange-spike.md.
  */
+function addContactFlowRow(): WaFlowRow {
+  return {
+    id: 'addcontact',
+    'main-content': { title: 'Add contact', metadata: 'Add a supplier or customer' },
+    'on-click-action': {
+      name: 'navigate',
+      next: { type: 'screen', name: WA_FLOW_ADD_CONTACT_SCREEN_ID },
+      payload: {},
+    },
+  };
+}
+
 function buildDigestFlowRows(items: MenuItem[], digest: Any): WaFlowRow[] {
   return items.map((item) => {
     const rendered = item.render!(digest, false);
@@ -868,6 +880,17 @@ const WA_DAILY_REPORT_FLOW_ID = Deno.env.get('WA_DAILY_REPORT_FLOW_ID') ?? '';
 const WA_DAILY_REPORT_FLOW_ENTRY_SCREEN_ID = 'REPORT_MENU';
 
 /**
+ * Turns on the "Add contact" row in the menu Flow (it opens the Flow's ADD_CONTACT form screen).
+ * Separate from WA_DAILY_REPORT_FLOW_ID on purpose: a Flow already published in Meta from an OLDER
+ * copy of supabase/flows/daily-report-menu.flow.json has no ADD_CONTACT screen, and a row that
+ * navigates to a missing screen fails inside WhatsApp, where we cannot see it. Set this to 'true'
+ * only once the published Flow includes ADD_CONTACT. With it off, the native-list menu's "Add
+ * contact" row and the typed /contact still work exactly as before.
+ */
+const WA_FLOW_ADD_CONTACT_ENABLED = Deno.env.get('WA_FLOW_ADD_CONTACT_ENABLED') === 'true';
+const WA_FLOW_ADD_CONTACT_SCREEN_ID = 'ADD_CONTACT';
+
+/**
  * Reply-id namespace for a WhatsApp PUSH template's per-alert button — currently only "Mark
  * resolved" on the macavation_alert template (send-alert-whatsapp/index.ts). Not a MENU_NS tap:
  * this arrives on an alert PUSH the member did not request, not a menu they opened, and it carries
@@ -1073,6 +1096,11 @@ async function commandMenu(ctx: CommandContext): Promise<CommandResult> {
   }
 
   const rows = buildDigestFlowRows(digestItems, digest);
+  // Same crm-grid gate as the native-list "Add contact" row and startAddContact. Showing the row
+  // is presentation only: handleAddContactFlowSubmit re-checks crm-grid when the form comes back.
+  if (WA_FLOW_ADD_CONTACT_ENABLED && featureKeys.has('crm-grid')) {
+    rows.push(addContactFlowRow());
+  }
   const flowResult = await sendFlow(
     toWaPhone(ctx.phone),
     menuBodyText(ctx.displayName),
@@ -2375,6 +2403,144 @@ async function startAddContact(
   return stageAddContactDraft(ctx, fields, 'type', null);
 }
 
+/**
+ * One text field off a submitted Flow form, trimmed. A field the member left empty can come back
+ * as an empty string, as a missing key, or (by some accounts of Meta's behaviour, unconfirmed
+ * here) as the unsubstituted `${form.x}` binding itself, so all three read as empty. PURE.
+ */
+function flowFieldString(v: unknown): string {
+  if (typeof v !== 'string') return '';
+  const trimmed = v.trim();
+  return trimmed.startsWith('${') ? '' : trimmed;
+}
+
+/**
+ * Validates the ADD_CONTACT Flow screen's submission with the SAME rules as the typed /contact
+ * steps. The Flow's own `required` flags run on the handset and are not trusted: every field is
+ * re-checked here. Returns every problem at once, so the member can fix them in one go. PURE,
+ * re-declared and tested by verify-wa-add-contact.
+ */
+function parseAddContactFlowSubmission(
+  response: Record<string, unknown>
+): { ok: true; fields: AddContactDraftFields } | { ok: false; errors: string[] } {
+  const errors: string[] = [];
+
+  const typeRaw = flowFieldString(response.contact_type);
+  const contactType = CONTACT_TYPES.some((t) => t.key === typeRaw) ? typeRaw : null;
+  if (!contactType) errors.push('Choose a contact type.');
+
+  const company = validateCompanyName(flowFieldString(response.company_name));
+  if (!company.ok) errors.push('Company name is required (max 255 characters).');
+
+  const personRaw = flowFieldString(response.contact_name);
+  if (personRaw.length > 255) errors.push('Contact person is too long (max 255 characters).');
+
+  const mobileRaw = flowFieldString(response.mobile);
+  const mobile = mobileRaw ? normaliseMobile(mobileRaw) : null;
+  if (mobile && !mobile.ok) errors.push("Mobile doesn't look like a phone number.");
+
+  const emailRaw = flowFieldString(response.email);
+  const email = emailRaw ? validateEmail(emailRaw) : null;
+  if (email && !email.ok) errors.push("Email doesn't look like an email address.");
+
+  if (errors.length > 0 || !company.ok) return { ok: false, errors };
+
+  return {
+    ok: true,
+    fields: {
+      contact_type: contactType,
+      company_name: company.value,
+      primary_contact_name: personRaw || null,
+      primary_contact_mobile: mobile && mobile.ok ? mobile.value : null,
+      primary_contact_email: email && email.ok ? email.value : null,
+    },
+  };
+}
+
+/**
+ * A submitted WhatsApp Flow form (processCommandForMessage's nfm_reply branch). Only the menu
+ * Flow's ADD_CONTACT screen means anything here. Every other submission, including the DETAIL
+ * screen's own "Close" button (payload `{ flow: 'daily_report_menu' }`), is logged and gets NO
+ * reply: closing a report must never produce a message.
+ *
+ * A valid add-contact form goes to the same place the typed flow ends up: stageAddContactConfirm
+ * stages ADD_CONTACT and asks for YES, and the ADD_CONTACT staged handler does the write. There
+ * is one write path, not two. The flow_token is not an authorisation; the enrolled sender is.
+ */
+async function handleAddContactFlowSubmit(
+  ctx: CommandContext,
+  response: Record<string, unknown>
+): Promise<CommandResult> {
+  if (response.form !== 'add_contact') {
+    return {
+      outcome: 'ok',
+      reply: null,
+      command: 'FLOW',
+      detail: `flow submission ignored (form=${String(response.form ?? response.flow ?? 'none').slice(0, 40)})`,
+    };
+  }
+
+  const featureKeys = await loadFeatureKeys(ctx.sb, ctx.roleId);
+  if (!featureKeys.has('crm-grid')) {
+    return {
+      outcome: 'denied',
+      reply: `Sorry ${ctx.displayName}, adding contacts is not on your access. Reply 99 for the menu.`,
+      command: 'ADDCONTACT:FLOW',
+    };
+  }
+
+  const parsed = parseAddContactFlowSubmission(response);
+  if (!parsed.ok) {
+    return {
+      outcome: 'ok',
+      reply:
+        `Sorry ${ctx.displayName}, that contact was not saved:\n\n` +
+        parsed.errors.map((e) => `• ${e}`).join('\n') +
+        `\n\nSend /contact to try again.`,
+      command: 'ADDCONTACT:FLOW',
+      detail: 'invalid form submission',
+    };
+  }
+
+  let note: string | null = null;
+  try {
+    const { data, error } = await ctx.sb.rpc('whatsapp_find_contacts_by_company', {
+      p_company_name: parsed.fields.company_name,
+    });
+    if (error) {
+      if (isMissingRpc(error)) {
+        console.error(
+          '[whatsapp-inbound] whatsapp_find_contacts_by_company is missing — migration 20261001120000 not applied.'
+        );
+        return {
+          outcome: 'error',
+          reply: `Adding contacts on WhatsApp is not switched on yet, ${ctx.displayName}. Please use the portal for now.`,
+          command: 'ADDCONTACT:FLOW',
+          detail: 'migration 20261001120000 not applied',
+        };
+      }
+      console.error('[whatsapp-inbound] whatsapp_find_contacts_by_company failed:', error.message);
+    } else {
+      const rows: Any[] = Array.isArray(data) ? data : data ? [data] : [];
+      if (rows.length > 0) {
+        note =
+          rows.length === 1
+            ? 'Heads up: a contact already exists with this company name.'
+            : `Heads up: ${rows.length} contacts already exist with this company name.`;
+      }
+    }
+  } catch (e) {
+    console.error('[whatsapp-inbound] whatsapp_find_contacts_by_company threw:', e);
+  }
+
+  const result = await stageAddContactConfirm(ctx, parsed.fields);
+  const tagged = { ...result, command: 'ADDCONTACT:FLOW' };
+  if (note && result.outcome === 'ok' && result.reply) {
+    return { ...tagged, reply: `${note}\n\n${result.reply}` };
+  }
+  return tagged;
+}
+
 // ============================================================================
 // Staged-command handlers — dispatched by YES on whatever was staged via
 // whatsapp_stage_pending_command, keyed on its `command` value.
@@ -3604,6 +3770,7 @@ async function processCommandForMessage(
 
   let rawBody: string;
   let replyId: string | null = null;
+  let flowResponse: Record<string, unknown> | null = null;
 
   if (type === 'text') {
     // Read straight from the message rather than through classifyMessage: that classifier treats
@@ -3616,12 +3783,18 @@ async function processCommandForMessage(
     // tap on an approved template. It returns the id, not the display title, which is the whole
     // point: see CommandContext.replyId.
     const classified = classifyMessage(msg, undefined);
-    if (classified.kind !== 'button_reply' && classified.kind !== 'list_reply') {
+    if (classified.kind === 'flow_reply') {
+      // A submitted Flow form. Dispatched by handleAddContactFlowSubmit below, never as a verb or
+      // a tap. The audit log gets a placeholder, never the form's name/phone/email fields.
+      flowResponse = classified.response;
+      rawBody = '[flow submission]';
+    } else if (classified.kind === 'button_reply' || classified.kind === 'list_reply') {
+      replyId = classified.replyId;
+      // The audit log records the id that was dispatched on, not the label the member saw.
+      rawBody = classified.replyId;
+    } else {
       return;
     }
-    replyId = classified.replyId;
-    // The audit log records the id that was dispatched on, not the label the member saw.
-    rawBody = classified.replyId;
   } else if (type === 'contacts') {
     // A shared WhatsApp contact card — routed to the /contact draft as a PREFILL, not treated as
     // a verb. rawBody is the same placeholder bodyForMessage already used for the outer webhook
@@ -3721,7 +3894,9 @@ async function processCommandForMessage(
     const result =
       type === 'contacts'
         ? await startAddContact(ctx, extractSharedContact(msg?.contacts?.[0]))
-        : await handleCommand(ctx);
+        : flowResponse
+          ? await handleAddContactFlowSubmit(ctx, flowResponse)
+          : await handleCommand(ctx);
 
     await logCommand(sb, {
       phone: from,

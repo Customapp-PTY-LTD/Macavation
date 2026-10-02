@@ -81,6 +81,7 @@ export type ExtractedMessage =
   | { kind: 'button_reply'; from: string; id: string; replyId: string; replyTitle: string; senderName?: string }
   | { kind: 'list_reply'; from: string; id: string; replyId: string; replyTitle: string; senderName?: string }
   | { kind: 'contacts'; from: string; id: string; contacts: unknown[]; senderName?: string } // a shared contact card
+  | { kind: 'flow_reply'; from: string; id: string; response: Record<string, unknown>; senderName?: string } // a submitted WhatsApp Flow form
   | { kind: 'status' } // delivery/read receipts — classify and ignore
   | { kind: 'unsupported' }; // images, unknown types, unparseable
 
@@ -153,6 +154,22 @@ export function classifyMessage(msg: unknown, senderName: string | undefined): E
         return { kind: 'list_reply', from, id, replyId: lr.id, replyTitle: lr.title, senderName };
       }
       return { kind: 'unsupported' };
+    }
+    // A submitted WhatsApp Flow form (a Footer `complete` action). Meta documents the shape as
+    // interactive.nfm_reply.response_json, a JSON STRING of the complete-action payload. Nothing has
+    // produced one on this line yet, so every step is guarded and anything off-shape is unsupported.
+    if (interactiveType === 'nfm_reply') {
+      const nfm = (interactive.nfm_reply as Record<string, unknown> | undefined) ?? {};
+      const raw = nfm.response_json;
+      if (!isNonEmptyString(raw)) return { kind: 'unsupported' };
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        return { kind: 'unsupported' };
+      }
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { kind: 'unsupported' };
+      return { kind: 'flow_reply', from, id, response: parsed as Record<string, unknown>, senderName };
     }
     return { kind: 'unsupported' };
   }
