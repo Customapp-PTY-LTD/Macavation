@@ -757,8 +757,9 @@ check('sanitisePrefillEmail: null -> null; a malformed card email silently drops
 });
 
 // ================================================================================================
-// N. The menu Flow's ADD_CONTACT form screen (supabase/flows/daily-report-menu.flow.json) and the
-//    nfm_reply submission path into the SAME stageAddContactConfirm / ADD_CONTACT write.
+// N. The add-contact form Flow (supabase/flows/add-contact.flow.json), how /contact and the menu
+//    open it, and the nfm_reply submission path into the SAME stageAddContactConfirm / ADD_CONTACT
+//    write.
 //
 // The Flow JSON component syntax (Form / Dropdown / TextInput / Footer `complete`) and the
 // nfm_reply webhook shape both follow Meta's docs. Neither has been seen live on this line yet,
@@ -766,8 +767,10 @@ check('sanitisePrefillEmail: null -> null; a malformed card email silently drops
 // what Meta does.
 // ================================================================================================
 
-const REL_FLOW = 'supabase/flows/daily-report-menu.flow.json';
+const REL_FLOW = 'supabase/flows/add-contact.flow.json';
 const flowSrc = readFile(REL_FLOW);
+const REL_MENU_FLOW = 'supabase/flows/daily-report-menu.flow.json';
+const menuFlowSrc = readFile(REL_MENU_FLOW);
 
 const FLOW_FIELD_STRING_LITERAL = block([
   "function flowFieldString(v: unknown): string {",
@@ -928,12 +931,13 @@ check('parseAddContactFlowSubmission: every problem is reported at once', () => 
   assert.equal(r.errors.length, 5);
 });
 
-check('Flow JSON parses, keeps REPORT_MENU and DETAIL, and adds a terminal ADD_CONTACT screen', () => {
+check('add-contact Flow JSON parses and is exactly one terminal ADD_CONTACT screen; the menu Flow is untouched', () => {
   const flow = JSON.parse(flowSrc);
-  const ids = flow.screens.map((sc) => sc.id);
-  assert.deepEqual(ids, ['REPORT_MENU', 'DETAIL', 'ADD_CONTACT']);
-  const add = flow.screens.find((sc) => sc.id === 'ADD_CONTACT');
-  assert.equal(add.terminal, true);
+  assert.deepEqual(flow.screens.map((sc) => sc.id), ['ADD_CONTACT']);
+  assert.equal(flow.screens[0].terminal, true);
+  assert.equal(flow.screens[0].data, undefined, 'opened with no launch data (buildFlowOpenBody sends none)');
+  // The published menu Flow keeps working as-is: adding a contact never requires republishing it.
+  assert.deepEqual(JSON.parse(menuFlowSrc).screens.map((sc) => sc.id), ['REPORT_MENU', 'DETAIL']);
 });
 
 check('Flow ADD_CONTACT: dropdown ids are exactly CONTACT_TYPES, and Next completes with form:add_contact + all five fields', () => {
@@ -959,20 +963,47 @@ check('Flow ADD_CONTACT: dropdown ids are exactly CONTACT_TYPES, and Next comple
   }
 });
 
-check('Flow menu row: gated on WA_FLOW_ADD_CONTACT_ENABLED AND crm-grid, navigating to ADD_CONTACT', () => {
+check('/contact opens the add-contact Flow only when WA_ADD_CONTACT_FLOW_ID is set and there is no card prefill, else asks questions', () => {
   assertPresent(
     inboundSrc,
     REL_INBOUND,
-    'WA_FLOW_ADD_CONTACT_ENABLED',
-    "const WA_FLOW_ADD_CONTACT_ENABLED = Deno.env.get('WA_FLOW_ADD_CONTACT_ENABLED') === 'true';"
+    'WA_ADD_CONTACT_FLOW_ID',
+    "const WA_ADD_CONTACT_FLOW_ID = Deno.env.get('WA_ADD_CONTACT_FLOW_ID') ?? '';"
   );
-  assertPresent(inboundSrc, REL_INBOUND, 'ADD_CONTACT screen id', "const WA_FLOW_ADD_CONTACT_SCREEN_ID = 'ADD_CONTACT';");
+  assertPresent(inboundSrc, REL_INBOUND, 'ADD_CONTACT screen id', "const WA_ADD_CONTACT_FLOW_SCREEN_ID = 'ADD_CONTACT';");
+  const start = inboundSrc.indexOf('async function startAddContact(');
+  const body = inboundSrc.slice(start, inboundSrc.indexOf('\n}\n', start));
+  const gate = body.indexOf("if (!featureKeys.has('crm-grid')) {");
+  const migration = body.indexOf('isMissingRpc(peek.error)');
+  const flow = body.indexOf('if (!prefill && WA_ADD_CONTACT_FLOW_ID) {');
+  const questions = body.indexOf("return stageAddContactDraft(ctx, fields, 'type', null);");
+  assert.ok(gate > 0 && migration > gate && flow > migration && questions > flow,
+    'order must be: crm-grid gate, migration check, Flow attempt, then the typed questions');
+  assert.ok(body.includes('if (sent.ok) {'), 'a failed Flow send falls through to the questions');
+  assert.ok(body.includes('WA_ADD_CONTACT_FLOW_SCREEN_ID'), 'opens the ADD_CONTACT screen');
+});
+
+check('menu Flow: "Add contact" is its own button (re-checked on tap), never inside the Reports list', () => {
+  assertPresent(inboundSrc, REL_INBOUND, 'ADD_CONTACT_ACTION', "const ADD_CONTACT_ACTION = 'addcontact';");
   assertPresent(
     inboundSrc,
     REL_INBOUND,
-    'commandMenu add-contact row gate',
-    "  if (WA_FLOW_ADD_CONTACT_ENABLED && featureKeys.has('crm-grid')) {\n    rows.push(addContactFlowRow());\n  }"
+    'followUpItemsOf excludes add contact',
+    "return items.filter((i) => !i.render && i.action !== ADD_CONTACT_ACTION);"
   );
+  assertPresent(
+    inboundSrc,
+    REL_INBOUND,
+    'Add contact button',
+    "if (canAddContact) buttons.push({ id: buildReplyId(MENU_NS, ADD_CONTACT_ACTION), title: 'Add contact' });"
+  );
+  assertPresent(
+    inboundSrc,
+    REL_INBOUND,
+    'button shown only for a role that can see the addcontact item',
+    'const canAddContact = items.some((i) => i.action === ADD_CONTACT_ACTION);'
+  );
+  assert.ok(!inboundSrc.includes('WA_FLOW_ADD_CONTACT_ENABLED'), 'the old menu-Flow row flag is gone');
 });
 
 check('Flow submission: routed to handleAddContactFlowSubmit, which ignores other forms silently and re-checks crm-grid', () => {
