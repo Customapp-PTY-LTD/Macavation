@@ -84,6 +84,7 @@ import {
   parseReplyId,
   sendButtons,
   sendFlow,
+  sendFlowScreen,
   sendList,
   toWaPhone,
   type WaFlowRow,
@@ -598,18 +599,6 @@ function statsAsOfSAST(): string {
  * Meta's `data_exchange` Flow mode, which needs a working encryption handshake AND a Control Room
  * routing path this repo does not have yet — see .cursor/plans/wa-flow-data-exchange-spike.md.
  */
-function addContactFlowRow(): WaFlowRow {
-  return {
-    id: 'addcontact',
-    'main-content': { title: 'Add contact', metadata: 'Add a supplier or customer' },
-    'on-click-action': {
-      name: 'navigate',
-      next: { type: 'screen', name: WA_FLOW_ADD_CONTACT_SCREEN_ID },
-      payload: {},
-    },
-  };
-}
-
 function buildDigestFlowRows(items: MenuItem[], digest: Any): WaFlowRow[] {
   return items.map((item) => {
     const rendered = item.render!(digest, false);
@@ -880,15 +869,17 @@ const WA_DAILY_REPORT_FLOW_ID = Deno.env.get('WA_DAILY_REPORT_FLOW_ID') ?? '';
 const WA_DAILY_REPORT_FLOW_ENTRY_SCREEN_ID = 'REPORT_MENU';
 
 /**
- * Turns on the "Add contact" row in the menu Flow (it opens the Flow's ADD_CONTACT form screen).
- * Separate from WA_DAILY_REPORT_FLOW_ID on purpose: a Flow already published in Meta from an OLDER
- * copy of supabase/flows/daily-report-menu.flow.json has no ADD_CONTACT screen, and a row that
- * navigates to a missing screen fails inside WhatsApp, where we cannot see it. Set this to 'true'
- * only once the published Flow includes ADD_CONTACT. With it off, the native-list menu's "Add
- * contact" row and the typed /contact still work exactly as before.
+ * Meta's Flow id for supabase/flows/add-contact.flow.json, once published. When set, /contact and
+ * the "Add contact" menu entries open that one-screen form instead of asking the questions one
+ * message at a time. When unset, or if the Flow send fails, they fall back to the typed questions,
+ * so a missing or broken Flow can never leave a member unable to add a contact. A shared contact
+ * card always uses the typed questions, because the form cannot be prefilled from the card.
  */
-const WA_FLOW_ADD_CONTACT_ENABLED = Deno.env.get('WA_FLOW_ADD_CONTACT_ENABLED') === 'true';
-const WA_FLOW_ADD_CONTACT_SCREEN_ID = 'ADD_CONTACT';
+const WA_ADD_CONTACT_FLOW_ID = Deno.env.get('WA_ADD_CONTACT_FLOW_ID') ?? '';
+const WA_ADD_CONTACT_FLOW_SCREEN_ID = 'ADD_CONTACT';
+
+/** The `menu:` action of the "Add contact" button sent with the menu Flow — the MENU_ITEMS row's own action. */
+const ADD_CONTACT_ACTION = 'addcontact';
 
 /**
  * Reply-id namespace for a WhatsApp PUSH template's per-alert button — currently only "Mark
@@ -995,7 +986,9 @@ async function sendMenuAsList(ctx: CommandContext, items: MenuItem[], detail?: s
  * 'addcontact' joining it is the same pre-existing trade-off, not a new one.
  */
 function followUpItemsOf(items: MenuItem[]): MenuItem[] {
-  return items.filter((i) => !i.render);
+  // Reports only. "Add contact" is not a report: alongside the Flow it gets its own button
+  // (commandMenu), and in the native list it is an ordinary row.
+  return items.filter((i) => !i.render && i.action !== ADD_CONTACT_ACTION);
 }
 
 /**
@@ -1096,11 +1089,6 @@ async function commandMenu(ctx: CommandContext): Promise<CommandResult> {
   }
 
   const rows = buildDigestFlowRows(digestItems, digest);
-  // Same crm-grid gate as the native-list "Add contact" row and startAddContact. Showing the row
-  // is presentation only: handleAddContactFlowSubmit re-checks crm-grid when the form comes back.
-  if (WA_FLOW_ADD_CONTACT_ENABLED && featureKeys.has('crm-grid')) {
-    rows.push(addContactFlowRow());
-  }
   const flowResult = await sendFlow(
     toWaPhone(ctx.phone),
     menuBodyText(ctx.displayName),
@@ -1116,24 +1104,35 @@ async function commandMenu(ctx: CommandContext): Promise<CommandResult> {
     return sendMenuAsList(ctx, items, 'Flow send failed; native list');
   }
 
-  if (followUpItems.length === 0) {
+  // Things the Flow cannot hold, offered as buttons rather than sent automatically: "Reports"
+  // (Latest report / My reports) and "Add contact" (its own Flow). A failure here is reported on
+  // its own, since the Flow itself already sent successfully above and must never be duplicated by
+  // a fallback that re-sends the full list. Each tap re-checks the role (renderMenuItem).
+  const canAddContact = items.some((i) => i.action === ADD_CONTACT_ACTION);
+  const buttons: { id: string; title: string }[] = [];
+  if (followUpItems.length > 0) buttons.push({ id: buildReplyId(MENU_NS, REPORTS_BUTTON_ACTION), title: 'Reports' });
+  if (canAddContact) buttons.push({ id: buildReplyId(MENU_NS, ADD_CONTACT_ACTION), title: 'Add contact' });
+
+  if (buttons.length === 0) {
     return { outcome: 'ok', reply: null, command: 'MENU' };
   }
 
-  // Latest report / My reports: not Flow-representable. Offered as a button, not sent
-  // automatically — a failure here is reported on its own, since the Flow itself already sent
-  // successfully above and must never be duplicated by a fallback that re-sends the full list.
-  const buttonResult = await sendButtons(toWaPhone(ctx.phone), 'Need your latest report or your delivery settings?', [
-    { id: buildReplyId(MENU_NS, REPORTS_BUTTON_ACTION), title: 'Reports' },
-  ]);
+  const prompt =
+    followUpItems.length > 0 && canAddContact
+      ? 'Need your latest report, your delivery settings, or to add a contact?'
+      : canAddContact
+        ? 'Need to add a contact?'
+        : 'Need your latest report or your delivery settings?';
+  const buttonResult = await sendButtons(toWaPhone(ctx.phone), prompt, buttons);
 
   if (!buttonResult.ok) {
-    console.error(`[whatsapp-inbound] commandMenu: Reports button send failed: ${buttonResult.error}`);
+    console.error(`[whatsapp-inbound] commandMenu: follow-up button send failed: ${buttonResult.error}`);
+    const fallbackItems = items.filter((i) => !i.render);
     return {
       outcome: 'ok',
-      reply: `${menuFallbackText(ctx.displayName, followUpItems)}`,
+      reply: `${menuFallbackText(ctx.displayName, fallbackItems)}`,
       command: 'MENU',
-      detail: 'Reports button send failed; text fallback',
+      detail: 'follow-up button send failed; text fallback',
     };
   }
 
@@ -2390,6 +2389,21 @@ async function startAddContact(
       command: 'ADDCONTACT',
       detail: 'migration 20261001120000 not applied',
     };
+  }
+
+  if (!prefill && WA_ADD_CONTACT_FLOW_ID) {
+    const sent = await sendFlowScreen(
+      toWaPhone(ctx.phone),
+      `Hi ${ctx.displayName}, tap below to add a contact. You will get a summary to confirm before anything is saved.`,
+      WA_ADD_CONTACT_FLOW_ID,
+      WA_ADD_CONTACT_FLOW_SCREEN_ID,
+      'Add contact',
+      crypto.randomUUID()
+    );
+    if (sent.ok) {
+      return { outcome: 'ok', reply: null, command: 'ADDCONTACT:FLOW_SENT' };
+    }
+    console.error(`[whatsapp-inbound] startAddContact: Flow send failed, falling back to questions: ${sent.error}`);
   }
 
   const fields: AddContactDraftFields = {

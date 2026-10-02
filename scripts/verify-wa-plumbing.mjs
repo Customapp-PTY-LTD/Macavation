@@ -869,14 +869,18 @@ check('wa-send.ts header records the confirmed-from-source provenance for the no
   assert.ok(waSendSrc.includes('passed through UNCHANGED'));
 });
 
-check('wa-send.ts exports sendButtons / sendList / sendTemplate / sendFlow, each via sendViaControlRoom', () => {
+check('wa-send.ts exports sendButtons / sendList / sendTemplate / sendFlow / sendFlowScreen, each via sendViaControlRoom', () => {
   assert.ok(/export async function sendButtons\(/.test(waSendSrc));
   assert.ok(/export async function sendList\(/.test(waSendSrc));
   assert.ok(/export async function sendTemplate\(/.test(waSendSrc));
   assert.ok(/export async function sendFlow\(/.test(waSendSrc));
+  assert.ok(/export async function sendFlowScreen\(/.test(waSendSrc));
+  assert.ok(waSendSrc.includes('const body = buildFlowOpenBody(to, bodyText, flowId, screenId, ctaText, flowToken);'));
+  // buildFlowOpenBody opens a data-less screen: it must never send a `data` key.
+  assert.ok(waSendSrc.includes('flow_action_payload: { screen: screenId },'));
   // Every sender must go through the single signing path. A sender that builds its own fetch would
   // be a second place for the HMAC to drift out of step.
-  assert.equal((waSendSrc.match(/return sendViaControlRoom\(body\);/g) || []).length, 5);
+  assert.equal((waSendSrc.match(/return sendViaControlRoom\(body\);/g) || []).length, 6);
   assert.equal((waSendSrc.match(/await fetch\(/g) || []).length, 1);
 });
 
