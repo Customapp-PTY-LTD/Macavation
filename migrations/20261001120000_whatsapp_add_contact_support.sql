@@ -81,9 +81,7 @@ END;
 $$;
 
 COMMENT ON FUNCTION public.whatsapp_peek_pending_command(text, uuid) IS
-    'SERVER-SIDE ONLY (service_role) — read-only sibling of whatsapp_take_pending_command. Used ' ||
-    'by the /contact draft state machine to check whether a draft is still live, and read its ' ||
-    'current step, WITHOUT consuming (deleting) it. Same phone/user_id/expires_at > now() match.';
+    'SERVER-SIDE ONLY (service_role) — read-only sibling of whatsapp_take_pending_command. Used by the /contact draft state machine to check whether a draft is still live, and read its current step, WITHOUT consuming (deleting) it. Same phone/user_id/expires_at > now() match.';
 
 -- ============================================================================
 -- 2. whatsapp_find_contacts_by_company — service_role only. Duplicate-company check.
@@ -116,10 +114,7 @@ END;
 $$;
 
 COMMENT ON FUNCTION public.whatsapp_find_contacts_by_company(text) IS
-    'SERVER-SIDE ONLY (service_role) — exact (case-insensitive, trimmed) company-name match, ' ||
-    'deleted_at IS NULL only, capped at 5 rows. Used by the /contact guided flow''s company-name ' ||
-    'step to warn staff before they create a contact that may already exist. Deliberately NOT ' ||
-    'fuzzy/substring: a false positive here would block a legitimate new contact.';
+    'SERVER-SIDE ONLY (service_role) — exact (case-insensitive, trimmed) company-name match, deleted_at IS NULL only, capped at 5 rows. Used by the /contact guided flow''s company-name step to warn staff before they create a contact that may already exist. Deliberately NOT fuzzy/substring: a false positive here would block a legitimate new contact.';
 
 -- ============================================================================
 -- 3. role_permissions seed — convention only, NOT the access control (see
