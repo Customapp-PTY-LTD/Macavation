@@ -1,12 +1,11 @@
 ---
-depends_on: wa-add-contact-01-typed.md
 notify: henry@customapp.co.za
 ---
 # WhatsApp: "Add contact" form on the menu Flow screen
 
 ## Why
 
-`wa-add-contact-01-typed.md` (merged before this runs) lets staff add a CRM contact by typing
+`wa-add-contact-01-typed.md` is ALREADY MERGED on `dev` (merge commit `e239f95`). It lets staff add a CRM contact by typing
 `/contact` and answering questions. This plan adds the same capture as a one-screen form inside
 the WhatsApp menu Flow (`supabase/flows/daily-report-menu.flow.json`), so a member can tap
 "Add contact", fill five fields, and submit. The submission goes through the SAME validation,
@@ -21,11 +20,12 @@ duplicate check, summary, and YES confirmation as plan 01. There is one write pa
   rows. `commandMenu` sends the Flow only when `WA_DAILY_REPORT_FLOW_ID` is set, and otherwise
   sends the native list. That env var is NOT set on any environment today, so the Flow path is
   dormant. That is expected, and this plan must keep the native-list path unchanged.
-- From plan 01, in the same file: the five-type allowlist, the pure validators
+- From plan 01, already on `dev` in the same file: the five-type allowlist `CONTACT_TYPES`, the pure validators
   (`validateCompanyName`, `normaliseMobile`, `validateEmail`, `isSkipAnswer`), the
-  `whatsapp_find_contacts_by_company` duplicate check, `buildAddContactSummary`, the
-  `ADD_CONTACT` staging and its staged handler, and the `crm-grid` gate. Reuse them. Do not copy them.
-- `supabase/functions/_shared/wa-inbound.ts` `classifyMessage`: it has no `nfm_reply` handling,
+  `whatsapp_find_contacts_by_company` duplicate check, `buildAddContactSummary`, `stageAddContactConfirm` (stages
+  `ADD_CONTACT` and sends the summary - call this, do not re-implement it), the `ADD_CONTACT` staged handler, and the `crm-grid` gate. Reuse them. Do not copy them.
+- `supabase/functions/_shared/wa-inbound.ts` `classifyMessage`: plan 01 added `kind: 'contacts'`
+  (follow how that kind is routed to the command path for enrolled staff). It has no `nfm_reply` handling,
   and nothing in this repo parses a Flow submission today.
 
 ## Deliverables
