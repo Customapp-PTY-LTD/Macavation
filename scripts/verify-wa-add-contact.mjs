@@ -353,7 +353,9 @@ assertPresent(
     '    const result =',
     "      type === 'contacts'",
     '        ? await startAddContact(ctx, extractSharedContact(msg?.contacts?.[0]))',
-    '        : await handleCommand(ctx);',
+    '        : flowResponse',
+    '          ? await handleAddContactFlowSubmit(ctx, flowResponse)',
+    '          : await handleCommand(ctx);',
   ])
 );
 
@@ -752,6 +754,240 @@ check('sanitisePrefillEmail: null -> null; a malformed card email silently drops
   assert.equal(sanitisePrefillEmail(null), null);
   assert.equal(sanitisePrefillEmail('not-an-email'), null);
   assert.equal(sanitisePrefillEmail('jane@acme.co.za'), 'jane@acme.co.za');
+});
+
+// ================================================================================================
+// N. The menu Flow's ADD_CONTACT form screen (supabase/flows/daily-report-menu.flow.json) and the
+//    nfm_reply submission path into the SAME stageAddContactConfirm / ADD_CONTACT write.
+//
+// The Flow JSON component syntax (Form / Dropdown / TextInput / Footer `complete`) and the
+// nfm_reply webhook shape both follow Meta's docs. Neither has been seen live on this line yet,
+// so they are UNCONFIRMED against Meta: these checks pin what this repo sends and expects, not
+// what Meta does.
+// ================================================================================================
+
+const REL_FLOW = 'supabase/flows/daily-report-menu.flow.json';
+const flowSrc = readFile(REL_FLOW);
+
+const FLOW_FIELD_STRING_LITERAL = block([
+  "function flowFieldString(v: unknown): string {",
+  "  if (typeof v !== 'string') return '';",
+  "  const trimmed = v.trim();",
+  "  return trimmed.startsWith('${') ? '' : trimmed;",
+  "}",
+]);
+
+const PARSE_FLOW_SUBMISSION_LITERAL = block([
+  "function parseAddContactFlowSubmission(",
+  "  response: Record<string, unknown>",
+  "): { ok: true; fields: AddContactDraftFields } | { ok: false; errors: string[] } {",
+  "  const errors: string[] = [];",
+  "",
+  "  const typeRaw = flowFieldString(response.contact_type);",
+  "  const contactType = CONTACT_TYPES.some((t) => t.key === typeRaw) ? typeRaw : null;",
+  "  if (!contactType) errors.push('Choose a contact type.');",
+  "",
+  "  const company = validateCompanyName(flowFieldString(response.company_name));",
+  "  if (!company.ok) errors.push('Company name is required (max 255 characters).');",
+  "",
+  "  const personRaw = flowFieldString(response.contact_name);",
+  "  if (personRaw.length > 255) errors.push('Contact person is too long (max 255 characters).');",
+  "",
+  "  const mobileRaw = flowFieldString(response.mobile);",
+  "  const mobile = mobileRaw ? normaliseMobile(mobileRaw) : null;",
+  "  if (mobile && !mobile.ok) errors.push(\"Mobile doesn't look like a phone number.\");",
+  "",
+  "  const emailRaw = flowFieldString(response.email);",
+  "  const email = emailRaw ? validateEmail(emailRaw) : null;",
+  "  if (email && !email.ok) errors.push(\"Email doesn't look like an email address.\");",
+  "",
+  "  if (errors.length > 0 || !company.ok) return { ok: false, errors };",
+  "",
+  "  return {",
+  "    ok: true,",
+  "    fields: {",
+  "      contact_type: contactType,",
+  "      company_name: company.value,",
+  "      primary_contact_name: personRaw || null,",
+  "      primary_contact_mobile: mobile && mobile.ok ? mobile.value : null,",
+  "      primary_contact_email: email && email.ok ? email.value : null,",
+  "    },",
+  "  };",
+  "}",
+]);
+
+check('presence: flowFieldString', () => {
+  assertPresent(inboundSrc, REL_INBOUND, 'flowFieldString', FLOW_FIELD_STRING_LITERAL);
+});
+check('presence: parseAddContactFlowSubmission', () => {
+  assertPresent(inboundSrc, REL_INBOUND, 'parseAddContactFlowSubmission', PARSE_FLOW_SUBMISSION_LITERAL);
+});
+
+function flowFieldString(v) {
+  if (typeof v !== 'string') return '';
+  const trimmed = v.trim();
+  return trimmed.startsWith('${') ? '' : trimmed;
+}
+
+function parseAddContactFlowSubmission(response) {
+  const errors = [];
+
+  const typeRaw = flowFieldString(response.contact_type);
+  const contactType = CONTACT_TYPES.some((t) => t.key === typeRaw) ? typeRaw : null;
+  if (!contactType) errors.push('Choose a contact type.');
+
+  const company = validateCompanyName(flowFieldString(response.company_name));
+  if (!company.ok) errors.push('Company name is required (max 255 characters).');
+
+  const personRaw = flowFieldString(response.contact_name);
+  if (personRaw.length > 255) errors.push('Contact person is too long (max 255 characters).');
+
+  const mobileRaw = flowFieldString(response.mobile);
+  const mobile = mobileRaw ? normaliseMobile(mobileRaw) : null;
+  if (mobile && !mobile.ok) errors.push("Mobile doesn't look like a phone number.");
+
+  const emailRaw = flowFieldString(response.email);
+  const email = emailRaw ? validateEmail(emailRaw) : null;
+  if (email && !email.ok) errors.push("Email doesn't look like an email address.");
+
+  if (errors.length > 0 || !company.ok) return { ok: false, errors };
+
+  return {
+    ok: true,
+    fields: {
+      contact_type: contactType,
+      company_name: company.value,
+      primary_contact_name: personRaw || null,
+      primary_contact_mobile: mobile && mobile.ok ? mobile.value : null,
+      primary_contact_email: email && email.ok ? email.value : null,
+    },
+  };
+}
+
+check('flowFieldString: non-string, blank, and an unsubstituted ${form.x} binding all read as empty', () => {
+  assert.equal(flowFieldString(undefined), '');
+  assert.equal(flowFieldString(42), '');
+  assert.equal(flowFieldString('   '), '');
+  assert.equal(flowFieldString('${form.email}'), '');
+  assert.equal(flowFieldString('  Acme  '), 'Acme');
+});
+
+check('parseAddContactFlowSubmission: a full valid form -> fields exactly as create_contact_simple is called with', () => {
+  const r = parseAddContactFlowSubmission({
+    form: 'add_contact',
+    contact_type: 'nis_supplier',
+    company_name: '  Smith Farms ',
+    contact_name: 'John Smith',
+    mobile: '+27 82 123 4567',
+    email: 'john@smith.co.za',
+    flow_token: 'ignored',
+  });
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.fields, {
+    contact_type: 'nis_supplier',
+    company_name: 'Smith Farms',
+    primary_contact_name: 'John Smith',
+    primary_contact_mobile: '+27821234567',
+    primary_contact_email: 'john@smith.co.za',
+  });
+});
+
+check('parseAddContactFlowSubmission: optional fields empty, missing, or unsubstituted -> null, still ok', () => {
+  const r = parseAddContactFlowSubmission({
+    contact_type: 'kernel_customer',
+    company_name: 'Acme',
+    contact_name: '',
+    mobile: '${form.mobile}',
+  });
+  assert.equal(r.ok, true);
+  assert.equal(r.fields.primary_contact_name, null);
+  assert.equal(r.fields.primary_contact_mobile, null);
+  assert.equal(r.fields.primary_contact_email, null);
+});
+
+check('parseAddContactFlowSubmission: the handset is not trusted - legacy/unknown type and blank company are refused', () => {
+  for (const contact_type of ['customer', 'supplier', 'both', 'nis_supplier; drop table', '', undefined]) {
+    const r = parseAddContactFlowSubmission({ contact_type, company_name: 'Acme' });
+    assert.equal(r.ok, false, `contact_type=${String(contact_type)}`);
+    assert.ok(r.errors.includes('Choose a contact type.'));
+  }
+  const blank = parseAddContactFlowSubmission({ contact_type: 'oil_processor', company_name: '   ' });
+  assert.equal(blank.ok, false);
+  assert.ok(blank.errors.includes('Company name is required (max 255 characters).'));
+});
+
+check('parseAddContactFlowSubmission: every problem is reported at once', () => {
+  const r = parseAddContactFlowSubmission({
+    contact_type: 'nope',
+    company_name: 'x'.repeat(256),
+    contact_name: 'y'.repeat(256),
+    mobile: '12',
+    email: 'not-an-email',
+  });
+  assert.equal(r.ok, false);
+  assert.equal(r.errors.length, 5);
+});
+
+check('Flow JSON parses, keeps REPORT_MENU and DETAIL, and adds a terminal ADD_CONTACT screen', () => {
+  const flow = JSON.parse(flowSrc);
+  const ids = flow.screens.map((sc) => sc.id);
+  assert.deepEqual(ids, ['REPORT_MENU', 'DETAIL', 'ADD_CONTACT']);
+  const add = flow.screens.find((sc) => sc.id === 'ADD_CONTACT');
+  assert.equal(add.terminal, true);
+});
+
+check('Flow ADD_CONTACT: dropdown ids are exactly CONTACT_TYPES, and Next completes with form:add_contact + all five fields', () => {
+  const flow = JSON.parse(flowSrc);
+  const add = flow.screens.find((sc) => sc.id === 'ADD_CONTACT');
+  const form = add.layout.children.find((c) => c.type === 'Form');
+  assert.ok(form, 'ADD_CONTACT has a Form');
+  const byName = Object.fromEntries(form.children.filter((c) => c.name).map((c) => [c.name, c]));
+  assert.deepEqual(
+    byName.contact_type['data-source'].map((o) => o.id),
+    CONTACT_TYPES.map((t) => t.key)
+  );
+  assert.equal(byName.contact_type.required, true);
+  assert.equal(byName.company_name.required, true);
+  assert.equal(byName.mobile['input-type'], 'phone');
+  assert.equal(byName.email['input-type'], 'email');
+  const footer = form.children.find((c) => c.type === 'Footer');
+  assert.equal(footer['on-click-action'].name, 'complete');
+  const payload = footer['on-click-action'].payload;
+  assert.equal(payload.form, 'add_contact');
+  for (const f of ['contact_type', 'company_name', 'contact_name', 'mobile', 'email']) {
+    assert.equal(payload[f], '${form.' + f + '}', `payload.${f}`);
+  }
+});
+
+check('Flow menu row: gated on WA_FLOW_ADD_CONTACT_ENABLED AND crm-grid, navigating to ADD_CONTACT', () => {
+  assertPresent(
+    inboundSrc,
+    REL_INBOUND,
+    'WA_FLOW_ADD_CONTACT_ENABLED',
+    "const WA_FLOW_ADD_CONTACT_ENABLED = Deno.env.get('WA_FLOW_ADD_CONTACT_ENABLED') === 'true';"
+  );
+  assertPresent(inboundSrc, REL_INBOUND, 'ADD_CONTACT screen id', "const WA_FLOW_ADD_CONTACT_SCREEN_ID = 'ADD_CONTACT';");
+  assertPresent(
+    inboundSrc,
+    REL_INBOUND,
+    'commandMenu add-contact row gate',
+    "  if (WA_FLOW_ADD_CONTACT_ENABLED && featureKeys.has('crm-grid')) {\n    rows.push(addContactFlowRow());\n  }"
+  );
+});
+
+check('Flow submission: routed to handleAddContactFlowSubmit, which ignores other forms silently and re-checks crm-grid', () => {
+  assertPresent(inboundSrc, REL_INBOUND, 'flow_reply branch', "if (classified.kind === 'flow_reply') {");
+  assertPresent(inboundSrc, REL_INBOUND, 'flow dispatch', 'await handleAddContactFlowSubmit(ctx, flowResponse)');
+  assertPresent(inboundSrc, REL_INBOUND, 'audit placeholder', "rawBody = '[flow submission]';");
+  const start = inboundSrc.indexOf('async function handleAddContactFlowSubmit(');
+  assert.ok(start > 0, 'handleAddContactFlowSubmit exists');
+  const body = inboundSrc.slice(start, inboundSrc.indexOf('\n}\n', start));
+  assert.ok(body.includes("if (response.form !== 'add_contact') {"), 'non-add-contact forms short-circuit');
+  assert.ok(/form !== 'add_contact'\) \{\s*return \{\s*outcome: 'ok',\s*reply: null,/.test(body), 'and get no reply');
+  assert.ok(body.includes("featureKeys.has('crm-grid')"), 're-checks crm-grid');
+  assert.ok(body.includes('parseAddContactFlowSubmission(response)'), 'validates server-side');
+  assert.ok(body.includes('stageAddContactConfirm(ctx, parsed.fields)'), 'one write path: the same YES staging');
+  assert.ok(!body.includes("rpc('create_contact_simple'"), 'never writes directly');
 });
 
 // ================================================================================================

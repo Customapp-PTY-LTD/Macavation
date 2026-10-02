@@ -623,6 +623,22 @@ const CLASSIFY_MESSAGE_LITERAL = block([
   '      }',
   "      return { kind: 'unsupported' };",
   '    }',
+  '    // A submitted WhatsApp Flow form (a Footer `complete` action). Meta documents the shape as',
+  '    // interactive.nfm_reply.response_json, a JSON STRING of the complete-action payload. Nothing has',
+  '    // produced one on this line yet, so every step is guarded and anything off-shape is unsupported.',
+  "    if (interactiveType === 'nfm_reply') {",
+  '      const nfm = (interactive.nfm_reply as Record<string, unknown> | undefined) ?? {};',
+  '      const raw = nfm.response_json;',
+  "      if (!isNonEmptyString(raw)) return { kind: 'unsupported' };",
+  '      let parsed: unknown;',
+  '      try {',
+  '        parsed = JSON.parse(raw);',
+  '      } catch {',
+  "        return { kind: 'unsupported' };",
+  '      }',
+  "      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { kind: 'unsupported' };",
+  "      return { kind: 'flow_reply', from, id, response: parsed as Record<string, unknown>, senderName };",
+  '    }',
   "    return { kind: 'unsupported' };",
   '  }',
   '',
@@ -697,6 +713,19 @@ function classifyMessage(msg, senderName) {
         return { kind: 'list_reply', from, id, replyId: lr.id, replyTitle: lr.title, senderName };
       }
       return { kind: 'unsupported' };
+    }
+    if (interactiveType === 'nfm_reply') {
+      const nfm = interactive.nfm_reply ?? {};
+      const raw = nfm.response_json;
+      if (!isNonEmptyString(raw)) return { kind: 'unsupported' };
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        return { kind: 'unsupported' };
+      }
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { kind: 'unsupported' };
+      return { kind: 'flow_reply', from, id, response: parsed, senderName };
     }
     return { kind: 'unsupported' };
   }
@@ -1150,6 +1179,36 @@ check('extractMessage: message missing id -> unsupported', () => {
 check("extractMessage: type:'image' -> unsupported", () => {
   const msg = { from: '27821234567', id: 'wamid.7', type: 'image', image: { id: 'media1' } };
   assert.equal(extractMessage(envelope(msg)).kind, 'unsupported');
+});
+
+check("classifyMessage: interactive nfm_reply with a JSON object -> kind:'flow_reply'", () => {
+  const r = classifyMessage(
+    {
+      from: '27821234567',
+      id: 'wamid.f1',
+      type: 'interactive',
+      interactive: {
+        type: 'nfm_reply',
+        nfm_reply: { name: 'flow', body: 'Sent', response_json: '{"form":"add_contact","company_name":"Acme","flow_token":"t"}' },
+      },
+    },
+    undefined
+  );
+  assert.equal(r.kind, 'flow_reply');
+  assert.equal(r.response.form, 'add_contact');
+  assert.equal(r.response.company_name, 'Acme');
+});
+
+check('classifyMessage: nfm_reply with malformed, array, or missing response_json -> unsupported', () => {
+  for (const response_json of ['{not json', '[1,2]', 'null', '', undefined]) {
+    const r = classifyMessage(
+      { from: '27821234567', id: 'wamid.f2', type: 'interactive', interactive: { type: 'nfm_reply', nfm_reply: { response_json } } },
+      undefined
+    );
+    assert.equal(r.kind, 'unsupported', `response_json=${String(response_json)}`);
+  }
+  const noNfm = classifyMessage({ from: '27821234567', id: 'wamid.f3', type: 'interactive', interactive: { type: 'nfm_reply' } }, undefined);
+  assert.equal(noNfm.kind, 'unsupported');
 });
 
 check("extractMessage: type:'contacts' with a shared contact card -> kind:'contacts'", () => {
