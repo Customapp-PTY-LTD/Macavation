@@ -55,7 +55,7 @@
                 </div>
 
                 <button type="button" class="btn btn-primary" id="createKernelBatchBtn" data-action-perm="grower.intake.create">
-                    <i class="fas fa-plus me-1"></i>Create kernel batch
+                    + New Delivery
                 </button>
                 <button type="button" class="btn btn-outline-secondary" id="exportIntakeBatchesBtn">
                     <i class="fas fa-download me-1"></i>Export
@@ -117,19 +117,19 @@
                             <th class="intake-col-date" title="Date the batch was received">Received date</th>
                             <th class="intake-col-wet d-none d-sm-table-cell">
                                 <div class="intake-wet-nis-header">
-                                    <span class="intake-wet-nis-title">Wet NIS (kg)</span>
+                                    <span class="intake-wet-nis-title">Supplier's declared (kg)</span>
                                     <div class="dropdown d-inline-block ms-1">
                                         <button class="btn btn-sm btn-outline-light border-0 py-0 px-1 intake-wet-nis-dropdown-toggle" type="button" id="intakeWetNisDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Wet NIS display option"><i class="fas fa-chevron-down"></i></button>
                                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="intakeWetNisDropdownBtn" id="intakeWetNisDropdownMenu">
-                                            <li><a class="dropdown-item js-wet-nis-mode" href="#" data-mode="supplied">Supplied</a></li>
-                                            <li><a class="dropdown-item js-wet-nis-mode" href="#" data-mode="actual">Actual</a></li>
+                                            <li><a class="dropdown-item js-wet-nis-mode" href="#" data-mode="supplied">Supplier's declared</a></li>
+                                            <li><a class="dropdown-item js-wet-nis-mode" href="#" data-mode="actual">Weighed total</a></li>
                                             <li><a class="dropdown-item js-wet-nis-mode" href="#" data-mode="both">Both</a></li>
                                         </ul>
                                     </div>
                                 </div>
                                 <div class="intake-wet-nis-subheads" id="intakeWetNisSubheads">
-                                    <span class="intake-wet-subhead intake-wet-actual">Actual</span>
-                                    <span class="intake-wet-subhead intake-wet-supplied">Supplied</span>
+                                    <span class="intake-wet-subhead intake-wet-actual">Weighed total (kg)</span>
+                                    <span class="intake-wet-subhead intake-wet-supplied">Supplier's declared (kg)</span>
                                 </div>
                             </th>
                             <th class="intake-col-stage1">Stage 1 steps</th>

@@ -119,21 +119,24 @@
 
     function dialogHtml(batch, suppliers) {
         var currentSupplierId = supplierIdFromBatch(batch);
+        var bnLocked = !(typeof window.hasAction === 'function' && window.hasAction('grower_intake.edit_batch_number'));
         return '<div class="text-start">' +
             '<label class="form-label">Grower</label>' +
             growerSelectHtml(suppliers, currentSupplierId, batch.grower_name) +
             '<label class="form-label">Batch number <span class="text-danger">*</span></label>' +
-            '<input id="swalKBatchBn" class="form-control mb-1" value="' + escapeHtml(batch.batch_number || '') + '" autocomplete="off">' +
-            '<div id="swalKBatchBnHint" class="small text-muted mb-2">Changing the grower suggests a new number (Bn [grower #] [year] [seq]). You can still type your own.</div>' +
+            '<input id="swalKBatchBn" class="form-control mb-1" value="' + escapeHtml(batch.batch_number || '') + '" autocomplete="off"' + (bnLocked ? ' readonly' : '') + '>' +
+            '<div id="swalKBatchBnHint" class="small text-muted mb-2">' + (bnLocked
+                ? '🔒 Auto-generated. Your role cannot change it.'
+                : 'Auto-generated. Your role is allowed to change it. Changing the grower suggests a new number (Bn [grower #] [year] [seq]).') + '</div>' +
             '<label class="form-label">Received date</label>' +
             '<input id="swalKBatchRd" type="date" class="form-control mb-2" value="' + escapeHtml(isoDateOnlyForInput(batch.received_date)) + '">' +
-            '<label class="form-label">Wet NIS received (kg)</label>' +
+            '<label class="form-label">Supplier\'s declared weight (kg)</label>' +
             '<input id="swalKBatchWet" type="number" step="0.01" min="0" class="form-control mb-2" value="' + escapeHtml(numberForInput(batch.wet_nis_received_kg)) + '">' +
             '<label class="form-label">FFA (QA)</label>' +
             '<input id="swalKBatchFfa" type="number" step="0.01" min="0" class="form-control mb-2" value="' + escapeHtml(numberForInput(batch.ffa)) + '" placeholder="Optional">' +
             '<label class="form-label">Best before date</label>' +
             '<input id="swalKBatchBb" type="date" class="form-control" value="' + escapeHtml(isoDateOnlyForInput(batch.best_before_date)) + '">' +
-            '<p class="small text-muted mt-2 mb-0">Leave FFA or best before empty to leave them unchanged. Clearing Wet NIS or received date removes the stored value.</p>' +
+            '<p class="small text-muted mt-2 mb-0">Leave FFA or best before empty to leave them unchanged. Clearing the supplier\'s declared weight or received date removes the stored value.</p>' +
             '</div>';
     }
 
@@ -196,7 +199,7 @@
         var wetRaw = valueOf('swalKBatchWet').trim();
         var wet = wetRaw === '' ? null : parseFloat(wetRaw);
         if (wetRaw !== '' && (!isFinite(wet) || wet < 0)) {
-            Swal.showValidationMessage('Wet NIS must be a valid non-negative number');
+            Swal.showValidationMessage('Supplier\'s declared weight must be a valid non-negative number');
             return false;
         }
         var ffaRaw = valueOf('swalKBatchFfa').trim();

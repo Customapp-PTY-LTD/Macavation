@@ -13,119 +13,104 @@
                 <div class="card mb-3">
                     <div class="card-body">
                         <label class="form-label fw-semibold">Vehicle &amp; Receiving Checks <span class="text-danger">(all required)</span></label>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Is the vehicle clean?</label>
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerVehicleClean" id="growerVehicleCleanYes" value="Yes"><label class="form-check-label" for="growerVehicleCleanYes">Yes</label></div>
-                                        <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerVehicleClean" id="growerVehicleCleanNo" value="No"><label class="form-check-label" for="growerVehicleCleanNo">No</label></div>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Vehicle fully enclosed?</label>
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerVehicleEnclosed" id="growerVehicleEnclosedYes" value="Yes"><label class="form-check-label" for="growerVehicleEnclosedYes">Yes</label></div>
-                                        <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerVehicleEnclosed" id="growerVehicleEnclosedNo" value="No"><label class="form-check-label" for="growerVehicleEnclosedNo">No</label></div>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Any hazard substances noted on truck?</label>
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerHazardSubstances" id="growerHazardSubstancesYes" value="Yes"><label class="form-check-label" for="growerHazardSubstancesYes">Yes</label></div>
-                                        <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerHazardSubstances" id="growerHazardSubstancesNo" value="No"><label class="form-check-label" for="growerHazardSubstancesNo">No</label></div>
-                                    </div>
-                                </div>
+                        <div class="mb-3 grower-check-item" data-check-key="vehicle_clean">
+                            <label class="form-label">Is the vehicle clean?</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerVehicleClean" id="growerVehicleCleanYes" value="Yes"><label class="form-check-label" for="growerVehicleCleanYes">Yes</label></div>
+                                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerVehicleClean" id="growerVehicleCleanNo" value="No"><label class="form-check-label" for="growerVehicleCleanNo">No</label></div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Any signs of pest infestations?</label>
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerPestInfestations" id="growerPestInfestationsYes" value="Yes"><label class="form-check-label" for="growerPestInfestationsYes">Yes</label></div>
-                                        <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerPestInfestations" id="growerPestInfestationsNo" value="No"><label class="form-check-label" for="growerPestInfestationsNo">No</label></div>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Pallets received are in good condition</label>
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerPalletsCondition" id="growerPalletsConditionYes" value="Yes"><label class="form-check-label" for="growerPalletsConditionYes">Yes</label></div>
-                                        <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerPalletsCondition" id="growerPalletsConditionNo" value="No"><label class="form-check-label" for="growerPalletsConditionNo">No</label></div>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Are raw materials received in good condition?</label>
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerRawMaterialsCondition" id="growerRawMaterialsConditionYes" value="Yes"><label class="form-check-label" for="growerRawMaterialsConditionYes">Yes</label></div>
-                                        <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerRawMaterialsCondition" id="growerRawMaterialsConditionNo" value="No"><label class="form-check-label" for="growerRawMaterialsConditionNo">No</label></div>
-                                    </div>
-                                </div>
+                            <div class="grower-check-extra border rounded p-3 mt-2 d-none" id="growerVehicleCleanExtra">
+                                <label for="growerVehicleCleanComment" class="form-label required">What was wrong and what action was taken?</label>
+                                <textarea class="form-control mb-2" id="growerVehicleCleanComment" rows="2"></textarea>
+                                <label for="growerVehicleCleanPhotos" class="form-label">Photos</label>
+                                <input type="file" class="form-control form-control-sm grower-check-photo-input" id="growerVehicleCleanPhotos" accept="image/*" multiple>
+                                <div class="text-danger small mt-1 d-none grower-check-photo-error" id="growerVehicleCleanPhotoError"></div>
+                                <div class="d-flex flex-wrap gap-2 mt-2 grower-check-thumbs" id="growerVehicleCleanThumbs"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3 grower-check-item" data-check-key="vehicle_enclosed">
+                            <label class="form-label">Vehicle fully enclosed?</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerVehicleEnclosed" id="growerVehicleEnclosedYes" value="Yes"><label class="form-check-label" for="growerVehicleEnclosedYes">Yes</label></div>
+                                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerVehicleEnclosed" id="growerVehicleEnclosedNo" value="No"><label class="form-check-label" for="growerVehicleEnclosedNo">No</label></div>
+                            </div>
+                            <div class="grower-check-extra border rounded p-3 mt-2 d-none" id="growerVehicleEnclosedExtra">
+                                <label for="growerVehicleEnclosedComment" class="form-label required">What was wrong and what action was taken?</label>
+                                <textarea class="form-control mb-2" id="growerVehicleEnclosedComment" rows="2"></textarea>
+                                <label for="growerVehicleEnclosedPhotos" class="form-label">Photos</label>
+                                <input type="file" class="form-control form-control-sm grower-check-photo-input" id="growerVehicleEnclosedPhotos" accept="image/*" multiple>
+                                <div class="text-danger small mt-1 d-none grower-check-photo-error" id="growerVehicleEnclosedPhotoError"></div>
+                                <div class="d-flex flex-wrap gap-2 mt-2 grower-check-thumbs" id="growerVehicleEnclosedThumbs"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3 grower-check-item" data-check-key="hazard_substances">
+                            <label class="form-label">Any hazard substances noted on truck?</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerHazardSubstances" id="growerHazardSubstancesYes" value="Yes"><label class="form-check-label" for="growerHazardSubstancesYes">Yes</label></div>
+                                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerHazardSubstances" id="growerHazardSubstancesNo" value="No"><label class="form-check-label" for="growerHazardSubstancesNo">No</label></div>
+                            </div>
+                            <div class="grower-check-extra border rounded p-3 mt-2 d-none" id="growerHazardSubstancesExtra">
+                                <label for="growerHazardSubstancesComment" class="form-label required">What was wrong and what action was taken?</label>
+                                <textarea class="form-control mb-2" id="growerHazardSubstancesComment" rows="2"></textarea>
+                                <label for="growerHazardSubstancesPhotos" class="form-label">Photos</label>
+                                <input type="file" class="form-control form-control-sm grower-check-photo-input" id="growerHazardSubstancesPhotos" accept="image/*" multiple>
+                                <div class="text-danger small mt-1 d-none grower-check-photo-error" id="growerHazardSubstancesPhotoError"></div>
+                                <div class="d-flex flex-wrap gap-2 mt-2 grower-check-thumbs" id="growerHazardSubstancesThumbs"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3 grower-check-item" data-check-key="pest_infestations">
+                            <label class="form-label">Any signs of pest infestations?</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerPestInfestations" id="growerPestInfestationsYes" value="Yes"><label class="form-check-label" for="growerPestInfestationsYes">Yes</label></div>
+                                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerPestInfestations" id="growerPestInfestationsNo" value="No"><label class="form-check-label" for="growerPestInfestationsNo">No</label></div>
+                            </div>
+                            <div class="grower-check-extra border rounded p-3 mt-2 d-none" id="growerPestInfestationsExtra">
+                                <label for="growerPestInfestationsComment" class="form-label required">What was wrong and what action was taken?</label>
+                                <textarea class="form-control mb-2" id="growerPestInfestationsComment" rows="2"></textarea>
+                                <label for="growerPestInfestationsPhotos" class="form-label">Photos</label>
+                                <input type="file" class="form-control form-control-sm grower-check-photo-input" id="growerPestInfestationsPhotos" accept="image/*" multiple>
+                                <div class="text-danger small mt-1 d-none grower-check-photo-error" id="growerPestInfestationsPhotoError"></div>
+                                <div class="d-flex flex-wrap gap-2 mt-2 grower-check-thumbs" id="growerPestInfestationsThumbs"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3 grower-check-item" data-check-key="pallets_condition">
+                            <label class="form-label">Pallets received are in good condition</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerPalletsCondition" id="growerPalletsConditionYes" value="Yes"><label class="form-check-label" for="growerPalletsConditionYes">Yes</label></div>
+                                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerPalletsCondition" id="growerPalletsConditionNo" value="No"><label class="form-check-label" for="growerPalletsConditionNo">No</label></div>
+                            </div>
+                            <div class="grower-check-extra border rounded p-3 mt-2 d-none" id="growerPalletsConditionExtra">
+                                <label for="growerPalletsConditionComment" class="form-label required">What was wrong and what action was taken?</label>
+                                <textarea class="form-control mb-2" id="growerPalletsConditionComment" rows="2"></textarea>
+                                <label for="growerPalletsConditionPhotos" class="form-label">Photos</label>
+                                <input type="file" class="form-control form-control-sm grower-check-photo-input" id="growerPalletsConditionPhotos" accept="image/*" multiple>
+                                <div class="text-danger small mt-1 d-none grower-check-photo-error" id="growerPalletsConditionPhotoError"></div>
+                                <div class="d-flex flex-wrap gap-2 mt-2 grower-check-thumbs" id="growerPalletsConditionThumbs"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3 grower-check-item" data-check-key="raw_materials_condition">
+                            <label class="form-label">Are raw materials received in good condition?</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerRawMaterialsCondition" id="growerRawMaterialsConditionYes" value="Yes"><label class="form-check-label" for="growerRawMaterialsConditionYes">Yes</label></div>
+                                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerRawMaterialsCondition" id="growerRawMaterialsConditionNo" value="No"><label class="form-check-label" for="growerRawMaterialsConditionNo">No</label></div>
+                            </div>
+                            <div class="grower-check-extra border rounded p-3 mt-2 d-none" id="growerRawMaterialsConditionExtra">
+                                <label for="growerRawMaterialsConditionComment" class="form-label required">What was wrong and what action was taken?</label>
+                                <textarea class="form-control mb-2" id="growerRawMaterialsConditionComment" rows="2"></textarea>
+                                <label for="growerRawMaterialsConditionPhotos" class="form-label">Photos</label>
+                                <input type="file" class="form-control form-control-sm grower-check-photo-input" id="growerRawMaterialsConditionPhotos" accept="image/*" multiple>
+                                <div class="text-danger small mt-1 d-none grower-check-photo-error" id="growerRawMaterialsConditionPhotoError"></div>
+                                <div class="d-flex flex-wrap gap-2 mt-2 grower-check-thumbs" id="growerRawMaterialsConditionThumbs"></div>
                             </div>
                         </div>
                         <div class="mb-3">
                             <label for="growerReceivingComments" class="form-label">Comments/Actions taken</label>
                             <textarea class="form-control" id="growerReceivingComments" rows="2"></textarea>
                         </div>
+                        <p class="text-muted small mb-0">Bag weights and the delivery note are captured on New Delivery. Removed pre-sizer is entered when the batch is released to production.</p>
                     </div>
                 </div>
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <label class="form-label fw-semibold">Receiving Information</label>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <label for="growerDateReceived" class="form-label required">Date Received</label>
-                                <input type="text" class="form-control flatpickr-date" id="growerDateReceived" data-input required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="growerDeliveryNoteRef" class="form-label required">Delivery Note Reference/Number</label>
-                                <input type="text" class="form-control" id="growerDeliveryNoteRef" required>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <label class="form-label fw-semibold mb-2 d-block">Received Items</label>
-                        <div class="table-responsive">
-                            <table class="table align-middle " id="growerReceivedItemsTable">
-                                <thead>
-                                    <tr>
-                                        <th>Description</th>
-                                        <th>Weight (Kgs)</th>
-                                        <th>Date</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="growerReceivedItemsTableBody">
-                                    <tr>
-                                        <td class="align-middle"><select class="form-select form-select-sm" name="growerDescription"><option value="">Select</option><option value="NIS">NIS</option><option value="Kernel">Kernel</option></select></td>
-                                        <td class="align-middle"><input type="number" class="form-control form-control-sm grower-bag-weight" name="growerQuantity" step="0.01"></td>
-                                        <td class="align-middle"><input type="text" class="form-control form-control-sm flatpickr-date" name="growerManufacturedDate" title="Manufactured Date or Harvested Date"></td>
-                                        <td class="align-middle"><button type="button" class="btn btn-sm btn-danger growerRemoveItemRow"><i class="fas fa-times"></i></button></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="d-flex justify-content-end mt-2">
-                            <button type="button" class="btn btn-sm btn-primary" id="growerAddReceivedItemRow"><i class="fas fa-plus"></i> Add Bag</button>
-                        </div>
-                        <div class="row g-3 mt-2 border-top pt-3">
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold mb-1">Total weight (kg)</label>
-                                <div id="growerTotalWeightKg" class="form-control form-control-sm bg-light" readonly aria-readonly="true">0.00</div>
-                                <small class="text-muted">Sum of bag weights (uneditable)</small>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="growerRemovedPreSizerKg" class="form-label fw-semibold mb-1 required">Removed pre-sizer (kg)</label>
-                                <input type="number" class="form-control form-control-sm" id="growerRemovedPreSizerKg" step="0.01" min="0" placeholder="0" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold mb-1">Balance in (kg)</label>
-                                <div id="growerBalanceInKg" class="form-control form-control-sm bg-light fw-semibold" readonly aria-readonly="true">0.00</div>
-                                <small class="text-muted">Total weight − Removed pre-sizer</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <div class="alert alert-warning d-none" id="growerChecklistMessage" role="alert"></div>
                 <div class="modal-body-actions d-flex justify-content-end align-items-center mt-4 pt-3 border-top">
                     <button type="button" class="btn btn-primary" id="growerSaveReceivingChecklistBtn"><i class="fas fa-save me-1"></i>Save Receiving Checklist</button>
                 </div>

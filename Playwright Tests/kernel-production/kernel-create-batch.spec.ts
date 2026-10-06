@@ -2,8 +2,8 @@ import { test, expect } from '../fixtures';
 import { navigateToModule } from '../helpers/navigation.helper';
 
 /**
- * Kernel – Form Operations: Create kernel batch (QA Blueprint: Form – dropdowns, required fields, create, save).
- * Opens Create kernel batch from Grower Intake → select grower, fill batch number/date/wet NIS → save.
+ * Kernel – Form Operations: New Delivery (was Create kernel batch; QA Blueprint: Form – dropdowns, required fields, create, save).
+ * Opens New Delivery from Grower Intake → select supplier (batch number is auto-suggested and read-only unless the role has grower_intake.edit_batch_number) → fill date, bag weights, transport → save.
  */
 
 function todayISO() {
@@ -11,9 +11,9 @@ function todayISO() {
   return d.toISOString().slice(0, 10);
 }
 
-test.describe('Kernel - Form Operations: Create kernel batch @kernel', () => {
+test.describe('Kernel - Form Operations: New Delivery @kernel', () => {
 
-  test('TC-KC-001: Create kernel batch modal opens and has form', async ({ authenticatedPage }) => {
+  test('TC-KC-001: New Delivery modal opens and has form', async ({ authenticatedPage }) => {
     await navigateToModule(authenticatedPage, 'grower-intake-grid');
     await authenticatedPage.waitForLoadState('networkidle');
     await authenticatedPage.waitForTimeout(1000);
@@ -23,7 +23,10 @@ test.describe('Kernel - Form Operations: Create kernel batch @kernel', () => {
     await expect(authenticatedPage.locator('#intakeBatchGrower')).toBeVisible();
     await expect(authenticatedPage.locator('#intakeBatchNumber')).toBeVisible();
     await expect(authenticatedPage.locator('#intakeBatchReceivedDate')).toBeVisible();
-    await expect(authenticatedPage.locator('#intakeBatchWetNis')).toBeVisible();
+    await expect(authenticatedPage.locator('#intakeBatchWetNis')).toBeVisible(); // Supplier's declared weight (kg)
+    await expect(authenticatedPage.locator('#intakeBagsTable')).toBeVisible();
+    await expect(authenticatedPage.locator('#intakeTransporter')).toBeVisible();
+    await expect(authenticatedPage.locator('#createKernelBatchModal .modal-title')).toHaveText('New Delivery');
     await expect(authenticatedPage.locator('#saveCreateKernelBatchBtn')).toBeVisible();
   });
 
@@ -39,7 +42,7 @@ test.describe('Kernel - Form Operations: Create kernel batch @kernel', () => {
     expect(count).toBeGreaterThanOrEqual(1);
   });
 
-  test('TC-KC-003: Select grower and fill required fields then save', async ({ authenticatedPage }) => {
+  test('TC-KC-003: Select supplier and fill required fields then save', async ({ authenticatedPage }) => {
     await navigateToModule(authenticatedPage, 'grower-intake-grid');
     await authenticatedPage.waitForLoadState('networkidle');
     await authenticatedPage.waitForTimeout(1000);
@@ -56,6 +59,15 @@ test.describe('Kernel - Form Operations: Create kernel batch @kernel', () => {
     await expect(authenticatedPage.locator('#intakeBatchNumber')).toHaveValue(/.+/, { timeout: 15000 });
     await authenticatedPage.locator('#intakeBatchReceivedDate').fill(todayISO());
     await authenticatedPage.locator('#intakeBatchWetNis').fill('100');
+    // One empty bag row exists on open; give it a weight.
+    await authenticatedPage.locator('#intakeBagsBody input[data-bag-field="kg"]').first().fill('100');
+    await authenticatedPage.locator('#intakeDeliveryNoteRef').fill('DN-' + Date.now());
+    await authenticatedPage.locator('#intakeTransportRate').fill('1000');
+    // Transporter and transport type are required once their lists load; pick the first real option if present.
+    for (const id of ['#intakeTransporter', '#intakeTransportType']) {
+      const sel = authenticatedPage.locator(id);
+      if ((await sel.locator('option').count()) > 1) await sel.selectOption({ index: 1 });
+    }
     // Date change triggers _onDateOrGrowerChange which refetches batch number; wait for it to repopulate
     await expect(authenticatedPage.locator('#intakeBatchNumber')).toHaveValue(/.+/, { timeout: 10000 });
     await expect(authenticatedPage.locator('#intakeBatchReceivedDate')).toHaveValue(todayISO());
@@ -65,7 +77,7 @@ test.describe('Kernel - Form Operations: Create kernel batch @kernel', () => {
     await authenticatedPage.waitForTimeout(3500);
     const permissionDenied = await authenticatedPage.locator('.swal2-popup:has-text("Permission denied"), .swal2-popup:has-text("Access denied")').isVisible().catch(() => false);
     expect(permissionDenied).toBe(false);
-    const success = await authenticatedPage.locator('.swal2-popup:has-text("Batch created"), .swal2-success').isVisible().catch(() => false);
+    const success = await authenticatedPage.locator('.swal2-popup:has-text("Delivery saved"), .swal2-popup:has-text("Batch created"), .swal2-success').isVisible().catch(() => false);
     const modalClosed = await authenticatedPage.locator('#createKernelBatchModal.show').isVisible().catch(() => false);
     expect(success || !modalClosed).toBeTruthy();
   });

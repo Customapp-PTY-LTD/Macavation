@@ -52,6 +52,86 @@ var _modal_grower_link_sample_to_batch = (function () {
         return sum;
     }
 
+    // Spec thresholds from Kernel Pipeline Settings (display only). Stays empty if the load fails = "No limits set".
+    var _specThresholds = [];
+    var SPEC_INPUTS = { moisture: 'sampleMoistureResult', pv: 'samplePeroxideResult', ffa: 'sampleFfaResult' };
+    var SPEC_HINTS = {
+        ok:       ['In spec', 'text-success'],
+        warn:     ['Borderline', 'text-warning'],
+        bad:      ['Out of spec', 'text-danger'],
+        noLimits: ['No limits set', 'text-muted']
+    };
+
+    function setText(id, text) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = text;
+    }
+
+    function fmtG(v) {
+        return _common.formatKg(v);
+    }
+
+    function fmtPct(part, whole) {
+        if (!(whole > 0) || part == null) return '';
+        return (part / whole * 100).toFixed(1) + '%';
+    }
+
+    function showWarning(id, text) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = text || '';
+        el.classList.toggle('d-none', !text);
+    }
+
+    function getSpec(testKey) {
+        for (var i = 0; i < _specThresholds.length; i++) {
+            if (_specThresholds[i] && _specThresholds[i].test_key === testKey) return _specThresholds[i];
+        }
+        return null;
+    }
+
+    // Returns 'ok' | 'warn' | 'bad' | 'noLimits' | '' (no value entered)
+    function classifySpec(spec, value) {
+        if (value == null) return '';
+        if (!spec || spec.green_limit == null || spec.yellow_limit == null) return 'noLimits';
+        var g = Number(spec.green_limit), y = Number(spec.yellow_limit);
+        if (isNaN(g) || isNaN(y)) return 'noLimits';
+        if (spec.direction === 'min') return value >= g ? 'ok' : (value >= y ? 'warn' : 'bad');
+        return value <= g ? 'ok' : (value <= y ? 'warn' : 'bad');
+    }
+
+    function updateSpecColours() {
+        Object.keys(SPEC_INPUTS).forEach(function (key) {
+            var input = document.getElementById(SPEC_INPUTS[key]);
+            var hint = document.getElementById(SPEC_INPUTS[key] + 'Hint');
+            if (!input) return;
+            var state = classifySpec(getSpec(key), getFloat(SPEC_INPUTS[key]));
+            input.classList.remove('is-valid', 'is-invalid', 'border-warning');
+            if (state === 'ok') input.classList.add('is-valid');
+            else if (state === 'warn') input.classList.add('border-warning');
+            else if (state === 'bad') input.classList.add('is-invalid');
+            if (hint) {
+                hint.classList.remove('text-success', 'text-warning', 'text-danger', 'text-muted');
+                var h = SPEC_HINTS[state];
+                hint.textContent = h ? h[0] : '';
+                if (h) hint.classList.add(h[1]);
+            }
+        });
+    }
+
+    async function loadSpecThresholds() {
+        _specThresholds = [];
+        try {
+            if (typeof dataFunctions !== 'undefined' && dataFunctions.getKernelPipelineConfig) {
+                var cfg = await dataFunctions.getKernelPipelineConfig();
+                if (cfg && cfg.success !== false && Array.isArray(cfg.spec_thresholds)) _specThresholds = cfg.spec_thresholds;
+            }
+        } catch (e) {
+            console.warn('Spec thresholds unavailable:', e);
+        }
+        updateSpecColours();
+    }
+
     function updateTotals() {
         var crackTotal = sumInputs(CRACK_OUT_IDS);
         var floatTotal = sumInputs(FLOAT_IDS);
@@ -59,9 +139,46 @@ var _modal_grower_link_sample_to_batch = (function () {
         var crackEl = document.getElementById('sampleCrackOutTotalG');
         var floatEl = document.getElementById('sampleFloatTotalG');
         var unsoundEl = document.getElementById('sampleUnsoundTotalG');
-        if (crackEl) crackEl.value = crackTotal > 0 ? crackTotal : '';
-        if (floatEl) floatEl.value = floatTotal > 0 ? floatTotal : '';
-        if (unsoundEl) unsoundEl.value = unsoundTotal > 0 ? unsoundTotal : '';
+        // Totals sit in number inputs, so they hold plain (unformatted) numbers.
+        if (crackEl) crackEl.value = crackTotal > 0 ? Math.round(crackTotal * 100) / 100 : '';
+        if (floatEl) floatEl.value = floatTotal > 0 ? Math.round(floatTotal * 100) / 100 : '';
+        if (unsoundEl) unsoundEl.value = unsoundTotal > 0 ? Math.round(unsoundTotal * 100) / 100 : '';
+
+        // Crack-out % column
+        var soundG = getFloat('sampleSoundKernelG');
+        CRACK_OUT_IDS.forEach(function (id) {
+            setText(id.replace(/G$/, '') + 'Pct', fmtPct(getFloat(id), crackTotal));
+        });
+        setText('sampleCrackOutTotalPct', crackTotal > 0 ? '100.0%' : '');
+
+        // 5 kg warning (never blocks save)
+        showWarning('sampleFiveKgWarning', (soundG != null && soundG < 5000)
+            ? 'Pre-Float Test (Sound Kernel) is ' + fmtG(soundG) + ' g, under the 5 kg (5,000 g) sample. You can still save, but check the sample.'
+            : '');
+
+        // Float test: % of wet and auto dry weight (dry = wet / total wet x Pre-Float weight)
+        var haveDry = floatTotal > 0 && soundG != null;
+        [['sampleFloatingKernelG', 'sampleFloatingPct', 'sampleFloatingDry'],
+         ['sampleSinkingKernelG', 'sampleSinkingPct', 'sampleSinkingDry']].forEach(function (r) {
+            var w = getFloat(r[0]);
+            setText(r[1], fmtPct(w, floatTotal));
+            setText(r[2], haveDry && w != null ? fmtG(w / floatTotal * soundG) : '');
+        });
+        setText('sampleFloatTotalPct', floatTotal > 0 ? '100.0%' : '');
+        setText('sampleFloatDryTotal', haveDry ? fmtG(soundG) : '');
+
+        // Unsound breakdown: % of whole crack-out
+        UNSOUND_IDS.forEach(function (id) {
+            setText(id + 'Pct', fmtPct(getFloat(id), crackTotal));
+        });
+        setText('sampleUnsoundTotalPct', unsoundTotal > 0 ? fmtPct(unsoundTotal, crackTotal) : '');
+        var crackUnsound = getFloat('sampleUnsoundKernelG') || 0;
+        var mismatch = unsoundTotal > 0 && Math.abs(unsoundTotal - crackUnsound) > 0.005;
+        showWarning('sampleBreakdownWarning', mismatch
+            ? 'Breakdown total (' + fmtG(unsoundTotal) + " g) doesn't match Unsound Kernel in the crack-out (" + fmtG(crackUnsound) + ' g).'
+            : '');
+
+        updateSpecColours();
     }
 
     function updateTabIndicators() {
@@ -266,7 +383,9 @@ var _modal_grower_link_sample_to_batch = (function () {
                 }
             }
 
+            updateTotals();
             updateTabIndicators();
+            loadSpecThresholds(); // not awaited: a config failure must never block the modal
 
             // Always open on ziplock tab
             var tabZiplock = document.getElementById('tab-ziplock-bag');

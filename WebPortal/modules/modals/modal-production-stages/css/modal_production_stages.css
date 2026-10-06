@@ -52,3 +52,13 @@
     padding-left: 1rem;
     padding-right: 1rem;
 }
+
+/* Calculated / read-only fields (crate x factor kg, totals, volume cracked, minute-test results) */
+#productionStagesModal .ps-calc,
+#productionStagesModal .ps-calc:focus {
+    background-color: var(--mac-bg-tertiary);
+    box-shadow: none;
+}
+#productionStagesModal .ps-minute-tests {
+    max-width: 720px;
+}
