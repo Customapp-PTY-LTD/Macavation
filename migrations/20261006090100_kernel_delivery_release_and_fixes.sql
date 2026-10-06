@@ -17,6 +17,9 @@
 --                             keeps its legacy meaning (kg cracked) and stays the fallback.
 --                             Older day entries have no volume_cracked and fall through to the
 --                             previous order unchanged. Historical figures are NOT restated.
+-- Superseded signatures of 2, 3 and 5 are RENAMED to <name>_pre_20261006 rather than removed, so the
+-- change is reversible and PostgREST still resolves exactly one candidate per name. They can be
+-- removed once the new versions have been in use on prod.
 -- 5. auto_create_shell_lot_from_production  becomes idempotent per (batch, production day). It used
 --                             to ADD the whole shell total on every autosave, so shell stock grew
 --                             each time a production day was saved.
@@ -100,8 +103,13 @@ $$;
 -- 2. upsert_kernel_checklist — merge, never wipe
 -- ============================================================================
 
-DROP FUNCTION IF EXISTS public.upsert_kernel_checklist(uuid, date, character varying, uuid, character varying,
-    character varying, character varying, character varying, character varying, character varying, text, jsonb, numeric);
+DO $do$
+BEGIN
+    -- Superseded signature is renamed (not removed) so PostgREST sees exactly one candidate.
+    IF to_regprocedure('public.upsert_kernel_checklist(uuid, date, character varying, uuid, character varying, character varying, character varying, character varying, character varying, character varying, text, jsonb, numeric)') IS NOT NULL THEN
+        ALTER FUNCTION public.upsert_kernel_checklist(uuid, date, character varying, uuid, character varying, character varying, character varying, character varying, character varying, character varying, text, jsonb, numeric) RENAME TO upsert_kernel_checklist_pre_20261006;
+    END IF;
+END $do$;
 
 CREATE OR REPLACE FUNCTION public.upsert_kernel_checklist(
     p_kernel_id               uuid,
@@ -182,7 +190,13 @@ $$;
 -- 3. release_kernel_to_production — removed pre-sizer required (D5)
 -- ============================================================================
 
-DROP FUNCTION IF EXISTS public.release_kernel_to_production(uuid);
+DO $do$
+BEGIN
+    -- Superseded signature is renamed (not removed) so PostgREST sees exactly one candidate.
+    IF to_regprocedure('public.release_kernel_to_production(uuid)') IS NOT NULL THEN
+        ALTER FUNCTION public.release_kernel_to_production(uuid) RENAME TO release_kernel_to_production_pre_20261006;
+    END IF;
+END $do$;
 
 CREATE OR REPLACE FUNCTION public.release_kernel_to_production(
     p_kernel_id            uuid,
@@ -280,7 +294,13 @@ CREATE TABLE IF NOT EXISTS public.shell_lot_day_contributions (
 );
 REVOKE ALL ON TABLE public.shell_lot_day_contributions FROM PUBLIC, anon, authenticated;
 
-DROP FUNCTION IF EXISTS public.auto_create_shell_lot_from_production(text, numeric, text);
+DO $do$
+BEGIN
+    -- Superseded signature is renamed (not removed) so PostgREST sees exactly one candidate.
+    IF to_regprocedure('public.auto_create_shell_lot_from_production(text, numeric, text)') IS NOT NULL THEN
+        ALTER FUNCTION public.auto_create_shell_lot_from_production(text, numeric, text) RENAME TO auto_create_shell_lot_from_production_pre_20261006;
+    END IF;
+END $do$;
 
 CREATE OR REPLACE FUNCTION public.auto_create_shell_lot_from_production(
     p_batch_number    text,
