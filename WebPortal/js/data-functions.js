@@ -4544,7 +4544,8 @@ var _dataFunctions = function () {
                 p_pest_infestations:       data.pest_infestations       || null,
                 p_pallets_condition:       data.pallets_condition       || null,
                 p_raw_materials_condition: data.raw_materials_condition || null,
-                p_comments:               data.comments                || null,
+                // '' (not null) so a cleared comment really clears; the RPC merges and keeps unsent keys.
+                p_comments:               data.comments != null ? String(data.comments) : null,
                 // Bag lines now live on New Delivery (saveKernelDelivery). Omit when not sent so the
                 // stored lines and weighed total are kept (20261006090100 merges, never wipes).
                 p_received_items:         data.received_items && data.received_items.length ? data.received_items : null,
@@ -4552,7 +4553,7 @@ var _dataFunctions = function () {
                 p_item_comments:          data.item_comments           || null,
                 p_item_photos:            data.item_photos             || null
             };
-            const result = await this.callFunction('upsert_kernel_checklist', params, token, { useCache: false });
+            const result = await this.callFunction('upsert_kernel_checklist', params, token, { useCache: false, preserveEmptyParams: true });
             this.clearCachePattern('kernel_batches');
             this.clearCachePattern('kernel_batch_detail');
             return result && (result.data !== undefined ? result.data : result);
