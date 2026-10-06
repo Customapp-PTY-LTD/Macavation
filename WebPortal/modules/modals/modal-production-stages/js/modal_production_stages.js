@@ -364,16 +364,17 @@ var _modal_production_stages = (function () {
             $(document).on('input change', '.sort-crate-input, .ps-sort-manual-kg', function () { scope.recalcSortingQty(); });
             $(document).on('input change', '.pack-carton-input', function () { scope.recalcPackingQty(); });
             // Cracking: volume cracked, minute tests and shell waste are all derived from what the user types.
-            $(document).on('input change', '#ps_crack_startqty1, #ps_crack_endqty1', function () { scope.recalcCrackVolume(); });
-            $(document).on('input change', '[id^="ps_crack_wholes_"], [id^="ps_crack_uncracks_"]', function () {
+            $(document).off('.kp2ps'); // init() can run more than once; never stack these handlers
+            $(document).on('input.kp2ps change.kp2ps', '#ps_crack_startqty1, #ps_crack_endqty_left', function () { scope.recalcCrackVolume(); });
+            $(document).on('input.kp2ps change.kp2ps', '[id^="ps_crack_wholes_"], [id^="ps_crack_uncracks_"]', function () {
                 scope.recalcMinuteTestRow(this.id.split('_').pop());
             });
-            $(document).on('input change', '[id^="ps_crack_shell_qty"]', function () { scope.recalcShellTotal(); });
-            $(document).on('click', '#crackShellAdd', function (e) {
+            $(document).on('input.kp2ps change.kp2ps', '[id^="ps_crack_shell_qty"]', function () { scope.recalcShellTotal(); });
+            $(document).on('click.kp2ps', '#crackShellAdd', function (e) {
                 e.preventDefault();
                 scope.setShellRowCount($('#crackShellRows .ps-shell-row').length + 1);
             });
-            $(document).on('click', '.js-ps-shell-remove', function (e) {
+            $(document).on('click.kp2ps', '.js-ps-shell-remove', function (e) {
                 e.preventDefault();
                 var rows = $('#crackShellRows .ps-shell-row');
                 // Only the last row may be removed so the shell_bagN / shell_qtyN keys stay contiguous.
@@ -382,7 +383,7 @@ var _modal_production_stages = (function () {
                 scope.recalcShellTotal();
                 scope.scheduleAutoSave();
             });
-            $(document).on('change', '#ps_crack_silo_number', function () {
+            $(document).on('change.kp2ps', '#ps_crack_silo_number', function () {
                 var no = this.value;
                 if (!no) return;
                 var silo = (scope._siloOptions || []).filter(function (x) { return String(x.silo_number) === String(no); })[0];
@@ -565,12 +566,16 @@ var _modal_production_stages = (function () {
         /** Volume Cracked = Start Quantity - End Quantity, plus per hour / per minute over the Start-End time. */
         recalcCrackVolume: () => {
             const scope = _modal_production_stages;
+            // Volume Cracked = Start - End (left in silo). Only when BOTH are entered and End <= Start:
+            // a blank End mid-shift must not report the whole silo as cracked, and legacy days (which
+            // have endqty1 = kg cracked and no endqty_left) must not get a restated volume.
             var start = parseStageNum($('#ps_crack_startqty1').val());
-            if (start == null) {
+            var left = parseStageNum($('#ps_crack_endqty_left').val());
+            if (start == null || left == null || left > start) {
                 $('#ps_crack_volume_cracked, #ps_crack_vol_cracked_per_hour, #ps_crack_vol_cracked_per_min').val('');
                 return;
             }
-            var vol = start - (parseStageNum($('#ps_crack_endqty1').val()) || 0);
+            var vol = start - left;
             var mins = scope._crackMinutes();
             $('#ps_crack_volume_cracked').val(scope._fixed2(vol));
             $('#ps_crack_vol_cracked_per_hour').val(mins > 0 ? scope._fixed2(vol / (mins / 60)) : '');
@@ -843,7 +848,7 @@ var _modal_production_stages = (function () {
                     if (el.type === 'checkbox') {
                         el.checked = v === true || v === 'true' || v === '1' || v === 1;
 } else {
-                    if (el.tagName === 'SELECT' && v != null && v !== '') scope.ensureSelectHasOption(el, String(v));
+                    if (el.tagName === 'SELECT' && v != null && v !== '') { scope.ensureSelectHasOption(el, String(v)); el.value = String(v); }
                     else if (el.classList && el.classList.contains('flatpickr-date'))
                         el.value = v != null && v !== '' ? fromISO(String(v)) : '';
                     else

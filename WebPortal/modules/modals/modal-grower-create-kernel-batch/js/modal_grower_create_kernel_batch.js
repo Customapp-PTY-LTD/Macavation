@@ -105,6 +105,12 @@ var _modal_grower_create_kernel_batch = (function () {
 
     var api = {
         init: function () {
+            // init() runs at script load AND again from the Grower Intake grid after the modal HTML
+            // is inserted. Bind once per inserted modal DOM, or every listener fires twice (two bags
+            // deleted per click, two saves per Save).
+            var bindMarker = document.getElementById(CONTAINER_ID);
+            if (bindMarker && bindMarker.getAttribute('data-kp-bound') === '1') return;
+            if (bindMarker) bindMarker.setAttribute('data-kp-bound', '1');
             applyCreateBatchActionGates();
             var saveBtn = document.getElementById('saveCreateKernelBatchBtn');
             if (saveBtn) saveBtn.addEventListener('click', function (e) { e.preventDefault(); api.save(); });
@@ -424,7 +430,7 @@ var _modal_grower_create_kernel_batch = (function () {
         _applyBatchNumberLock: function () {
             var numberEl = byId('intakeBatchNumber');
             var locked = !canEditBatchNumber();
-            if (numberEl) { if (locked) numberEl.setAttribute('readonly', 'readonly'); else api._applyBatchNumberLock(); }
+            if (numberEl) { if (locked) numberEl.setAttribute('readonly', 'readonly'); else numberEl.removeAttribute('readonly'); }
             setText('intakeBatchNumberHint', locked
                 ? '\uD83D\uDD12 Auto-generated. Your role cannot change it.'
                 : 'Auto-generated. Your role is allowed to change it.');

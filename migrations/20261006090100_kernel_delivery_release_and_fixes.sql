@@ -12,7 +12,9 @@
 --                             Also accepts per-item comments and photos (Mike 1.b.i).
 -- 3. release_kernel_to_production now takes p_removed_pre_sizer_kg (required, >= 0) and stores it
 --                             at intake_data.removed_pre_sizer_kg (D5).
--- 4. kernel_day_kg            prefers the new cracking key volume_cracked (= Start − End, D11).
+-- 4. kernel_day_kg            prefers the new cracking key volume_cracked (= startqty1 − endqty_left, D11).
+--                             The "left in silo" figure is stored under the NEW key endqty_left; endqty1
+--                             keeps its legacy meaning (kg cracked) and stays the fallback.
 --                             Older day entries have no volume_cracked and fall through to the
 --                             previous order unchanged. Historical figures are NOT restated.
 -- 5. auto_create_shell_lot_from_production  becomes idempotent per (batch, production day). It used
@@ -27,7 +29,8 @@ CREATE OR REPLACE FUNCTION public.save_kernel_delivery(
     p_kernel_id  uuid,
     p_bags       jsonb DEFAULT '[]'::jsonb,
     p_transport  jsonb DEFAULT '{}'::jsonb,
-    p_documents  jsonb DEFAULT '[]'::jsonb
+    p_documents  jsonb DEFAULT '[]'::jsonb,
+    p_allow_replace boolean DEFAULT false
 )
 RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
@@ -62,6 +65,13 @@ BEGIN
     FROM public.kernel WHERE id = p_kernel_id AND is_active = true;
     IF NOT FOUND THEN
         RETURN jsonb_build_object('success', false, 'error', 'Kernel record not found or inactive');
+    END IF;
+    -- New Delivery must never silently overwrite an earlier delivery recorded under the same batch
+    -- number (initialize_kernel_for_batch reuses an existing kernel row for that batch).
+    IF NOT COALESCE(p_allow_replace, false) AND EXISTS (
+        SELECT 1 FROM public.kernel WHERE id = p_kernel_id AND intake_data ? 'delivery') THEN
+        RETURN jsonb_build_object('success', false, 'already_has_delivery', true,
+            'error', 'This batch number already has a delivery recorded. Use a different batch number.');
     END IF;
 
     v_delivery := jsonb_build_object(
@@ -249,12 +259,26 @@ $$;
 
 COMMENT ON FUNCTION public.kernel_day_kg(jsonb) IS
   'Kg of nut-in-shell put through the cracker for one cracking_data day-entry. From Oct 2026 the form '
-  'stores volume_cracked = Start Quantity − End Quantity (End Quantity = left in silo), which wins. Older '
-  'entries fall back to endqty1, then totalqty / total_qty. Historical entries are not restated.';
+  'stores volume_cracked = startqty1 − endqty_left (End Quantity, left in silo), which wins. Older '
+  'entries fall back to endqty1 (which held kg cracked), then totalqty / total_qty. History is not restated.';
 
 -- ============================================================================
 -- 5. auto_create_shell_lot_from_production — idempotent per production day
 -- ============================================================================
+-- Each (lot, production day) remembers what it last contributed, so a re-save adds only the
+-- difference. Lots built by the old additive function have no per-day rows: we cannot know which
+-- day put what in (they are typically already inflated), so the first save of a day on such a lot
+-- records that day's total as already counted and changes nothing; tracking starts from there.
+-- Known limit: if a production day's date is changed, the old date's contribution stays on the lot.
+
+CREATE TABLE IF NOT EXISTS public.shell_lot_day_contributions (
+    lot_id          uuid NOT NULL REFERENCES public.shell_stock_lot(id) ON DELETE CASCADE,
+    day_ref         text NOT NULL,
+    contributed_kg  numeric NOT NULL DEFAULT 0,
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (lot_id, day_ref)
+);
+REVOKE ALL ON TABLE public.shell_lot_day_contributions FROM PUBLIC, anon, authenticated;
 
 DROP FUNCTION IF EXISTS public.auto_create_shell_lot_from_production(text, numeric, text);
 
@@ -269,8 +293,11 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $$
 DECLARE
     v_batch    text := trim(COALESCE(p_batch_number, ''));
+    v_kg       numeric := GREATEST(COALESCE(p_shell_kg, 0), 0);
+    v_day      text := COALESCE(p_production_date::text, 'undated');
     v_ref      text;
     v_lot_id   uuid;
+    v_status   text;
     v_lot_num  text;
     v_prev     numeric;
     v_delta    numeric;
@@ -278,32 +305,56 @@ BEGIN
     IF v_batch = '' THEN
         RETURN jsonb_build_object('success', false, 'error', 'batch number required');
     END IF;
-    -- One running contribution per batch per production day. Callers that do not send a date
-    -- share a single per-batch contribution, which is still idempotent.
-    v_ref := v_batch || ' @ ' || COALESCE(p_production_date::text, 'undated');
+    v_ref := v_batch || ' @ ' || v_day;
 
-    SELECT id INTO v_lot_id FROM public.shell_stock_lot
-    WHERE source_batch_number = v_batch AND status = 'in_stock'
-    LIMIT 1;
+    -- Prefer the lot still in stock; otherwise the most recent one for this batch.
+    SELECT id, status INTO v_lot_id, v_status
+    FROM public.shell_stock_lot
+    WHERE source_batch_number = v_batch
+    ORDER BY (status = 'in_stock') DESC, created_at DESC
+    LIMIT 1
+    FOR UPDATE;
+
+    IF v_lot_id IS NOT NULL AND v_status <> 'in_stock' THEN
+        RETURN jsonb_build_object('success', false, 'skipped', true,
+                                  'reason', 'shell lot already ' || v_status || '; not changed');
+    END IF;
 
     IF v_lot_id IS NULL THEN
-        IF COALESCE(p_shell_kg, 0) <= 0 THEN
+        IF v_kg <= 0 THEN
             RETURN jsonb_build_object('success', false, 'skipped', true, 'reason', 'zero shell kg');
         END IF;
         v_lot_num := 'SHELL-' || regexp_replace(v_batch, '[^A-Za-z0-9-]', '', 'g');
         INSERT INTO public.shell_stock_lot (lot_number, source_batch_number, quantity_kg, status, notes)
-        VALUES (v_lot_num, v_batch, p_shell_kg, 'in_stock', p_notes)
+        VALUES (v_lot_num, v_batch, v_kg, 'in_stock', p_notes)
         RETURNING id INTO v_lot_id;
+        INSERT INTO public.shell_lot_day_contributions (lot_id, day_ref, contributed_kg)
+        VALUES (v_lot_id, v_day, v_kg);
         INSERT INTO public.shell_stock_movement (lot_id, movement_type, quantity_kg, reference, notes)
-        VALUES (v_lot_id, 'created', p_shell_kg, v_ref, 'Auto-created from production');
-        RETURN jsonb_build_object('success', true, 'id', v_lot_id, 'lot_number', v_lot_num, 'delta_kg', p_shell_kg);
+        VALUES (v_lot_id, 'created', v_kg, v_ref, 'Auto-created from production');
+        RETURN jsonb_build_object('success', true, 'id', v_lot_id, 'lot_number', v_lot_num, 'delta_kg', v_kg);
     END IF;
 
-    SELECT COALESCE(sum(quantity_kg), 0) INTO v_prev
-    FROM public.shell_stock_movement
-    WHERE lot_id = v_lot_id AND reference = v_ref AND movement_type IN ('created', 'adjusted');
+    SELECT contributed_kg INTO v_prev
+    FROM public.shell_lot_day_contributions
+    WHERE lot_id = v_lot_id AND day_ref = v_day
+    FOR UPDATE;
 
-    v_delta := COALESCE(p_shell_kg, 0) - v_prev;
+    IF NOT FOUND THEN
+        IF NOT EXISTS (SELECT 1 FROM public.shell_lot_day_contributions WHERE lot_id = v_lot_id) THEN
+            -- Legacy lot: assume this day's total is already in it (see header).
+            INSERT INTO public.shell_lot_day_contributions (lot_id, day_ref, contributed_kg)
+            VALUES (v_lot_id, v_day, v_kg);
+            RETURN jsonb_build_object('success', true, 'id', v_lot_id, 'unchanged', true, 'baseline', true);
+        END IF;
+        v_prev := 0;
+    END IF;
+
+    v_delta := v_kg - v_prev;
+    INSERT INTO public.shell_lot_day_contributions (lot_id, day_ref, contributed_kg, updated_at)
+    VALUES (v_lot_id, v_day, v_kg, now())
+    ON CONFLICT (lot_id, day_ref) DO UPDATE SET contributed_kg = EXCLUDED.contributed_kg, updated_at = now();
+
     IF v_delta = 0 THEN
         RETURN jsonb_build_object('success', true, 'id', v_lot_id, 'unchanged', true);
     END IF;
@@ -315,6 +366,8 @@ BEGIN
     VALUES (v_lot_id, 'adjusted', v_delta, v_ref, COALESCE(p_notes, 'Production stage shell total'));
 
     RETURN jsonb_build_object('success', true, 'id', v_lot_id, 'updated', true, 'delta_kg', v_delta);
+EXCEPTION WHEN OTHERS THEN
+    RETURN jsonb_build_object('success', false, 'error', SQLERRM);
 END;
 $$;
 

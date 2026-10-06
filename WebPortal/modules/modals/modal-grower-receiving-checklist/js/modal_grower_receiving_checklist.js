@@ -117,16 +117,17 @@ var _modal_grower_receiving_checklist = (function () {
             var saveBtn = document.getElementById('growerSaveReceivingChecklistBtn');
             if (saveBtn) saveBtn.addEventListener('click', (e) => { e.preventDefault(); scope.save(); });
 
+            $(document).off('.kp2ck'); // init() can run more than once; never stack these handlers
             CHECKS.forEach(function (c) {
-                $(document).on('change', '#' + CONTAINER_ID + ' input[name="' + c.name + '"]', function () { syncVisibility(c); });
-                $(document).on('input', '#' + c.name + 'Comment', function () { state[c.key].comment = this.value; });
-                $(document).on('change', '#' + c.name + 'Photos', function () {
+                $(document).on('change.kp2ck', '#' + CONTAINER_ID + ' input[name="' + c.name + '"]', function () { syncVisibility(c); });
+                $(document).on('input.kp2ck', '#' + c.name + 'Comment', function () { state[c.key].comment = this.value; });
+                $(document).on('change.kp2ck', '#' + c.name + 'Photos', function () {
                     var files = Array.prototype.slice.call(this.files || []);
                     this.value = '';
                     if (files.length) uploadPhotos(c, files);
                 });
             });
-            $(document).on('click', '.grower-check-photo-remove', function () {
+            $(document).on('click.kp2ck', '.grower-check-photo-remove', function () {
                 var key = $(this).attr('data-key');
                 var idx = parseInt($(this).attr('data-idx'), 10);
                 var c = CHECKS.filter(function (x) { return x.key === key; })[0];
