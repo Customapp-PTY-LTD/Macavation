@@ -1,96 +1,109 @@
 /**
  * Modal: Grower Intake Receiving Checklist (with batch linking).
- * Parent calls show(batchId) or show(batchId, checklistId) for edit.
- * Uses container id: growerReceivingChecklistModal.
- * Date inputs use Flatpickr (dd/mm/yyyy); API expects ISO (yyyy-mm-dd).
+ * Parent calls show(batchId). Uses container id: growerReceivingChecklistModal.
+ * Six Yes/No checks; a "bad" answer reveals a required comment and optional photos.
+ * Bag weights, delivery note and removed pre-sizer live on New Delivery / Release, not here.
  */
 var _modal_grower_receiving_checklist = (function () {
     'use strict';
 
     var CONTAINER_ID = 'growerReceivingChecklistModal';
-    var FLATPICKR_DDMMYYYY = { dateFormat: 'd/m/Y', allowInput: false, disableMobile: true };
-    /** Received Items DATE: open calendar only on click (not on focus), so validation bubble can show without opening calendar */
-    var FLATPICKR_RECEIVED_ITEMS_DATE = { dateFormat: 'd/m/Y', allowInput: false, disableMobile: true, clickOpens: false };
+    var PHOTO_FOLDER = 'Macavation/ReceivingChecklist';
 
-    function toISO(dateStr) {
-        if (!dateStr || typeof dateStr !== 'string') return null;
-        dateStr = dateStr.trim();
-        if (!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) return dateStr.indexOf('-') === 4 ? dateStr : null;
-        var parts = dateStr.split('/');
-        return parts[2] + '-' + parts[1].padStart(2, '0') + '-' + parts[0].padStart(2, '0');
+    // key = stored JSON key; name = radio group name; bad = the answer that needs a comment.
+    var CHECKS = [
+        { key: 'vehicle_clean',           name: 'growerVehicleClean',          q: 'Is the vehicle clean?',                         bad: 'No' },
+        { key: 'vehicle_enclosed',        name: 'growerVehicleEnclosed',       q: 'Vehicle fully enclosed?',                       bad: 'No' },
+        { key: 'hazard_substances',       name: 'growerHazardSubstances',      q: 'Any hazard substances noted on truck?',         bad: 'Yes' },
+        { key: 'pest_infestations',       name: 'growerPestInfestations',      q: 'Any signs of pest infestations?',               bad: 'Yes' },
+        { key: 'pallets_condition',       name: 'growerPalletsCondition',      q: 'Pallets received are in good condition',        bad: 'No' },
+        { key: 'raw_materials_condition', name: 'growerRawMaterialsCondition', q: 'Are raw materials received in good condition?', bad: 'No' }
+    ];
+
+    // In-memory state so typed text / photos survive toggling Yes <-> No.
+    var state = {};
+    var pendingUploads = 0;
+
+    function resetState() {
+        state = {};
+        CHECKS.forEach(function (c) { state[c.key] = { comment: '', photos: [] }; });
+        pendingUploads = 0;
+    }
+    resetState();
+
+    function norm(v) { return v == null ? '' : String(v).trim().toLowerCase(); }
+    function answerOf(c) { return $('input[name="' + c.name + '"]:checked').val() || ''; }
+    function isBad(c) { return norm(answerOf(c)) === norm(c.bad); }
+
+    function showMessage(lines) {
+        var $m = $('#growerChecklistMessage');
+        if (!lines || !lines.length) { $m.addClass('d-none').empty(); return; }
+        $m.empty().removeClass('d-none');
+        $('<div class="fw-semibold mb-1">').text('Please complete the checklist before saving:').appendTo($m);
+        var $ul = $('<ul class="mb-0">').appendTo($m);
+        lines.forEach(function (l) { $('<li>').text(l).appendTo($ul); });
     }
 
-    function fromISO(isoStr) {
-        if (!isoStr) return '';
-        var s = typeof isoStr === 'string' ? isoStr.trim() : String(isoStr);
-        if (s.indexOf('T') >= 0) s = s.split('T')[0];
-        var parts = s.split('-');
-        if (parts.length !== 3) return s;
-        return parts[2] + '/' + parts[1] + '/' + parts[0];
-    }
-
-    function getTodayPlaceholder() {
-        return fromISO(new Date().toISOString().split('T')[0]);
-    }
-
-    function initFlatpickrInModal() {
-        var container = document.getElementById(CONTAINER_ID);
-        if (!container || typeof flatpickr === 'undefined') return;
-        var todayPlaceholder = getTodayPlaceholder();
-        var inputs = container.querySelectorAll('.flatpickr-date');
-        inputs.forEach(function (el) {
-            if (!el.placeholder) el.placeholder = todayPlaceholder;
-            if (el._flatpickr) return;
-            var isReceivedItemsDate = el.getAttribute('name') === 'growerManufacturedDate' || el.closest('#growerReceivedItemsTableBody');
-            if (isReceivedItemsDate) {
-                var fp = flatpickr(el, FLATPICKR_RECEIVED_ITEMS_DATE);
-                el.addEventListener('click', function () { fp.open(); });
+    function renderThumbs(c) {
+        var $box = $('#' + c.name + 'Thumbs').empty();
+        state[c.key].photos.forEach(function (p, idx) {
+            var $wrap = $('<div class="position-relative">');
+            var $inner;
+            if (p.file_link) {
+                $inner = $('<a target="_blank" rel="noopener noreferrer">').attr('href', p.file_link)
+                    .append($('<img class="img-thumbnail" style="width:72px;height:72px;object-fit:cover;">').attr('src', p.file_link).attr('alt', p.name || 'photo'));
             } else {
-                flatpickr(el, FLATPICKR_DDMMYYYY);
+                $inner = $('<span class="small text-muted">').text(p.name || 'photo');
             }
+            var $rm = $('<button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 p-0 grower-check-photo-remove" style="width:20px;height:20px;line-height:1;" aria-label="Remove photo"><i class="fas fa-times"></i></button>')
+                .attr('data-key', c.key).attr('data-idx', idx);
+            $wrap.append($inner).append($rm).appendTo($box);
         });
     }
 
-    function initReceivedItemsDatePicker(dateInput) {
-        if (!dateInput || dateInput._flatpickr || typeof flatpickr === 'undefined') return;
-        if (!dateInput.placeholder) dateInput.placeholder = getTodayPlaceholder();
-        var fp = flatpickr(dateInput, FLATPICKR_RECEIVED_ITEMS_DATE);
-        dateInput.addEventListener('click', function () { fp.open(); });
+    function syncVisibility(c) {
+        var $extra = $('#' + c.name + 'Extra');
+        if (isBad(c)) {
+            $extra.removeClass('d-none');
+            $('#' + c.name + 'Comment').val(state[c.key].comment);
+            renderThumbs(c);
+        } else {
+            $extra.addClass('d-none');
+        }
     }
 
-    var RECEIVED_ITEM_DATE_INVALID_MSG = 'Please fill in this field.';
+    function syncAll() { CHECKS.forEach(syncVisibility); }
 
-    function clearReceivedItemsDateValidation() {
-        $('#growerReceivedItemsTableBody input[name="growerManufacturedDate"]').each(function () {
-            if (this.setCustomValidity) this.setCustomValidity('');
-            var next = this.nextElementSibling;
-            if (next && next.getAttribute && next.getAttribute('data-received-date-invalid')) {
-                next.remove();
+    async function uploadPhotos(c, files) {
+        var $err = $('#' + c.name + 'PhotoError').addClass('d-none').text('');
+        var errors = [];
+        for (var i = 0; i < files.length; i++) {
+            var file = files[i];
+            var safeName = (file.name || 'photo').replace(/[^\w.-]/g, '_');
+            var fileId = 'chk_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6) + '_' + safeName;
+            pendingUploads++;
+            try {
+                var res = (typeof _common !== 'undefined' && _common.uploadFile)
+                    ? await _common.uploadFile({ file: file, resourceFolder: PHOTO_FOLDER, fileId: fileId })
+                    : { Success: false, LastErrorDescription: 'Upload not available' };
+                if (!res || !res.Success) {
+                    errors.push((file.name || 'photo') + ': ' + ((res && res.LastErrorDescription) || 'Upload failed'));
+                } else {
+                    var data = res.Data;
+                    state[c.key].photos.push({
+                        file_id: (data && data[0] && (data[0].fileId || data[0].key)) || (data && data.fileId) || fileId,
+                        file_link: (data && data[0] && data[0].fileLink) || (data && data.fileLink) || null,
+                        name: file.name || safeName
+                    });
+                }
+            } catch (e) {
+                errors.push((file.name || 'photo') + ': ' + (e && e.message ? e.message : 'Upload failed'));
+            } finally {
+                pendingUploads--;
             }
-        });
-    }
-
-    function showReceivedItemDateInvalid(dateInput) {
-        if (!dateInput) return;
-        clearReceivedItemsDateValidation();
-        if (dateInput.setCustomValidity) dateInput.setCustomValidity(RECEIVED_ITEM_DATE_INVALID_MSG);
-        var existing = dateInput.nextElementSibling;
-        if (existing && existing.getAttribute('data-received-date-invalid')) return;
-        var div = document.createElement('div');
-        div.className = 'validation-bubble';
-        div.setAttribute('data-received-date-invalid', '1');
-        var icon = document.createElement('span');
-        icon.className = 'validation-bubble-icon';
-        icon.setAttribute('aria-hidden', 'true');
-        icon.textContent = '!';
-        var text = document.createElement('span');
-        text.className = 'validation-bubble-text';
-        text.textContent = RECEIVED_ITEM_DATE_INVALID_MSG;
-        div.appendChild(icon);
-        div.appendChild(text);
-        dateInput.parentNode.insertBefore(div, dateInput.nextSibling);
-        dateInput.focus();
-        if (dateInput.scrollIntoView) dateInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        renderThumbs(c);
+        if (errors.length) $err.text(errors.join(' ')).removeClass('d-none');
     }
 
     return {
@@ -103,25 +116,28 @@ var _modal_grower_receiving_checklist = (function () {
             const scope = _modal_grower_receiving_checklist;
             var saveBtn = document.getElementById('growerSaveReceivingChecklistBtn');
             if (saveBtn) saveBtn.addEventListener('click', (e) => { e.preventDefault(); scope.save(); });
-            var addRowBtn = document.getElementById('growerAddReceivedItemRow');
-            if (addRowBtn) addRowBtn.addEventListener('click', () => scope.addReceivedItemRow());
-            $(document).on('click', '.growerRemoveItemRow', function () { $(this).closest('tr').remove(); scope.updateWeightTally(); });
-            $(document).on('input change', '#growerReceivedItemsTableBody .grower-bag-weight', function () { scope.updateWeightTally(); });
-            $(document).on('input change', '#growerRemovedPreSizerKg', function () { scope.updateWeightTally(); });
-            $(document).on('change', '#' + CONTAINER_ID + ' select[name="growerDescription"]', function () {
-                var val = $(this).val();
-                var titleText = val === 'NIS' ? 'Harvested Date' : val === 'Kernel' ? 'Manufactured Date' : 'Manufactured Date or Harvested Date';
-                $(this).closest('tr').find('input[name="growerManufacturedDate"]').attr('title', titleText);
+
+            $(document).off('.kp2ck'); // init() can run more than once; never stack these handlers
+            CHECKS.forEach(function (c) {
+                $(document).on('change.kp2ck', '#' + CONTAINER_ID + ' input[name="' + c.name + '"]', function () { syncVisibility(c); });
+                $(document).on('input.kp2ck', '#' + c.name + 'Comment', function () { state[c.key].comment = this.value; });
+                $(document).on('change.kp2ck', '#' + c.name + 'Photos', function () {
+                    var files = Array.prototype.slice.call(this.files || []);
+                    this.value = '';
+                    if (files.length) uploadPhotos(c, files);
+                });
             });
-            // Clear validation state when user fills the Received Items date (so message and is-invalid go away)
-            $(document).on('input change', '#growerReceivedItemsTableBody input[name="growerManufacturedDate"]', function () {
-                if (this.setCustomValidity) this.setCustomValidity('');
-                var next = this.nextElementSibling;
-                if (next && next.getAttribute && next.getAttribute('data-received-date-invalid')) next.remove();
+            $(document).on('click.kp2ck', '.grower-check-photo-remove', function () {
+                var key = $(this).attr('data-key');
+                var idx = parseInt($(this).attr('data-idx'), 10);
+                var c = CHECKS.filter(function (x) { return x.key === key; })[0];
+                if (!c || !state[key]) return;
+                state[key].photos.splice(idx, 1);
+                renderThumbs(c);
             });
+
             var container = document.getElementById(CONTAINER_ID);
             if (container && typeof $ !== 'undefined') {
-                $(container).on('shown.bs.modal', () => initFlatpickrInModal());
                 $(container).on('hidden.bs.modal', () => scope.clearForm());
             }
         },
@@ -129,7 +145,6 @@ var _modal_grower_receiving_checklist = (function () {
         show: async (batchId, checklistId) => {
             const scope = _modal_grower_receiving_checklist;
             var batchIdEl = document.getElementById('growerReceivingChecklistBatchId');
-            if (batchIdEl) batchIdEl.value = batchId || '';
 
             var labelEl = document.getElementById('growerReceivingChecklistModalLabel');
             if (labelEl) labelEl.textContent = 'Receiving Checklist';
@@ -137,15 +152,7 @@ var _modal_grower_receiving_checklist = (function () {
             scope.clearForm();
             if (batchIdEl) batchIdEl.value = batchId || '';
 
-            var receivingIdEl = document.getElementById('growerReceivingId');
-            if (receivingIdEl) receivingIdEl.value = '';
-
-            var todayISO = new Date().toISOString().split('T')[0];
-            var dateEl = document.getElementById('growerDateReceived');
-            if (dateEl) dateEl.value = fromISO(todayISO);
-
             var supplierIdEl = document.getElementById('growerReceivingChecklistSupplierId');
-            if (supplierIdEl) supplierIdEl.value = '';
 
             // Load kernel record to get supplier + any existing checklist data
             if (batchId && typeof dataFunctions !== 'undefined' && dataFunctions.getKernelBatchDetail) {
@@ -155,7 +162,7 @@ var _modal_grower_receiving_checklist = (function () {
                     if (kd && kd.supplier_id && supplierIdEl) supplierIdEl.value = kd.supplier_id;
                     var existingChecklist = kd && kd.intake_data && kd.intake_data.receiving_checklist;
                     if (existingChecklist && existingChecklist.completed_at) {
-                        scope.loadIntoForm({ checklist: existingChecklist, received_items: existingChecklist.received_items || [] });
+                        scope.loadIntoForm({ checklist: existingChecklist });
                     }
                 } catch (err) {
                     console.error('Error loading kernel detail for checklist:', err);
@@ -168,56 +175,29 @@ var _modal_grower_receiving_checklist = (function () {
         },
 
         loadIntoForm: (payload) => {
-            const scope = _modal_grower_receiving_checklist;
             if (typeof $ === 'undefined' || !payload) return;
             var checklist = payload.checklist || payload;
-            var items = payload.received_items || [];
             if (!checklist) return;
 
             document.getElementById('growerReceivingId').value = checklist.id || '';
-            document.getElementById('growerDateReceived').value = fromISO(checklist.date_received || '');
-            document.getElementById('growerDeliveryNoteRef').value = checklist.delivery_note_ref || '';
             var supplierIdEl = document.getElementById('growerReceivingChecklistSupplierId');
-            if (supplierIdEl) supplierIdEl.value = checklist.supplier_id || '';
-            $('input[name="growerVehicleClean"][value="' + (checklist.vehicle_clean || '') + '"]').prop('checked', true);
-            $('input[name="growerVehicleEnclosed"][value="' + (checklist.vehicle_enclosed || '') + '"]').prop('checked', true);
-            $('input[name="growerHazardSubstances"][value="' + (checklist.hazard_substances || '') + '"]').prop('checked', true);
-            $('input[name="growerPestInfestations"][value="' + (checklist.pest_infestations || '') + '"]').prop('checked', true);
-            $('input[name="growerPalletsCondition"][value="' + (checklist.pallets_condition || '') + '"]').prop('checked', true);
-            $('input[name="growerRawMaterialsCondition"][value="' + (checklist.raw_materials_condition || '') + '"]').prop('checked', true);
-            document.getElementById('growerReceivingComments').value = checklist.comments || '';
-
-            var removedEl = document.getElementById('growerRemovedPreSizerKg');
-            if (removedEl) {
-                var removedVal = checklist.removed_pre_sizer_kg ?? checklist.removedPreSizerKg;
-                removedEl.value = (removedVal != null && removedVal !== '') ? String(removedVal) : '';
-            }
-
-            var tbody = $('#growerReceivedItemsTableBody');
-            tbody.find('tr:not(:first)').remove();
-            var firstRow = tbody.find('tr:first');
-            firstRow.find('select[name="growerDescription"]').val('');
-            firstRow.find('input[name="growerQuantity"]').val('');
-            firstRow.find('input[name="growerManufacturedDate"]').val('');
-
-            if (Array.isArray(items) && items.length) {
-                items.forEach(function (it, i) {
-                    if (i === 0) {
-                        firstRow.find('select[name="growerDescription"]').val(it.description || '');
-                        firstRow.find('input[name="growerQuantity"]').val(it.quantity_kg != null ? it.quantity_kg : '');
-                        firstRow.find('input[name="growerManufacturedDate"]').val(fromISO(it.manufactured_date || ''));
-                        var titleText = it.description === 'NIS' ? 'Harvested Date' : it.description === 'Kernel' ? 'Manufactured Date' : 'Manufactured Date or Harvested Date';
-                        firstRow.find('input[name="growerManufacturedDate"]').attr('title', titleText);
-                    } else {
-                        scope.appendReceivedItemRow(it.description || '', it.quantity_kg != null ? it.quantity_kg : '', fromISO(it.manufactured_date || ''));
-                    }
+            if (supplierIdEl && checklist.supplier_id) supplierIdEl.value = checklist.supplier_id;
+            var itemComments = checklist.item_comments || {};
+            var itemPhotos = checklist.item_photos || {};
+            CHECKS.forEach(function (c) {
+                var val = checklist[c.key] || '';
+                // Match case-insensitively so legacy 'yes'/'no' values still restore.
+                $('input[name="' + c.name + '"]').each(function () {
+                    this.checked = val !== '' && norm(this.value) === norm(val);
                 });
-            }
-            scope.updateWeightTally();
+                state[c.key].comment = itemComments[c.key] || '';
+                state[c.key].photos = Array.isArray(itemPhotos[c.key]) ? itemPhotos[c.key].slice() : [];
+            });
+            document.getElementById('growerReceivingComments').value = checklist.comments || '';
+            syncAll();
         },
 
         clearForm: () => {
-            const scope = _modal_grower_receiving_checklist;
             if (typeof $ === 'undefined') return;
             var form = document.getElementById('growerReceivingChecklistForm');
             if (form) form.reset();
@@ -226,58 +206,13 @@ var _modal_grower_receiving_checklist = (function () {
             if (batchIdEl) batchIdEl.value = '';
             var supplierIdEl = document.getElementById('growerReceivingChecklistSupplierId');
             if (supplierIdEl) supplierIdEl.value = '';
-            $('#growerReceivedItemsTableBody tr:not(:first)').remove();
-            $('#growerReceivedItemsTableBody tr:first select[name="growerDescription"]').val('');
-            $('#growerReceivedItemsTableBody tr:first input').val('');
-            var removedEl = document.getElementById('growerRemovedPreSizerKg');
-            if (removedEl) removedEl.value = '';
-            clearReceivedItemsDateValidation();
-            scope.updateWeightTally();
-        },
-
-        addReceivedItemRow: () => {
-            const scope = _modal_grower_receiving_checklist;
-            if (typeof $ === 'undefined') return;
-            // Copy description and date from last row as defaults
-            var lastRow = $('#growerReceivedItemsTableBody tr:last');
-            var lastDescription = lastRow.length ? (lastRow.find('select[name="growerDescription"]').val() || '') : '';
-            var lastDate = lastRow.length ? (lastRow.find('input[name="growerManufacturedDate"]').val() || '') : '';
-            scope.appendReceivedItemRow(lastDescription, '', lastDate);
-        },
-
-        appendReceivedItemRow: (description, quantityKg, dateStr) => {
-            const scope = _modal_grower_receiving_checklist;
-            if (typeof $ === 'undefined') return;
-            var todayPlaceholder = getTodayPlaceholder();
-            var descSelected = description === 'NIS' ? ' selected' : '';
-            var kernelSelected = description === 'Kernel' ? ' selected' : '';
-            var titleText = description === 'NIS' ? 'Harvested Date' : description === 'Kernel' ? 'Manufactured Date' : 'Manufactured Date or Harvested Date';
-            var newRow = '<tr><td class="align-middle"><select class="form-select form-select-sm" name="growerDescription"><option value="">Select</option><option value="NIS"' + descSelected + '>NIS</option><option value="Kernel"' + kernelSelected + '>Kernel</option></select></td><td class="align-middle"><input type="number" class="form-control form-control-sm grower-bag-weight" name="growerQuantity" step="0.01" value="' + (quantityKg ? String(quantityKg).replace(/"/g, '&quot;') : '') + '"></td><td class="align-middle"><input type="text" class="form-control form-control-sm flatpickr-date" name="growerManufacturedDate" placeholder="' + todayPlaceholder + '" value="' + (dateStr ? String(dateStr).replace(/"/g, '&quot;') : '') + '" title="' + titleText.replace(/"/g, '&quot;') + '"></td><td class="align-middle"><button type="button" class="btn btn-sm btn-danger growerRemoveItemRow"><i class="fas fa-times"></i></button></td></tr>';
-            var $row = $(newRow).appendTo('#growerReceivedItemsTableBody');
-            $row.find('.flatpickr-date').each(function () {
-                initReceivedItemsDatePicker(this);
+            resetState();
+            CHECKS.forEach(function (c) {
+                $('#' + c.name + 'Thumbs').empty();
+                $('#' + c.name + 'PhotoError').addClass('d-none').text('');
             });
-            // Focus the new weight input
-            var weightInput = $row.find('.grower-bag-weight')[0];
-            if (weightInput) setTimeout(function () { weightInput.focus(); }, 50);
-            scope.updateWeightTally();
-        },
-
-        updateWeightTally: () => {
-            var total = 0;
-            $('#growerReceivedItemsTableBody .grower-bag-weight').each(function () {
-                var val = parseFloat(this.value);
-                if (!isNaN(val)) total += val;
-            });
-            var totalEl = document.getElementById('growerTotalWeightKg');
-            if (totalEl) totalEl.textContent = total.toFixed(2);
-
-            var removedPreSizerEl = document.getElementById('growerRemovedPreSizerKg');
-            var removed = (removedPreSizerEl && removedPreSizerEl.value !== '') ? parseFloat(removedPreSizerEl.value) : 0;
-            if (isNaN(removed)) removed = 0;
-            var balanceIn = total - removed;
-            var balanceEl = document.getElementById('growerBalanceInKg');
-            if (balanceEl) balanceEl.textContent = balanceIn.toFixed(2);
+            syncAll();
+            showMessage(null);
         },
 
         hide: () => {
@@ -291,66 +226,21 @@ var _modal_grower_receiving_checklist = (function () {
         },
 
         /**
-         * Validate mandatory fields in section order (all except Comments).
-         * Returns { valid: boolean, message: string, failedSection: number }.
-         * failedSection is 1–4 so caller can show Swal (1,3) or browser tooltip (2,4).
+         * Every item answered; every bad answer needs a comment.
+         * Returns { valid, missing: [string] }.
          */
         validateBeforeSave: () => {
-            if (typeof $ === 'undefined') return { valid: true };
-
-            // 1. Vehicle & Receiving Checks — all Yes/No mandatory → show validation (Swal)
-            var vehicleClean = $('input[name="growerVehicleClean"]:checked').val();
-            var vehicleEnclosed = $('input[name="growerVehicleEnclosed"]:checked').val();
-            var hazardSubstances = $('input[name="growerHazardSubstances"]:checked').val();
-            var pestInfestations = $('input[name="growerPestInfestations"]:checked').val();
-            var palletsCondition = $('input[name="growerPalletsCondition"]:checked').val();
-            var rawMaterialsCondition = $('input[name="growerRawMaterialsCondition"]:checked').val();
-
-            if (!vehicleClean || !vehicleEnclosed || !hazardSubstances || !pestInfestations || !palletsCondition || !rawMaterialsCondition) {
-                return { valid: false, message: 'Please answer all Vehicle & Receiving Checks (Yes/No).', failedSection: 1 };
-            }
-
-            // 2. Receiving Information — Date Received and Delivery Note Ref → show browser tooltip
-            var dateReceived = ($('#growerDateReceived').val() || '').trim();
-            var deliveryNoteRef = ($('#growerDeliveryNoteRef').val() || '').trim();
-            if (!dateReceived) return { valid: false, message: 'Please enter Date Received.', failedSection: 2 };
-            if (!deliveryNoteRef) return { valid: false, message: 'Please enter Delivery Note Reference/Number.', failedSection: 2 };
-
-            // 3. Received Items — at least one row; no partial rows → show validation (Swal)
-            var hasCompleteRow = false;
-            var rowError = null;
-            $('#growerReceivedItemsTableBody tr').each(function () {
-                var $row = $(this);
-                var desc = ($row.find('select[name="growerDescription"]').val() || '').trim();
-                var qty = ($row.find('input[name="growerQuantity"]').val() || '').trim();
-                var dateVal = ($row.find('input[name="growerManufacturedDate"]').val() || '').trim();
-                if (desc || qty || dateVal) {
-                    if (!desc || !qty || !dateVal) {
-                        rowError = 'Please complete each received item row: Description, Weight and Date are required.';
-                        return false;
-                    }
-                    var num = parseFloat(qty);
-                    if (isNaN(num) || num <= 0) {
-                        rowError = 'Please enter a valid Weight (kg) for each received item.';
-                        return false;
-                    }
-                    hasCompleteRow = true;
+            if (typeof $ === 'undefined') return { valid: true, missing: [] };
+            var missing = [];
+            CHECKS.forEach(function (c) {
+                if (!answerOf(c)) missing.push('Answer "' + c.q + '"');
+            });
+            CHECKS.forEach(function (c) {
+                if (answerOf(c) && isBad(c) && !(state[c.key].comment || '').trim()) {
+                    missing.push('Add a comment for "' + c.q + '"');
                 }
             });
-            if (rowError) return { valid: false, message: rowError, failedSection: 3 };
-            if (!hasCompleteRow) {
-                return { valid: false, message: 'Please add at least one received item with Description, Weight and Date.', failedSection: 3 };
-            }
-
-            // 4. Removed pre-sizer (kg) — mandatory → show browser tooltip
-            var removedVal = ($('#growerRemovedPreSizerKg').val() || '').trim();
-            if (removedVal === '') return { valid: false, message: 'Please enter Removed pre-sizer (kg). Use 0 if none.', failedSection: 4 };
-            var removedNum = parseFloat(removedVal);
-            if (isNaN(removedNum) || removedNum < 0) {
-                return { valid: false, message: 'Please enter a valid Removed pre-sizer (kg) (0 or positive number).', failedSection: 4 };
-            }
-
-            return { valid: true };
+            return { valid: missing.length === 0, missing: missing };
         },
 
         save: async () => {
@@ -358,90 +248,37 @@ var _modal_grower_receiving_checklist = (function () {
             try {
                 if (typeof dataFunctions === 'undefined') return;
 
-                // Validate in section order on Save only: section 1 & 3 → Swal or date bubble; section 2 & 4 → browser tooltip
                 var validation = scope.validateBeforeSave();
-                if (!validation.valid) {
-                    var form = document.getElementById('growerReceivingChecklistForm');
-                    if ((validation.failedSection === 2 || validation.failedSection === 4) && form) {
-                        form.reportValidity(); // show browser tooltip on the empty required field for that section
-                    } else if (validation.failedSection === 3 && validation.message && validation.message.indexOf('complete each received item row') !== -1) {
-                        // Only show date bubble when Description AND Weight are filled but Date is missing; otherwise show Swal
-                        var $dateMissingRow = $('#growerReceivedItemsTableBody tr').filter(function () {
-                            var $row = $(this);
-                            var desc = ($row.find('select[name="growerDescription"]').val() || '').trim();
-                            var qty = ($row.find('input[name="growerQuantity"]').val() || '').trim();
-                            var dateVal = ($row.find('input[name="growerManufacturedDate"]').val() || '').trim();
-                            return desc && qty && !dateVal;
-                        }).first();
-                        var dateInput = $dateMissingRow.find('input[name="growerManufacturedDate"]')[0];
-                        if (dateInput) {
-                            showReceivedItemDateInvalid(dateInput);
-                        } else {
-                            if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire('Validation', validation.message, 'warning');
-                        }
-                    } else {
-                        if (typeof Swal !== 'undefined' && Swal.fire) {
-                            Swal.fire('Validation', validation.message, 'warning');
-                        }
-                    }
-                    return;
-                }
-
-                var receivedItems = [];
-                $('#growerReceivedItemsTableBody tr').each(function () {
-                    var $row = $(this);
-                    var desc = $row.find('select[name="growerDescription"]').val() || $row.find('input[name="growerDescription"]').val();
-                    var qty = $row.find('input[name="growerQuantity"]').val();
-                    if (desc || qty) {
-                        receivedItems.push({
-                            description: desc || null,
-                            quantity_kg: qty ? parseFloat(qty) : null,
-                            manufactured_date: toISO($row.find('input[name="growerManufacturedDate"]').val()) || null
-                        });
-                    }
-                });
-
-                var dateReceivedVal = $('#growerDateReceived').val();
-                var supplierIdVal = $('#growerReceivingChecklistSupplierId').val();
-                var receivingData = {
-                    p_date_received: toISO(dateReceivedVal) || dateReceivedVal,
-                    p_delivery_note_ref: $('#growerDeliveryNoteRef').val(),
-                    p_supplier_id: supplierIdVal || null,
-                    p_vehicle_clean: $('input[name="growerVehicleClean"]:checked').val() || null,
-                    p_vehicle_enclosed: $('input[name="growerVehicleEnclosed"]:checked').val() || null,
-                    p_hazard_substances: $('input[name="growerHazardSubstances"]:checked').val() || null,
-                    p_pest_infestations: $('input[name="growerPestInfestations"]:checked').val() || null,
-                    p_pallets_condition: $('input[name="growerPalletsCondition"]:checked').val() || null,
-                    p_raw_materials_condition: $('input[name="growerRawMaterialsCondition"]:checked').val() || null,
-                    p_comments: $('#growerReceivingComments').val() || null,
-                    p_received_items: receivedItems,
-                    p_removed_pre_sizer_kg: (function () {
-                        var v = $('#growerRemovedPreSizerKg').val();
-                        if (v === '' || v == null) return null;
-                        var n = parseFloat(v);
-                        return isNaN(n) ? null : n;
-                    })()
-                };
+                if (!validation.valid) { showMessage(validation.missing); return; }
+                if (pendingUploads > 0) { showMessage(['Wait for the photo uploads to finish']); return; }
+                showMessage(null);
 
                 var batchIdEl = document.getElementById('growerReceivingChecklistBatchId');
                 var kernelId = batchIdEl && batchIdEl.value ? batchIdEl.value.trim() : null;
                 if (!kernelId) throw new Error('No kernel record linked — cannot save checklist');
+                var supplierIdVal = $('#growerReceivingChecklistSupplierId').val();
 
-                var result = await dataFunctions.upsertKernelChecklist({
-                    kernel_id:               kernelId,
-                    date_received:           receivingData.p_date_received,
-                    delivery_note_ref:       receivingData.p_delivery_note_ref,
-                    supplier_id:             receivingData.p_supplier_id,
-                    vehicle_clean:           receivingData.p_vehicle_clean,
-                    vehicle_enclosed:        receivingData.p_vehicle_enclosed,
-                    hazard_substances:       receivingData.p_hazard_substances,
-                    pest_infestations:       receivingData.p_pest_infestations,
-                    pallets_condition:       receivingData.p_pallets_condition,
-                    raw_materials_condition: receivingData.p_raw_materials_condition,
-                    comments:               receivingData.p_comments,
-                    received_items:         receivingData.p_received_items,
-                    removed_pre_sizer_kg:   receivingData.p_removed_pre_sizer_kg
+                // Comments/photos are sent for bad answers only.
+                // received_items / date_received / delivery_note_ref / removed_pre_sizer_kg are deliberately
+                // omitted: the RPC merges and keeps what New Delivery / Release stored.
+                var req = {
+                    kernel_id:     kernelId,
+                    supplier_id:   supplierIdVal || null,
+                    comments:      $('#growerReceivingComments').val() || null,
+                    item_comments: {},
+                    item_photos:   {}
+                };
+                CHECKS.forEach(function (c) {
+                    req[c.key] = answerOf(c) || null;
+                    if (isBad(c)) {
+                        req.item_comments[c.key] = state[c.key].comment.trim();
+                        req.item_photos[c.key] = state[c.key].photos.map(function (p) {
+                            return { file_id: p.file_id, file_link: p.file_link, name: p.name };
+                        });
+                    }
                 });
+
+                var result = await dataFunctions.upsertKernelChecklist(req);
 
                 if (result && result.success !== false) {
                     if (batchIdEl) batchIdEl.value = '';

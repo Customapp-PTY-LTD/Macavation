@@ -1,0 +1,90 @@
+/* Silo Allocation — silo cards with a tank graphic. Semantic tokens only. */
+.silo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 12px;
+}
+
+.silo-card {
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-md);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: #fff;
+}
+
+.silo-card.silo-open {
+    border-color: var(--mac-success);
+    background: var(--mac-success-light);
+}
+
+.silo-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+}
+
+.silo-tank {
+    position: relative;
+    height: 96px;
+    border: 2px solid var(--mac-border-strong);
+    border-radius: var(--mac-radius-sm);
+    overflow: hidden;
+    background: #fff;
+}
+
+.silo-level {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--mac-green-light);
+    border-top: 2px solid var(--mac-green);
+}
+
+.silo-level.silo-level-full {
+    background: var(--mac-danger-light);
+    border-top-color: var(--mac-danger);
+}
+
+.silo-pct {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: var(--mac-text);
+}
+
+.silo-meta {
+    font-size: var(--mac-text-sm);
+    color: var(--mac-text-secondary);
+}
+
+.silo-timer {
+    font-family: var(--mac-font-mono);
+    font-size: 1.25rem;
+    font-weight: 600;
+    text-align: center;
+    color: var(--mac-text);
+}
+
+.silo-alloc-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.silo-alloc-row .form-select {
+    width: auto;
+    max-width: 100%;
+}
+
+.silo-col {
+    white-space: nowrap;
+}

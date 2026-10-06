@@ -645,6 +645,28 @@
                 "css/sales_reports.css"
             ]
         },
+        "silo-allocation-grid": {
+            "description": "Silo Allocation",
+            "path": "silo-allocation",
+            "html": "html/silo_allocation_grid.html",
+            "js": [
+                "js/silo_allocation_grid.js"
+            ],
+            "css": [
+                "css/silo_allocation_grid.css"
+            ]
+        },
+        "kernel-pipeline-settings": {
+            "description": "Kernel Pipeline Settings",
+            "path": "kernel-pipeline-settings",
+            "html": "html/kernel_pipeline_settings_grid.html",
+            "js": [
+                "js/kernel_pipeline_settings_grid.js"
+            ],
+            "css": [
+                "css/kernel_pipeline_settings_grid.css"
+            ]
+        },
         "report-targets-grid": {
             "description": "Targets",
             "path": "report-targets",

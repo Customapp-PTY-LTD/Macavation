@@ -233,6 +233,17 @@ var _common = {
         }).format(amount);
     },
 
+    /**
+     * Kilogram (or gram) display: comma thousands separator, fixed decimals (default 2).
+     * formatKg(1234.5) -> "1,234.50". Returns '' for null/blank/non-numeric (Mike 1.a.i.4.c).
+     */
+    formatKg: function (value, decimals = 2) {
+        if (value === null || value === undefined || value === '') return '';
+        var n = typeof value === 'number' ? value : parseFloat(String(value).replace(/,/g, ''));
+        if (!isFinite(n)) return '';
+        return n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    },
+
     // Debounce function
     debounce: function (func, wait, immediate) {
         let timeout;

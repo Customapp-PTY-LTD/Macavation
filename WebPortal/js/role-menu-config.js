@@ -24,6 +24,7 @@ var _roleMenuConfig = function () {
                     'batch-journey',
                     'grower-intake-grid',
                     'kernel-production-grid',
+                    'silo-allocation-grid',
                     'kernel-production-forecast-grid',
                     'stock-management-kernel',
                     'kernel-dispatch-grid',
@@ -39,6 +40,8 @@ var _roleMenuConfig = function () {
                     'batch-journey',
                     'grower-intake-grid',
                     'kernel-production-grid',
+                    'silo-allocation-grid',
+                    'kernel-pipeline-settings',
                     'kernel-production-forecast-grid',
                     'stock-management-kernel',
                     'kernel-dispatch-grid',
@@ -53,6 +56,8 @@ var _roleMenuConfig = function () {
                     'batch-journey',
                     'grower-intake-grid',
                     'kernel-production-grid',
+                    'silo-allocation-grid',
+                    'kernel-pipeline-settings',
                     'kernel-production-forecast-grid',
                     'stock-management-kernel',
                     'kernel-dispatch-grid',
@@ -64,6 +69,7 @@ var _roleMenuConfig = function () {
                 access: 'specific',
                 menus: [
                     'kernel-production-grid',
+                    'silo-allocation-grid',
                     'kernel-production-forecast-grid',
                     'stock-management-kernel',
                     'kernel-dispatch-grid',
@@ -76,6 +82,8 @@ var _roleMenuConfig = function () {
                 menus: [
                     'grower-intake-grid',
                     'kernel-production-grid',
+                    'silo-allocation-grid',
+                    'kernel-pipeline-settings',
                     'kernel-production-forecast-grid',
                     'kernel-dispatch-grid'
                 ]
@@ -88,6 +96,7 @@ var _roleMenuConfig = function () {
                     'batch-journey',
                     'grower-intake-grid',
                     'kernel-production-grid',
+                    'silo-allocation-grid',
                     'kernel-production-forecast-grid',
                     'stock-management-kernel',
                     'kernel-dispatch-grid',
@@ -314,6 +323,20 @@ var _roleMenuConfig = function () {
                 category: 'kernel',
                 parent: 'kernelCollapse'
             },
+            'silo-allocation-grid': {
+                route: 'silo-allocation-grid',
+                icon: 'fas fa-database',
+                label: 'Silo Allocation',
+                category: 'kernel',
+                parent: 'kernelCollapse'
+            },
+            'kernel-pipeline-settings': {
+                route: 'kernel-pipeline-settings',
+                icon: 'fas fa-sliders-h',
+                label: 'Kernel Pipeline Settings',
+                category: 'kernel',
+                parent: 'kernelCollapse'
+            },
             'kernel-production-grid': {
                 route: 'kernel-production-grid',
                 icon: 'fas fa-cogs',
@@ -492,6 +515,8 @@ var _roleMenuConfig = function () {
             'batch-journey',
             'grower-intake-grid',
             'kernel-production-grid',
+            'silo-allocation-grid',
+            'kernel-pipeline-settings',
             'stock-management-kernel',
             'kernel-dispatch-grid',
             'supplier-intake-grid',

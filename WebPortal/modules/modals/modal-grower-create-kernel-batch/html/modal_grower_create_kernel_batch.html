@@ -1,7 +1,7 @@
-<div class="modal-dialog modal-dialog-centered">
+<div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
     <div class="modal-content">
         <div class="modal-header">
-            <h5 class="modal-title" id="createKernelBatchModalLabel">Create kernel batch</h5>
+            <h5 class="modal-title" id="createKernelBatchModalLabel">New Delivery</h5>
             <a target="_blank" rel="noopener noreferrer" href="help/index.html#modal-grower-create-kernel-batch" class="btn btn-sm btn-outline-secondary ms-auto me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
@@ -11,12 +11,17 @@
                 <i class="fas fa-calendar-check"></i>
                 <span>Converting scheduled delivery from the procurement calendar. Confirm or adjust details before saving.</span>
             </div>
-            <form id="createKernelBatchForm">
+            <form id="createKernelBatchForm" novalidate>
+                <h6 class="border-bottom pb-1">Batch Details</h6>
                 <div class="mb-3">
-                    <label for="intakeBatchGrower" class="form-label">Grower / supplier</label>
+                    <label for="intakeBatchReceivedDate" class="form-label">Date Received <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" id="intakeBatchReceivedDate">
+                </div>
+                <div class="mb-3">
+                    <label for="intakeBatchGrower" class="form-label">Supplier <span class="text-danger">*</span></label>
                     <div class="d-flex gap-2">
                         <select class="form-select flex-grow-1" id="intakeBatchGrower">
-                            <option value="">Select (optional)</option>
+                            <option value="">Select supplier</option>
                         </select>
                         <button type="button" class="btn btn-outline-primary" id="intakeAddSupplierBtn" title="Add new supplier"><i class="fas fa-plus"></i></button>
                     </div>
@@ -57,26 +62,116 @@
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label for="intakeBatchNumber" class="form-label">Batch number</label>
+                    <label for="intakeBatchNumber" class="form-label">Batch Number <span class="text-danger">*</span></label>
                     <div class="d-flex gap-2 align-items-start flex-wrap">
-                        <input type="text" class="form-control flex-grow-1" id="intakeBatchNumber" placeholder="Bn suggestion or any batch number you need" required autocomplete="off">
+                        <input type="text" class="form-control flex-grow-1" id="intakeBatchNumber" placeholder="Bn suggestion" autocomplete="off">
                         <button type="button" class="btn btn-outline-secondary text-nowrap" id="intakeRefreshBatchNumberBtn" title="Recalculate suggested number from batches in the system">Refresh suggested</button>
                     </div>
-                    <small class="text-muted d-block mt-1">With a grower selected, a <strong>Bn …</strong> name is suggested. You may replace it entirely with any batch number (legacy names, imports, etc.)—that value is what gets saved. Changing the received date only updates the suggestion if you have not edited this field; use <strong>Refresh suggested</strong> to re-apply the Bn format.</small>
+                    <small class="text-muted d-block mt-1" id="intakeBatchNumberHint">Auto-generated.</small>
                 </div>
-                <div class="mb-3">
-                    <label for="intakeBatchReceivedDate" class="form-label">Received date</label>
-                    <input type="date" class="form-control" id="intakeBatchReceivedDate" required>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-12">
+                        <label for="intakeBatchWetNis" class="form-label">Supplier's declared weight (kg)</label>
+                        <input type="number" class="form-control" id="intakeBatchWetNis" step="0.01" min="0">
+                        <small class="text-muted">What the supplier says they sent</small>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label for="intakeBatchWetNis" class="form-label">Wet NIS (kg)</label>
-                    <input type="number" class="form-control" id="intakeBatchWetNis" step="0.01" min="0.01" required>
+
+                <h6 class="border-bottom pb-1 mt-4">Wet Nut in Shell Received (Kg)</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-1" id="intakeBagsTable">
+                        <thead>
+                            <tr>
+                                <th style="width:70px">No.</th>
+                                <th>Description</th>
+                                <th class="text-end" style="width:180px">Weight (Kg)</th>
+                                <th style="width:50px"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="intakeBagsBody"></tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="2">Weighed total (kg) – sum of bags · <span id="intakeBagCount">0</span> bags</td>
+                                <td class="text-end fw-bold" id="intakeBagTotal">0.00</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="intakeAddBagBtn">+ Add bag</button>
+                    <small class="text-muted">Weights show with a thousands comma and 2 decimals. There's no Date column; the bags use Date Received.</small>
+                </div>
+                <div class="alert alert-warning py-2 small" id="intakeDeclDiffWarning" style="display:none"></div>
+
+                <h6 class="border-bottom pb-1 mt-4">Transport Details</h6>
+                <div id="intakeTransportNotice" class="alert alert-warning py-2 small" style="display:none"></div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="intakeTransporter" class="form-label">Transporter <span class="text-danger">*</span></label>
+                        <select class="form-select" id="intakeTransporter"><option value="">Select transporter</option></select>
+                        <button type="button" class="btn btn-sm btn-outline-secondary mt-1" id="intakeAddTransporterBtn">+ Add transport company</button>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="intakeDeliveryNoteRef" class="form-label">Delivery Note Reference Number <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="intakeDeliveryNoteRef" autocomplete="off">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="intakeTransportType" class="form-label">Transport Type <span class="text-danger">*</span></label>
+                        <select class="form-select" id="intakeTransportType"><option value="">Select transport type</option></select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="intakeTransportRate" class="form-label">Transport Rate (R, whole trip) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="intakeTransportRate" step="0.01" min="0">
+                    </div>
+                    <div class="col-md-4">
+                        <span class="form-label d-block">Pallets</span>
+                        <div class="form-control-plaintext fw-bold" id="intakePallets">0</div>
+                        <small class="text-muted">One bag per pallet</small>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="form-label d-block">Rate per pallet</span>
+                        <div class="form-control-plaintext fw-bold" id="intakeRatePerPallet">-</div>
+                        <small class="text-muted">rate ÷ pallets</small>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="form-label d-block">Rate per kg</span>
+                        <div class="form-control-plaintext fw-bold" id="intakeRatePerKg">-</div>
+                        <small class="text-muted">rate ÷ weighed total</small>
+                    </div>
+                </div>
+                <div id="intakeNewTransporterForm" class="mt-2 p-3 border rounded bg-light" style="display: none;">
+                    <label for="intakeNewTransporterName" class="form-label small">Transport company name <span class="text-danger">*</span></label>
+                    <input type="text" id="intakeNewTransporterName" class="form-control form-control-sm mb-2" placeholder="Transport company name" autocomplete="off">
+                    <div id="intakeNewTransporterError" class="text-danger small mb-2" style="display: none;"></div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-primary" id="intakeNewTransporterSaveBtn">Save</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="intakeNewTransporterCancelBtn">Cancel</button>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <span class="form-label d-block">Collection Point(s) <small class="text-muted">pick one or more, taken from the supplier's addresses in CRM</small></span>
+                    <div id="intakeCollectionPoints" class="d-flex flex-wrap gap-2"></div>
+                </div>
+
+                <div class="card mt-4" id="intakeDocsCard">
+                    <div class="card-header d-flex align-items-center justify-content-between">
+                        <strong>Supporting Documents</strong>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="intakeDocsToggleBtn" aria-expanded="true">Minimise ▴</button>
+                    </div>
+                    <div class="card-body" id="intakeDocsBody">
+                        <p class="small text-muted mt-0">Delivery note, PODs, etc.</p>
+                        <input type="file" class="form-control" id="intakeDeliveryDocs" multiple aria-label="Add documents">
+                        <div id="intakeDocsError" class="text-danger small mt-2" style="display:none"></div>
+                        <ul class="list-unstyled small mt-2 mb-0" id="intakeDocsList"></ul>
+                    </div>
                 </div>
             </form>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="button" class="btn btn-primary" id="saveCreateKernelBatchBtn" data-action-perm="grower.intake.create"><i class="fas fa-save me-1"></i>Create batch</button>
+            <button type="button" class="btn btn-primary" id="saveCreateKernelBatchBtn" data-action-perm="grower.intake.create"><i class="fas fa-save me-1"></i>Save delivery</button>
         </div>
     </div>
 </div>

@@ -111,10 +111,30 @@ var _modal_kernel_job_card = (function () {
         return rc && typeof rc === 'object' ? rc : null;
     }
 
-    function sumReceivedItemsKg(rc) {
-        if (!rc) return null;
-        var items = rc.received_items || rc.receivedItems;
-        if (!Array.isArray(items) || !items.length) return null;
+    function deliveryFromDetail(detail) {
+        if (!detail) return null;
+        var intake = detail.intake_data || detail.intakeData;
+        if (!intake || typeof intake !== 'object') return null;
+        var d = intake.delivery;
+        return d && typeof d === 'object' ? d : null;
+    }
+
+    /** Received items: delivery bags first (weight_kg mapped to quantity_kg), else the legacy receiving checklist items. */
+    function receivedItemsFromDetail(detail) {
+        var delivery = deliveryFromDetail(detail);
+        if (delivery && Array.isArray(delivery.bags) && delivery.bags.length) {
+            return delivery.bags.map(function (bag) {
+                return { bag_no: bag.no, description: bag.description, quantity_kg: bag.weight_kg };
+            });
+        }
+        var rc = receivingChecklistFromDetail(detail);
+        var items = rc && (rc.received_items || rc.receivedItems);
+        return Array.isArray(items) ? items : [];
+    }
+
+    function sumReceivedItemsKg(detail) {
+        var items = receivedItemsFromDetail(detail);
+        if (!items.length) return null;
         var sum = 0;
         var hasAny = false;
         items.forEach(function (item) {
@@ -133,7 +153,7 @@ var _modal_kernel_job_card = (function () {
             jc && jc.total_weight_kg,
             detail && detail.actual_wet_nis_kg,
             batch && batch.actual_wet_nis_kg,
-            sumReceivedItemsKg(rc),
+            sumReceivedItemsKg(detail),
             detail && detail.wet_nis_received_kg,
             batch && batch.wet_nis_received_kg
         ];
@@ -147,6 +167,7 @@ var _modal_kernel_job_card = (function () {
         var rc = receivingChecklistFromDetail(detail);
         var candidates = [
             jc && jc.removed_pre_sizer_kg,
+            detail && detail.intake_data && detail.intake_data.removed_pre_sizer_kg,
             rc && rc.removed_pre_sizer_kg,
             rc && rc.removedPreSizerKg
         ];

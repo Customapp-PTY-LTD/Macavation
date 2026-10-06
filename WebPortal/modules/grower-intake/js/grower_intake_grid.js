@@ -419,8 +419,8 @@ var _growerIntakeGrid = function () {
                     ' data-sample-done="' + (sampleDone ? '1' : '0') + '">' +
                     batchNumEscaped + '</a>';
 
-                var suppliedVal = b.wet_nis_received_kg != null ? b.wet_nis_received_kg : '';
-                var actualVal = b.actual_wet_nis_kg != null ? b.actual_wet_nis_kg : '';
+                var suppliedVal = b.wet_nis_received_kg != null ? _common.formatKg(b.wet_nis_received_kg) : '';
+                var actualVal = b.actual_wet_nis_kg != null ? _common.formatKg(b.actual_wet_nis_kg) : '';
                 var wetCellContent;
                 if (scope.wetNisDisplayMode === 'actual') {
                     wetCellContent = actualVal;
@@ -490,7 +490,7 @@ var _growerIntakeGrid = function () {
                     : '';
                 var deleteHtml = '<button type="button" class="btn btn-sm btn-outline-secondary js-intake-archive-btn" data-batch-id="' + b.id + '" title="Archive batch"><i class="fas fa-archive"></i></button>';
 
-                var weightLabel = b.wet_nis_received_kg != null ? b.wet_nis_received_kg + ' kg' : '';
+                var weightLabel = b.wet_nis_received_kg != null ? _common.formatKg(b.wet_nis_received_kg) + ' kg' : '';
 
                 var html = '<div class="kanban-card js-intake-batch-row" data-batch-id="' + b.id + '">';
                 html += '<div class="kanban-card-title">' + esc(batchNum) + '</div>';
@@ -533,8 +533,38 @@ var _growerIntakeGrid = function () {
         moveBatchToRawStock: async (batchId) => {
             const scope = _growerIntakeGrid;
             if (!batchId) return;
+            var relBatch = scope.intakeBatches.find(function (x) { return String(x.id) === String(batchId); });
+            var relNumber = relBatch && relBatch.batch_number ? relBatch.batch_number : 'batch';
+            var relDelivery = relBatch && relBatch.intake_data && relBatch.intake_data.delivery;
+            var relBags = relDelivery && Array.isArray(relDelivery.bags) ? relDelivery.bags : [];
+            var relHtml = '';
+            if (relBags.length) {
+                var relTotal = relBags.reduce(function (sum, bag) { return sum + (Number(bag.weight_kg) || 0); }, 0);
+                relHtml += '<p class="mb-2">Weighed total: <strong>' + _common.escapeHtml(_common.formatKg(relTotal)) + ' kg</strong> from ' + relBags.length + ' bag' + (relBags.length === 1 ? '' : 's') + '.</p>';
+            }
+            relHtml += '<label for="giReleasePreSizerKg" class="form-label fw-semibold">Removed pre-sizer (kg)</label>' +
+                '<input type="number" id="giReleasePreSizerKg" class="form-control" min="0" step="0.01" placeholder="0 if none">' +
+                '<div class="form-text">Measured just before the batch goes into a silo</div>';
+            const confirmRes = await Swal.fire({
+                title: 'Release ' + _common.escapeHtml(relNumber) + ' to production',
+                html: relHtml,
+                showCancelButton: true,
+                confirmButtonText: 'Release',
+                cancelButtonText: 'Cancel',
+                focusConfirm: false,
+                preConfirm: function () {
+                    var raw = document.getElementById('giReleasePreSizerKg').value;
+                    var num = parseFloat(raw);
+                    if (raw === '' || isNaN(num) || num < 0) {
+                        Swal.showValidationMessage('Enter the kg removed at the pre-sizer. Use 0 if none.');
+                        return false;
+                    }
+                    return num;
+                }
+            });
+            if (!confirmRes.isConfirmed) return;
             try {
-                const result = await dataFunctions.releaseKernelToProduction({ kernel_id: batchId });
+                const result = await dataFunctions.releaseKernelToProduction({ kernel_id: batchId, removed_pre_sizer_kg: confirmRes.value });
                 if (result && result.success !== false) {
                     var batch = scope.intakeBatches.find(function (x) { return String(x.id) === String(batchId); });
                     scope.loadIntakeBatches(true);

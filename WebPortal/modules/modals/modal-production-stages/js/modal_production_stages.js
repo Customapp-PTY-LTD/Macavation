@@ -72,6 +72,20 @@ function roundStagePct(numerator, denominator) {
 }
 
 /**
+ * kg cracked for a day: volume_cracked, else the legacy end quantity, else the legacy total quantity.
+ * Never uses the minute-test totals (those are grams).
+ */
+function crackKgCracked(c) {
+    if (!c) return null;
+    var keys = ['volume_cracked', 'endqty1', 'totalqty'];
+    for (var i = 0; i < keys.length; i++) {
+        var n = parseStageNum(c[keys[i]]);
+        if (n != null) return n;
+    }
+    return null;
+}
+
+/**
  * Compute derived statistics (yield, recovery, totals) from raw stage inputs.
  * Called before save and when rendering batch summary so stored/displayed figures stay consistent.
  */
@@ -83,9 +97,7 @@ function enrichProductionStageCalculations(cracking_data, washing_data, sorting_
     var nis = parseStageNum(nisKg);
 
     var totalWholes = (parseStageNum(c.wholes_07) || 0) + (parseStageNum(c.wholes_10) || 0) + (parseStageNum(c.wholes_13) || 0);
-    var totalSlotQty = (parseStageNum(c.total_07) || 0) + (parseStageNum(c.total_10) || 0) + (parseStageNum(c.total_13) || 0);
-    var totalqty = parseStageNum(c.totalqty);
-    var crackOutput = totalqty != null ? totalqty : (totalSlotQty > 0 ? totalSlotQty : null);
+    var crackOutput = crackKgCracked(c);
     if (totalWholes > 0) c.total_wholes = +totalWholes.toFixed(2);
     if (crackOutput != null && crackOutput > 0) c.total_output = +crackOutput.toFixed(2);
     var shellTotal = parseStageNum(c.shell_total) || 0;
@@ -171,7 +183,7 @@ function deriveSummaryFromStages(cracking_data, washing_data, sorting_data, pack
     var str = function (v) { return v != null && v !== '' ? String(v) : ''; };
     return {
         crack_time: str(c.timespent1 || c.totaltime),
-        crack_qty: num(c.totalqty),
+        crack_qty: num(crackKgCracked(c)),
         wholes: num(c.avg_wholes),
         uncracks: num(c.avg_uncracks),
         shell_waste: num(c.shell_total),
@@ -205,6 +217,27 @@ var _modal_production_stages = (function () {
         _loadedKernelDetail: null,
         _signaturePad: null,
         _autoSaveTimer: null,
+        /** Silos offered in the Cracking silo select (from getSiloOverview): [{silo_number, filled_kg, ...}]. */
+        _siloOptions: [],
+        /** kg-per-crate factors from Settings, keyed '<stage>.<crate_type>' (only entries that are set). Loaded once per page. */
+        _crateKg: {},
+        _crateWeightsLoaded: false,
+        /** crates input -> kg input -> config key. When a factor is set, kg = crates x factor (read-only); otherwise kg stays manual. */
+        crateKgPairs: [
+            { crates: 'ps_wash_crates_in', kg: 'ps_wash_qty_in', key: 'washing.in' },
+            { crates: 'ps_wash_floater_crates', kg: 'ps_wash_floater_qty', key: 'washing.floater' },
+            { crates: 'ps_wash_sinker_crates', kg: 'ps_wash_sinker_qty', key: 'washing.sinker' },
+            { crates: 'ps_sort_floater_crates_in', kg: 'ps_sort_floater_qty_in', key: 'sorting.floater_in' },
+            { crates: 'ps_sort_style0_crates', kg: 'ps_sort_style0_qty', key: 'sorting.style_0' },
+            { crates: 'ps_sort_style1_crates', kg: 'ps_sort_style1_qty', key: 'sorting.style_1' },
+            { crates: 'ps_sort_style1s_crates', kg: 'ps_sort_style1s_qty', key: 'sorting.style_1S' },
+            { crates: 'ps_sort_style4l_crates', kg: 'ps_sort_style4l_qty', key: 'sorting.style_4L' },
+            { crates: 'ps_sort_style5_crates', kg: 'ps_sort_style5_qty', key: 'sorting.style_5' },
+            { crates: 'ps_sort_style6_crates', kg: 'ps_sort_style6_qty', key: 'sorting.style_6' },
+            { crates: 'ps_sort_style78_crates', kg: 'ps_sort_style78_qty', key: 'sorting.style_78' },
+            { crates: 'ps_sort_sinker_crates_in', kg: 'ps_sort_sinker_qty_in', key: 'sorting.sinker_in' },
+            { crates: 'ps_sort_butterlow_crates', kg: 'ps_sort_butterlow_qty', key: 'sorting.butterlow' }
+        ],
         /** When true, date picker onChange will not clear the form (used when we set dates programmatically). */
         _suppressDateChangeClear: false,
         productionActionMap: {
@@ -324,14 +357,40 @@ var _modal_production_stages = (function () {
             $(document).on('change input', '#ps_crack_timespent1', function () {
                 scope.syncCrackTimeToSummary();
             });
-            // Washing/Sorting: kg fields are manual; only crate/carton counts drive row-independent totals where noted.
+            // Washing/Sorting: where Settings has a kg-per-crate factor for a crate type, its kg field is crates x factor
+            // (read-only); where no factor is set the kg field stays a manual entry. See crateKgPairs / applyCrateWeights.
             // Packing: cartons → kg uses × 11.34 (standard carton weight).
-            // Washing: only crate fields auto-update Total/Crate difference; all kg fields are manual (no ×11.34).
             $(document).on('input change', '.wash-crate-input, .ps-wash-manual-kg', function () { scope.recalcWashingQty(); });
             $(document).on('input change', '.sort-crate-input, .ps-sort-manual-kg', function () { scope.recalcSortingQty(); });
             $(document).on('input change', '.pack-carton-input', function () { scope.recalcPackingQty(); });
-            $(document).on('input change', '#ps_crack_totalqty, [id^="ps_crack_total_"], [id^="ps_crack_wholes_"], #ps_crack_shell_total', function () {
-                scope.recalcCrackingStats();
+            // Cracking: volume cracked, minute tests and shell waste are all derived from what the user types.
+            $(document).off('.kp2ps'); // init() can run more than once; never stack these handlers
+            $(document).on('input.kp2ps change.kp2ps', '#ps_crack_startqty1, #ps_crack_endqty_left', function () { scope.recalcCrackVolume(); });
+            $(document).on('input.kp2ps change.kp2ps', '[id^="ps_crack_wholes_"], [id^="ps_crack_uncracks_"]', function () {
+                scope.recalcMinuteTestRow(this.id.split('_').pop());
+            });
+            $(document).on('input.kp2ps change.kp2ps', '[id^="ps_crack_shell_qty"]', function () { scope.recalcShellTotal(); });
+            $(document).on('click.kp2ps', '#crackShellAdd', function (e) {
+                e.preventDefault();
+                scope.setShellRowCount($('#crackShellRows .ps-shell-row').length + 1);
+            });
+            $(document).on('click.kp2ps', '.js-ps-shell-remove', function (e) {
+                e.preventDefault();
+                var rows = $('#crackShellRows .ps-shell-row');
+                // Only the last row may be removed so the shell_bagN / shell_qtyN keys stay contiguous.
+                if (rows.length <= 2 || !$(this).closest('.ps-shell-row').is(rows.last())) return;
+                scope.setShellRowCount(rows.length - 1);
+                scope.recalcShellTotal();
+                scope.scheduleAutoSave();
+            });
+            $(document).on('change.kp2ps', '#ps_crack_silo_number', function () {
+                var no = this.value;
+                if (!no) return;
+                var silo = (scope._siloOptions || []).filter(function (x) { return String(x.silo_number) === String(no); })[0];
+                var kg = silo ? parseFloat(silo.filled_kg) : NaN;
+                if (!isFinite(kg)) return;
+                $('#ps_crack_startqty1').val(kg.toFixed(2));
+                scope.recalcCrackVolume();
             });
             // Map section date field IDs to their section key
             var sectionDateFields = {
@@ -429,6 +488,7 @@ var _modal_production_stages = (function () {
             $('#ps_crack_timespent' + rowNum).val(spent);
             scope.updateCrackTotalTime();
             scope.syncCrackTimeToSummary();
+            scope.recalcCrackVolume();
         },
 
         updateCrackTotalTime: () => {
@@ -456,34 +516,230 @@ var _modal_production_stages = (function () {
             $('#ps_sum_crack_time').val(val != null && val !== '' ? val : '');
         },
 
-        recalcWashingQty: () => {
-            var calc = function (id) { return parseFloat($('#' + id).val()) || 0; };
+        /** Round to 2 dp as a plain-number string ('' when not finite). Used for every stored derived value. */
+        _fixed2: (n) => (typeof n === 'number' && isFinite(n)) ? n.toFixed(2) : '',
+
+        /**
+         * Fill each crates -> kg pair that has a Settings factor (kg = crates x factor). When loading a saved day
+         * (fromLoad) a kg value already stored is left alone, so opening a day never rewrites its history.
+         */
+        _applyCrateKg: (idPrefix, fromLoad) => {
+            const scope = _modal_production_stages;
+            scope.crateKgPairs.forEach(function (pair) {
+                if (pair.kg.indexOf(idPrefix) !== 0) return;
+                var factor = scope._crateKg[pair.key];
+                if (!factor) return;
+                var kgEl = document.getElementById(pair.kg);
+                if (!kgEl || (fromLoad && kgEl.value !== '')) return;
+                var crates = parseStageNum($('#' + pair.crates).val());
+                kgEl.value = crates == null ? '' : scope._fixed2(crates * factor);
+            });
+        },
+
+        recalcWashingQty: (fromLoad) => {
+            const scope = _modal_production_stages;
+            var num = function (id) { return parseStageNum($('#' + id).val()); };
+            var calc = function (id) { return num(id) || 0; };
+            scope._applyCrateKg('ps_wash_', fromLoad === true);
             var floater = calc('ps_wash_floater_crates'), sinker = calc('ps_wash_sinker_crates');
             var totalOutC = floater + sinker;
             var cratesIn = calc('ps_wash_crates_in');
-            var diffC = Math.abs(cratesIn - totalOutC);
+            var anyCrates = num('ps_wash_crates_in') != null || num('ps_wash_floater_crates') != null || num('ps_wash_sinker_crates') != null;
             $('#ps_wash_total_crates').val(totalOutC || '');
-            $('#ps_wash_crate_diff').val(diffC || '');
-            var floaterKg = calc('ps_wash_floater_qty');
-            var sinkerKg = calc('ps_wash_sinker_qty');
-            var totalOutKg = floaterKg + sinkerKg;
-            if (totalOutKg > 0) $('#ps_wash_total_qty').val(+totalOutKg.toFixed(2));
-            var qtyIn = calc('ps_wash_qty_in');
-            if (qtyIn > 0 || totalOutKg > 0) {
-                $('#ps_wash_qty_diff').val(+(qtyIn - totalOutKg).toFixed(2));
-            }
+            $('#ps_wash_crate_diff').val(anyCrates ? +(cratesIn - totalOutC).toFixed(2) : '');
+            var floaterKg = num('ps_wash_floater_qty');
+            var sinkerKg = num('ps_wash_sinker_qty');
+            var totalOutKg = (floaterKg || 0) + (sinkerKg || 0);
+            if (floaterKg != null || sinkerKg != null) $('#ps_wash_total_qty').val(scope._fixed2(totalOutKg));
+            else if (fromLoad !== true) $('#ps_wash_total_qty').val('');
+            var qtyIn = num('ps_wash_qty_in');
+            if (qtyIn != null || floaterKg != null || sinkerKg != null) $('#ps_wash_qty_diff').val(scope._fixed2((qtyIn || 0) - totalOutKg));
+            else if (fromLoad !== true) $('#ps_wash_qty_diff').val('');
         },
 
-        recalcCrackingStats: () => {
-            var calc = function (id) { return parseFloat($('#' + id).val()) || 0; };
-            var totalSlots = calc('ps_crack_total_07') + calc('ps_crack_total_10') + calc('ps_crack_total_13');
-            var totalqty = calc('ps_crack_totalqty');
-            if (!totalqty && totalSlots > 0) {
-                $('#ps_crack_totalqty').val(+totalSlots.toFixed(2));
-            }
+        /** Time between start and end in minutes (0 when either is missing). Reuses the Time Spent maths (overnight wrap). */
+        _crackMinutes: () => {
+            const scope = _modal_production_stages;
+            return scope.parseTimeSpentToMinutes(scope.computeTimeSpent($('#ps_crack_start1').val(), $('#ps_crack_end1').val()));
         },
 
-        recalcSortingQty: () => {
+        /** Volume Cracked = Start Quantity - End Quantity, plus per hour / per minute over the Start-End time. */
+        recalcCrackVolume: () => {
+            const scope = _modal_production_stages;
+            // Volume Cracked = Start - End (left in silo). Only when BOTH are entered and End <= Start:
+            // a blank End mid-shift must not report the whole silo as cracked, and legacy days (which
+            // have endqty1 = kg cracked and no endqty_left) must not get a restated volume.
+            var start = parseStageNum($('#ps_crack_startqty1').val());
+            var left = parseStageNum($('#ps_crack_endqty_left').val());
+            if (start == null || left == null || left > start) {
+                $('#ps_crack_volume_cracked, #ps_crack_vol_cracked_per_hour, #ps_crack_vol_cracked_per_min').val('');
+                return;
+            }
+            var vol = start - left;
+            var mins = scope._crackMinutes();
+            $('#ps_crack_volume_cracked').val(scope._fixed2(vol));
+            $('#ps_crack_vol_cracked_per_hour').val(mins > 0 ? scope._fixed2(vol / (mins / 60)) : '');
+            $('#ps_crack_vol_cracked_per_min').val(mins > 0 ? scope._fixed2(vol / mins) : '');
+        },
+
+        /** A minute-test row was edited: recompute that row's total (wholes + uncracks), then percentages and averages. */
+        recalcMinuteTestRow: (slot) => {
+            const scope = _modal_production_stages;
+            var w = parseStageNum($('#ps_crack_wholes_' + slot).val());
+            var u = parseStageNum($('#ps_crack_uncracks_' + slot).val());
+            $('#ps_crack_total_' + slot).val(w == null && u == null ? '' : scope._fixed2((w || 0) + (u || 0)));
+            scope.recalcMinuteTestDerived();
+        },
+
+        /** Percentages per slot and averages across the slots that have a number. A hand-typed legacy total is respected as-is. */
+        recalcMinuteTestDerived: () => {
+            const scope = _modal_production_stages;
+            var sw = 0, su = 0, st = 0, cnt = 0;
+            ['07', '10', '13'].forEach(function (slot) {
+                var w = parseStageNum($('#ps_crack_wholes_' + slot).val());
+                var u = parseStageNum($('#ps_crack_uncracks_' + slot).val());
+                var t = parseStageNum($('#ps_crack_total_' + slot).val());
+                if (w == null && u == null && t == null) {
+                    $('#ps_crack_pct_wholes_' + slot + ', #ps_crack_pct_uncracks_' + slot).val('');
+                    return;
+                }
+                var wv = w || 0, uv = u || 0, tv = t != null ? t : wv + uv;
+                $('#ps_crack_pct_wholes_' + slot).val(tv > 0 ? scope._fixed2(wv / tv * 100) : '');
+                $('#ps_crack_pct_uncracks_' + slot).val(tv > 0 ? scope._fixed2(uv / tv * 100) : '');
+                sw += wv; su += uv; st += tv; cnt++;
+            });
+            $('#ps_crack_avg_wholes').val(cnt ? scope._fixed2(sw / cnt) : '');
+            $('#ps_crack_avg_uncracks').val(cnt ? scope._fixed2(su / cnt) : '');
+            $('#ps_crack_avg_total').val(cnt ? scope._fixed2(st / cnt) : '');
+            $('#ps_crack_pct_avg_wholes').val(st > 0 ? scope._fixed2(sw / st * 100) : '');
+            $('#ps_crack_pct_avg_uncracks').val(st > 0 ? scope._fixed2(su / st * 100) : '');
+        },
+
+        /** Total Shell Waste = sum of the bag quantities. Called when a quantity is edited or a row removed (never on load). */
+        recalcShellTotal: () => {
+            const scope = _modal_production_stages;
+            var any = false, sum = 0;
+            $('#crackShellRows [id^="ps_crack_shell_qty"]').each(function () {
+                var q = parseStageNum(this.value);
+                if (q != null) { any = true; sum += q; }
+            });
+            $('#ps_crack_shell_total').val(any ? scope._fixed2(sum) : '');
+        },
+
+        _currentBatchNumber: () => ($('#productionStagesBatchNumber').text() || '').trim(),
+
+        /** Show the current batch number as the auto Batch text on every shell row, and only the last extra row's remove button. */
+        refreshShellRows: () => {
+            const scope = _modal_production_stages;
+            var rows = $('#crackShellRows .ps-shell-row');
+            rows.find('.ps-shell-batch-text').text(scope._currentBatchNumber());
+            rows.each(function (i) {
+                $(this).find('.js-ps-shell-remove').toggleClass('d-none', i !== rows.length - 1);
+            });
+        },
+
+        /** Build exactly `count` shell rows (minimum 2). Extra rows get ids ps_crack_shell_bagN / ps_crack_shell_qtyN. */
+        setShellRowCount: (count) => {
+            const scope = _modal_production_stages;
+            count = Math.min(Math.max(parseInt(count, 10) || 2, 2), 200);
+            var $body = $('#crackShellRows');
+            if (!$body.length) return;
+            while ($body.find('.ps-shell-row').length > count) $body.find('.ps-shell-row').last().remove();
+            for (var n = $body.find('.ps-shell-row').length + 1; n <= count; n++) {
+                var $tr = $('<tr class="ps-shell-row"></tr>').attr('data-n', n);
+                $('<td></td>').append($('<input type="text" class="form-control form-control-sm">').attr('id', 'ps_crack_shell_bag' + n)).appendTo($tr);
+                $('<td></td>')
+                    .append('<span class="ps-shell-batch-text"></span> <span class="form-text">auto</span>')
+                    .append($('<input type="text" class="d-none" tabindex="-1">').attr('id', 'ps_crack_shell_batch' + n))
+                    .appendTo($tr);
+                $('<td></td>').append($('<input type="number" class="form-control form-control-sm" step="0.01">').attr('id', 'ps_crack_shell_qty' + n)).appendTo($tr);
+                $('<td></td>').append($('<button type="button" class="btn btn-sm btn-outline-secondary js-ps-shell-remove" aria-label="Remove bag"></button>').text('\u2715')).appendTo($tr);
+                $body.append($tr);
+            }
+            scope.refreshShellRows();
+        },
+
+        /** Fill the Silo select from the silo overview (silos with stock or an open run). Hides the select when the RPC is unavailable. */
+        loadSiloOptions: () => {
+            const scope = _modal_production_stages;
+            var $sel = $('#ps_crack_silo_number');
+            var $wrap = $('#crackSiloWrap');
+            if (!$sel.length) return Promise.resolve();
+            if (typeof dataFunctions === 'undefined' || typeof dataFunctions.getSiloOverview !== 'function') {
+                $wrap.addClass('d-none');
+                return Promise.resolve();
+            }
+            return Promise.resolve().then(function () { return dataFunctions.getSiloOverview(); }).then(function (res) {
+                if (!res || res.success === false || !Array.isArray(res.silos)) throw new Error((res && res.error) || 'Silo overview unavailable');
+                var silos = res.silos.filter(function (x) { return (parseFloat(x.filled_kg) || 0) > 0 || x.open_run; });
+                scope._siloOptions = silos;
+                var cur = $sel.val();
+                $sel.empty().append($('<option value=""></option>').text('Choose silo\u2026'));
+                silos.forEach(function (x) {
+                    $('<option></option>').val(String(x.silo_number)).text('Silo ' + x.silo_number + ', ' + _common.formatKg(x.filled_kg, 0) + ' kg').appendTo($sel);
+                });
+                if (cur) { scope.ensureSelectHasOption($sel[0], cur); $sel.val(cur); }
+                $wrap.removeClass('d-none');
+            }).catch(function (err) {
+                // Silo allocation not available: hide the select; Start Quantity stays a manual entry.
+                console.warn('[Production] Silo overview unavailable:', err && err.message ? err.message : err);
+                scope._siloOptions = [];
+                $wrap.addClass('d-none');
+            });
+        },
+
+        /** Load kg-per-crate factors once (failure = all unset, kg fields stay manual), then apply them to the form. */
+        loadCrateWeights: () => {
+            const scope = _modal_production_stages;
+            if (scope._crateWeightsLoaded) { scope.applyCrateWeights(); return Promise.resolve(); }
+            if (typeof dataFunctions === 'undefined' || typeof dataFunctions.getKernelPipelineConfig !== 'function') {
+                scope._crateKg = {};
+                scope.applyCrateWeights();
+                return Promise.resolve();
+            }
+            return Promise.resolve().then(function () { return dataFunctions.getKernelPipelineConfig(); }).then(function (cfg) {
+                var map = {};
+                if (cfg && cfg.success !== false && Array.isArray(cfg.crate_weights)) {
+                    cfg.crate_weights.forEach(function (cw) {
+                        var kg = cw && cw.kg_per_crate != null ? parseFloat(cw.kg_per_crate) : NaN;
+                        if (isFinite(kg) && kg > 0) map[cw.stage + '.' + cw.crate_type] = kg;
+                    });
+                    scope._crateWeightsLoaded = true;
+                }
+                scope._crateKg = map;
+            }).catch(function (err) {
+                console.warn('[Production] Kernel pipeline config unavailable:', err && err.message ? err.message : err);
+                scope._crateKg = {};
+            }).then(function () { scope.applyCrateWeights(); });
+        },
+
+        /** Make each kg field read-only (with a "x N kg/crate" hint) when it has a factor; manual otherwise. */
+        applyCrateWeights: () => {
+            const scope = _modal_production_stages;
+            scope.crateKgPairs.forEach(function (pair) {
+                var kgEl = document.getElementById(pair.kg);
+                if (!kgEl) return;
+                var $kg = $(kgEl);
+                var $hint = $kg.nextAll('.ps-crate-hint').first();
+                var factor = scope._crateKg[pair.key];
+                if (factor) {
+                    kgEl.readOnly = true;
+                    kgEl.tabIndex = -1;
+                    $kg.addClass('ps-calc');
+                    if (!$hint.length) $hint = $('<div class="form-text ps-crate-hint"></div>').insertAfter($kg);
+                    $hint.text('\u00d7 ' + _common.formatKg(factor) + ' kg/crate');
+                } else {
+                    kgEl.readOnly = false;
+                    kgEl.removeAttribute('tabindex');
+                    $kg.removeClass('ps-calc');
+                    $hint.remove();
+                }
+            });
+        },
+
+        recalcSortingQty: (fromLoad) => {
+            const scope = _modal_production_stages;
+            scope._applyCrateKg('ps_sort_', fromLoad === true);
             var skCrates = 0, skQty = 0, btCrates = 0, btQty = 0;
             $('.sort-crate-input').each(function () {
                 var group = this.getAttribute('data-group');
@@ -576,6 +832,15 @@ var _modal_production_stages = (function () {
         setProductionStagesSectionData: (prefix, data) => {
             const scope = _modal_production_stages;
             if (!data || typeof data !== 'object') return;
+            // Shell waste rows are dynamic: build exactly enough rows for the highest shell_bagN / shell_qtyN key before assigning values.
+            if (prefix === 'crack') {
+                var maxShell = 2;
+                Object.keys(data).forEach(function (key) {
+                    var m = /^shell_(?:bag|qty)(\d+)$/.exec(key);
+                    if (m) maxShell = Math.max(maxShell, parseInt(m[1], 10));
+                });
+                scope.setShellRowCount(maxShell);
+            }
             scope._suppressDateChangeClear = true;
             $.each(data, function (key, v) {
                 var el = document.getElementById('ps_' + prefix + '_' + key);
@@ -583,7 +848,7 @@ var _modal_production_stages = (function () {
                     if (el.type === 'checkbox') {
                         el.checked = v === true || v === 'true' || v === '1' || v === 1;
 } else {
-                    if (el.tagName === 'SELECT' && v != null && v !== '') scope.ensureSelectHasOption(el, String(v));
+                    if (el.tagName === 'SELECT' && v != null && v !== '') { scope.ensureSelectHasOption(el, String(v)); el.value = String(v); }
                     else if (el.classList && el.classList.contains('flatpickr-date'))
                         el.value = v != null && v !== '' ? fromISO(String(v)) : '';
                     else
@@ -591,8 +856,8 @@ var _modal_production_stages = (function () {
                 }
                 }
             });
-            if (prefix === 'wash') { scope.updateWashWasteTotal(); scope.recalcWashingQty(); }
-            if (prefix === 'sort') scope.recalcSortingQty();
+            if (prefix === 'wash') { scope.updateWashWasteTotal(); scope.recalcWashingQty(true); }
+            if (prefix === 'sort') scope.recalcSortingQty(true);
             if (prefix === 'pack') scope.recalcPackingQty();
             if (prefix === 'pack' && data.signature && scope._signaturePad) {
                 scope._signaturePad.clear();
@@ -615,6 +880,7 @@ var _modal_production_stages = (function () {
 
         clearProductionStagesForm: () => {
             const scope = _modal_production_stages;
+            scope.setShellRowCount(2);
             $('[id^="ps_"]').each(function () {
                 if (this.type === 'checkbox') this.checked = false;
                 else this.value = '';
@@ -680,13 +946,14 @@ var _modal_production_stages = (function () {
             var sort  = scope._findByDate(detail && detail.sorting_data,  isoDate);
             var pack  = scope._findByDate(detail && detail.packing_data,  isoDate);
             var hasData = Object.keys(crack).length || Object.keys(wash).length || Object.keys(sort).length || Object.keys(pack).length;
+            scope.setShellRowCount(2);
             if (hasData) {
                 scope.setProductionStagesSectionData('crack', crack);
                 scope.setProductionStagesSectionData('wash', wash);
                 scope.setProductionStagesSectionData('sort', sort);
                 scope.setProductionStagesSectionData('pack', pack);
             } else {
-                // No data for this date — clear all non-date inputs
+                // No data for this date — clear all non-date inputs (shell waste is already back to 2 rows)
                 $('[id^="ps_"]').each(function () {
                     if (dateIds.indexOf(this.id) >= 0) return;
                     if (this.type === 'checkbox') this.checked = false;
@@ -1232,7 +1499,8 @@ var _modal_production_stages = (function () {
                 html.push(sectionHead('Cracking'));
                 html.push('<div style="' + styles.card + '">');
 
-                if (has(c, 'silo1')) html.push(row('Silo Input', kg(c.silo1)));
+                if (has(c, 'volume_cracked')) html.push(row('Volume Cracked', kg(c.volume_cracked)));
+                else if (has(c, 'silo1')) html.push(row('Silo Input', kg(c.silo1)));
                 if (has(c, 'startqty1')) html.push(row('Start Quantity', kg(c.startqty1)));
 
                 // Summarise wholes/halves across time slots as totals only
@@ -1737,11 +2005,13 @@ var _modal_production_stages = (function () {
                 scope.refreshProductionDatePickers();
                 scope.updateProductionActionButtonTicks();
                 scope.clearProductionStagesDraft(batchId);
-                var shellKg = cracking_data && cracking_data.shell_total != null ? parseFloat(cracking_data.shell_total) : 0;
-                if (shellKg > 0 && dataFunctions.autoCreateShellLotFromProduction) {
+                // Shell stock: call whenever a Total Shell Waste value exists (0 included; the DB adjusts by difference per batch + production day).
+                var shellKg = (cracking_data && cracking_data.shell_total != null && String(cracking_data.shell_total).trim() !== '') ? parseFloat(cracking_data.shell_total) : NaN;
+                var shellDate = cracking_data && cracking_data.date ? String(cracking_data.date).split('T')[0] : null;
+                if (isFinite(shellKg) && dataFunctions.autoCreateShellLotFromProduction) {
                     var batchNum = ($('#productionStagesBatchNumber').text() || $('#productionStagesBatchId').val() || '').trim();
                     if (batchNum) {
-                        dataFunctions.autoCreateShellLotFromProduction(batchNum, shellKg, 'Production stages save').catch(function () { /* non-blocking */ });
+                        Promise.resolve(dataFunctions.autoCreateShellLotFromProduction(batchNum, shellKg, 'Production stages save', null, shellDate)).catch(function () { /* non-blocking */ });
                     }
                 }
                 if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
@@ -1796,6 +2066,7 @@ var _modal_production_stages = (function () {
             $('#productionStagesBatchNumber').text(batch.batch_number || batchId || '');
             $('#productionStagesDayId').val('');
             scope.clearProductionStagesForm();
+            scope.refreshShellRows();
             scope._loadedKernelDetail = null;
 
             // Load full kernel detail (stage arrays) via getKernelBatchDetail
@@ -1840,6 +2111,9 @@ var _modal_production_stages = (function () {
                 $('#productionStagesDayId').val(first.id);
 
                 return scope.populateProductionGrowerSelects(batch.grower_name || '').then(function () {
+                    // Silo options and crate factors are best-effort: neither may block opening or saving a day.
+                    return Promise.all([scope.loadSiloOptions(), scope.loadCrateWeights()]);
+                }).then(function () {
                     return scope.loadProductionStagesForDay(first.date || first.id, first.kernel_production_stages_id);
                 }).then(function () {
                     // For new days (no saved data), set default dates in all section date fields

@@ -37,23 +37,29 @@
                                 <tr>
                                     <td>Moisture</td>
                                     <td class="text-center"><input type="checkbox" class="form-check-input" id="sampleMoistureRequired" value="1"></td>
-                                    <td><input type="number" class="form-control form-control-sm" id="sampleMoistureResult" step="0.01" placeholder=""></td>
+                                    <td><input type="number" class="form-control form-control-sm" id="sampleMoistureResult" step="0.01" placeholder=""><div class="form-text small js-spec-hint" id="sampleMoistureResultHint"></div></td>
                                     <td class="text-center">%</td>
                                 </tr>
                                 <tr>
                                     <td>Peroxide Value</td>
                                     <td class="text-center"><input type="checkbox" class="form-check-input" id="samplePeroxideRequired" value="1"></td>
-                                    <td><input type="number" class="form-control form-control-sm" id="samplePeroxideResult" step="0.01" placeholder=""></td>
+                                    <td><input type="number" class="form-control form-control-sm" id="samplePeroxideResult" step="0.01" placeholder=""><div class="form-text small js-spec-hint" id="samplePeroxideResultHint"></div></td>
                                     <td class="text-center">meqO₂/kg</td>
                                 </tr>
                                 <tr>
                                     <td>Free Fatty Acids</td>
                                     <td class="text-center"><input type="checkbox" class="form-check-input" id="sampleFfaRequired" value="1"></td>
-                                    <td><input type="number" class="form-control form-control-sm" id="sampleFfaResult" step="0.01" placeholder=""></td>
+                                    <td><input type="number" class="form-control form-control-sm" id="sampleFfaResult" step="0.01" placeholder=""><div class="form-text small js-spec-hint" id="sampleFfaResultHint"></div></td>
                                     <td class="text-center">%</td>
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-2 small" id="sampleSpecLegend">
+                        <span class="badge bg-success">In spec</span>
+                        <span class="badge bg-warning text-dark">Borderline</span>
+                        <span class="badge bg-danger">Out of spec</span>
+                        <span class="text-muted">Limits are set in Kernel Pipeline Settings.</span>
                     </div>
                 </div>
 
@@ -64,46 +70,49 @@
                     <h6 class="text-uppercase text-dark border-bottom pb-1 mb-2 mt-3">Sample Crack-Out</h6>
                     <div class="table-responsive mb-3">
                         <table class="table align-middle table-bordered sample-form-table">
-                            <thead class="table-light"><tr><th>Description</th><th class="text-end" style="width: 140px;">Weight (g)</th></tr></thead>
+                            <thead class="table-light"><tr><th>Description</th><th class="text-end" style="width: 140px;">Weight (g)</th><th class="text-end" style="width: 140px;">% of crack-out</th></tr></thead>
                             <tbody>
-                                <tr><td>Sound Kernel (Pre-Float Test)</td><td><input type="number" class="form-control form-control-sm text-end" id="sampleSoundKernelG" step="0.01" min="0" placeholder=""></td></tr>
-                                <tr><td>Unsound Kernel</td><td><input type="number" class="form-control form-control-sm text-end" id="sampleUnsoundKernelG" step="0.01" min="0" placeholder=""></td></tr>
-                                <tr><td>Shell</td><td><input type="number" class="form-control form-control-sm text-end" id="sampleShellG" step="0.01" min="0" placeholder=""></td></tr>
-                                <tr><td><strong>Total</strong></td><td><input type="number" class="form-control form-control-sm text-end bg-light" id="sampleCrackOutTotalG" step="0.01" readonly placeholder=""></td></tr>
+                                <tr><td>Sound Kernel (Pre-Float Test)</td><td><input type="number" class="form-control form-control-sm text-end" id="sampleSoundKernelG" step="0.01" min="0" placeholder=""></td><td class="text-end" id="sampleSoundKernelPct"></td></tr>
+                                <tr><td>Unsound Kernel</td><td><input type="number" class="form-control form-control-sm text-end" id="sampleUnsoundKernelG" step="0.01" min="0" placeholder=""></td><td class="text-end" id="sampleUnsoundKernelPct"></td></tr>
+                                <tr><td>Shell</td><td><input type="number" class="form-control form-control-sm text-end" id="sampleShellG" step="0.01" min="0" placeholder=""></td><td class="text-end" id="sampleShellPct"></td></tr>
+                                <tr><td><strong>Total</strong></td><td><input type="number" class="form-control form-control-sm text-end bg-light" id="sampleCrackOutTotalG" step="0.01" readonly placeholder=""></td><td class="text-end" id="sampleCrackOutTotalPct"></td></tr>
                             </tbody>
                         </table>
                     </div>
+                    <div class="alert alert-warning small d-none" id="sampleFiveKgWarning" role="alert"></div>
 
                     <h6 class="text-uppercase text-dark border-bottom pb-1 mb-2 mt-3">Float Test</h6>
                     <div class="table-responsive mb-3">
                         <table class="table align-middle table-bordered sample-form-table">
-                            <thead class="table-light"><tr><th>Description</th><th class="text-end" style="width: 140px;">Weight (g)</th></tr></thead>
+                            <thead class="table-light"><tr><th>Description</th><th class="text-end" style="width: 140px;">Weight (g)</th><th class="text-end" style="width: 140px;">% of wet</th><th class="text-end" style="width: 160px;">Dry weight (g)</th></tr></thead>
                             <tbody>
-                                <tr><td>Floating Kernel (Wet)</td><td><input type="number" class="form-control form-control-sm text-end" id="sampleFloatingKernelG" step="0.01" min="0" placeholder=""></td></tr>
-                                <tr><td>Sinking Kernel (Wet)</td><td><input type="number" class="form-control form-control-sm text-end" id="sampleSinkingKernelG" step="0.01" min="0" placeholder=""></td></tr>
-                                <tr><td><strong>Total (Wet)</strong></td><td><input type="number" class="form-control form-control-sm text-end bg-light" id="sampleFloatTotalG" step="0.01" readonly placeholder=""></td></tr>
+                                <tr><td>Floating Kernel (Wet)</td><td><input type="number" class="form-control form-control-sm text-end" id="sampleFloatingKernelG" step="0.01" min="0" placeholder=""></td><td class="text-end" id="sampleFloatingPct"></td><td class="text-end" id="sampleFloatingDry"></td></tr>
+                                <tr><td>Sinking Kernel (Wet)</td><td><input type="number" class="form-control form-control-sm text-end" id="sampleSinkingKernelG" step="0.01" min="0" placeholder=""></td><td class="text-end" id="sampleSinkingPct"></td><td class="text-end" id="sampleSinkingDry"></td></tr>
+                                <tr><td><strong>Total (Wet)</strong></td><td><input type="number" class="form-control form-control-sm text-end bg-light" id="sampleFloatTotalG" step="0.01" readonly placeholder=""></td><td class="text-end" id="sampleFloatTotalPct"></td><td class="text-end" id="sampleFloatDryTotal"></td></tr>
                             </tbody>
                         </table>
                     </div>
+                    <p class="text-muted small mb-3">Dry weight = (wet &divide; total wet) &times; Pre-Float Test weight (Sound Kernel in the crack-out above). The dry total always equals the Pre-Float Test weight.</p>
 
                     <h6 class="text-uppercase text-dark border-bottom pb-1 mb-2 mt-3">Unsound Kernel Breakdown</h6>
                     <div class="table-responsive mb-3">
                         <table class="table align-middle table-bordered sample-form-table">
-                            <thead class="table-light"><tr><th>Description</th><th class="text-end" style="width: 140px;">Weight (g)</th></tr></thead>
+                            <thead class="table-light"><tr><th>Description</th><th class="text-end" style="width: 140px;">Weight (g)</th><th class="text-end" style="width: 160px;">% of whole crack-out</th></tr></thead>
                             <tbody>
-                                <tr><td>Germination</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleGerminationG" step="0.01" min="0" placeholder=""></td></tr>
-                                <tr><td>Late Stinkbug</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleLateStinkbugG" step="0.01" min="0" placeholder=""></td></tr>
-                                <tr><td>Early Stinkbug</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleEarlyStinkbugG" step="0.01" min="0" placeholder=""></td></tr>
-                                <tr><td>Dark Centre</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleDarkCentreG" step="0.01" min="0" placeholder=""></td></tr>
-                                <tr><td>Mould</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleMouldG" step="0.01" min="0" placeholder=""></td></tr>
-                                <tr><td>Rotten</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleRottenG" step="0.01" min="0" placeholder=""></td></tr>
-                                <tr><td>Immature Split</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleImmatureSplitG" step="0.01" min="0" placeholder=""></td></tr>
-                                <tr><td>Shrivelled</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleShrivelledG" step="0.01" min="0" placeholder=""></td></tr>
-                                <tr><td>Nut Borer</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleNutBorerG" step="0.01" min="0" placeholder=""></td></tr>
-                                <tr><td><strong>Total</strong></td><td><input type="number" class="form-control form-control-sm text-end bg-light" id="sampleUnsoundTotalG" step="0.01" readonly placeholder=""></td></tr>
+                                <tr><td>Germination</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleGerminationG" step="0.01" min="0" placeholder=""></td><td class="text-end" id="sampleGerminationGPct"></td></tr>
+                                <tr><td>Late Stinkbug</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleLateStinkbugG" step="0.01" min="0" placeholder=""></td><td class="text-end" id="sampleLateStinkbugGPct"></td></tr>
+                                <tr><td>Early Stinkbug</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleEarlyStinkbugG" step="0.01" min="0" placeholder=""></td><td class="text-end" id="sampleEarlyStinkbugGPct"></td></tr>
+                                <tr><td>Dark Centre</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleDarkCentreG" step="0.01" min="0" placeholder=""></td><td class="text-end" id="sampleDarkCentreGPct"></td></tr>
+                                <tr><td>Mould</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleMouldG" step="0.01" min="0" placeholder=""></td><td class="text-end" id="sampleMouldGPct"></td></tr>
+                                <tr><td>Rotten</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleRottenG" step="0.01" min="0" placeholder=""></td><td class="text-end" id="sampleRottenGPct"></td></tr>
+                                <tr><td>Immature Split</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleImmatureSplitG" step="0.01" min="0" placeholder=""></td><td class="text-end" id="sampleImmatureSplitGPct"></td></tr>
+                                <tr><td>Shrivelled</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleShrivelledG" step="0.01" min="0" placeholder=""></td><td class="text-end" id="sampleShrivelledGPct"></td></tr>
+                                <tr><td>Nut Borer</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleNutBorerG" step="0.01" min="0" placeholder=""></td><td class="text-end" id="sampleNutBorerGPct"></td></tr>
+                                <tr><td><strong>Total</strong></td><td><input type="number" class="form-control form-control-sm text-end bg-light" id="sampleUnsoundTotalG" step="0.01" readonly placeholder=""></td><td class="text-end" id="sampleUnsoundTotalPct"></td></tr>
                             </tbody>
                         </table>
                     </div>
+                    <div class="alert alert-warning small d-none" id="sampleBreakdownWarning" role="alert"></div>
                 </div>
             </div>
         </div>

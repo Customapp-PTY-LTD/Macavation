@@ -1995,12 +1995,97 @@ var _dataFunctions = function () {
             return raw || {};
         },
 
-        autoCreateShellLotFromProduction: async function (batchNumber, shellKg, notes, token = null) {
+        /**
+         * Sets this production day's shell contribution on the batch's shell lot. Idempotent per
+         * (batch, production date) since 20261006090100 - re-saving a day adjusts by the difference
+         * instead of adding the whole total again. Pass productionDate (YYYY-MM-DD) whenever known.
+         */
+        autoCreateShellLotFromProduction: async function (batchNumber, shellKg, notes, token = null, productionDate = null) {
             return await this.callFunction('auto_create_shell_lot_from_production', {
                 p_batch_number: batchNumber,
                 p_shell_kg: shellKg,
-                p_notes: notes || null
-            }, token);
+                p_notes: notes || null,
+                p_production_date: productionDate || null
+            }, token, { useCache: false });
+        },
+
+        // ---------------------------------------------------------------------------------------
+        // Kernel Pipeline v2 (migrations 20261006090000-090300): settings, New Delivery, silos.
+        // Every call returns the RPC's jsonb ({ success, ... } or { success: false, error }).
+        // ---------------------------------------------------------------------------------------
+
+        _kpUnwrap: function (result) {
+            return result && (result.data !== undefined ? result.data : result);
+        },
+
+        /** { settings:{bag_numbering}, spec_thresholds[], crate_weights[], transporters[], transport_types[], silos[] } */
+        getKernelPipelineConfig: async function (token = null) {
+            return this._kpUnwrap(await this.callFunction('get_kernel_pipeline_config', {}, token, { useCache: false }));
+        },
+        setKernelPipelineSetting: async function (key, value, token = null) {
+            return this._kpUnwrap(await this.callFunction('set_kernel_pipeline_setting', { p_key: key, p_value: value }, token, { useCache: false }));
+        },
+        /** Pass null limits to clear them (no colour shown). */
+        upsertSampleSpecThreshold: async function (testKey, direction, greenLimit, yellowLimit, token = null) {
+            return this._kpUnwrap(await this.callFunction('upsert_sample_spec_threshold', {
+                p_test_key: testKey, p_direction: direction, p_green_limit: greenLimit, p_yellow_limit: yellowLimit
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
+        /** Pass null kgPerCrate to clear it (the kg field becomes a manual entry). */
+        upsertCrateWeight: async function (stage, crateType, kgPerCrate, token = null) {
+            return this._kpUnwrap(await this.callFunction('upsert_crate_weight', {
+                p_stage: stage, p_crate_type: crateType, p_kg_per_crate: kgPerCrate
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
+        /** Add (id omitted) or rename/deactivate a transport company. Adding an existing name returns its id. */
+        upsertTransporter: async function (name, id = null, isActive = true, token = null) {
+            return this._kpUnwrap(await this.callFunction('upsert_transporter', { p_name: name, p_id: id, p_is_active: isActive }, token, { useCache: false }));
+        },
+        upsertTransportType: async function (name, id = null, isActive = true, token = null) {
+            return this._kpUnwrap(await this.callFunction('upsert_transport_type', { p_name: name, p_id: id, p_is_active: isActive }, token, { useCache: false }));
+        },
+        upsertSiloCapacity: async function (siloNumber, capacityKg, token = null) {
+            return this._kpUnwrap(await this.callFunction('upsert_silo_capacity', { p_silo_number: siloNumber, p_capacity_kg: capacityKg }, token, { useCache: false }));
+        },
+        /**
+         * Save New Delivery details to kernel.intake_data.delivery and set the weighed total.
+         * @param {object} data - { kernel_id, bags:[{no, description, weight_kg}],
+         *   transport:{transporter_id, transporter_name, delivery_note_ref, collection_points[], transport_type_id,
+         *   transport_type_name, rate_zar}, documents:[{file_id, file_link, name}] }
+         */
+        saveKernelDelivery: async function (data, token = null) {
+            const result = await this.callFunction('save_kernel_delivery', {
+                p_kernel_id: data.kernel_id,
+                p_bags: data.bags || [],
+                p_transport: data.transport || {},
+                p_documents: data.documents || []
+            }, token, { useCache: false });
+            this.clearCachePattern('kernel_batches');
+            this.clearCachePattern('kernel_batch_detail');
+            return this._kpUnwrap(result);
+        },
+        getSiloOverview: async function (token = null) {
+            return this._kpUnwrap(await this.callFunction('get_silo_overview', {}, token, { useCache: false }));
+        },
+        getSiloAllocationBatches: async function (token = null) {
+            return this._kpUnwrap(await this.callFunction('get_silo_allocation_batches', {}, token, { useCache: false }));
+        },
+        getSiloRuns: async function (limit = 50, token = null) {
+            return this._kpUnwrap(await this.callFunction('get_silo_runs', { p_limit: limit }, token, { useCache: false }));
+        },
+        allocateBagsToSilo: async function (kernelId, bagNos, siloNumber, token = null) {
+            return this._kpUnwrap(await this.callFunction('allocate_bags_to_silo', {
+                p_kernel_id: kernelId, p_bag_nos: bagNos, p_silo_number: siloNumber
+            }, token, { useCache: false }));
+        },
+        unallocateSiloBag: async function (kernelId, bagNo, token = null) {
+            return this._kpUnwrap(await this.callFunction('unallocate_silo_bag', { p_kernel_id: kernelId, p_bag_no: bagNo }, token, { useCache: false }));
+        },
+        openSilo: async function (siloNumber, token = null) {
+            return this._kpUnwrap(await this.callFunction('open_silo', { p_silo_number: siloNumber }, token, { useCache: false }));
+        },
+        closeSilo: async function (siloNumber, token = null) {
+            return this._kpUnwrap(await this.callFunction('close_silo', { p_silo_number: siloNumber }, token, { useCache: false }));
         },
 
         dispatchShellStockLot: async function (lotId, customerRef, notes, token = null) {
@@ -4460,8 +4545,12 @@ var _dataFunctions = function () {
                 p_pallets_condition:       data.pallets_condition       || null,
                 p_raw_materials_condition: data.raw_materials_condition || null,
                 p_comments:               data.comments                || null,
-                p_received_items:         data.received_items          || [],
-                p_removed_pre_sizer_kg:   data.removed_pre_sizer_kg    != null ? data.removed_pre_sizer_kg : null
+                // Bag lines now live on New Delivery (saveKernelDelivery). Omit when not sent so the
+                // stored lines and weighed total are kept (20261006090100 merges, never wipes).
+                p_received_items:         data.received_items && data.received_items.length ? data.received_items : null,
+                p_removed_pre_sizer_kg:   data.removed_pre_sizer_kg    != null ? data.removed_pre_sizer_kg : null,
+                p_item_comments:          data.item_comments           || null,
+                p_item_photos:            data.item_photos             || null
             };
             const result = await this.callFunction('upsert_kernel_checklist', params, token, { useCache: false });
             this.clearCachePattern('kernel_batches');
@@ -4472,11 +4561,14 @@ var _dataFunctions = function () {
         /**
          * Release a kernel batch to production.
          * Validates both ziplock_sample and five_kg_sample are saved, then sets status = 'production'.
-         * @param {object} data - { kernel_id }
+         * @param {object} data - { kernel_id, removed_pre_sizer_kg (required by the DB, >= 0) }
          * @returns {Promise<object>} { success, kernel_id } or { success: false, error }
          */
         releaseKernelToProduction: async function (data, token = null) {
-            const params = { p_kernel_id: data.kernel_id };
+            const params = {
+                p_kernel_id: data.kernel_id,
+                p_removed_pre_sizer_kg: data.removed_pre_sizer_kg != null ? data.removed_pre_sizer_kg : null
+            };
             const result = await this.callFunction('release_kernel_to_production', params, token, { useCache: false });
             this.clearCachePattern('kernel_batches');
             return result && (result.data !== undefined ? result.data : result);
