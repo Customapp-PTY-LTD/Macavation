@@ -242,7 +242,8 @@ var _modal_grower_create_kernel_batch = (function () {
         /** Weighed total, bag count, declared-vs-weighed warning and the transport rate maths. */
         _updateCalcs: function () {
             var total = bagTotal();
-            var count = _bags.length;
+            // One bag per pallet; a blank row the user hasn't filled in yet is not a bag.
+            var count = _bags.filter(function (b) { var n = numOrNull(b.kg); return n != null && n > 0; }).length;
             setText('intakeBagCount', String(count));
             setText('intakeBagTotal', fmtKg(total) || '0.00');
             setText('intakePallets', String(count));

@@ -339,7 +339,11 @@ var _modal_grower_link_sample_to_batch = (function () {
     var api = {
         init: function () {
             var btn = document.getElementById('linkSampleToBatchBtn');
-            if (btn) btn.addEventListener('click', function (e) { e.preventDefault(); api.save(); });
+            // init() runs more than once per page; bind Save once per button or one click saves twice.
+            if (btn && btn.getAttribute('data-kp-bound') !== '1') {
+                btn.setAttribute('data-kp-bound', '1');
+                btn.addEventListener('click', function (e) { e.preventDefault(); api.save(); });
+            }
             $(document).on('shown.bs.modal', '#' + CONTAINER_ID, function () {
                 var container = document.getElementById(CONTAINER_ID);
                 if (container) {

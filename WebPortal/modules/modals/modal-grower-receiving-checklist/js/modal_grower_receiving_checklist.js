@@ -115,7 +115,11 @@ var _modal_grower_receiving_checklist = (function () {
         initHandlers: () => {
             const scope = _modal_grower_receiving_checklist;
             var saveBtn = document.getElementById('growerSaveReceivingChecklistBtn');
-            if (saveBtn) saveBtn.addEventListener('click', (e) => { e.preventDefault(); scope.save(); });
+            // init() runs more than once per page; bind Save once per button or one click saves twice.
+            if (saveBtn && saveBtn.getAttribute('data-kp-bound') !== '1') {
+                saveBtn.setAttribute('data-kp-bound', '1');
+                saveBtn.addEventListener('click', (e) => { e.preventDefault(); scope.save(); });
+            }
 
             $(document).off('.kp2ck'); // init() can run more than once; never stack these handlers
             CHECKS.forEach(function (c) {
