@@ -146,6 +146,11 @@
                                                 <i class="fas fa-truck-loading me-2"></i>1. Grower Intake
                                             </a>
                                         </li>
+                                        <li class="nav-item d-none" data-route="silo-allocation-grid">
+                                            <a class="nav-link" href="#" route="silo-allocation-grid" title="Allocate delivered bags to silos and time silo cracking">
+                                                <i class="fas fa-database me-2"></i>Silo Allocation
+                                            </a>
+                                        </li>
                                         <li class="nav-item d-none" data-route="kernel-production-grid">
                                             <a class="nav-link" href="#" route="kernel-production-grid" title="Step 2 — Kernel Production">
                                                 <i class="fas fa-cogs me-2"></i>2. Kernel Production
@@ -159,6 +164,11 @@
                                         <li class="nav-item d-none" data-route="kernel-dispatch-grid">
                                             <a class="nav-link" href="#" route="kernel-dispatch-grid" title="Step 4 — Kernel Dispatch">
                                                 <i class="fas fa-box me-2"></i>4. Kernel Dispatch
+                                            </a>
+                                        </li>
+                                        <li class="nav-item d-none" data-route="kernel-pipeline-settings">
+                                            <a class="nav-link" href="#" route="kernel-pipeline-settings" title="Spec limits, kg per crate, transporters, silos and bag numbering">
+                                                <i class="fas fa-sliders-h me-2"></i>Kernel Pipeline Settings
                                             </a>
                                         </li>
                                     </ul>
@@ -556,9 +566,9 @@
     <script src="js/session.js?v=20260716d"></script>
     <script src="js/themes.js"></script>
     <script src="js/super-user-visibility.js?v=20260715a"></script>
-    <script src="js/data-functions.js?v=20260814a"></script>
+    <script src="js/data-functions.js?v=20261006a"></script>
     <script src="js/auth-service.js?v=20260716c"></script>
-    <script src="js/common.js?v=20260820a"></script>
+    <script src="js/common.js?v=20261006a"></script>
     <script src="js/export-utils.js"></script>
     <!-- Display-only role label formatter: super_user -> "Super User" (never renames the key) -->
     <script src="js/role-label.js?v=20260708a"></script>
@@ -592,7 +602,7 @@
          script tag, so bumping it here is all that is needed to make a deployed change to any
          module actually reach a browser that has been in the portal before. Bump it whenever a
          module's html/js/css changes. -->
-    <script src="js/appRouter.js?v=20260918a"></script>
+    <script src="js/appRouter.js?v=20261006a"></script>
     <script src="js/app.js"></script>
     <script src="js/index.js?v=20260716d"></script>
     <script src="js/shell.js"></script>
