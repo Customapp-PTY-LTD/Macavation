@@ -2084,8 +2084,11 @@ var _dataFunctions = function () {
         openSilo: async function (siloNumber, token = null) {
             return this._kpUnwrap(await this.callFunction('open_silo', { p_silo_number: siloNumber }, token, { useCache: false }));
         },
-        closeSilo: async function (siloNumber, token = null) {
-            return this._kpUnwrap(await this.callFunction('close_silo', { p_silo_number: siloNumber }, token, { useCache: false }));
+        /** Stop cracking: leftKg = kg still in the silo (0 = silo empty). Migration 20261007090000. */
+        closeSilo: async function (siloNumber, leftKg = 0, token = null) {
+            return this._kpUnwrap(await this.callFunction('close_silo', {
+                p_silo_number: siloNumber, p_left_kg: leftKg != null ? Number(leftKg) : 0
+            }, token, { useCache: false, preserveNullParams: true }));
         },
 
         dispatchShellStockLot: async function (lotId, customerRef, notes, token = null) {

@@ -227,7 +227,7 @@ var _siloAllocationGrid = (function () {
             if (open) {
                 h += '<div class="silo-timer" data-opened="' + esc(open.opened_at) + '">00:00:00</div>' +
                     '<button type="button" class="btn btn-primary btn-sm silo-close" data-silo="' +
-                    esc(s.silo_number) + '">Silo complete</button>';
+                    esc(s.silo_number) + '">Stop cracking ■</button>';
             } else if (filled > 0) {
                 h += '<button type="button" class="btn btn-outline-secondary btn-sm silo-open-btn" data-silo="' +
                     esc(s.silo_number) + '">Open silo ▶</button>';
@@ -241,7 +241,7 @@ var _siloAllocationGrid = (function () {
         var $body = $('#siloRunsBody');
         var $sum = $('#siloTodaySummary').text('');
         if (state.runs === null) {
-            $body.html('<tr><td colspan="6" class="text-muted">Unavailable until Silo Allocation is set up.</td></tr>');
+            $body.html('<tr><td colspan="7" class="text-muted">Unavailable until Silo Allocation is set up.</td></tr>');
             return;
         }
         var today = todayStr(), totalKg = 0, totalMin = 0, any = false;
@@ -256,10 +256,11 @@ var _siloAllocationGrid = (function () {
             var batches = Array.isArray(r.batch_numbers) ? r.batch_numbers.join(', ') : (r.batch_numbers || '');
             h += '<tr><td class="silo-col">' + esc(localDate(when)) + '</td><td>' + esc(r.silo_number) + '</td><td>' +
                 esc(batches) + '</td><td class="text-end">' + esc(kg(r.volume_kg)) + '</td><td class="text-end">' +
+                (r.left_kg == null || Number(r.left_kg) === 0 ? 'Empty' : esc(kg(r.left_kg))) + '</td><td class="text-end">' +
                 esc(fmtDuration(r.minutes)) + '</td><td class="text-end">' +
                 (r.kg_per_hour == null ? '&mdash;' : esc(kg(r.kg_per_hour))) + '</td></tr>';
         });
-        $body.html(h || '<tr><td colspan="6" class="text-muted">No silos have been cracked yet.</td></tr>');
+        $body.html(h || '<tr><td colspan="7" class="text-muted">No silos have been cracked yet.</td></tr>');
         if (any) {
             var avg = totalMin > 0 ? totalKg / (totalMin / 60) : null;
             $sum.text('Today: ' + kg(totalKg) + ' kg cracked' + (avg == null ? '' : ' · average ' + kg(avg) + ' kg/hour'));
@@ -337,21 +338,44 @@ var _siloAllocationGrid = (function () {
         });
     }
 
+    // Stop cracking from a silo. Staff either enter the kg still in the silo (estimated until a sensor
+    // is fitted; the rest stays in the silo for the next run) or press "Silo is empty".
     function closeSiloNow(no) {
+        var silo = (state.overview || []).filter(function (s) { return Number(s.silo_number) === Number(no); })[0];
+        var inSilo = silo ? Number(silo.filled_kg) || 0 : 0;
         Swal.fire({
-            title: 'Silo ' + no + ' complete?',
-            text: 'This stops the timer and logs the run.',
-            icon: 'question',
+            title: 'Stop cracking silo ' + no,
+            html: 'Silo ' + esc(no) + ' held <b>' + esc(kg(inSilo)) + ' kg</b> when this run started.<br>' +
+                'How many kg are still in the silo?',
+            input: 'number',
+            inputLabel: 'Kg left in silo',
+            inputPlaceholder: 'Estimate is fine',
+            inputAttributes: { min: '0', step: '0.01', max: String(inSilo) },
             showCancelButton: true,
-            confirmButtonText: 'Silo complete'
+            showDenyButton: true,
+            confirmButtonText: 'Save',
+            denyButtonText: 'Silo is empty',
+            inputValidator: function (v) {
+                if (v === '' || v == null) { return 'Enter the kg left in the silo, or press "Silo is empty".'; }
+                var n = Number(v);
+                if (!isFinite(n) || n < 0) { return 'Enter 0 or more.'; }
+                if (n > inSilo + 0.005) { return 'That is more than the silo held (' + kg(inSilo) + ' kg).'; }
+                return null;
+            }
         }).then(function (c) {
-            if (!c.isConfirmed) { return; }
-            dataFunctions.closeSilo(no).then(function (r) {
+            var left;
+            if (c.isConfirmed) { left = Number(c.value); }
+            else if (c.isDenied) { left = 0; }
+            else { return; }
+            dataFunctions.closeSilo(no, left).then(function (r) {
                 if (!isOk(r)) {
-                    Swal.fire({ icon: 'error', text: errText(r, 'Could not close the silo.') });
+                    Swal.fire({ icon: 'error', text: errText(r, 'Could not stop the silo.') });
                 } else {
-                    var line = 'Silo ' + no + ' complete: ' + kg(r.volume_kg) + ' kg in ' +
-                        fmtDuration(r.minutes) + (r.kg_per_hour == null ? '' : ' = ' + kg(r.kg_per_hour) + ' kg/hour');
+                    var rate = r.kg_per_hour == null ? '' : ' = ' + kg(r.kg_per_hour) + ' kg/hour';
+                    var line = r.emptied
+                        ? 'Silo ' + no + ' empty: ' + kg(r.volume_kg) + ' kg cracked in ' + fmtDuration(r.minutes) + rate + '.'
+                        : 'Silo ' + no + ' stopped: ' + kg(r.volume_kg) + ' kg cracked in ' + fmtDuration(r.minutes) + rate +
+                          '. ' + kg(r.left_kg) + ' kg left in the silo.';
                     Swal.fire({ icon: 'success', text: line });
                 }
                 return load();
