@@ -49,6 +49,20 @@
     --mac-info-rgb: 9, 105, 218;
     --mac-info-light: rgba(9, 105, 218, 0.08);
 
+    /* --- Silo fill levels (Silo Allocation): >=80% high, 40-79% mid, under 40% low, 0 empty --- */
+    --mac-silo-high: #2DA44E;
+    --mac-silo-high-light: rgba(45, 164, 78, 0.12);
+    --mac-silo-high-text: #1A7F37;
+    --mac-silo-mid: #E8833A;
+    --mac-silo-mid-light: rgba(232, 131, 58, 0.14);
+    --mac-silo-mid-text: #9A4B12;
+    --mac-silo-low: #CF222E;
+    --mac-silo-low-light: rgba(207, 34, 46, 0.12);
+    --mac-silo-low-text: #A11B24;
+    --mac-silo-empty: #C9C9C4;
+    --mac-silo-empty-light: #F0F0EE;
+    --mac-silo-empty-text: #52524E;
+
     /* --- Typography --- */
     --mac-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --mac-font-mono: 'SF Mono', 'Menlo', 'Consolas', monospace;

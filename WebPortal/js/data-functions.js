@@ -2073,22 +2073,50 @@ var _dataFunctions = function () {
         getSiloRuns: async function (limit = 50, token = null) {
             return this._kpUnwrap(await this.callFunction('get_silo_runs', { p_limit: limit }, token, { useCache: false }));
         },
-        allocateBagsToSilo: async function (kernelId, bagNos, siloNumber, token = null) {
+        /** removedPreSizerKg is required (0 if none). Migration 20261008090000. */
+        allocateBagsToSilo: async function (kernelId, bagNos, siloNumber, removedPreSizerKg, token = null) {
             return this._kpUnwrap(await this.callFunction('allocate_bags_to_silo', {
-                p_kernel_id: kernelId, p_bag_nos: bagNos, p_silo_number: siloNumber
-            }, token, { useCache: false }));
+                p_kernel_id: kernelId, p_bag_nos: bagNos, p_silo_number: siloNumber,
+                p_removed_pre_sizer_kg: removedPreSizerKg != null ? Number(removedPreSizerKg) : null
+            }, token, { useCache: false, preserveNullParams: true }));
         },
         unallocateSiloBag: async function (kernelId, bagNo, token = null) {
             return this._kpUnwrap(await this.callFunction('unallocate_silo_bag', { p_kernel_id: kernelId, p_bag_no: bagNo }, token, { useCache: false }));
         },
-        openSilo: async function (siloNumber, token = null) {
-            return this._kpUnwrap(await this.callFunction('open_silo', { p_silo_number: siloNumber }, token, { useCache: false }));
+        /** Pre-sizer tally for one batch: { groups[], total_bag_kg, total_removed_kg, waiting_bag_nos[] }. */
+        getPresizerTally: async function (kernelId, token = null) {
+            return this._kpUnwrap(await this.callFunction('get_presizer_tally', { p_kernel_id: kernelId }, token, { useCache: false }));
         },
-        /** Stop cracking: leftKg = kg still in the silo (0 = silo empty). Migration 20261007090000. */
-        closeSilo: async function (siloNumber, leftKg = 0, token = null) {
-            return this._kpUnwrap(await this.callFunction('close_silo', {
-                p_silo_number: siloNumber, p_left_kg: leftKg != null ? Number(leftKg) : 0
+        /** openedAt: ISO string, or null/omitted for "now". */
+        openSilo: async function (siloNumber, openedAt = null, token = null) {
+            const params = { p_silo_number: siloNumber };
+            if (openedAt) { params.p_opened_at = openedAt; }
+            return this._kpUnwrap(await this.callFunction('open_silo', params, token, { useCache: false }));
+        },
+        /** Stop cracking: leftKg = kg still in the silo (0 = silo empty). openedAt / closedAt: ISO strings, only when changed. */
+        closeSilo: async function (siloNumber, leftKg = 0, openedAt = null, closedAt = null, token = null) {
+            const params = { p_silo_number: siloNumber, p_left_kg: leftKg != null ? Number(leftKg) : 0 };
+            if (openedAt) { params.p_opened_at = openedAt; }
+            if (closedAt) { params.p_closed_at = closedAt; }
+            return this._kpUnwrap(await this.callFunction('close_silo', params, token, { useCache: false, preserveNullParams: true }));
+        },
+        updateSiloRunTimes: async function (runId, openedAt, closedAt, token = null) {
+            return this._kpUnwrap(await this.callFunction('update_silo_run_times', {
+                p_run_id: runId, p_opened_at: openedAt, p_closed_at: closedAt
+            }, token, { useCache: false }));
+        },
+        /** Log a run after the fact (production sheet). Returns close_silo's keys plus run_id. */
+        recordSiloRun: async function (siloNumber, openedAt, closedAt, leftKg, token = null) {
+            return this._kpUnwrap(await this.callFunction('record_silo_run', {
+                p_silo_number: siloNumber, p_opened_at: openedAt, p_closed_at: closedAt,
+                p_left_kg: leftKg != null ? Number(leftKg) : 0
             }, token, { useCache: false, preserveNullParams: true }));
+        },
+        /** Closed runs on a South African date that cracked this batch: { runs[], total_batch_kg }. date = 'YYYY-MM-DD'. */
+        getBatchCrackingRuns: async function (kernelId, date, token = null) {
+            return this._kpUnwrap(await this.callFunction('get_batch_cracking_runs', {
+                p_kernel_id: kernelId, p_date: date
+            }, token, { useCache: false }));
         },
 
         dispatchShellStockLot: async function (lotId, customerRef, notes, token = null) {
@@ -4565,7 +4593,7 @@ var _dataFunctions = function () {
         /**
          * Release a kernel batch to production.
          * Validates both ziplock_sample and five_kg_sample are saved, then sets status = 'production'.
-         * @param {object} data - { kernel_id, removed_pre_sizer_kg (required by the DB, >= 0) }
+         * @param {object} data - { kernel_id, removed_pre_sizer_kg (optional; captured at silo allocation since 20261008) }
          * @returns {Promise<object>} { success, kernel_id } or { success: false, error }
          */
         releaseKernelToProduction: async function (data, token = null) {
