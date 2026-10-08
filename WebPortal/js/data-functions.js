@@ -3314,6 +3314,26 @@ var _dataFunctions = function () {
             return result;
         },
 
+        // --- Cracking runs on the production sheet (silo runs that cracked kg from one batch) ---
+        /** Closed silo runs on a day (SA time) that cracked kg from this batch. Returns { success, runs[], total_batch_kg }. */
+        getBatchCrackingRuns: async function (kernelId, dateISO, token = null) {
+            return this._kpUnwrap(await this.callFunction('get_batch_cracking_runs', {
+                p_kernel_id: kernelId, p_date: dateISO
+            }, token, { useCache: false }));
+        },
+        /** Record a finished silo run from the production sheet; empties the silo like "Stop cracking". */
+        recordSiloRun: async function (siloNumber, openedAt, closedAt, leftKg, token = null) {
+            return this._kpUnwrap(await this.callFunction('record_silo_run', {
+                p_silo_number: Number(siloNumber), p_opened_at: openedAt, p_closed_at: closedAt,
+                p_left_kg: leftKg != null ? Number(leftKg) : 0
+            }, token, { useCache: false }));
+        },
+        updateSiloRunTimes: async function (runId, openedAt, closedAt, token = null) {
+            return this._kpUnwrap(await this.callFunction('update_silo_run_times', {
+                p_run_id: runId, p_opened_at: openedAt, p_closed_at: closedAt
+            }, token, { useCache: false }));
+        },
+
         /**
          * upsertKernelJobCard — save job card JSONB. Stock (packing_data) syncs only on approve or when batch is already jobcard_approved.
          * Used by: modal_kernel_job_card only.

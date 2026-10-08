@@ -366,6 +366,8 @@ var _modal_production_stages = (function () {
             // Cracking: volume cracked, minute tests and shell waste are all derived from what the user types.
             $(document).off('.kp2ps'); // init() can run more than once; never stack these handlers
             $(document).on('input.kp2ps change.kp2ps', '#ps_crack_startqty1, #ps_crack_endqty_left', function () { scope.recalcCrackVolume(); });
+            $(document).on('click.kp2ps', '#crackRunAddBtn', function (e) { e.preventDefault(); scope.openAddCrackingRun(); });
+            $(document).on('click.kp2ps', '.js-crack-run-edit', function (e) { e.preventDefault(); scope.openEditCrackingRun(parseInt(this.getAttribute('data-idx'), 10)); });
             $(document).on('input.kp2ps change.kp2ps', '[id^="ps_crack_wholes_"], [id^="ps_crack_uncracks_"]', function () {
                 scope.recalcMinuteTestRow(this.id.split('_').pop());
             });
@@ -583,6 +585,8 @@ var _modal_production_stages = (function () {
         /** Time between start and end in minutes (0 when either is missing). Reuses the Time Spent maths (overnight wrap). */
         _crackMinutes: () => {
             const scope = _modal_production_stages;
+            // Runs mode: time is the sum of the runs' own durations (earliest..latest would count gaps between silos).
+            if (scope._crackRunsMode && scope._crackRunsTotal != null) return Math.round(scope._crackRunsMinutes);
             return scope.parseTimeSpentToMinutes(scope.computeTimeSpent($('#ps_crack_start1').val(), $('#ps_crack_end1').val()));
         },
 
@@ -594,6 +598,14 @@ var _modal_production_stages = (function () {
             // have endqty1 = kg cracked and no endqty_left) must not get a restated volume.
             var start = parseStageNum($('#ps_crack_startqty1').val());
             var left = parseStageNum($('#ps_crack_endqty_left').val());
+            // Runs mode: the batch's own kg from the silo runs (a silo can hold several batches, so start - left is not it).
+            if (scope._crackRunsMode && scope._crackRunsTotal != null) {
+                var rmins = scope._crackMinutes();
+                $('#ps_crack_volume_cracked').val(scope._fixed2(scope._crackRunsTotal));
+                $('#ps_crack_vol_cracked_per_hour').val(rmins > 0 ? scope._fixed2(scope._crackRunsTotal / (rmins / 60)) : '');
+                $('#ps_crack_vol_cracked_per_min').val(rmins > 0 ? scope._fixed2(scope._crackRunsTotal / rmins) : '');
+                return;
+            }
             if (start == null || left == null || left > start) {
                 $('#ps_crack_volume_cracked, #ps_crack_vol_cracked_per_hour, #ps_crack_vol_cracked_per_min').val('');
                 return;
@@ -708,6 +720,302 @@ var _modal_production_stages = (function () {
                 console.warn('[Production] Silo overview unavailable:', err && err.message ? err.message : err);
                 scope._siloOptions = [];
                 $wrap.addClass('d-none');
+            });
+        },
+
+        // ------------------------------------------------------------------------------------------
+        // Cracking runs (silo runs that cracked kg from THIS batch on the sheet's day). When the
+        // get_batch_cracking_runs RPC works, the manual Silo / Start / End / Start Qty / End Qty /
+        // Volume inputs are hidden (still in the DOM) and filled from the runs so the existing save
+        // path writes this day's cracking element; the parallel-array storage shape is untouched.
+        // If the RPC fails (or the day has no runs but already has hand-typed cracking values),
+        // the legacy fields show exactly as before.
+        // ------------------------------------------------------------------------------------------
+
+        _crackRunsMode: false,
+        _crackRunsTotal: null,
+        _crackRunsMinutes: 0,
+        _crackRunsSeq: 0,
+
+        /** Local time of an ISO timestamp as HH:MM (browser = SA time). '' when invalid. */
+        _crackHHMM: (ts) => {
+            var d = new Date(ts);
+            if (isNaN(d.getTime())) return '';
+            return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+        },
+
+        /** Sheet date (YYYY-MM-DD) + local HH:MM -> ISO timestamp carrying the browser's UTC offset. '' when invalid. */
+        _crackToTimestamp: (dateISO, hhmm) => {
+            var dm = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(dateISO || ''));
+            var tm = /^(\d{1,2}):(\d{2})/.exec(String(hhmm || ''));
+            if (!dm || !tm) return '';
+            var d = new Date(+dm[1], +dm[2] - 1, +dm[3], +tm[1], +tm[2], 0, 0);
+            if (isNaN(d.getTime())) return '';
+            var off = -d.getTimezoneOffset();
+            var sign = off >= 0 ? '+' : '-';
+            var a = Math.abs(off);
+            var p = function (n) { return String(n).padStart(2, '0'); };
+            return dm[1] + '-' + dm[2] + '-' + dm[3] + 'T' + p(+tm[1]) + ':' + tm[2] + ':00' + sign + p(Math.floor(a / 60)) + ':' + p(a % 60);
+        },
+
+        _crackFmtMinutes: (m) => {
+            m = Math.round(m || 0);
+            var h = Math.floor(m / 60);
+            var r = m % 60;
+            if (h === 0) return r + 'm';
+            if (r === 0) return h + 'h';
+            return h + 'h ' + r + 'm';
+        },
+
+        _crackKg: (n, dec) => {
+            var v = parseFloat(n);
+            return isFinite(v) ? _common.formatKg(v, dec == null ? 0 : dec) : '';
+        },
+
+        /** Day the Cracking tab is showing, as YYYY-MM-DD ('' when none). */
+        _crackSheetDate: () => {
+            var iso = toISO($('#ps_crack_date').val());
+            return /^\d{4}-\d{2}-\d{2}$/.test(iso || '') ? iso : '';
+        },
+
+        _setCrackRunsMode: (on) => {
+            const scope = _modal_production_stages;
+            scope._crackRunsMode = !!on;
+            $('#pane-cracking').toggleClass('ps-crack-runs-mode', !!on);
+            $('#crackRunsSection').toggleClass('d-none', !on);
+            if (!on) { scope._crackRunsTotal = null; scope._crackRunsMinutes = 0; }
+        },
+
+        /** True when the Cracking form already holds hand-typed quantities (old days keep working). */
+        _crackHasManualValues: () => {
+            return ['ps_crack_startqty1', 'ps_crack_endqty_left', 'ps_crack_endqty1', 'ps_crack_volume_cracked'].some(function (id) {
+                var v = $('#' + id).val();
+                return v != null && String(v).trim() !== '';
+            });
+        },
+
+        /**
+         * Load this batch's cracking runs for a day and switch the tab between runs mode and legacy mode.
+         * userChanged: true after the user added/edited a run, so the derived values get saved.
+         */
+        loadCrackingRuns: (dayDate, userChanged) => {
+            const scope = _modal_production_stages;
+            var kernelId = $('#productionStagesBatchId').val();
+            var date = (dayDate && /^\d{4}-\d{2}-\d{2}/.test(dayDate)) ? String(dayDate).slice(0, 10) : scope._crackSheetDate();
+            var seq = ++scope._crackRunsSeq;
+            if (!kernelId || !date || typeof dataFunctions === 'undefined' || typeof dataFunctions.getBatchCrackingRuns !== 'function') {
+                scope._setCrackRunsMode(false);
+                return Promise.resolve();
+            }
+            return Promise.resolve().then(function () { return dataFunctions.getBatchCrackingRuns(kernelId, date); }).then(function (res) {
+                if (seq !== scope._crackRunsSeq) return; // a newer load superseded this one
+                if (!res || res.success === false || !Array.isArray(res.runs)) throw new Error((res && res.error) || 'Cracking runs unavailable');
+                var runs = res.runs;
+                if (runs.length === 0 && scope._crackHasManualValues()) { scope._setCrackRunsMode(false); return; }
+                scope._setCrackRunsMode(true);
+                scope._crackRuns = runs;
+                scope._crackRunsDate = date;
+                scope.renderCrackingRuns(runs, res.total_batch_kg);
+                if (runs.length > 0) {
+                    scope.applyCrackingRunsToFields(runs, res.total_batch_kg);
+                    if (userChanged) scope.scheduleAutoSave();
+                }
+            }).catch(function (err) {
+                if (seq !== scope._crackRunsSeq) return;
+                // RPC missing or failing: fall back to today's manual Start/End quantity fields.
+                console.warn('[Production] Cracking runs unavailable:', err && err.message ? err.message : err);
+                scope._setCrackRunsMode(false);
+            });
+        },
+
+        renderCrackingRuns: (runs, totalBatchKg) => {
+            const scope = _modal_production_stages;
+            var esc = _common.escapeHtml;
+            var canEdit = !(typeof hasAction === 'function' && !hasAction('kernel.production_stages.edit'));
+            $('#crackRunAddBtn').toggleClass('d-none', !canEdit);
+            var $body = $('#crackRunsBody').empty();
+            if (!runs.length) {
+                $body.append('<tr><td colspan="9" class="text-muted">No cracking runs for this batch on this day yet.</td></tr>');
+                return;
+            }
+            var sumKg = 0, sumMin = 0;
+            runs.forEach(function (r, i) {
+                var batchKg = parseFloat(r.batch_kg) || 0;
+                var o = new Date(r.opened_at).getTime(), c = new Date(r.closed_at).getTime();
+                if (isFinite(o) && isFinite(c) && c > o) sumMin += (c - o) / 60000;
+                sumKg += batchKg;
+                var left = parseFloat(r.left_kg);
+                var pill = r.times_edited ? ' <span class="ps-crack-run-pill">time changed</span>' : '';
+                $body.append(
+                    '<tr>' +
+                    '<td>Silo ' + esc(r.silo_number) + '</td>' +
+                    '<td>' + esc(scope._crackBatchLabel()) + '</td>' +
+                    '<td>' + esc(scope._crackHHMM(r.opened_at)) + pill + '</td>' +
+                    '<td>' + esc(scope._crackHHMM(r.closed_at)) + '</td>' +
+                    '<td class="text-end">' + esc(scope._crackKg(r.start_kg)) + '</td>' +
+                    '<td class="text-end">' + (left === 0 ? 'Empty' : esc(scope._crackKg(r.left_kg))) + '</td>' +
+                    '<td class="text-end fw-semibold">' + esc(scope._crackKg(batchKg)) + '</td>' +
+                    '<td class="text-end">' + esc(scope._crackKg(r.kg_per_hour)) + '</td>' +
+                    '<td>' + (canEdit ? '<a href="#" class="js-crack-run-edit" data-idx="' + i + '">Edit</a>' : '') + '</td>' +
+                    '</tr>'
+                );
+            });
+            var total = totalBatchKg != null && isFinite(parseFloat(totalBatchKg)) ? parseFloat(totalBatchKg) : sumKg;
+            $body.append(
+                '<tr class="ps-crack-runs-total"><td colspan="6">Total cracked today</td>' +
+                '<td class="text-end">' + esc(scope._crackKg(total)) + ' kg</td>' +
+                '<td class="text-end">' + (sumMin > 0 ? esc(scope._crackKg(total / (sumMin / 60))) : '') + '</td><td></td></tr>'
+            );
+        },
+
+        _crackBatchLabel: () => {
+            var d = _modal_production_stages._loadedKernelDetail;
+            var b = typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch ? _kernelProductionGrid.getBatch($('#productionStagesBatchId').val()) : null;
+            return (d && d.batch_number) || (b && b.batch_number) || '';
+        },
+
+        /** Write the runs' totals into the (hidden) cracking inputs so the normal save path stores them. */
+        applyCrackingRunsToFields: (runs, totalBatchKg) => {
+            const scope = _modal_production_stages;
+            var startSum = 0, leftSum = 0, minutes = 0, first = null, last = null, silos = {};
+            runs.forEach(function (r) {
+                startSum += parseFloat(r.start_kg) || 0;
+                leftSum += parseFloat(r.left_kg) || 0;
+                var o = new Date(r.opened_at).getTime(), c = new Date(r.closed_at).getTime();
+                if (isFinite(o) && (first == null || o < first)) first = o;
+                if (isFinite(c) && (last == null || c > last)) last = c;
+                if (isFinite(o) && isFinite(c) && c > o) minutes += (c - o) / 60000;
+                silos[r.silo_number] = true;
+            });
+            var total = totalBatchKg != null && isFinite(parseFloat(totalBatchKg))
+                ? parseFloat(totalBatchKg)
+                : runs.reduce(function (a, r) { return a + (parseFloat(r.batch_kg) || 0); }, 0);
+            scope._crackRunsTotal = total;
+            scope._crackRunsMinutes = minutes;
+            var siloKeys = Object.keys(silos);
+            if (siloKeys.length === 1) { scope.ensureSelectHasOption($('#ps_crack_silo_number')[0], siloKeys[0]); $('#ps_crack_silo_number').val(siloKeys[0]); }
+            else $('#ps_crack_silo_number').val('');
+            $('#ps_crack_startqty1').val(scope._fixed2(startSum));
+            $('#ps_crack_endqty_left').val(scope._fixed2(leftSum));
+            $('#ps_crack_endqty1').val('');
+            $('#ps_crack_start1').val(first != null ? scope._crackHHMM(first) : '');
+            $('#ps_crack_end1').val(last != null ? scope._crackHHMM(last) : '');
+            $('#ps_crack_timespent1').val(minutes > 0 ? scope._crackFmtMinutes(minutes) : '');
+            scope.updateCrackTotalTime();
+            scope.syncCrackTimeToSummary();
+            scope.recalcCrackVolume();
+        },
+
+        /** Silos holding stock of THIS batch, from the silo overview. */
+        _crackSilosForBatch: () => {
+            var kernelId = String($('#productionStagesBatchId').val() || '');
+            return Promise.resolve().then(function () { return dataFunctions.getSiloOverview(); }).then(function (res) {
+                if (!res || res.success === false || !Array.isArray(res.silos)) throw new Error((res && res.error) || 'Silo overview unavailable');
+                return res.silos.filter(function (s) {
+                    return (s.contents || []).some(function (c) { return String(c.kernel_id) === kernelId; });
+                });
+            });
+        },
+
+        /** "+ Add cracking run": same box as the silo screen's stop dialog, plus silo and times. */
+        openAddCrackingRun: () => {
+            const scope = _modal_production_stages;
+            var date = scope._crackSheetDate();
+            if (!date) { Swal.fire({ icon: 'warning', text: 'Set the Cracking date first.' }); return; }
+            scope._crackSilosForBatch().then(function (silos) {
+                if (!silos.length) { Swal.fire({ icon: 'info', text: 'No silo holds this batch right now, so there is nothing to crack. Allocate it to a silo first.' }); return; }
+                var esc = _common.escapeHtml;
+                var opts = silos.map(function (s) {
+                    return '<option value="' + esc(s.silo_number) + '">Silo ' + esc(s.silo_number) + ', ' + esc(scope._crackKg(s.filled_kg)) + ' kg</option>';
+                }).join('');
+                Swal.fire({
+                    title: 'Add cracking run',
+                    html: '<div class="ps-crack-dialog text-start">' +
+                        '<label class="form-label" for="crRunSilo">Silo</label><select class="form-select" id="crRunSilo"><option value="">Choose silo&hellip;</option>' + opts + '</select>' +
+                        '<div class="row g-2 mt-1"><div class="col-6"><label class="form-label" for="crRunStart">Started at</label><input type="time" class="form-control" id="crRunStart"></div>' +
+                        '<div class="col-6"><label class="form-label" for="crRunStop">Stopped at</label><input type="time" class="form-control" id="crRunStop"></div></div>' +
+                        '<label class="form-label mt-2" for="crRunLeft">Kg left in silo</label><input type="number" class="form-control" id="crRunLeft" min="0" step="0.01" placeholder="Estimate is fine">' +
+                        '<div class="ps-crack-strip mt-3"><span>Ran for <b id="crRunDur">-</b></span><span>Cracked <b id="crRunKg">-</b></span><span>Rate <b id="crRunRate">-</b></span></div>' +
+                        '<div class="form-text mt-2">Adding a run here empties the silo by the same amount, as if “Stop cracking” had been pressed.</div></div>',
+                    showCancelButton: true,
+                    confirmButtonText: 'Save',
+                    focusConfirm: false,
+                    didOpen: function () {
+                        var filled = function () {
+                            var s = silos.filter(function (x) { return String(x.silo_number) === String($('#crRunSilo').val()); })[0];
+                            return s ? (parseFloat(s.filled_kg) || 0) : null;
+                        };
+                        var refresh = function () {
+                            var f = filled();
+                            if (f != null) $('#crRunLeft').attr('max', String(f)); else $('#crRunLeft').removeAttr('max');
+                            var a = scope._crackToTimestamp(date, $('#crRunStart').val()), b = scope._crackToTimestamp(date, $('#crRunStop').val());
+                            var mins = (a && b) ? (new Date(b) - new Date(a)) / 60000 : NaN;
+                            var left = parseFloat($('#crRunLeft').val());
+                            var kgv = (f != null && isFinite(left)) ? f - left : NaN;
+                            $('#crRunDur').text(isFinite(mins) && mins > 0 ? scope._crackFmtMinutes(mins) : '-');
+                            $('#crRunKg').text(isFinite(kgv) && kgv >= 0 ? scope._crackKg(kgv) + ' kg' : '-');
+                            $('#crRunRate').text(isFinite(mins) && mins > 0 && isFinite(kgv) && kgv >= 0 ? scope._crackKg(kgv / (mins / 60)) + ' kg/hour' : '-');
+                        };
+                        $('#crRunSilo, #crRunStart, #crRunStop, #crRunLeft').on('input change', refresh);
+                    },
+                    preConfirm: function () {
+                        var silo = $('#crRunSilo').val();
+                        var a = scope._crackToTimestamp(date, $('#crRunStart').val());
+                        var b = scope._crackToTimestamp(date, $('#crRunStop').val());
+                        var leftStr = $('#crRunLeft').val();
+                        var left = parseFloat(leftStr);
+                        var f = silos.filter(function (x) { return String(x.silo_number) === String(silo); })[0];
+                        if (!silo) { Swal.showValidationMessage('Choose the silo.'); return false; }
+                        if (!a || !b) { Swal.showValidationMessage('Enter when the run started and stopped.'); return false; }
+                        if (new Date(b) <= new Date(a)) { Swal.showValidationMessage('Stopped at must be after Started at.'); return false; }
+                        if (leftStr === '' || !isFinite(left) || left < 0) { Swal.showValidationMessage('Enter the kg left in the silo (0 if empty).'); return false; }
+                        if (f && left > (parseFloat(f.filled_kg) || 0) + 0.005) { Swal.showValidationMessage('That is more than the silo held (' + scope._crackKg(f.filled_kg) + ' kg).'); return false; }
+                        return Promise.resolve().then(function () { return dataFunctions.recordSiloRun(silo, a, b, left); }).then(function (r) {
+                            if (!r || r.success === false) { Swal.showValidationMessage((r && r.error) || 'Could not save the run.'); return false; }
+                            return r;
+                        }).catch(function (e) {
+                            Swal.showValidationMessage((e && e.message) || 'Could not save the run.');
+                            return false;
+                        });
+                    }
+                }).then(function (c) {
+                    if (c.isConfirmed && c.value) scope.loadCrackingRuns(date, true);
+                });
+            }).catch(function (e) {
+                Swal.fire({ icon: 'error', text: (e && e.message) || 'Could not read the silos.' });
+            });
+        },
+
+        /** "Edit" on a run row: change the started/stopped times only. */
+        openEditCrackingRun: (idx) => {
+            const scope = _modal_production_stages;
+            var run = (scope._crackRuns || [])[idx];
+            var date = scope._crackRunsDate || scope._crackSheetDate();
+            if (!run || !date) return;
+            Swal.fire({
+                title: 'Edit run times, silo ' + run.silo_number,
+                html: '<div class="ps-crack-dialog text-start"><div class="row g-2"><div class="col-6"><label class="form-label" for="crEditStart">Started at</label>' +
+                    '<input type="time" class="form-control" id="crEditStart" value="' + _common.escapeHtml(scope._crackHHMM(run.opened_at)) + '"></div>' +
+                    '<div class="col-6"><label class="form-label" for="crEditStop">Stopped at</label>' +
+                    '<input type="time" class="form-control" id="crEditStop" value="' + _common.escapeHtml(scope._crackHHMM(run.closed_at)) + '"></div></div></div>',
+                showCancelButton: true,
+                confirmButtonText: 'Save',
+                focusConfirm: false,
+                preConfirm: function () {
+                    var a = scope._crackToTimestamp(date, $('#crEditStart').val());
+                    var b = scope._crackToTimestamp(date, $('#crEditStop').val());
+                    if (!a || !b) { Swal.showValidationMessage('Enter when the run started and stopped.'); return false; }
+                    if (new Date(b) <= new Date(a)) { Swal.showValidationMessage('Stopped at must be after Started at.'); return false; }
+                    return Promise.resolve().then(function () { return dataFunctions.updateSiloRunTimes(run.run_id, a, b); }).then(function (r) {
+                        if (!r || r.success === false) { Swal.showValidationMessage((r && r.error) || 'Could not save the times.'); return false; }
+                        return r;
+                    }).catch(function (e) {
+                        Swal.showValidationMessage((e && e.message) || 'Could not save the times.');
+                        return false;
+                    });
+                }
+            }).then(function (c) {
+                if (c.isConfirmed && c.value) scope.loadCrackingRuns(date, true);
             });
         },
 
@@ -1145,6 +1453,7 @@ var _modal_production_stages = (function () {
                     else this.value = '';
                 });
             }
+            if (section === 'crack') scope.loadCrackingRuns(isoDate);
         },
 
         /** Find entry in a JSONB array by its 'date' field. Returns the object or {}. */
@@ -1186,7 +1495,7 @@ var _modal_production_stages = (function () {
                 scope.clearProductionStagesForm();
                 scope.setTodayDatesInProductionForm();
             }
-            return Promise.resolve();
+            return scope.loadCrackingRuns(dayDate);
         },
 
         /** Switch to a day: save current day, then load the selected day's data (or blank + today's date if new day). */
@@ -1225,6 +1534,7 @@ var _modal_production_stages = (function () {
             scope.setProductionStagesTabsVisibility(true);
             scope.setProductionDayActive(newDayId);
             scope.setTodayDatesInProductionForm();
+            scope.loadCrackingRuns();
         },
 
         showBatchSummary: () => {
