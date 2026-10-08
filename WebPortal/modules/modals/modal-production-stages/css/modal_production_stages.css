@@ -62,3 +62,44 @@
 #productionStagesModal .ps-minute-tests {
     max-width: 720px;
 }
+
+/* Cracking runs (silo runs for this batch). Runs mode hides the hand-typed silo/time/quantity inputs (kept in the DOM). */
+#productionStagesModal #pane-cracking.ps-crack-runs-mode .ps-crack-manual {
+    display: none;
+}
+#productionStagesModal .ps-crack-runs-table th {
+    background-color: var(--mac-bg-tertiary);
+    color: var(--mac-text-secondary);
+    font-size: var(--mac-text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+#productionStagesModal .ps-crack-runs-table .ps-crack-runs-total td {
+    font-weight: 700;
+    background-color: var(--mac-bg-tertiary);
+}
+#productionStagesModal .ps-crack-run-pill {
+    display: inline-block;
+    margin-left: 0.35rem;
+    padding: 0 0.5rem;
+    border-radius: var(--mac-radius-pill);
+    background-color: var(--mac-warning-light);
+    color: var(--mac-warning-text);
+    font-size: var(--mac-text-xs);
+    font-weight: 600;
+    white-space: nowrap;
+}
+.ps-crack-dialog .ps-crack-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--mac-radius-sm);
+    background-color: var(--mac-bg-tertiary);
+    color: var(--mac-text-secondary);
+    font-size: var(--mac-text-sm);
+}
+.ps-crack-dialog .ps-crack-strip b {
+    color: var(--mac-text);
+}
