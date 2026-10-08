@@ -542,29 +542,17 @@ var _growerIntakeGrid = function () {
                 var relTotal = relBags.reduce(function (sum, bag) { return sum + (Number(bag.weight_kg) || 0); }, 0);
                 relHtml += '<p class="mb-2">Weighed total: <strong>' + _common.escapeHtml(_common.formatKg(relTotal)) + ' kg</strong> from ' + relBags.length + ' bag' + (relBags.length === 1 ? '' : 's') + '.</p>';
             }
-            relHtml += '<label for="giReleasePreSizerKg" class="form-label fw-semibold">Removed pre-sizer (kg)</label>' +
-                '<input type="number" id="giReleasePreSizerKg" class="form-control" min="0" step="0.01" placeholder="0 if none">' +
-                '<div class="form-text">Measured just before the batch goes into a silo</div>';
+            relHtml += '<p class="mb-0 text-muted">The pre-sizer figure is now entered when bags are allocated to a silo.</p>';
             const confirmRes = await Swal.fire({
                 title: 'Release ' + _common.escapeHtml(relNumber) + ' to production',
                 html: relHtml,
                 showCancelButton: true,
                 confirmButtonText: 'Release',
-                cancelButtonText: 'Cancel',
-                focusConfirm: false,
-                preConfirm: function () {
-                    var raw = document.getElementById('giReleasePreSizerKg').value;
-                    var num = parseFloat(raw);
-                    if (raw === '' || isNaN(num) || num < 0) {
-                        Swal.showValidationMessage('Enter the kg removed at the pre-sizer. Use 0 if none.');
-                        return false;
-                    }
-                    return num;
-                }
+                cancelButtonText: 'Cancel'
             });
             if (!confirmRes.isConfirmed) return;
             try {
-                const result = await dataFunctions.releaseKernelToProduction({ kernel_id: batchId, removed_pre_sizer_kg: confirmRes.value });
+                const result = await dataFunctions.releaseKernelToProduction({ kernel_id: batchId });
                 if (result && result.success !== false) {
                     var batch = scope.intakeBatches.find(function (x) { return String(x.id) === String(batchId); });
                     scope.loadIntakeBatches(true);

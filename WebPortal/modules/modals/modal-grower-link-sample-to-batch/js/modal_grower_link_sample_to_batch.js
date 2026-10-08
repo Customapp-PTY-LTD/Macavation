@@ -13,6 +13,9 @@
 var _modal_grower_link_sample_to_batch = (function () {
     'use strict';
 
+    var FIVE_KG_TARGET_G = 5000;  // expected crack-out total for a 5 kg sample
+    var FIVE_KG_MARGIN_G = 50;    // no warning while total is within +/- this of the target
+
     var CONTAINER_ID = 'linkSampleToBatchModal';
     var DRAFT_STORAGE_PREFIX = 'grower_intake_sample_draft_';
     var AUTOSAVE_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
@@ -69,6 +72,10 @@ var _modal_grower_link_sample_to_batch = (function () {
 
     function fmtG(v) {
         return _common.formatKg(v);
+    }
+
+    function fmtInt(v) {
+        return Number(v).toLocaleString('en-US', { maximumFractionDigits: 2 });
     }
 
     function fmtPct(part, whole) {
@@ -151,10 +158,15 @@ var _modal_grower_link_sample_to_batch = (function () {
         });
         setText('sampleCrackOutTotalPct', crackTotal > 0 ? '100.0%' : '');
 
-        // 5 kg warning (never blocks save)
-        showWarning('sampleFiveKgWarning', (soundG != null && soundG < 5000)
-            ? 'Pre-Float Test (Sound Kernel) is ' + fmtG(soundG) + ' g, under the 5 kg (5,000 g) sample. You can still save, but check the sample.'
-            : '');
+        // 5 kg warning: crack-out total vs 5,000 g +/- margin (never blocks save)
+        var fiveKgMsg = '';
+        if (crackTotal > 0 && Math.abs(crackTotal - FIVE_KG_TARGET_G) > FIVE_KG_MARGIN_G) {
+            var diffG = Math.round(Math.abs(crackTotal - FIVE_KG_TARGET_G) * 100) / 100;
+            fiveKgMsg = 'Total crack-out is ' + fmtInt(crackTotal) + ' g, which is ' + fmtInt(diffG) + ' g '
+                + (crackTotal > FIVE_KG_TARGET_G ? 'above' : 'below')
+                + ' the 5 kg (5,000 g) sample. You can still save, but check the sample.';
+        }
+        showWarning('sampleFiveKgWarning', fiveKgMsg);
 
         // Float test: % of wet and auto dry weight (dry = wet / total wet x Pre-Float weight)
         var haveDry = floatTotal > 0 && soundG != null;
@@ -170,7 +182,9 @@ var _modal_grower_link_sample_to_batch = (function () {
         // Unsound breakdown: % of whole crack-out
         UNSOUND_IDS.forEach(function (id) {
             setText(id + 'Pct', fmtPct(getFloat(id), crackTotal));
+            setText(id + 'OfUnsoundPct', fmtPct(getFloat(id), unsoundTotal));
         });
+        setText('sampleUnsoundTotalOfUnsoundPct', unsoundTotal > 0 ? '100%' : '—');
         setText('sampleUnsoundTotalPct', unsoundTotal > 0 ? fmtPct(unsoundTotal, crackTotal) : '');
         var crackUnsound = getFloat('sampleUnsoundKernelG') || 0;
         var mismatch = unsoundTotal > 0 && Math.abs(unsoundTotal - crackUnsound) > 0.005;

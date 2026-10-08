@@ -41,13 +41,75 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: var(--mac-green-light);
-    border-top: 2px solid var(--mac-green);
+    opacity: 0.85;
 }
 
-.silo-level.silo-level-full {
-    background: var(--mac-danger-light);
-    border-top-color: var(--mac-danger);
+/* Fill colour by how full the silo is: >=80% high, 40-79% mid, under 40% low, 0 empty. */
+.silo-tier-high .silo-level { background: var(--mac-silo-high); }
+.silo-tier-mid .silo-level { background: var(--mac-silo-mid); }
+.silo-tier-low .silo-level { background: var(--mac-silo-low); }
+.silo-tier-empty .silo-level { background: var(--mac-silo-empty); }
+
+.silo-pill {
+    font-size: var(--mac-text-xs);
+    font-weight: 600;
+    border-radius: 999px;
+    padding: 3px 9px;
+}
+.silo-tier-high .silo-pill { background: var(--mac-silo-high-light); color: var(--mac-silo-high-text); }
+.silo-tier-mid .silo-pill { background: var(--mac-silo-mid-light); color: var(--mac-silo-mid-text); }
+.silo-tier-low .silo-pill { background: var(--mac-silo-low-light); color: var(--mac-silo-low-text); }
+.silo-tier-empty .silo-pill { background: var(--mac-silo-empty-light); color: var(--mac-silo-empty-text); }
+
+.silo-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    color: var(--mac-text);
+}
+.silo-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.silo-swatch {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+}
+.silo-swatch-high { background: var(--mac-silo-high); }
+.silo-swatch-mid { background: var(--mac-silo-mid); }
+.silo-swatch-low { background: var(--mac-silo-low); }
+.silo-swatch-empty { background: var(--mac-silo-empty); }
+
+.silo-edited-pill {
+    display: inline-block;
+    font-size: var(--mac-text-xs);
+    font-weight: 600;
+    color: var(--mac-warning-text);
+    background: var(--mac-warning-light);
+    border-radius: 999px;
+    padding: 2px 7px;
+    margin-left: 4px;
+}
+
+/* Dialog summary: pre-sizer 'going into silo' strip and the stop dialog's Ran for / Cracked / Rate. */
+.silo-summary-strip {
+    display: flex;
+    justify-content: space-between;
+    background: var(--mac-bg);
+    border-radius: var(--mac-radius-sm);
+    padding: 12px 14px;
+}
+.silo-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    background: var(--mac-bg);
+    gap: 8px;
+    border-radius: var(--mac-radius-sm);
+    padding: 12px 14px;
+}
+.silo-summary-grid span {
+    display: block;
+    font-size: var(--mac-text-xs);
+    color: var(--mac-text-tertiary);
 }
 
 .silo-pct {

@@ -62,3 +62,62 @@
 #productionStagesModal .ps-minute-tests {
     max-width: 720px;
 }
+
+/* Crate sums: visible "crates x kg each = kg" working under auto-filled kg fields */
+#productionStagesModal .ps-crate-hint {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+#productionStagesModal .ps-crate-unset {
+    font-style: italic;
+}
+#productionStagesModal .ps-auto-pill {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--mac-success);
+    background-color: var(--mac-success-light);
+    border-radius: 999px;
+    padding: 0.125rem 0.5rem;
+
+/* Cracking runs (silo runs for this batch). Runs mode hides the hand-typed silo/time/quantity inputs (kept in the DOM). */
+#productionStagesModal #pane-cracking.ps-crack-runs-mode .ps-crack-manual {
+    display: none;
+}
+#productionStagesModal .ps-crack-runs-table th {
+    background-color: var(--mac-bg-tertiary);
+    color: var(--mac-text-secondary);
+    font-size: var(--mac-text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+#productionStagesModal .ps-crack-runs-table .ps-crack-runs-total td {
+    font-weight: 700;
+    background-color: var(--mac-bg-tertiary);
+}
+#productionStagesModal .ps-crack-run-pill {
+    display: inline-block;
+    margin-left: 0.35rem;
+    padding: 0 0.5rem;
+    border-radius: var(--mac-radius-pill);
+    background-color: var(--mac-warning-light);
+    color: var(--mac-warning-text);
+    font-size: var(--mac-text-xs);
+    font-weight: 600;
+    white-space: nowrap;
+}
+.ps-crack-dialog .ps-crack-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--mac-radius-sm);
+    background-color: var(--mac-bg-tertiary);
+    color: var(--mac-text-secondary);
+    font-size: var(--mac-text-sm);
+}
+.ps-crack-dialog .ps-crack-strip b {
+    color: var(--mac-text);
+}

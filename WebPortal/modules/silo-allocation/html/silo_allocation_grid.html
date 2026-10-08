@@ -19,10 +19,23 @@
         <div class="card-body" id="siloAllocBody"></div>
     </div>
 
+    <div class="card mb-3 d-none" id="siloTallyCard">
+        <div class="card-header d-flex justify-content-between flex-wrap gap-2 align-items-center">
+            <h2 class="h5 mb-0" id="siloTallyTitle">Pre-sizer tally</h2>
+            <span class="small text-muted">Running total for the whole batch</span>
+        </div>
+        <div class="card-body" id="siloTallyBody"></div>
+    </div>
+
     <div class="card mb-3">
         <div class="card-header d-flex justify-content-between flex-wrap gap-2 align-items-center">
             <h2 class="h5 mb-0">Silos</h2>
-            <span class="small text-muted">12 silos &middot; capacity per silo is set in Kernel Pipeline Settings</span>
+            <div class="silo-legend small">
+                <span><i class="silo-swatch silo-swatch-high"></i>80&ndash;100% full</span>
+                <span><i class="silo-swatch silo-swatch-mid"></i>40&ndash;79%</span>
+                <span><i class="silo-swatch silo-swatch-low"></i>Under 40%</span>
+                <span><i class="silo-swatch silo-swatch-empty"></i>Empty</span>
+            </div>
         </div>
         <div class="card-body">
             <div class="silo-grid" id="siloGrid"></div>
@@ -46,6 +59,7 @@
                             <th class="silo-col text-end">Left in silo (kg)</th>
                             <th class="silo-col text-end">Time</th>
                             <th class="silo-col text-end">kg / hour</th>
+                            <th class="silo-col"></th>
                         </tr>
                     </thead>
                     <tbody id="siloRunsBody"></tbody>

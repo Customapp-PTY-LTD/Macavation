@@ -1,0 +1,18 @@
+/* Receiving Checklist: the two checks that raise a dashboard alert get a red reveal box + pill. */
+.grower-check-extra--alert {
+    border-color: var(--mac-danger) !important;
+    background-color: var(--mac-danger-light);
+}
+.grower-alert-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 8px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--mac-danger);
+    background-color: var(--mac-danger-light);
+    border: 1px solid var(--mac-danger);
+}

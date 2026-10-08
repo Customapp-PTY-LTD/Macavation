@@ -563,7 +563,9 @@
             "js": [
                 "js/modal_grower_receiving_checklist.js"
             ],
-            "css": []
+            "css": [
+                "css/modal_grower_receiving_checklist.css"
+            ]
         },
         "grower-create-kernel-batch-modal": {
             "description": "Grower Intake Create Kernel Batch Modal",
