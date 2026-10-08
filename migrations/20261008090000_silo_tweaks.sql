@@ -58,12 +58,24 @@ CREATE OR REPLACE FUNCTION public._silo_sync_presizer(p_kernel_id uuid)
 RETURNS void
 LANGUAGE sql SECURITY DEFINER SET search_path = public
 AS $$
-    UPDATE public.kernel
-    SET intake_data = COALESCE(intake_data, '{}'::jsonb) || jsonb_build_object('removed_pre_sizer_kg',
-            COALESCE((SELECT sum(a.presizer_kg) FROM public.silo_allocations a
-                      WHERE a.kernel_id = p_kernel_id AND a.status <> 'removed'), 0)),
+    -- Batches released before 20261008 had pre-sizer typed once at release
+    -- (intake_data.removed_pre_sizer_at present). That figure is snapshotted once as
+    -- removed_pre_sizer_release_kg and kept; per-allocation figures are added on top.
+    UPDATE public.kernel k
+    SET intake_data = COALESCE(k.intake_data, '{}'::jsonb)
+            || CASE WHEN k.intake_data ? 'removed_pre_sizer_at' AND NOT (k.intake_data ? 'removed_pre_sizer_release_kg')
+                    THEN jsonb_build_object('removed_pre_sizer_release_kg',
+                                            COALESCE((k.intake_data ->> 'removed_pre_sizer_kg')::numeric, 0))
+                    ELSE '{}'::jsonb END
+            || jsonb_build_object('removed_pre_sizer_kg',
+                   COALESCE(CASE WHEN k.intake_data ? 'removed_pre_sizer_release_kg'
+                                 THEN (k.intake_data ->> 'removed_pre_sizer_release_kg')::numeric
+                                 WHEN k.intake_data ? 'removed_pre_sizer_at'
+                                 THEN (k.intake_data ->> 'removed_pre_sizer_kg')::numeric END, 0)
+                 + COALESCE((SELECT sum(a.presizer_kg) FROM public.silo_allocations a
+                             WHERE a.kernel_id = p_kernel_id AND a.status <> 'removed'), 0)),
         updated_at = now()
-    WHERE id = p_kernel_id;
+    WHERE k.id = p_kernel_id;
 $$;
 
 -- The FIFO close, unchanged from close_silo(integer, numeric) in 20261007090000 except that the closing
