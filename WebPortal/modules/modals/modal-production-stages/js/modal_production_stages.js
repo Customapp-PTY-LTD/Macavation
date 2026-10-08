@@ -534,6 +534,29 @@ var _modal_production_stages = (function () {
                 var crates = parseStageNum($('#' + pair.crates).val());
                 kgEl.value = crates == null ? '' : scope._fixed2(crates * factor);
             });
+            scope._renderCrateSums();
+        },
+
+        /** Display only: show "N crates x factor = kg (auto)" under each kg field, or "x not set" when Settings has no factor. */
+        _renderCrateSums: () => {
+            const scope = _modal_production_stages;
+            scope.crateKgPairs.forEach(function (pair) {
+                var kgEl = document.getElementById(pair.kg);
+                if (!kgEl) return;
+                var $kg = $(kgEl);
+                var $hint = $kg.nextAll('.ps-crate-hint').first();
+                if (!$hint.length) $hint = $('<div class="form-text ps-crate-hint"></div>').insertAfter($kg);
+                var factor = scope._crateKg[pair.key];
+                $hint.empty();
+                if (!factor) {
+                    $hint.append($('<span class="ps-crate-x ps-crate-unset"></span>').text('× not set'));
+                    return;
+                }
+                var crates = parseStageNum($('#' + pair.crates).val());
+                var text = '× ' + _common.formatKg(factor, 0 === factor % 1 ? 0 : 2);
+                if (crates != null) text = _common.formatKg(crates, 0 === crates % 1 ? 0 : 2) + ' crates ' + text + ' = ' + _common.formatKg(crates * factor) + ' kg';
+                $hint.append($('<span class="ps-crate-x"></span>').text(text)).append($('<span class="ps-auto-pill"></span>').text('auto'));
+            });
         },
 
         recalcWashingQty: (fromLoad) => {
@@ -720,21 +743,18 @@ var _modal_production_stages = (function () {
                 var kgEl = document.getElementById(pair.kg);
                 if (!kgEl) return;
                 var $kg = $(kgEl);
-                var $hint = $kg.nextAll('.ps-crate-hint').first();
                 var factor = scope._crateKg[pair.key];
                 if (factor) {
                     kgEl.readOnly = true;
                     kgEl.tabIndex = -1;
                     $kg.addClass('ps-calc');
-                    if (!$hint.length) $hint = $('<div class="form-text ps-crate-hint"></div>').insertAfter($kg);
-                    $hint.text('\u00d7 ' + _common.formatKg(factor) + ' kg/crate');
                 } else {
                     kgEl.readOnly = false;
                     kgEl.removeAttribute('tabindex');
                     $kg.removeClass('ps-calc');
-                    $hint.remove();
                 }
             });
+            scope._renderCrateSums();
         },
 
         recalcSortingQty: (fromLoad) => {

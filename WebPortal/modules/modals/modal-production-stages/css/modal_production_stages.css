@@ -62,3 +62,22 @@
 #productionStagesModal .ps-minute-tests {
     max-width: 720px;
 }
+
+/* Crate sums: visible "crates x kg each = kg" working under auto-filled kg fields */
+#productionStagesModal .ps-crate-hint {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+#productionStagesModal .ps-crate-unset {
+    font-style: italic;
+}
+#productionStagesModal .ps-auto-pill {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--mac-success);
+    background-color: var(--mac-success-light);
+    border-radius: 999px;
+    padding: 0.125rem 0.5rem;
+}
