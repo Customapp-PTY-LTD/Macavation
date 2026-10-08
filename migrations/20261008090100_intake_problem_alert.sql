@@ -102,6 +102,10 @@ BEGIN
 END;
 $$;
 
+-- Only the trigger calls these; nobody may call them through the API.
+REVOKE ALL ON FUNCTION public.raise_intake_problem_alert(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.trg_kernel_intake_problem_alert() FROM PUBLIC, anon, authenticated;
+
 DROP TRIGGER IF EXISTS kernel_intake_problem_alert ON public.kernel;
 CREATE TRIGGER kernel_intake_problem_alert
     AFTER UPDATE ON public.kernel
