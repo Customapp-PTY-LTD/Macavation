@@ -2100,24 +2100,6 @@ var _dataFunctions = function () {
             if (closedAt) { params.p_closed_at = closedAt; }
             return this._kpUnwrap(await this.callFunction('close_silo', params, token, { useCache: false, preserveNullParams: true }));
         },
-        updateSiloRunTimes: async function (runId, openedAt, closedAt, token = null) {
-            return this._kpUnwrap(await this.callFunction('update_silo_run_times', {
-                p_run_id: runId, p_opened_at: openedAt, p_closed_at: closedAt
-            }, token, { useCache: false }));
-        },
-        /** Log a run after the fact (production sheet). Returns close_silo's keys plus run_id. */
-        recordSiloRun: async function (siloNumber, openedAt, closedAt, leftKg, token = null) {
-            return this._kpUnwrap(await this.callFunction('record_silo_run', {
-                p_silo_number: siloNumber, p_opened_at: openedAt, p_closed_at: closedAt,
-                p_left_kg: leftKg != null ? Number(leftKg) : 0
-            }, token, { useCache: false, preserveNullParams: true }));
-        },
-        /** Closed runs on a South African date that cracked this batch: { runs[], total_batch_kg }. date = 'YYYY-MM-DD'. */
-        getBatchCrackingRuns: async function (kernelId, date, token = null) {
-            return this._kpUnwrap(await this.callFunction('get_batch_cracking_runs', {
-                p_kernel_id: kernelId, p_date: date
-            }, token, { useCache: false }));
-        },
 
         dispatchShellStockLot: async function (lotId, customerRef, notes, token = null) {
             return await this._callWithActor('dispatch_shell_stock_lot', {
