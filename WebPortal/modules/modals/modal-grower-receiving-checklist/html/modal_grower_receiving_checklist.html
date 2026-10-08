@@ -19,7 +19,8 @@
                                 <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerVehicleClean" id="growerVehicleCleanYes" value="Yes"><label class="form-check-label" for="growerVehicleCleanYes">Yes</label></div>
                                 <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerVehicleClean" id="growerVehicleCleanNo" value="No"><label class="form-check-label" for="growerVehicleCleanNo">No</label></div>
                             </div>
-                            <div class="grower-check-extra border rounded p-3 mt-2 d-none" id="growerVehicleCleanExtra">
+                            <div class="grower-check-extra grower-check-extra--alert border rounded p-3 mt-2 d-none" id="growerVehicleCleanExtra">
+                                <span class="grower-alert-pill"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>Raises an alert</span>
                                 <label for="growerVehicleCleanComment" class="form-label required">What was wrong and what action was taken?</label>
                                 <textarea class="form-control mb-2" id="growerVehicleCleanComment" rows="2"></textarea>
                                 <label for="growerVehicleCleanPhotos" class="form-label">Photos</label>
@@ -64,7 +65,8 @@
                                 <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerPestInfestations" id="growerPestInfestationsYes" value="Yes"><label class="form-check-label" for="growerPestInfestationsYes">Yes</label></div>
                                 <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerPestInfestations" id="growerPestInfestationsNo" value="No"><label class="form-check-label" for="growerPestInfestationsNo">No</label></div>
                             </div>
-                            <div class="grower-check-extra border rounded p-3 mt-2 d-none" id="growerPestInfestationsExtra">
+                            <div class="grower-check-extra grower-check-extra--alert border rounded p-3 mt-2 d-none" id="growerPestInfestationsExtra">
+                                <span class="grower-alert-pill"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>Raises an alert</span>
                                 <label for="growerPestInfestationsComment" class="form-label required">What was wrong and what action was taken?</label>
                                 <textarea class="form-control mb-2" id="growerPestInfestationsComment" rows="2"></textarea>
                                 <label for="growerPestInfestationsPhotos" class="form-label">Photos</label>
@@ -107,6 +109,7 @@
                             <label for="growerReceivingComments" class="form-label">Comments/Actions taken</label>
                             <textarea class="form-control" id="growerReceivingComments" rows="2"></textarea>
                         </div>
+                        <p class="text-muted small mb-2">Only these two raise an alert: the vehicle is not clean, or there are pests. The other checks still ask what action was taken, as they do today.</p>
                         <p class="text-muted small mb-0">Bag weights and the delivery note are captured on New Delivery. Removed pre-sizer is entered when the batch is released to production.</p>
                     </div>
                 </div>
