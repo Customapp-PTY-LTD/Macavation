@@ -151,6 +151,9 @@ var _siloAllocationGrid = (function () {
     }
 
     // Fill tier: >=80% high (green), 40-79% mid (orange), >0 and <40% low (red), 0 empty (grey).
+    // Pill wording follows the same bands as the fill colour.
+    var SILO_TIER_LABEL = { high: 'Full', mid: 'Part full', low: 'Low', empty: 'Empty' };
+
     function siloTier(filled, cap) {
         if (!(filled > 0)) { return 'empty'; }
         var pct = cap > 0 ? filled / cap * 100 : 0;
@@ -385,7 +388,7 @@ var _siloAllocationGrid = (function () {
             var tier = siloTier(filled, cap);
             var open = s.open_run || null;
             var pill = open ? '<span class="badge bg-success">Cracking</span>'
-                : '<span class="silo-pill">' + (filled > 0 ? 'Filled' : 'Empty') + '</span>';
+                : '<span class="silo-pill">' + SILO_TIER_LABEL[tier] + '</span>';
             var contents = (s.contents || []).map(function (c) {
                 return esc(c.batch_number) + ((c.bags && c.bags.length) ? ' (bags ' + esc(c.bags.join(', ')) + ')' : '');
             }).join('<br>') || '&mdash;';
