@@ -2023,7 +2023,7 @@ var _dataFunctions = function () {
             return this._kpUnwrap(await this.callFunction('get_kernel_pipeline_config', {}, token, { useCache: false }));
         },
         setKernelPipelineSetting: async function (key, value, token = null) {
-            return this._kpUnwrap(await this.callFunction('set_kernel_pipeline_setting', { p_key: key, p_value: value }, token, { useCache: false }));
+            return this._kpUnwrap(await this.callFunction('set_kernel_pipeline_setting', { p_key: key, p_value: value }, token, { useCache: false, preserveNullParams: true }));
         },
         /** Pass null limits to clear them (no colour shown). */
         upsertSampleSpecThreshold: async function (testKey, direction, greenLimit, yellowLimit, token = null) {
