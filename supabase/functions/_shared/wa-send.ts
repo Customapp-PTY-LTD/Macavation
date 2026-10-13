@@ -98,12 +98,21 @@ export type WaFlowRow = {
     payload: Record<string, unknown>;
   };
 };
-export type WaTemplateComponent = {
-  type: 'header' | 'body' | 'button';
-  sub_type?: 'url' | 'quick_reply';
-  index?: number;
-  parameters: { type: 'text'; text: string }[];
-};
+export type WaTemplateComponent =
+  | {
+      type: 'header' | 'body' | 'button';
+      sub_type?: 'url' | 'quick_reply';
+      index?: number;
+      parameters: { type: 'text'; text: string }[];
+    }
+  | {
+      // A template's FLOW button (Meta's own shape - the gateway passes `template` through as-is).
+      // flow_action_data is the first screen's data for a navigate-mode Flow, frozen at send time.
+      type: 'button';
+      sub_type: 'flow';
+      index: number;
+      parameters: { type: 'action'; action: { flow_token: string; flow_action_data?: Record<string, unknown> } }[];
+    };
 
 // ----------------------------------------------------------------------------------------------
 // Pure body builders — no module-scope value, no env, no network. Each returns a WaMessageBody.
