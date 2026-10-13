@@ -71,8 +71,9 @@
  * last 24 hours, which is the normal case for an unprompted daily.
  */
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
-import { sendTemplate, type WaTemplateComponent } from '../_shared/wa-send.ts';
+import { sendTemplate, type WaSendResult, type WaTemplateComponent } from '../_shared/wa-send.ts';
 import { timingSafeEqual } from '../_shared/wa-inbound.ts';
+import { buildFlowReport, dayLabel, FLOW_TEMPLATE_BY_WEEKDAY } from './report-flow.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -90,6 +91,38 @@ const TEMPLATE_NAME_BY_WEEKDAY: Record<number, string> = {
   5: 'daily_production_template_f',
 };
 const MAX_RECIPIENTS = 25;
+
+/**
+ * The published "Daily production report 1730" Flow (supabase/flows/daily-production-report.flow.json).
+ * Unset -> the text templates above, exactly as before. Set it only once the Flow is PUBLISHED and
+ * all five daily_production_flow_* templates are APPROVED (scripts/wa-template-daily-production-flow.mjs
+ * lists what to create): the Flow id is not checked against the templates at send time.
+ */
+const FLOW_ID = (Deno.env.get('WA_DAILY_REPORT_1730_FLOW_ID') ?? '').trim();
+
+/**
+ * Kernel Pipeline Settings' daily cracking target (migrations/20261013110000), or null when unset,
+ * cleared, or unreadable. Never fails the run: a report without a target beats no report, and the
+ * key does not exist on a database that has not had that migration yet.
+ */
+async function loadDailyTarget(sb: SupabaseClient): Promise<number | null> {
+  try {
+    const { data, error } = await sb
+      .from('kernel_pipeline_settings')
+      .select('value')
+      .eq('key', 'daily_cracking_target_kg')
+      .maybeSingle();
+    if (error) {
+      console.warn('[send-daily-production-report] daily target unreadable, sending without one:', error.message);
+      return null;
+    }
+    const n = Number(data?.value);
+    return data?.value != null && Number.isFinite(n) && n > 0 ? n : null;
+  } catch (e) {
+    console.warn('[send-daily-production-report] daily target lookup threw, sending without one:', e);
+    return null;
+  }
+}
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
@@ -297,11 +330,25 @@ Deno.serve(async (req) => {
   // ---- 5. Compose the eight parameters once ------------------------------------------------------
   const params = buildTemplateParams(digest, d);
 
+  // ---- 5.5 The Flow version, when switched on — same digest, computed once --------------------------
+  const flowTemplateName = FLOW_ID ? FLOW_TEMPLATE_BY_WEEKDAY[new Date(`${d}T00:00:00Z`).getUTCDay()] ?? null : null;
+  const flowReport = flowTemplateName ? buildFlowReport(digest, d, await loadDailyTarget(sb)) : null;
+  const flowBodyComponent: WaTemplateComponent | null = flowReport
+    ? {
+        type: 'body',
+        parameters: [dayLabel(d), flowReport.headline].map((t) => ({ type: 'text' as const, text: sanitizeParam(t) })),
+      }
+    : null;
+
   // ---- 6. dry_run — sends nothing, writes no delivery row ------------------------------------------
   if (dryRun) {
     return jsonResponse(200, {
       date: d,
-      template: templateName,
+      template: flowTemplateName ?? templateName,
+      flow: flowReport
+        ? { flow_id: FLOW_ID, template: flowTemplateName, headline: flowReport.headline, action_data: flowReport.actionData }
+        : null,
+      fallback_template: templateName,
       params,
       recipients: recipients.map((r) => ({ display_name: r.display_name ?? null, phone: r.phone ?? null })),
     });
@@ -362,7 +409,7 @@ Deno.serve(async (req) => {
         p_report_kind: 'daily',
         p_report_date: d,
         p_message_kind: 'template',
-        p_template_name: templateName,
+        p_template_name: flowTemplateName ?? templateName,
       });
       const beginRow = beginRows[0];
 
@@ -380,7 +427,32 @@ Deno.serve(async (req) => {
       }
 
       const deliveryId = beginRow.id;
-      const result = await sendTemplate(phone, templateName, 'en', [bodyComponent]);
+      // Flow first when switched on; a failed Flow send falls back to the text template for this
+      // recipient so nobody misses the day's figures because of the Flow.
+      let result: WaSendResult = { ok: false, wamid: null, error: null };
+      let auditText = renderedBodyText;
+      let flowError: string | null = null;
+      if (flowTemplateName && flowReport && flowBodyComponent) {
+        const flowButton: WaTemplateComponent = {
+          type: 'button',
+          sub_type: 'flow',
+          index: 0,
+          parameters: [
+            { type: 'action', action: { flow_token: crypto.randomUUID(), flow_action_data: flowReport.actionData } },
+          ],
+        };
+        result = await sendTemplate(phone, flowTemplateName, 'en', [flowBodyComponent, flowButton]);
+        auditText = flowReport.auditText;
+        if (!result.ok) flowError = result.error ?? 'Flow send failed.';
+      }
+      if (!flowTemplateName || !result.ok) {
+        result = await sendTemplate(phone, templateName, 'en', [bodyComponent]);
+        auditText = flowError
+          ? `${renderedBodyText}
+
+(Sent as text template ${templateName}: the Flow send failed - ${flowError})`
+          : renderedBodyText;
+      }
 
       try {
         const completeRows = await rpcRows(sb, 'complete_report_delivery', {
@@ -388,7 +460,7 @@ Deno.serve(async (req) => {
           p_status: result.ok ? 'sent' : 'failed',
           p_external_message_id: result.wamid,
           p_error: result.error,
-          p_message_body: renderedBodyText,
+          p_message_body: auditText,
         });
         if (completeRows[0]?.success !== 1) {
           console.warn(
