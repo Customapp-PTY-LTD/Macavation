@@ -62,4 +62,16 @@ ok(/const flowTemplateName = FLOW_ID \?/.test(sender), 'Flow path must be gated 
 ok(/sub_type: 'flow'/.test(sender), 'sender must attach a flow button');
 ok(/if \(!flowTemplateName \|\| !result\.ok\)/.test(sender), 'sender must fall back to the text template');
 
+// 6. Every NavigationList row value goes through fit() against Meta's caps. The Flow validator never
+//    sees launch data, so an over-long value only fails on the handset (first live send, 13 Oct 2026).
+ok(/export const ROW_LIMITS = \{ title: 30, description: 20, endTitle: 10, endDescription: 10 \}/.test(builder), 'ROW_LIMITS must hold the NavigationList caps');
+ok(/'main-content': \{ title: fit\(title, ROW_LIMITS\.title\), description: fit\(description, ROW_LIMITS\.description\) \}/.test(builder), 'row() must cap main-content');
+ok(/end: \{ title: fit\(endTitle, ROW_LIMITS\.endTitle\), description: fit\(endDescription, ROW_LIMITS\.endDescription\) \}/.test(builder), 'row() must cap end');
+
+// 7. test_phone sends to one listed number and returns before any delivery row is written.
+const testBlock = sender.slice(sender.indexOf('// ---- 7a. test_phone'), sender.indexOf('const results: RecipientResult[]'));
+ok(testBlock.length > 0 && !/begin_report_delivery|complete_report_delivery/.test(testBlock), 'test_phone must not write delivery rows');
+ok(/if \(!force && !testPhone\)/.test(sender), 'test_phone must skip the already-sent guard');
+ok(/test_phone must be a number on the daily list/.test(sender), 'test_phone must be limited to the daily list');
+
 console.log(`wa-1730-flow:verify passed - ${checks} checks.`);

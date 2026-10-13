@@ -262,6 +262,9 @@ Deno.serve(async (req) => {
   const dryRun = body?.dry_run === true;
   const force = body?.force === true;
   const dateInput = typeof body?.date === 'string' ? body.date.trim() : '';
+  // test_phone: send today's report to ONE number already on the daily list, and record nothing,
+  // so the real 17:30 send still runs. Skips the already-sent guard; the auth gate above still applies.
+  const testPhone = typeof body?.test_phone === 'string' ? body.test_phone.replace(/\D/g, '') : '';
 
   if (dateInput && !DATE_RE.test(dateInput)) {
     return jsonResponse(400, { success: false, error: 'date must be in YYYY-MM-DD form.' });
@@ -295,7 +298,7 @@ Deno.serve(async (req) => {
   const digest = (Array.isArray(digestData) ? digestData[0] : digestData) ?? {};
 
   // ---- 3. Idempotency guard — `force` bypasses ONLY this guard --------------------------------
-  if (!force) {
+  if (!force && !testPhone) {
     const { data: alreadySent, error: alreadyErr } = await sb.rpc('daily_report_already_sent', { p_date: d });
     if (alreadyErr) {
       console.error('[send-daily-production-report] daily_report_already_sent failed:', alreadyErr.message);
@@ -325,6 +328,12 @@ Deno.serve(async (req) => {
       `[send-daily-production-report] dropping ${recipients.length - MAX_RECIPIENTS} recipient(s) beyond the ${MAX_RECIPIENTS} cap.`
     );
     recipients = recipients.slice(0, MAX_RECIPIENTS);
+  }
+  if (testPhone) {
+    recipients = recipients.filter((r) => String(r.phone ?? '').replace(/\D/g, '') === testPhone);
+    if (recipients.length === 0) {
+      return jsonResponse(400, { success: false, error: 'test_phone must be a number on the daily list.' });
+    }
   }
 
   // ---- 5. Compose the eight parameters once ------------------------------------------------------
@@ -369,6 +378,33 @@ Deno.serve(async (req) => {
     `Oil: ${params[5]} L today, ${params[6]} L this week`,
     `Batches in production: ${params[7]}.`,
   ].join('\n');
+
+  // ---- 7a. test_phone — one send, Flow first then text, no delivery row ------------------------------
+  if (testPhone) {
+    const phone = String(recipients[0].phone);
+    let result: WaSendResult = { ok: false, wamid: null, error: null };
+    let via = 'text';
+    if (flowTemplateName && flowReport && flowBodyComponent) {
+      result = await sendTemplate(phone, flowTemplateName, 'en', [
+        flowBodyComponent,
+        {
+          type: 'button',
+          sub_type: 'flow',
+          index: 0,
+          parameters: [
+            { type: 'action', action: { flow_token: crypto.randomUUID(), flow_action_data: flowReport.actionData } },
+          ],
+        },
+      ]);
+      via = 'flow';
+    }
+    if (!flowTemplateName || !result.ok) {
+      const flowError = flowTemplateName ? result.error : null;
+      result = await sendTemplate(phone, templateName, 'en', [bodyComponent]);
+      via = flowError ? `text (Flow failed: ${flowError})` : 'text';
+    }
+    return jsonResponse(200, { test: true, date: d, via, ok: result.ok, wamid: result.wamid, error: result.error });
+  }
 
   const results: RecipientResult[] = [];
   let sent = 0;
