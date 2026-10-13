@@ -177,6 +177,21 @@ var _kernelPipelineSettingsGrid = (function () {
         return card('Shelf life', body, saveBtn('kpsSaveShelf'));
     }
 
+    // Whole kg, or null when no target has been entered (absent key, or saved blank).
+    function dailyTargetValue(cfg) {
+        var st = (cfg && cfg.settings) || {};
+        var n = parseInt(st.daily_cracking_target_kg, 10);
+        return isNaN(n) ? null : n;
+    }
+
+    function targetCard(cfg) {
+        var v = dailyTargetValue(cfg);
+        var body = '<label class="form-label" for="kpsDailyCrackTarget">Kernel cracked per working day (kg of nuts in shell)</label>' +
+            '<input type="number" step="1" min="1" max="100000" class="form-control kps-num" id="kpsDailyCrackTarget" value="' + numAttr(v) + '" placeholder="No target"' + dis() + '>' +
+            '<div class="kps-hint">Used by the 17:30 WhatsApp production report to show today against target. Leave blank for no target.</div>';
+        return card('Daily production target', body, saveBtn('kpsSaveTarget'));
+    }
+
     function listHtml(kind, items) {
         var rows = (items || []).map(function (it) {
             var active = it.is_active !== false;
@@ -218,7 +233,7 @@ var _kernelPipelineSettingsGrid = (function () {
         var cfg = state.cfg;
         $('#kpsNotice').html(canEdit() ? '' :
             '<div class="alert alert-info">You can view these settings. Ask an admin for \'Edit Kernel Pipeline Settings\' to change them.</div>');
-        $('#kpsBody').html(specCard(cfg) + crateCard(cfg) + batchCard(cfg) + shelfCard(cfg) + transportCard(cfg) + siloCard(cfg));
+        $('#kpsBody').html(specCard(cfg) + crateCard(cfg) + batchCard(cfg) + shelfCard(cfg) + targetCard(cfg) + transportCard(cfg) + siloCard(cfg));
     }
 
     // ------------------------------------------------------------------
@@ -333,6 +348,17 @@ var _kernelPipelineSettingsGrid = (function () {
         runAll(btn, calls, 'Shelf life settings saved.');
     }
 
+    function saveTarget(btn) {
+        var v = numOrNull($('#kpsDailyCrackTarget').val());
+        if (v != null && (!Number.isInteger(v) || v < 1 || v > 100000)) {
+            toast('Daily cracking target must be a whole number of kg from 1 to 100 000, or blank for no target.', 'error');
+            return;
+        }
+        var calls = same(v, dailyTargetValue(state.cfg)) ? [] :
+            [function () { return dataFunctions.setKernelPipelineSetting('daily_cracking_target_kg', v); }];
+        runAll(btn, calls, v == null ? 'Daily target cleared.' : 'Daily target saved.');
+    }
+
     function saveSilos(btn) {
         var calls = [], bad = false;
         $('#kpsBody .kps-silo').each(function () {
@@ -389,6 +415,7 @@ var _kernelPipelineSettingsGrid = (function () {
         $d.on('click' + NS, '#kpsSaveCrates', function () { saveCrates(this); });
         $d.on('click' + NS, '#kpsSaveBatch', function () { saveBatch(this); });
         $d.on('click' + NS, '#kpsSaveShelf', function () { saveShelf(this); });
+        $d.on('click' + NS, '#kpsSaveTarget', function () { saveTarget(this); });
         $d.on('click' + NS, '#kpsSaveSilos', function () { saveSilos(this); });
         $d.on('click' + NS, '#kpsGoRolePerms', function () {
             if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) _appRouter.routeTo('role-permissions-grid');
