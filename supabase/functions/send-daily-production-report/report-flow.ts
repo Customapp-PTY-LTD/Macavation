@@ -51,6 +51,23 @@ function kg(v: number | null): string {
   return f === null ? 'not captured' : `${f}${NBSP}kg`;
 }
 
+/** A row's right-hand figure: a dash, never "not captured", which would not fit in 10 characters. */
+function endKg(v: number | null): string {
+  return v === null ? '-' : kg(v);
+}
+
+function endLitres(v: number | null): string {
+  return v === null ? '-' : litres(v);
+}
+
+/** "2026-10-19" -> "19 Oct", for the 10-character right-hand slot. */
+function dayMonth(dateStr: unknown): string | null {
+  if (typeof dateStr !== 'string' || !dateStr.trim()) return null;
+  const d = new Date(`${dateStr.slice(0, 10)}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return null;
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
+}
+
 function litres(v: number | null): string {
   const f = fmt(v);
   return f === null ? 'not captured' : `${f}${NBSP}L`;
@@ -82,11 +99,25 @@ function table(rows: [string, string][]): string {
 
 const AS_AT = 'As at 17:30 SAST. This week runs from Monday.';
 
+/**
+ * Meta's NavigationList item length caps. The Flow validator only checks the Flow JSON, never the
+ * launch data, so an over-long value is accepted at send time and then fails on the handset with
+ * "Something went wrong" - which is what the first live send did on 13 Oct 2026 ("Kernel on hand
+ * 57 505 kg" = 24, "19 Oct 2026" = 11, "NIS runs out" = 12). Caps as documented by Meta for
+ * NavigationList; every value below is written to fit, and fit() is the backstop.
+ */
+export const ROW_LIMITS = { title: 30, description: 20, endTitle: 10, endDescription: 10 } as const;
+
+/** Hard-caps a row value, ending in an ellipsis when it had to be cut. */
+export function fit(s: string, max: number): string {
+  return s.length <= max ? s : s.slice(0, max - 1) + '…';
+}
+
 function row(id: string, title: string, description: string, endTitle: string, endDescription: string, body: string) {
   return {
     id,
-    'main-content': { title, description },
-    end: { title: endTitle, description: endDescription },
+    'main-content': { title: fit(title, ROW_LIMITS.title), description: fit(description, ROW_LIMITS.description) },
+    end: { title: fit(endTitle, ROW_LIMITS.endTitle), description: fit(endDescription, ROW_LIMITS.endDescription) },
     'on-click-action': {
       name: 'navigate',
       next: { type: 'screen', name: 'DETAIL' },
@@ -119,6 +150,7 @@ export function buildFlowReport(digest: AnyRow, dateStr: string, targetKg: numbe
   const batches = toNum(ks.batches_in_production);
   const onHand = toNum(ext.kernel_soh_kg);
   const nisRunOut = shortDate(digest?.nis_runway?.final_depletion_date);
+  const nisRunOutShort = dayMonth(digest?.nis_runway?.final_depletion_date);
   const target = targetKg !== null && targetKg > 0 ? targetKg : null;
 
   // A day with nothing cracked by 17:30 is reported as such, never as a % of target. Whether the
@@ -163,15 +195,19 @@ export function buildFlowReport(digest: AnyRow, dateStr: string, targetKg: numbe
       'cracked',
       'Kernel cracked',
       `Week ${kg(crackedWk)}`,
-      nothingYet ? '-' : kg(cracked),
-      nothingYet ? 'Not in yet' : pctOfTarget !== null ? `${pctOfTarget}% of target` : 'today',
+      nothingYet ? '-' : endKg(cracked),
+      nothingYet
+        ? 'Not in yet'
+        : pctOfTarget !== null
+          ? (`${pctOfTarget}% target`.length <= ROW_LIMITS.endDescription ? `${pctOfTarget}% target` : `${pctOfTarget}%`)
+          : 'today',
       crackedBody
     ),
     row(
       'packed',
       'Kernel packed',
       `Week ${kg(packedWk)}`,
-      kg(packed),
+      endKg(packed),
       'today',
       `# Kernel packed\n\n${table([['Today', kg(packed)], ['This week', kg(packedWk)]])}\n\n${AS_AT}`
     ),
@@ -179,16 +215,16 @@ export function buildFlowReport(digest: AnyRow, dateStr: string, targetKg: numbe
       'oil',
       'Oil',
       `Week ${litres(oilWk)}`,
-      litres(oilToday),
+      endLitres(oilToday),
       'today',
       `# Oil\n\n${table([['Today', litres(oilToday)], ['This week', litres(oilWk)]])}\n\n${AS_AT}`
     ),
     row(
       'stock',
       'Stock and cover',
-      `Kernel on hand ${kg(onHand)}`,
-      nisRunOut ?? '-',
-      'NIS runs out',
+      `On hand ${kg(onHand)}`,
+      nisRunOutShort ?? '-',
+      'NIS ends',
       `# Stock and cover\n\n${table([
         ['Kernel on hand', kg(onHand)],
         ['NIS runs out', nisRunOut ?? 'not calculable, no crack rate set'],
