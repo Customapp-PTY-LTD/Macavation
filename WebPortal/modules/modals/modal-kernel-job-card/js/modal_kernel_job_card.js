@@ -1,6 +1,8 @@
 /**
  * Modal: Kernel Job Card – form, sound kernel/butter grade rows, calculations, save.
- * Packing: Start Date = first production packing date. Best Before Date = Start Date + _common.KERNEL_BEST_BEFORE_MONTHS (always; never use stored value).
+ * Packing: Start Date = first production packing date. Best Before Date: the stored value is kept as long as the packing start date is unchanged;
+ * it is recomputed as Start Date + _common.KERNEL_BEST_BEFORE_MONTHS (configurable in Kernel Pipeline Settings) only when there is no stored value
+ * or the packing start date differs from the one the stored value was saved with.
  * Date inputs follow docs/markdown-archive/INSTRUCTIONS-DATE-FLATPICKR.md:
  * - HTML: type="text", class="flatpickr-date", data-input, placeholder dd/mm/yyyy (§3).
  * - Config: dateFormat 'd/m/Y', allowInput: false, disableMobile: true (§6).
@@ -30,6 +32,9 @@ var _modal_kernel_job_card = (function () {
     /** Module state for packing start and best-before (no DOM reads for Best Before). */
     var _jobCardPackingStartISO = null;
     var _jobCardBestBeforeISO = null;
+    // Best Before / packing start as last saved on the job card (null when none). Used to keep the stored date while the start date is unchanged.
+    var _jobCardStoredBestBeforeISO = null;
+    var _jobCardStoredStartISO = null;
     var _autoSaveTimer = null;
     /** Skip draft flush when closing after Jobcard approved (avoids racing draft save on hide). */
     var _skipFlushOnHide = false;
@@ -177,8 +182,12 @@ var _modal_kernel_job_card = (function () {
         return null;
     }
 
-    /** Best Before = packing start + _common.KERNEL_BEST_BEFORE_MONTHS. Returns YYYY-MM-DD or null. */
+    /**
+     * Best Before for a packing start date. Keeps the stored best-before when the start date is the one it was
+     * saved with; otherwise packing start + _common.KERNEL_BEST_BEFORE_MONTHS. Returns YYYY-MM-DD or null.
+     */
     function bestBeforeFromPackingStartISO(isoStr) {
+        if (_jobCardStoredBestBeforeISO && isoStr && isoStr === _jobCardStoredStartISO) return _jobCardStoredBestBeforeISO;
         if (typeof _common === 'undefined' || !_common.kernelBestBeforeFromPackingStart) return null;
         return _common.kernelBestBeforeFromPackingStart(isoStr);
     }
@@ -344,8 +353,16 @@ var _modal_kernel_job_card = (function () {
             scope.setJobCardField('jobCardRemovedMoisture', jc.removed_moisture_percentage);
             scope.setJobCardField('jobCardPackingStartDate', fmtDate(jc.packing_start_date));
             scope.setJobCardField('jobCardPackingCompletionDate', fmtDate(jc.packing_completion_date));
+            // Remember what was saved: kept while the start date is unchanged, recomputed otherwise.
+            _jobCardStoredBestBeforeISO = fmtDate(jc.best_before_date) || null;
+            _jobCardStoredStartISO = fmtDate(jc.packing_start_date) || null;
             scope.setJobCardField('jobCardBestBeforeDate', '');
             scope.syncBestBeforeFromStartDate();
+            if (!_jobCardBestBeforeISO && _jobCardStoredBestBeforeISO) {
+                // Stored best-before but no packing start: still show the stored date.
+                _jobCardBestBeforeISO = _jobCardStoredBestBeforeISO;
+                scope.setJobCardField('jobCardBestBeforeDate', _jobCardBestBeforeISO);
+            }
             scope.setJobCardField('jobCardWasteOilKernel', jc.waste_oil_kernel_kg);
             scope.setJobCardField('jobCardWasteShellFines', jc.waste_shell_fines_kg);
             scope.setJobCardField('jobCardWasteCompost', jc.waste_compost_kg);
@@ -509,7 +526,8 @@ var _modal_kernel_job_card = (function () {
                     });
                 }
                 $('#jobCardSupplier').html(html);
-                return getDetail;
+                // Configured shelf-life months must be loaded before any best-before is computed (falls back to 24).
+                return Promise.all([getDetail, _common.loadKernelPipelineConfig()]).then(function (r) { return r[0]; });
             }).then(function (detail) {
                 var df = (typeof dataFunctions !== 'undefined' && dataFunctions) ? dataFunctions : null;
                 _jobCardIsApproved = df && df.isKernelJobcardApproved
@@ -678,6 +696,8 @@ var _modal_kernel_job_card = (function () {
             const scope = _modal_kernel_job_card;
             _jobCardPackingStartISO = null;
             _jobCardBestBeforeISO = null;
+            _jobCardStoredBestBeforeISO = null;
+            _jobCardStoredStartISO = null;
             _jobCardIsApproved = false;
             $('#jobCardSupplierMismatchAlert').addClass('d-none');
             var $form = $('#kernelJobCardForm');

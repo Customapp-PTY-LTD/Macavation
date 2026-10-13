@@ -32,88 +32,8 @@
                     <div class="card-header"><h6 class="mb-0">Inspection of Vehicle</h6></div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Is the vehicle clean?</label>
-                                    <div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="vehicleClean" id="dispatchVehicleCleanYes" value="Yes">
-                                            <label class="form-check-label" for="dispatchVehicleCleanYes">Yes</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="vehicleClean" id="dispatchVehicleCleanNo" value="No">
-                                            <label class="form-check-label" for="dispatchVehicleCleanNo">No</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Vehicle fully enclosed?</label>
-                                    <div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="vehicleEnclosed" id="dispatchVehicleEnclosedYes" value="Yes">
-                                            <label class="form-check-label" for="dispatchVehicleEnclosedYes">Yes</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="vehicleEnclosed" id="dispatchVehicleEnclosedNo" value="No">
-                                            <label class="form-check-label" for="dispatchVehicleEnclosedNo">No</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Any hazard substances noted on truck?</label>
-                                    <div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="hazardSubstances" id="dispatchHazardYes" value="Yes">
-                                            <label class="form-check-label" for="dispatchHazardYes">Yes</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="hazardSubstances" id="dispatchHazardNo" value="No">
-                                            <label class="form-check-label" for="dispatchHazardNo">No</label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Any signs of pest infestations?</label>
-                                    <div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="pestInfestations" id="dispatchPestYes" value="Yes">
-                                            <label class="form-check-label" for="dispatchPestYes">Yes</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="pestInfestations" id="dispatchPestNo" value="No">
-                                            <label class="form-check-label" for="dispatchPestNo">No</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Pallets loaded are in good condition and identified</label>
-                                    <div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="palletsCondition" id="dispatchPalletsYes" value="Yes">
-                                            <label class="form-check-label" for="dispatchPalletsYes">Yes</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="palletsCondition" id="dispatchPalletsNo" value="No">
-                                            <label class="form-check-label" for="dispatchPalletsNo">No</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Truck bin locked before departing?</label>
-                                    <div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="truckBinLocked" id="dispatchTruckBinYes" value="Yes">
-                                            <label class="form-check-label" for="dispatchTruckBinYes">Yes</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="truckBinLocked" id="dispatchTruckBinNo" value="No">
-                                            <label class="form-check-label" for="dispatchTruckBinNo">No</label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <div class="col-md-6" id="kernelDspInspColA"></div>
+                            <div class="col-md-6" id="kernelDspInspColB"></div>
                         </div>
                     </div>
                 </div>
@@ -123,16 +43,24 @@
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label for="dispatchPerson" class="form-label">Dispatch Person</label>
+                                    <label for="dispatchPerson" class="form-label">Attention</label>
                                     <input type="text" class="form-control" id="dispatchPerson" placeholder="Name">
                                 </div>
                                 <div class="mb-3">
-                                    <label for="dispatchTransportCompany" class="form-label">Transport company</label>
-                                    <input type="text" class="form-control" id="dispatchTransportCompany" placeholder="Company name">
+                                    <label for="dispatchCell" class="form-label">Cell number</label>
+                                    <input type="tel" class="form-control" id="dispatchCell" placeholder="Cell number">
                                 </div>
                                 <div class="mb-3">
-                                    <label for="dispatchDeliveryNote" class="form-label">Delivery note / invoice Number</label>
-                                    <input type="text" class="form-control" id="dispatchDeliveryNote" placeholder="Number">
+                                    <label for="kernelDspTransportSelect" class="form-label">Transport company</label>
+                                    <select class="form-select" id="kernelDspTransportSelect"><option value="">Select transport company</option></select>
+                                    <input type="text" class="form-control d-none" id="kernelDspTransportText" placeholder="Company name">
+                                    <button type="button" class="btn btn-link btn-sm p-0 mt-1" id="kernelDspTransportAddBtn">+ Add transport company</button>
+                                    <div class="input-group input-group-sm mt-1 d-none" id="kernelDspTransportAddForm">
+                                        <input type="text" class="form-control" id="kernelDspTransportAddName" placeholder="New company name" aria-label="New transport company name">
+                                        <button type="button" class="btn btn-primary" id="kernelDspTransportAddSave">Add</button>
+                                        <button type="button" class="btn btn-outline-secondary" id="kernelDspTransportAddCancel">Cancel</button>
+                                    </div>
+                                    <div class="text-danger small d-none" id="kernelDspTransportAddError"></div>
                                 </div>
                             </div>
                             <div class="col-md-4">
@@ -145,8 +73,8 @@
                                     <input type="text" class="form-control" id="dispatchTruckReg" placeholder="Registration">
                                 </div>
                                 <div class="mb-3">
-                                    <label for="dispatchDriverName" class="form-label">Driver's name</label>
-                                    <input type="text" class="form-control" id="dispatchDriverName" placeholder="Name">
+                                    <label for="dispatchDeliveryNote" class="form-label">Delivery note / Invoice number</label>
+                                    <input type="text" class="form-control" id="dispatchDeliveryNote" placeholder="Number">
                                 </div>
                             </div>
                             <div class="col-md-4">
@@ -159,9 +87,26 @@
                                     <input type="text" class="form-control" id="dispatchDispatchedTo" placeholder="Customer / buyer">
                                 </div>
                                 <div class="mb-3">
-                                    <label for="dispatchSignature" class="form-label">Dispatch signature</label>
-                                    <input type="text" class="form-control" id="dispatchSignature" placeholder="Name">
+                                    <label for="dispatchDriverName" class="form-label">Driver's Name</label>
+                                    <input type="text" class="form-control" id="dispatchDriverName" placeholder="Name">
                                 </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label" for="kernelDspSigCanvas">Sender's Signature</label>
+                                <div class="text-muted small d-none" id="kernelDspSigLegacy">Previously recorded as: <span id="kernelDspSigLegacyName"></span></div>
+                                <canvas class="border rounded w-100 bg-white d-block" id="kernelDspSigCanvas"></canvas>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mt-1" id="kernelDspSigClear">Clear</button>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="kernelDspAttachInput">Attachments</label>
+                                <div id="kernelDspAttachAddWrap">
+                                    <input type="file" class="form-control form-control-sm" id="kernelDspAttachInput" accept="image/*,application/pdf" multiple>
+                                    <div class="form-text">Images or PDF documents, up to 6 MB each.</div>
+                                </div>
+                                <div class="text-danger small mt-1 d-none" id="kernelDspAttachError"></div>
+                                <div class="mt-2" id="kernelDspAttachList"></div>
                             </div>
                         </div>
                     </div>

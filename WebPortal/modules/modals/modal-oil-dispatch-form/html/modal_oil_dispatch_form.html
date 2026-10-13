@@ -32,88 +32,8 @@
                     <div class="card-header"><h6 class="mb-0">Inspection of Vehicle</h6></div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Is the vehicle clean?</label>
-                                    <div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="oilVehicleClean" id="oilDispatchVehicleCleanYes" value="Yes">
-                                            <label class="form-check-label" for="oilDispatchVehicleCleanYes">Yes</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="oilVehicleClean" id="oilDispatchVehicleCleanNo" value="No">
-                                            <label class="form-check-label" for="oilDispatchVehicleCleanNo">No</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Vehicle fully enclosed?</label>
-                                    <div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="oilVehicleEnclosed" id="oilDispatchVehicleEnclosedYes" value="Yes">
-                                            <label class="form-check-label" for="oilDispatchVehicleEnclosedYes">Yes</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="oilVehicleEnclosed" id="oilDispatchVehicleEnclosedNo" value="No">
-                                            <label class="form-check-label" for="oilDispatchVehicleEnclosedNo">No</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Any hazard substances noted on truck?</label>
-                                    <div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="oilHazardSubstances" id="oilDispatchHazardYes" value="Yes">
-                                            <label class="form-check-label" for="oilDispatchHazardYes">Yes</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="oilHazardSubstances" id="oilDispatchHazardNo" value="No">
-                                            <label class="form-check-label" for="oilDispatchHazardNo">No</label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Any signs of pest infestations?</label>
-                                    <div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="oilPestInfestations" id="oilDispatchPestYes" value="Yes">
-                                            <label class="form-check-label" for="oilDispatchPestYes">Yes</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="oilPestInfestations" id="oilDispatchPestNo" value="No">
-                                            <label class="form-check-label" for="oilDispatchPestNo">No</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Pallets loaded are in good condition and identified</label>
-                                    <div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="oilPalletsCondition" id="oilDispatchPalletsYes" value="Yes">
-                                            <label class="form-check-label" for="oilDispatchPalletsYes">Yes</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="oilPalletsCondition" id="oilDispatchPalletsNo" value="No">
-                                            <label class="form-check-label" for="oilDispatchPalletsNo">No</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Truck bin locked before departing?</label>
-                                    <div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="oilTruckBinLocked" id="oilDispatchTruckBinYes" value="Yes">
-                                            <label class="form-check-label" for="oilDispatchTruckBinYes">Yes</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="oilTruckBinLocked" id="oilDispatchTruckBinNo" value="No">
-                                            <label class="form-check-label" for="oilDispatchTruckBinNo">No</label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <div class="col-md-6" id="oilDspInspColA"></div>
+                            <div class="col-md-6" id="oilDspInspColB"></div>
                         </div>
                     </div>
                 </div>
@@ -123,16 +43,24 @@
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label for="oilDispatchPerson" class="form-label">Dispatch Person</label>
+                                    <label for="oilDispatchPerson" class="form-label">Attention</label>
                                     <input type="text" class="form-control" id="oilDispatchPerson" placeholder="Name">
                                 </div>
                                 <div class="mb-3">
-                                    <label for="oilDispatchTransportCompany" class="form-label">Transport company</label>
-                                    <input type="text" class="form-control" id="oilDispatchTransportCompany" placeholder="Company name">
+                                    <label for="oilDispatchCell" class="form-label">Cell number</label>
+                                    <input type="tel" class="form-control" id="oilDispatchCell" placeholder="Cell number">
                                 </div>
                                 <div class="mb-3">
-                                    <label for="oilDispatchDeliveryNote" class="form-label">Delivery note / invoice Number</label>
-                                    <input type="text" class="form-control" id="oilDispatchDeliveryNote" placeholder="Number">
+                                    <label for="oilDspTransportSelect" class="form-label">Transport company</label>
+                                    <select class="form-select" id="oilDspTransportSelect"><option value="">Select transport company</option></select>
+                                    <input type="text" class="form-control d-none" id="oilDspTransportText" placeholder="Company name">
+                                    <button type="button" class="btn btn-link btn-sm p-0 mt-1" id="oilDspTransportAddBtn">+ Add transport company</button>
+                                    <div class="input-group input-group-sm mt-1 d-none" id="oilDspTransportAddForm">
+                                        <input type="text" class="form-control" id="oilDspTransportAddName" placeholder="New company name" aria-label="New transport company name">
+                                        <button type="button" class="btn btn-primary" id="oilDspTransportAddSave">Add</button>
+                                        <button type="button" class="btn btn-outline-secondary" id="oilDspTransportAddCancel">Cancel</button>
+                                    </div>
+                                    <div class="text-danger small d-none" id="oilDspTransportAddError"></div>
                                 </div>
                             </div>
                             <div class="col-md-4">
@@ -145,8 +73,8 @@
                                     <input type="text" class="form-control" id="oilDispatchTruckReg" placeholder="Registration">
                                 </div>
                                 <div class="mb-3">
-                                    <label for="oilDispatchDriverName" class="form-label">Driver's name</label>
-                                    <input type="text" class="form-control" id="oilDispatchDriverName" placeholder="Name">
+                                    <label for="oilDispatchDeliveryNote" class="form-label">Delivery note / Invoice number</label>
+                                    <input type="text" class="form-control" id="oilDispatchDeliveryNote" placeholder="Number">
                                 </div>
                             </div>
                             <div class="col-md-4">
@@ -159,9 +87,26 @@
                                     <input type="text" class="form-control" id="oilDispatchDispatchedTo" placeholder="Customer / buyer">
                                 </div>
                                 <div class="mb-3">
-                                    <label for="oilDispatchSignature" class="form-label">Dispatch signature</label>
-                                    <input type="text" class="form-control" id="oilDispatchSignature" placeholder="Name">
+                                    <label for="oilDispatchDriverName" class="form-label">Driver's Name</label>
+                                    <input type="text" class="form-control" id="oilDispatchDriverName" placeholder="Name">
                                 </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label" for="oilDspSigCanvas">Sender's Signature</label>
+                                <div class="text-muted small d-none" id="oilDspSigLegacy">Previously recorded as: <span id="oilDspSigLegacyName"></span></div>
+                                <canvas class="border rounded w-100 bg-white d-block" id="oilDspSigCanvas"></canvas>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mt-1" id="oilDspSigClear">Clear</button>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="oilDspAttachInput">Attachments</label>
+                                <div id="oilDspAttachAddWrap">
+                                    <input type="file" class="form-control form-control-sm" id="oilDspAttachInput" accept="image/*,application/pdf" multiple>
+                                    <div class="form-text">Images or PDF documents, up to 6 MB each.</div>
+                                </div>
+                                <div class="text-danger small mt-1 d-none" id="oilDspAttachError"></div>
+                                <div class="mt-2" id="oilDspAttachList"></div>
                             </div>
                         </div>
                     </div>

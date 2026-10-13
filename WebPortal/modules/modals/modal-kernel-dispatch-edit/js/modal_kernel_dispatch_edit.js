@@ -5,6 +5,7 @@ var _modal_kernel_dispatch_edit = (function () {
     'use strict';
 
     var _flatpickrDelivery = null;
+    var _flatpickrCollection = null;
     var _flatpickrBestBefore = null;
 
     function escapeHtml(s) {
@@ -53,6 +54,10 @@ var _modal_kernel_dispatch_edit = (function () {
             _flatpickrDelivery.destroy();
             _flatpickrDelivery = null;
         }
+        if (_flatpickrCollection) {
+            _flatpickrCollection.destroy();
+            _flatpickrCollection = null;
+        }
         if (_flatpickrBestBefore) {
             _flatpickrBestBefore.destroy();
             _flatpickrBestBefore = null;
@@ -69,7 +74,9 @@ var _modal_kernel_dispatch_edit = (function () {
                 var opts = { dateFormat: 'd/m/Y', allowInput: false, disableMobile: true };
                 var del = document.getElementById('kernelDispatchEditDelivery');
                 var bb = document.getElementById('kernelDispatchEditBestBefore');
+                var col = document.getElementById('kernelDispatchEditCollection');
                 if (typeof flatpickr !== 'undefined') {
+                    if (col) _flatpickrCollection = flatpickr(col, opts);
                     if (del) _flatpickrDelivery = flatpickr(del, opts);
                     if (bb) _flatpickrBestBefore = flatpickr(bb, opts);
                 }
@@ -111,6 +118,7 @@ var _modal_kernel_dispatch_edit = (function () {
                     return;
                 }
                 $('#kernelDispatchEditBuyer').val(order.buyer_name || '');
+                $('#kernelDispatchEditCollection').val(formatDateForDisplay(order.planned_collection_date));
                 $('#kernelDispatchEditDelivery').val(formatDateForDisplay(order.delivery_date));
                 $('#kernelDispatchEditBestBefore').val(formatDateForDisplay(order.best_before_date));
 
@@ -260,7 +268,21 @@ var _modal_kernel_dispatch_edit = (function () {
                 deliveryIso = isoFromDdMmYyyy($('#kernelDispatchEditDelivery').val() || '');
             }
             if (!deliveryIso) {
-                if (typeof Swal !== 'undefined') Swal.fire('Validation', 'Please set a valid delivery date.', 'warning');
+                if (typeof Swal !== 'undefined') Swal.fire('Validation', 'Please set a valid planned delivery date.', 'warning');
+                return;
+            }
+
+            var collectionIso = null;
+            if (_flatpickrCollection && _flatpickrCollection.selectedDates && _flatpickrCollection.selectedDates.length) {
+                var c = _flatpickrCollection.selectedDates[0];
+                collectionIso = c.getFullYear() + '-' + String(c.getMonth() + 1).padStart(2, '0') + '-' + String(c.getDate()).padStart(2, '0');
+            } else {
+                var colRaw = ($('#kernelDispatchEditCollection').val() || '').trim();
+                if (colRaw) collectionIso = isoFromDdMmYyyy(colRaw);
+            }
+            // ISO dates compare correctly as strings. Empty collection (old orders) skips the check.
+            if (collectionIso && collectionIso > deliveryIso) {
+                if (typeof Swal !== 'undefined') Swal.fire('Validation', 'The planned collection date cannot be after the planned delivery date.', 'warning');
                 return;
             }
 
@@ -305,6 +327,7 @@ var _modal_kernel_dispatch_edit = (function () {
                 order_id: orderId,
                 buyer_name: buyer,
                 delivery_date: deliveryIso,
+                planned_collection_date: collectionIso || null,
                 best_before_date: bestBeforeIso,
                 lines: lines
             }).then(function (result) {

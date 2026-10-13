@@ -48,10 +48,12 @@ var _modal_kernel_dispatch = (function () {
 
                 var buyerEl = document.getElementById('kernelDispatchOrderBuyer');
                 var deliveryEl = document.getElementById('kernelDispatchOrderDelivery');
+                var collectionEl = document.getElementById('kernelDispatchOrderCollection');
                 var statusEl = document.getElementById('kernelDispatchOrderStatus');
                 var tbody = document.getElementById('kernelDispatchOrderLinesBody');
                 if (buyerEl) buyerEl.textContent = order.buyer_name || '—';
                 if (deliveryEl) deliveryEl.textContent = formatDate(order.delivery_date);
+                if (collectionEl) collectionEl.textContent = formatDate(order.planned_collection_date) || '—';
                 if (statusEl) statusEl.textContent = order.status || '—';
                 if (tbody) {
                     tbody.innerHTML = '';
@@ -62,7 +64,7 @@ var _modal_kernel_dispatch = (function () {
                             ? (Math.round(line.cartons * kgPerCarton * 100) / 100)
                             : (line.quantity_kg != null ? Number(line.quantity_kg) : null);
                         var qtyDisplay = (line.cartons != null && line.cartons >= 0)
-                            ? (line.cartons + ' ct · ' + (qtyKg != null ? qtyKg : '—') + ' kg')
+                            ? (DispatchFormShared.cartonLabel(line.cartons) + ' · ' + (qtyKg != null ? qtyKg : '—') + ' kg')
                             : (qtyKg != null ? qtyKg + ' kg' : '—');
                         tr.innerHTML = '<td>' + (line.batch_number || '—') + '</td><td>' + (line.style || '—') + '</td><td class="text-end">' + qtyDisplay + '</td>';
                         tbody.appendChild(tr);

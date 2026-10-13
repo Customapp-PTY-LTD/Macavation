@@ -17,8 +17,15 @@ function fromISO(isoStr) {
     return parts[2] + '/' + parts[1] + '/' + parts[0];
 }
 
-/** Best Before = packing start + _common.KERNEL_BEST_BEFORE_MONTHS. Returns YYYY-MM-DD or null. */
-function bestBeforeFromPackingStartISO(isoStr) {
+/**
+ * Best Before for a packing start date. Keeps the batch's stored best-before (storedBestBeforeISO) when it exists and
+ * the packing start has not changed (storedStartISO unknown counts as unchanged); otherwise
+ * packing start + _common.KERNEL_BEST_BEFORE_MONTHS (configured in Kernel Pipeline Settings). Returns YYYY-MM-DD or null.
+ */
+function bestBeforeFromPackingStartISO(isoStr, storedBestBeforeISO, storedStartISO) {
+    var stored = storedBestBeforeISO ? String(storedBestBeforeISO).split('T')[0] : null;
+    var storedStart = storedStartISO ? String(storedStartISO).split('T')[0] : null;
+    if (stored && /^\d{4}-\d{2}-\d{2}$/.test(stored) && (!storedStart || storedStart === isoStr)) return stored;
     if (typeof _common === 'undefined' || !_common.kernelBestBeforeFromPackingStart) return null;
     return _common.kernelBestBeforeFromPackingStart(isoStr);
 }
@@ -300,6 +307,8 @@ var _modal_production_stages = (function () {
         },
 
         init: () => {
+            // Warm the configured shelf-life months (Best Before) before any job card payload is built; falls back to 24.
+            if (typeof _common !== 'undefined' && _common.loadKernelPipelineConfig) _common.loadKernelPipelineConfig();
             const scope = _modal_production_stages;
             $('#productionStagesTabs').off('shown.bs.tab').on('shown.bs.tab', function (e) {
                 var newTabId = (e.target && e.target.id) ? e.target.id : ($(e.target).attr && $(e.target).attr('id'));
@@ -1663,7 +1672,7 @@ var _modal_production_stages = (function () {
                 var crackDates = unwrapped.map(function (s) { return (s.cracking_data && s.cracking_data.date) ? String(s.cracking_data.date).split('T')[0] : null; }).filter(function (d) { return d && /^\d{4}-\d{2}-\d{2}$/.test(d); });
                 if (crackDates.length) { crackDates.sort(); receivedDate = crackDates[0]; }
             }
-            // Start = chronologically first packing date (earliest calendar date). Best Before = Start + _common.KERNEL_BEST_BEFORE_MONTHS.
+            // Start = chronologically first packing date (earliest calendar date). Best Before = stored batch value if the start is unchanged, else Start + _common.KERNEL_BEST_BEFORE_MONTHS.
             var packingDates = [];
             unwrapped.forEach(function (s) {
                 var p = s.packing_data;
@@ -1675,7 +1684,7 @@ var _modal_production_stages = (function () {
             packingDates.sort();
             var packingStart = packingDates.length ? packingDates[0] : null;
             var packingCompletion = packingDates.length ? packingDates[packingDates.length - 1] : null;
-            var bestBeforeDate = (packingStart && /^\d{4}-\d{2}-\d{2}$/.test(packingStart)) ? bestBeforeFromPackingStartISO(packingStart) : null;
+            var bestBeforeDate = (packingStart && /^\d{4}-\d{2}-\d{2}$/.test(packingStart)) ? bestBeforeFromPackingStartISO(packingStart, batch && batch.best_before_date, batch && batch.packing_start_date) : null;
             var p = (agg.packing_data && typeof agg.packing_data === 'object') ? agg.packing_data : {};
             var soundKernelStyles = [];
             [
@@ -2139,6 +2148,7 @@ var _modal_production_stages = (function () {
                 return;
             }
             var batch = typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch ? _kernelProductionGrid.getBatch(batchId) : null;
+            if (typeof _common !== 'undefined' && _common.loadKernelPipelineConfig) _common.loadKernelPipelineConfig();
             // Build job card from current loaded stage arrays
             var detail = scope._loadedKernelDetail;
             var cracking = (detail && Array.isArray(detail.cracking_data)) ? detail.cracking_data : [];

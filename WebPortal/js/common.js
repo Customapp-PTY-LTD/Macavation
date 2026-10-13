@@ -161,6 +161,90 @@ var _common = {
         return _common.addMonthsToISODate(packingStartISO, _common.KERNEL_BEST_BEFORE_MONTHS);
     },
 
+    // ---- Kernel pipeline config (shelf life, spec limits, Time Left bands) ----
+    // Cached in memory. Resolves to the config object or null on ANY failure (old DB, no permission).
+    _kernelPipelineConfigPromise: null,
+    loadKernelPipelineConfig: function (force) {
+        if (_common._kernelPipelineConfigPromise && !force) return _common._kernelPipelineConfigPromise;
+        const p = Promise.resolve().then(function () {
+            if (typeof dataFunctions === 'undefined' || typeof dataFunctions.getKernelPipelineConfig !== 'function') return null;
+            return dataFunctions.getKernelPipelineConfig();
+        }).then(function (cfg) {
+            if (!cfg || cfg.success === false) return null;
+            const m = cfg.settings ? parseInt(cfg.settings.kernel_best_before_months, 10) : NaN;
+            if (!isNaN(m) && m >= 1 && m <= 60) _common.KERNEL_BEST_BEFORE_MONTHS = m;
+            return cfg;
+        }).catch(function () { return null; });
+        _common._kernelPipelineConfigPromise = p;
+        // Do not cache a failure: the next caller retries.
+        p.then(function (cfg) { if (!cfg && _common._kernelPipelineConfigPromise === p) _common._kernelPipelineConfigPromise = null; });
+        return p;
+    },
+
+    // Spec limit check (FFA / moisture / PV). Returns 'ok' | 'warn' | 'bad' | 'noLimits' | '' (no value).
+    classifySpec: function (spec, value) {
+        if (value == null) return '';
+        if (!spec || spec.green_limit == null || spec.yellow_limit == null) return 'noLimits';
+        const g = Number(spec.green_limit), y = Number(spec.yellow_limit);
+        if (isNaN(g) || isNaN(y)) return 'noLimits';
+        if (spec.direction === 'min') return value >= g ? 'ok' : (value >= y ? 'warn' : 'bad');
+        return value <= g ? 'ok' : (value <= y ? 'warn' : 'bad');
+    },
+
+    // Calendar-correct time from today until a YYYY-MM-DD date (whole months, then remaining days).
+    // Month-end safe: adding a month to the 31st clamps to the last day of the shorter month.
+    // Returns { expired, years, months, days, totalMonths, label } or null for missing/invalid input.
+    timeUntil: function (dateISO, todayISO) {
+        function parse(v) {
+            if (!v) return null;
+            const s = String(v).trim().split('T')[0];
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+            const a = s.split('-');
+            const y = +a[0], m = +a[1], d = +a[2];
+            const chk = new Date(y, m - 1, d);
+            if (chk.getFullYear() !== y || chk.getMonth() !== m - 1 || chk.getDate() !== d) return null;
+            return { y: y, m: m - 1, d: d };
+        }
+        function key(o) { return o.y * 10000 + (o.m + 1) * 100 + o.d; }
+        function addM(o, n) {
+            const t = o.y * 12 + o.m + n;
+            const y = Math.floor(t / 12), m = t - y * 12;
+            const last = new Date(y, m + 1, 0).getDate();
+            return { y: y, m: m, d: Math.min(o.d, last) };
+        }
+        function dayNum(o) { return Math.round(Date.UTC(o.y, o.m, o.d) / 86400000); }
+        let target = parse(dateISO);
+        if (!target) return null;
+        let today = parse(todayISO);
+        if (!today) { const n = new Date(); today = { y: n.getFullYear(), m: n.getMonth(), d: n.getDate() }; }
+        const expired = key(target) < key(today);
+        const from = expired ? target : today;
+        const to = expired ? today : target;
+        let n = 0;
+        while (key(addM(from, n + 1)) <= key(to)) n++;
+        const days = dayNum(to) - dayNum(addM(from, n));
+        const years = Math.floor(n / 12), months = n % 12;
+        const parts = [];
+        if (years) parts.push(years + 'y');
+        if (months) parts.push(months + 'm');
+        if (days || !parts.length) parts.push(days + 'd');
+        const core = parts.join(' ');
+        return { expired: expired, years: years, months: months, days: days, totalMonths: n, label: expired ? 'Expired ' + core : core };
+    },
+
+    // Colour class for a timeUntil() result. bands = { green: months, yellow: months } (default 12 / 6).
+    // Red below yellow months (or expired); yellow from yellow months up to and including green months;
+    // green only when MORE than green months remain.
+    bestBeforeBandClass: function (tu, bands) {
+        if (!tu) return '';
+        let g = bands ? parseInt(bands.green, 10) : NaN;
+        let y = bands ? parseInt(bands.yellow, 10) : NaN;
+        if (isNaN(g) || isNaN(y) || g <= y) { g = 12; y = 6; }
+        if (tu.expired || tu.totalMonths < y) return 'danger';
+        if (tu.totalMonths < g || (tu.totalMonths === g && tu.days === 0)) return 'warning';
+        return 'success';
+    },
+
     // Extract gender from SA ID number
     extractGenderFromId: function (idNumber) {
         if (!this.isValidSAIdNumber(idNumber)) {

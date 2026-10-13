@@ -8,6 +8,8 @@ var _modal_kernel_dispatch_form = (function () {
     var currentOrderId = null;
     var readOnlyMode = false;
     var _flatpickrInstance = null;
+    var orderWasDispatched = false;
+    var dsp = DispatchFormShared.create({ prefix: 'kernelDsp', folder: 'Macavation/KernelDispatch' });
 
     /** Display date dd/mm/yyyy; use _common.formatDateDDMMYYYY when available (company standard). */
     function formatDateForDisplay(v) {
@@ -43,12 +45,34 @@ var _modal_kernel_dispatch_form = (function () {
         return _common.escapeHtml(s);
     }
 
+    /** Fill a text input only when it is currently empty. */
+    function fillIfEmpty(id, val) {
+        var $el = $('#' + id);
+        if (val && !String($el.val() || '').trim()) $el.val(val);
+    }
+
+    /** Loads the transporter list and (for an open order) pre-fills Attention / Cell / Dispatched to from the customer contact. Never rejects. */
+    function loadExtras(order, ro) {
+        var contactP = (!ro && order) ? dsp.loadCustomerContact(order.buyer_contact_id) : Promise.resolve(null);
+        return Promise.all([dsp.loadTransporters(), contactP]).then(function (r) {
+            var c = r[1];
+            if (ro || !order) return;
+            if (c) {
+                fillIfEmpty('dispatchPerson', c.name);
+                fillIfEmpty('dispatchCell', c.cell);
+                fillIfEmpty('dispatchDispatchedTo', c.company);
+            }
+            fillIfEmpty('dispatchDispatchedTo', order.buyer_name);
+        }).catch(function (e) { console.warn('[Dispatch form] extras failed', e); });
+    }
+
     return {
         init: () => {
             const scope = _modal_kernel_dispatch_form;
             var modalEl = document.getElementById('kernelDispatchFormModal');
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
                 modalEl.addEventListener('shown.bs.modal', function () {
+                    dsp.initSignature();
                     var input = document.getElementById('dispatchDateDispatched');
                     if (input && typeof flatpickr !== 'undefined') {
                         if (_flatpickrInstance) _flatpickrInstance.destroy();
@@ -61,6 +85,7 @@ var _modal_kernel_dispatch_form = (function () {
                     readOnlyMode = false;
                 });
             }
+            dsp.init();
             scope.initHandlers();
         },
 
@@ -89,6 +114,8 @@ var _modal_kernel_dispatch_form = (function () {
                 if (dateInputA) dateInputA.value = formatDateForDisplay(new Date());
                 readOnlyMode = false;
                 scope.setFormReadOnly(false);
+                dsp.setReadOnly(false);
+                dsp.loadTransporters();
                 scope.openModal();
                 return;
             }
@@ -111,8 +138,12 @@ var _modal_kernel_dispatch_form = (function () {
                     if (dateInputB) dateInputB.value = formatDateForDisplay(new Date());
                 }
 
-                scope.setFormReadOnly(ro);
-                scope.openModal();
+                orderWasDispatched = ro;
+                return loadExtras(data && data.order ? data.order : null, ro).then(function () {
+                    scope.setFormReadOnly(ro);
+                    dsp.setReadOnly(ro);
+                    scope.openModal();
+                });
             }).catch(function (e) {
                 console.warn('[Kernel Dispatch Form] Could not load order', e);
                 readOnlyMode = false;
@@ -120,6 +151,8 @@ var _modal_kernel_dispatch_form = (function () {
                 var dateInputC = document.getElementById('dispatchDateDispatched');
                 if (dateInputC) dateInputC.value = formatDateForDisplay(new Date());
                 scope.setFormReadOnly(false);
+                dsp.setReadOnly(false);
+                dsp.loadTransporters();
                 scope.openModal();
             });
         },
@@ -152,7 +185,7 @@ var _modal_kernel_dispatch_form = (function () {
                     ? (Math.round(line.cartons * kgPerCarton * 100) / 100)
                     : (line.quantity_kg != null ? Number(line.quantity_kg) : null);
                 var qtyDisplay = (line.cartons != null && line.cartons >= 0)
-                    ? (line.cartons + ' ct · ' + (qtyKg != null ? qtyKg : '—') + ' kg')
+                    ? (DispatchFormShared.cartonLabel(line.cartons) + ' · ' + (qtyKg != null ? qtyKg : '—') + ' kg')
                     : (qtyKg != null ? qtyKg + ' kg' : '—');
                 tr.innerHTML = '<td>' + escapeHtml(line.batch_number || '—') + '</td><td>' + escapeHtml(line.style || '—') + '</td><td class="text-end">' + qtyDisplay + '</td>';
                 tbody.appendChild(tr);
@@ -161,15 +194,11 @@ var _modal_kernel_dispatch_form = (function () {
 
         applyDispatchRecord: (record, order) => {
             record = record || {};
-            setRadioByValue('vehicleClean', record.vehicle_clean_yn);
-            setRadioByValue('vehicleEnclosed', record.vehicle_enclosed_yn);
-            setRadioByValue('hazardSubstances', record.hazard_substances_yn);
-            setRadioByValue('pestInfestations', record.pest_infestations_yn);
-            setRadioByValue('palletsCondition', record.pallets_condition_yn);
-            setRadioByValue('truckBinLocked', record.truck_bin_locked_yn);
+            dsp.setInspection(record);
 
             $('#dispatchPerson').val(record.dispatch_person || '');
-            $('#dispatchTransportCompany').val(record.transport_company || '');
+            $('#dispatchCell').val(record.attention_cell || '');
+            dsp.setTransporter(record.transport_company || '', record.transporter_id || null);
             $('#dispatchDeliveryNote').val(record.delivery_note_number || '');
             var dateInput = document.getElementById('dispatchDateDispatched');
             if (dateInput) {
@@ -188,8 +217,10 @@ var _modal_kernel_dispatch_form = (function () {
             } else {
                 $('#dispatchTime').val('');
             }
-            $('#dispatchDispatchedTo').val(record.dispatched_to || order.buyer_name || '');
-            $('#dispatchSignature').val(record.dispatch_signature || '');
+            // Empty here is filled from the customer contact (or the buyer name) by loadExtras().
+            $('#dispatchDispatchedTo').val(record.dispatched_to || '');
+            dsp.setSignature(record.dispatch_signature || '');
+            dsp.setAttachments(record.attachments);
         },
 
         setFormReadOnly: (ro) => {
@@ -226,11 +257,8 @@ var _modal_kernel_dispatch_form = (function () {
             var tbody = document.getElementById('kernelDispatchFormBasketBody');
             if (tbody) tbody.innerHTML = '';
 
-            var names = ['vehicleClean', 'vehicleEnclosed', 'hazardSubstances', 'pestInfestations', 'palletsCondition', 'truckBinLocked'];
-            names.forEach(function (name) {
-                $('input[name="' + name + '"]').prop('checked', false);
-            });
-            var ids = ['dispatchPerson', 'dispatchTransportCompany', 'dispatchDeliveryNote', 'dispatchDateDispatched', 'dispatchTruckReg', 'dispatchDriverName', 'dispatchTime', 'dispatchDispatchedTo', 'dispatchSignature', 'kernelDispatchFormOrderId'];
+            dsp.reset();
+            var ids = ['dispatchPerson', 'dispatchCell', 'dispatchDeliveryNote', 'dispatchDateDispatched', 'dispatchTruckReg', 'dispatchDriverName', 'dispatchTime', 'dispatchDispatchedTo', 'kernelDispatchFormOrderId'];
             ids.forEach(function (id) {
                 $('#' + id).val('');
             });
@@ -267,30 +295,41 @@ var _modal_kernel_dispatch_form = (function () {
                 return;
             }
 
-            var vehicleClean = $('input[name="vehicleClean"]:checked');
-            var vehicleEnclosed = $('input[name="vehicleEnclosed"]:checked');
-            var hazardSubstances = $('input[name="hazardSubstances"]:checked');
-            var pestInfestations = $('input[name="pestInfestations"]:checked');
-            var palletsCondition = $('input[name="palletsCondition"]:checked');
-            var truckBinLocked = $('input[name="truckBinLocked"]:checked');
+            if (dsp.isUploading()) {
+                if (typeof Swal !== 'undefined') Swal.fire('Please wait', 'A file is still uploading. Try again in a moment.', 'info');
+                return;
+            }
+            var problems = dsp.validateInspection(!orderWasDispatched);
+            if (problems.length) {
+                if (typeof Swal !== 'undefined') Swal.fire('Check the inspection', problems[0] + (problems.length > 1 ? ' (and ' + (problems.length - 1) + ' more)' : ''), 'warning');
+                return;
+            }
+            var insp = dsp.getInspection();
+            var transport = dsp.getTransporter();
+            var attachments = dsp.getAttachments();
 
             var payload = {
                 dispatch_order_id: orderId,
-                vehicle_clean_yn: vehicleClean.length ? vehicleClean.val() : null,
-                vehicle_enclosed_yn: vehicleEnclosed.length ? vehicleEnclosed.val() : null,
-                hazard_substances_yn: hazardSubstances.length ? hazardSubstances.val() : null,
-                pest_infestations_yn: pestInfestations.length ? pestInfestations.val() : null,
-                pallets_condition_yn: palletsCondition.length ? palletsCondition.val() : null,
-                truck_bin_locked_yn: truckBinLocked.length ? truckBinLocked.val() : null,
+                vehicle_clean_yn: insp.answers.vehicle_clean_yn,
+                vehicle_enclosed_yn: insp.answers.vehicle_enclosed_yn,
+                hazard_substances_yn: insp.answers.hazard_substances_yn,
+                pest_infestations_yn: insp.answers.pest_infestations_yn,
+                pallets_condition_yn: insp.answers.pallets_condition_yn,
+                truck_bin_locked_yn: insp.answers.truck_bin_locked_yn,
                 dispatch_person: ($('#dispatchPerson').val() || '').trim() || null,
-                transport_company: ($('#dispatchTransportCompany').val() || '').trim() || null,
+                attention_cell: ($('#dispatchCell').val() || '').trim() || null,
+                transport_company: transport.name,
+                transporter_id: transport.id,
                 delivery_note_number: ($('#dispatchDeliveryNote').val() || '').trim() || null,
                 date_dispatched: scope.getDateISO(),
                 truck_registration: ($('#dispatchTruckReg').val() || '').trim() || null,
                 driver_name: ($('#dispatchDriverName').val() || '').trim() || null,
                 time_dispatched: ($('#dispatchTime').val() || '').trim() || null,
                 dispatched_to: ($('#dispatchDispatchedTo').val() || '').trim() || null,
-                dispatch_signature: ($('#dispatchSignature').val() || '').trim() || null
+                dispatch_signature: dsp.getSignature(),
+                inspection_comments: insp.comments,
+                inspection_photos: insp.photos,
+                attachments: attachments
             };
 
             if (typeof dataFunctions === 'undefined' || !dataFunctions.saveKernelDispatchRecord) {
@@ -343,8 +382,13 @@ var _modal_kernel_dispatch_form = (function () {
                     var lines = data && Array.isArray(data.lines) ? data.lines : [];
                     var order = data && data.order ? data.order : null;
                     scope.renderBasketLines(lines, order);
+                    orderWasDispatched = false;
                     scope.applyDispatchRecord({}, order || {});
-                    scope.setFormReadOnly(false);
+                    return loadExtras(order, false).then(function () {
+                        scope.setFormReadOnly(false);
+                        dsp.setReadOnly(false);
+                    });
+                }).then(function () {
                     if (typeof _kernelDispatchGrid !== 'undefined' && _kernelDispatchGrid.loadOrders) _kernelDispatchGrid.loadOrders(true);
                 }).catch(function (e) {
                     console.error(e);

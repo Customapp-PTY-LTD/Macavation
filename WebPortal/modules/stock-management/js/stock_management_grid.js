@@ -110,6 +110,11 @@ var _stockManagementGrid = function () {
         return _common.escapeHtml(s);
     }
 
+    /** Local-date YYYY-MM-DD from a Date (avoids toISOString UTC shift). */
+    function kernelDateToISO(d) {
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
     function parseNum(val) {
         if (val == null || val === '') return 0;
         var n = typeof val === 'number' ? val : parseFloat(val);
@@ -246,6 +251,9 @@ var _stockManagementGrid = function () {
         kernelCurrentView: 'bystyle',
         kernelWeeklyMode: 'in',
         kernelAdjustMode: false,
+        // Kernel Stock grid: click-to-sort state (kept on the scope so refreshes keep it) and pipeline config for FFA / Time Left colours.
+        kernelSort: { key: null, dir: 'asc' },
+        kernelPipelineConfig: null,
         shellLots: [],
         oilSearchTimeout: null,
         searchTimeout: null,
@@ -552,6 +560,11 @@ var _stockManagementGrid = function () {
                 $('#ksViewByStyle').off('click').on('click', function () {
                     scope.toggleKernelView('bystyle');
                 });
+                // Kernel Stock grid: click a heading to sort (delegated so it survives re-renders)
+                $(document).off('click.ksSort', '#kernelStockByStyleTable .js-ks-sort').on('click.ksSort', '#kernelStockByStyleTable .js-ks-sort', function () {
+                    var key = $(this).closest('th').attr('data-sort-key');
+                    if (key) scope.setKernelSort(key);
+                });
                 // Card 1 search — filter the by-style batch rows by text (client-side)
                 $('#kernelStockSearch').off('input.ksSearch').on('input.ksSearch', function () {
                     var q = ($(this).val() || '').toLowerCase().trim();
@@ -753,6 +766,15 @@ var _stockManagementGrid = function () {
                 scope.kernelDispatchOrders = [];
                 scope.renderKernelBatches();
                 return Promise.resolve();
+            }
+            // FFA limits, Time Left bands and shelf-life months. Never blocks the grid: on any failure the grid shows plain values.
+            if (typeof _common !== 'undefined' && _common.loadKernelPipelineConfig) {
+                _common.loadKernelPipelineConfig(forceRefresh === true).then(function (cfg) {
+                    if (cfg && cfg !== scope.kernelPipelineConfig) {
+                        scope.kernelPipelineConfig = cfg;
+                        if (scope.kernelCurrentView === 'bystyle' && (scope.kernelFinishedBatches || []).length) scope.renderKernelStockByStyle();
+                    }
+                });
             }
             return df.getKernelBatches(null, forceRefresh, { status: 'complete' }).then(function (all) {
                 all = (all || []).filter(function (b) {
@@ -1289,6 +1311,63 @@ var _stockManagementGrid = function () {
             }
         },
 
+        /** First click: style/FFA = highest first, dates = soonest first, Batch = A-Z. Second click reverses. */
+        setKernelSort: function (key) {
+            var scope = _stockManagementGrid;
+            if (scope.kernelSort.key === key) {
+                scope.kernelSort.dir = scope.kernelSort.dir === 'asc' ? 'desc' : 'asc';
+            } else {
+                var highFirst = key === 'ffa' || key.indexOf('style:') === 0;
+                scope.kernelSort = { key: key, dir: highFirst ? 'desc' : 'asc' };
+            }
+            scope.renderKernelStockByStyle();
+        },
+
+        /** Returns a sorted COPY of batches by scope.kernelSort. Empty values always go last, in either direction. */
+        sortKernelBatches: function (batches) {
+            var scope = _stockManagementGrid;
+            var key = scope.kernelSort && scope.kernelSort.key;
+            if (!key) return batches;
+            var mul = scope.kernelSort.dir === 'desc' ? -1 : 1;
+            var rows = batches.map(function (b, i) {
+                var v = null;
+                if (key === 'batch') {
+                    v = (b.batch_number || '').toString().trim();
+                    if (v === '') v = null;
+                } else if (key === 'ffa') {
+                    var f = (b.ffa != null && b.ffa !== '') ? parseFloat(b.ffa) : NaN;
+                    v = isNaN(f) ? null : f;
+                } else if (key === 'bestbefore' || key === 'timeleft') {
+                    var t = b.best_before_date ? new Date(b.best_before_date).getTime() : NaN;
+                    v = isNaN(t) ? null : t;
+                } else if (key.indexOf('style:') === 0) {
+                    var n = parseNum(getKernelStyleCellsForDisplay(b)[key.slice(6)]);
+                    v = n > 0 ? n : null;
+                }
+                return { b: b, i: i, v: v };
+            });
+            rows.sort(function (x, y) {
+                if (x.v == null && y.v == null) return x.i - y.i;
+                if (x.v == null) return 1;
+                if (y.v == null) return -1;
+                var c = key === 'batch' ? x.v.localeCompare(y.v, undefined, { numeric: true, sensitivity: 'base' }) : (x.v - y.v);
+                return c !== 0 ? c * mul : x.i - y.i;
+            });
+            return rows.map(function (r) { return r.b; });
+        },
+
+        /** Sets aria-sort and the arrow on the first thead row headings. */
+        updateKernelSortHeaders: function () {
+            var scope = _stockManagementGrid;
+            var active = scope.kernelSort && scope.kernelSort.key;
+            $('#kernelStockByStyleTable thead tr:first th[data-sort-key]').each(function () {
+                var $th = $(this);
+                var on = active && $th.attr('data-sort-key') === active;
+                $th.attr('aria-sort', on ? (scope.kernelSort.dir === 'desc' ? 'descending' : 'ascending') : 'none');
+                $th.find('.ks-sort-ind').text(on ? (scope.kernelSort.dir === 'desc' ? '\u25BC' : '\u25B2') : '');
+            });
+        },
+
         renderKernelStockByStyle: function () {
             var scope = _stockManagementGrid;
             var body = $('#kernelStockByStyleBody');
@@ -1298,12 +1377,23 @@ var _stockManagementGrid = function () {
             var batches = (scope.kernelFinishedBatches || []).filter(function (b) {
                 return kernelBatchVisibleInByStyleGrid(b);
             });
+            // Sort a COPY: scope.kernelFinishedBatches is replaced on refresh and read directly by the Send to Dispatch modal.
+            batches = scope.sortKernelBatches(batches);
+            scope.updateKernelSortHeaders();
+            var cfg = scope.kernelPipelineConfig;
+            var ffaSpec = null;
+            if (cfg && Array.isArray(cfg.spec_thresholds)) {
+                ffaSpec = cfg.spec_thresholds.find(function (t) { return t && t.test_key === 'ffa'; }) || null;
+            }
+            var bands = (cfg && cfg.settings && cfg.settings.best_before_bands) ? cfg.settings.best_before_bands : { green: 12, yellow: 6 };
+            var shelfMonths = _common.KERNEL_BEST_BEFORE_MONTHS;
+            $('#kernelStockBestBeforeTh').attr('title', 'Best Before Date (from Job Card, or packing start + ' + shelfMonths + ' months)');
             var totals = { 'SP': 0, '0': 0, '1': 0, '1S': 0, '4L': 0, '5': 0, '6': 0, '7/8': 0, 'Butter High Oil': 0, 'Butter Low Oil': 0 };
             var styleKeys = KERNEL_STYLE_OPTIONS.slice();
             batches.forEach(function (b) {
                 var cells = getKernelStyleCellsForDisplay(b);
                 var batchNum = (b.batch_number || '').toString();
-                var row = '<tr><td>' + batchNum + '</td>';
+                var row = '<tr><td>' + escapeHtml(batchNum) + '</td>';
                 styleKeys.forEach(function (k) {
                     var val = cells[k] != null ? cells[k] : 0;
                     totals[k] += parseNum(val);
@@ -1319,15 +1409,28 @@ var _stockManagementGrid = function () {
                 });
                 var ffaVal = (b.ffa != null && b.ffa !== '') ? (typeof b.ffa === 'number' ? b.ffa : parseFloat(b.ffa)) : null;
                 var ffaDisplay = (ffaVal != null && !isNaN(ffaVal)) ? ffaVal : '—';
+                if (ffaVal != null && !isNaN(ffaVal)) {
+                    var ffaState = _common.classifySpec(ffaSpec, ffaVal);
+                    var ffaCls = ffaState === 'ok' ? 'bg-success' : (ffaState === 'warn' ? 'bg-warning text-dark' : (ffaState === 'bad' ? 'bg-danger' : ''));
+                    if (ffaCls) ffaDisplay = '<span class="badge ' + ffaCls + '">' + escapeHtml(String(ffaVal)) + '</span>';
+                }
                 var bbVal = b.best_before_date;
                 var bbDisplay = '—';
+                var tlDisplay = '—';
                 if (bbVal) {
                     var d = typeof bbVal === 'string' ? new Date(bbVal) : bbVal;
                     if (!isNaN(d.getTime())) bbDisplay = d.getDate() + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+                    var tu = _common.timeUntil(typeof bbVal === 'string' ? bbVal : kernelDateToISO(d));
+                    if (tu) {
+                        var tlCls = _common.bestBeforeBandClass(tu, bands);
+                        tlDisplay = tlCls
+                            ? '<span class="badge bg-' + tlCls + (tlCls === 'warning' ? ' text-dark' : '') + '">' + escapeHtml(tu.label) + '</span>'
+                            : escapeHtml(tu.label);
+                    }
                 }
                 var ffaTitle = 'Free Fatty Acids (from QA)';
-                var bbTitle = bbDisplay !== '—' ? 'Best Before Date' : 'Best Before Date (from Job Card, or packing start + 24 months)';
-                row += '<td class="text-end" title="' + ffaTitle.replace(/"/g, '&quot;') + '">' + ffaDisplay + '</td><td class="text-end" title="' + bbTitle.replace(/"/g, '&quot;') + '">' + bbDisplay + '</td>';
+                var bbTitle = bbDisplay !== '—' ? 'Best Before Date' : 'Best Before Date (from Job Card, or packing start + ' + shelfMonths + ' months)';
+                row += '<td class="text-end" title="' + ffaTitle.replace(/"/g, '&quot;') + '">' + ffaDisplay + '</td><td class="text-end" title="' + bbTitle.replace(/"/g, '&quot;') + '">' + bbDisplay + '</td><td class="text-end" title="Time from today until the Best Before Date">' + tlDisplay + '</td>';
                 var kid = kernelIdFromBatch(b);
                 var kernelActionItems = [
                     { label: 'Send back to production', className: 'js-release-batch-to-production', icon: 'fas fa-undo', dataAttrs: { 'kernel-id': kid, 'batch-number': batchNum } }

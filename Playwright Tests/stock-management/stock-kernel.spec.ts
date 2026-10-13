@@ -92,13 +92,16 @@ test.describe('Kernel - Form Operations: Send to Dispatch @kernel', () => {
     await navigateToStockKernel(authenticatedPage);
   });
 
-  test('TC-SD-001: Send to Dispatch modal opens with buyer and date', async ({ authenticatedPage }) => {
+  test('TC-SD-001: Send to Dispatch modal opens with customer and dates', async ({ authenticatedPage }) => {
     await authenticatedPage.locator('#sendToDispatchBtn').click();
     await expect(authenticatedPage.locator('#sendToDispatchModal')).toBeVisible({ timeout: 10000 });
-    await expect(authenticatedPage.locator('#dispatchBuyer')).toBeVisible();
+    // Buyer free-text field was removed: the Customer dropdown is the only buyer input
+    await expect(authenticatedPage.locator('#dispatchBuyer')).toHaveCount(0);
     await expect(authenticatedPage.locator('#dispatchBuyerContact')).toBeVisible();
+    await expect(authenticatedPage.locator('label[for="dispatchBuyerContact"]')).toHaveText('Customer');
+    await expect(authenticatedPage.locator('#dispatchCollectionDate')).toBeVisible();
     await expect(authenticatedPage.locator('#dispatchDeliveryDate')).toBeVisible();
-    await expect(authenticatedPage.locator('#dispatchModalSelectBoxesBtn')).toBeVisible();
+    await expect(authenticatedPage.locator('#dispatchModalSelectBoxesBtn')).toContainText('Select Stock');
   });
 
   test('TC-SD-002: Buyer dropdown is populated (kernel customers)', async ({ authenticatedPage }) => {
@@ -116,15 +119,10 @@ test.describe('Kernel - Form Operations: Send to Dispatch @kernel', () => {
     // Wait for kernel customers to load from DB (placeholder + at least one option)
     await expect(authenticatedPage.locator('#dispatchBuyerContact option').nth(1)).toBeAttached({ timeout: 10000 });
     const optionCount = await authenticatedPage.locator('#dispatchBuyerContact option').count();
-    if (optionCount > 1) {
-      await authenticatedPage.locator('#dispatchBuyerContact').selectOption({ index: 1 });
-      await authenticatedPage.waitForTimeout(300);
-      const selectedText = await authenticatedPage.locator('#dispatchBuyerContact option:checked').textContent();
-      await authenticatedPage.locator('#dispatchBuyer').fill(selectedText?.trim() || 'Test buyer');
-    } else {
-      await authenticatedPage.locator('#dispatchBuyer').fill('E2E Test Buyer');
-    }
-    // #dispatchDeliveryDate is readonly (Flatpickr); app defaults it to today — do not use fill()
+    expect(optionCount).toBeGreaterThan(1);
+    await authenticatedPage.locator('#dispatchBuyerContact').selectOption({ index: 1 });
+    // Collection and delivery dates are readonly (Flatpickr); app defaults both to today — do not use fill()
+    await expect(authenticatedPage.locator('#dispatchCollectionDate')).toHaveValue(/.+/, { timeout: 5000 });
     await expect(authenticatedPage.locator('#dispatchDeliveryDate')).toHaveValue(/.+/, { timeout: 5000 });
     await authenticatedPage.locator('#dispatchModalSelectBoxesBtn').click();
     await authenticatedPage.waitForTimeout(1000);
@@ -135,9 +133,10 @@ test.describe('Kernel - Form Operations: Send to Dispatch @kernel', () => {
   test('TC-SD-004: Back from step 2 returns to step 1', async ({ authenticatedPage }) => {
     await authenticatedPage.locator('#sendToDispatchBtn').click();
     await expect(authenticatedPage.locator('#sendToDispatchModal')).toBeVisible({ timeout: 10000 });
-    await authenticatedPage.waitForTimeout(500);
-    await authenticatedPage.locator('#dispatchBuyer').fill('Test');
-    // #dispatchDeliveryDate is readonly (Flatpickr); app defaults to today
+    await expect(authenticatedPage.locator('#dispatchBuyerContact option').nth(1)).toBeAttached({ timeout: 10000 });
+    await authenticatedPage.locator('#dispatchBuyerContact').selectOption({ index: 1 });
+    // Dates are readonly (Flatpickr); app defaults both to today
+    await expect(authenticatedPage.locator('#dispatchCollectionDate')).toHaveValue(/.+/, { timeout: 5000 });
     await expect(authenticatedPage.locator('#dispatchDeliveryDate')).toHaveValue(/.+/, { timeout: 5000 });
     await authenticatedPage.locator('#dispatchModalSelectBoxesBtn').click();
     await authenticatedPage.waitForTimeout(500);

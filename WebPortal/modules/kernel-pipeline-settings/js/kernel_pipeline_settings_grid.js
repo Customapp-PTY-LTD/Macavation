@@ -146,6 +146,37 @@ var _kernelPipelineSettingsGrid = (function () {
         return card('Batch numbers & bags', body, saveBtn('kpsSaveBatch'));
     }
 
+    function shelfValues(cfg) {
+        var st = (cfg && cfg.settings) || {};
+        var months = parseInt(st.kernel_best_before_months, 10);
+        var bands = st.best_before_bands || {};
+        var g = parseInt(bands.green, 10), y = parseInt(bands.yellow, 10);
+        return {
+            months: isNaN(months) ? 24 : months,
+            green: isNaN(g) ? 12 : g,
+            yellow: isNaN(y) ? 6 : y
+        };
+    }
+
+    function shelfCard(cfg) {
+        var v = shelfValues(cfg);
+        var body = '<div class="mb-4"><label class="form-label" for="kpsShelfMonths">Kernel best before (months after packing start)</label>' +
+            '<input type="number" step="1" min="1" max="60" class="form-control kps-num" id="kpsShelfMonths" value="' + numAttr(v.months) + '"' + dis() + '>' +
+            '<div class="kps-hint">Applies to new batches. Existing best-before dates are not changed.</div></div>' +
+            '<h6>Time Left colours</h6>' +
+            '<div class="d-flex flex-wrap align-items-center gap-2">' +
+            '<span class="badge bg-success">Green</span><span>when more than</span>' +
+            '<input type="number" step="1" min="2" max="120" class="form-control form-control-sm kps-num" id="kpsBandGreen" value="' + numAttr(v.green) + '" aria-label="Green when more than this many months"' + dis() + '>' +
+            '<span>months</span></div>' +
+            '<div class="d-flex flex-wrap align-items-center gap-2 mt-2">' +
+            '<span class="badge bg-warning text-dark">Yellow</span><span>from</span>' +
+            '<input type="number" step="1" min="1" max="119" class="form-control form-control-sm kps-num" id="kpsBandYellow" value="' + numAttr(v.yellow) + '" aria-label="Yellow from this many months"' + dis() + '>' +
+            '<span>months</span></div>' +
+            '<div class="d-flex flex-wrap align-items-center gap-2 mt-2"><span class="badge bg-danger">Red</span><span>below that, or expired</span></div>' +
+            '<div class="kps-hint mt-2">Shown on the Time Left column of the Kernel Stock grid. Green months must be more than yellow months.</div>';
+        return card('Shelf life', body, saveBtn('kpsSaveShelf'));
+    }
+
     function listHtml(kind, items) {
         var rows = (items || []).map(function (it) {
             var active = it.is_active !== false;
@@ -187,7 +218,7 @@ var _kernelPipelineSettingsGrid = (function () {
         var cfg = state.cfg;
         $('#kpsNotice').html(canEdit() ? '' :
             '<div class="alert alert-info">You can view these settings. Ask an admin for \'Edit Kernel Pipeline Settings\' to change them.</div>');
-        $('#kpsBody').html(specCard(cfg) + crateCard(cfg) + batchCard(cfg) + transportCard(cfg) + siloCard(cfg));
+        $('#kpsBody').html(specCard(cfg) + crateCard(cfg) + batchCard(cfg) + shelfCard(cfg) + transportCard(cfg) + siloCard(cfg));
     }
 
     // ------------------------------------------------------------------
@@ -283,6 +314,25 @@ var _kernelPipelineSettingsGrid = (function () {
         runAll(btn, [function () { return dataFunctions.setKernelPipelineSetting('bag_numbering', v); }], 'Batch number settings saved.');
     }
 
+    function saveShelf(btn) {
+        var old = shelfValues(state.cfg);
+        var months = numOrNull($('#kpsShelfMonths').val());
+        var g = numOrNull($('#kpsBandGreen').val()), y = numOrNull($('#kpsBandYellow').val());
+        if (months == null || !Number.isInteger(months) || months < 1 || months > 60) { toast('Best before months must be a whole number from 1 to 60.', 'error'); return; }
+        if (g == null || y == null || !Number.isInteger(g) || !Number.isInteger(y) || y < 1 || g <= y || g > 120) {
+            toast('Time Left colours: use whole months, yellow at least 1, green more than yellow, green at most 120.', 'error');
+            return;
+        }
+        var calls = [];
+        if (months !== old.months) calls.push(function () { return dataFunctions.setKernelPipelineSetting('kernel_best_before_months', months); });
+        if (g !== old.green || y !== old.yellow) calls.push(function () { return dataFunctions.setKernelPipelineSetting('best_before_bands', { green: g, yellow: y }); });
+        if (calls.length && typeof _common !== 'undefined' && _common.loadKernelPipelineConfig) {
+            // Refresh the shared cache so the grid, job card and stages pick up the new values without a reload.
+            calls.push(function () { return _common.loadKernelPipelineConfig(true).then(function () { return { success: true }; }); });
+        }
+        runAll(btn, calls, 'Shelf life settings saved.');
+    }
+
     function saveSilos(btn) {
         var calls = [], bad = false;
         $('#kpsBody .kps-silo').each(function () {
@@ -338,6 +388,7 @@ var _kernelPipelineSettingsGrid = (function () {
         $d.on('click' + NS, '#kpsSaveSpec', function () { saveSpec(this); });
         $d.on('click' + NS, '#kpsSaveCrates', function () { saveCrates(this); });
         $d.on('click' + NS, '#kpsSaveBatch', function () { saveBatch(this); });
+        $d.on('click' + NS, '#kpsSaveShelf', function () { saveShelf(this); });
         $d.on('click' + NS, '#kpsSaveSilos', function () { saveSilos(this); });
         $d.on('click' + NS, '#kpsGoRolePerms', function () {
             if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) _appRouter.routeTo('role-permissions-grid');
