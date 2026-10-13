@@ -66,7 +66,12 @@ var _modal_kernel_dispatch = (function () {
                         var qtyDisplay = (line.cartons != null && line.cartons >= 0)
                             ? (DispatchFormShared.cartonLabel(line.cartons) + ' · ' + (qtyKg != null ? qtyKg : '—') + ' kg')
                             : (qtyKg != null ? qtyKg + ' kg' : '—');
-                        tr.innerHTML = '<td>' + (line.batch_number || '—') + '</td><td>' + (line.style || '—') + '</td><td class="text-end">' + qtyDisplay + '</td>';
+                        [line.batch_number || '—', line.style || '—', qtyDisplay].forEach(function (v, ci) {
+                            var td = document.createElement('td');
+                            if (ci === 2) td.className = 'text-end';
+                            td.textContent = String(v);
+                            tr.appendChild(td);
+                        });
                         tbody.appendChild(tr);
                     });
                 }

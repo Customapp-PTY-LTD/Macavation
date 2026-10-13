@@ -101,6 +101,7 @@
         var state = {};            // check key -> { comment, photos[] }
         var attachments = [];
         var pending = 0;
+        var generation = 0;        // bumped by reset(); an upload that finishes after a reset is dropped (it belongs to the previous order)
         var readOnly = false;
         var transporters = [];
         var configLoaded = false;
@@ -140,12 +141,15 @@
                 }
                 if (file.size > MAX_FILE_BYTES) { errors.push((file.name || 'photo') + ': larger than 6 MB.'); continue; }
                 pending++;
+                var photoGen = generation;
                 try {
-                    state[c.key].photos.push(await uploadOne(file, FOLDER, 'insp'));
+                    var photo = await uploadOne(file, FOLDER, 'insp');
+                    if (photoGen !== generation) return;
+                    state[c.key].photos.push(photo);
                 } catch (e) {
                     errors.push((file.name || 'photo') + ': ' + (e && e.message ? e.message : 'Upload failed'));
                 } finally {
-                    pending--;
+                    if (photoGen === generation) pending--;
                 }
             }
             renderPhotos(c);
@@ -428,12 +432,15 @@
                 if (!fileAllowed(file)) { errors.push((file.name || 'file') + ': only images and PDF documents are allowed.'); continue; }
                 if (file.size > MAX_FILE_BYTES) { errors.push((file.name || 'file') + ': larger than 6 MB.'); continue; }
                 pending++;
+                var attGen = generation;
                 try {
-                    attachments.push(await uploadOne(file, FOLDER, 'att'));
+                    var att = await uploadOne(file, FOLDER, 'att');
+                    if (attGen !== generation) return;
+                    attachments.push(att);
                 } catch (e) {
                     errors.push((file.name || 'file') + ': ' + (e && e.message ? e.message : 'Upload failed'));
                 } finally {
-                    pending--;
+                    if (attGen === generation) pending--;
                 }
             }
             renderAttachments();
@@ -454,7 +461,7 @@
             var out = { name: '', cell: '', company: '' };
             if (!contactId || typeof dataFunctions === 'undefined' || !dataFunctions.getContactById) return out;
             try {
-                var c = await dataFunctions.getContactById(contactId);
+                var c = await dataFunctions.getContactById(contactId, null, true);
                 if (c) {
                     out.name = String(c.primary_contact_name || '').trim();
                     out.cell = String(c.primary_contact_mobile || c.primary_contact_phone || '').trim();
@@ -482,6 +489,8 @@
 
         /** Wipes widget state for a fresh open. */
         api.reset = function () {
+            generation++;
+            pending = 0;
             api.clearInspection();
             attachments = [];
             renderAttachments();

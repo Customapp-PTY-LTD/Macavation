@@ -1450,6 +1450,8 @@ var _stockManagementGrid = function () {
                 var k = $(this).data('style');
                 $(this).text(totals[k] != null ? totals[k] : 0);
             });
+            // Re-renders (sort, late config) rebuild every row; keep the search filter applied.
+            if (($('#kernelStockSearch').val() || '').trim()) $('#kernelStockSearch').trigger('input.ksSearch');
         },
 
         toggleKernelView: function (view) {

@@ -7,6 +7,7 @@ var _modal_kernel_dispatch_edit = (function () {
     var _flatpickrDelivery = null;
     var _flatpickrCollection = null;
     var _flatpickrBestBefore = null;
+    var _hadCollectionDate = false;   // the RPC keeps the stored date when null is sent, so a set date can be changed but not blanked
 
     function escapeHtml(s) {
         if (s == null) return '';
@@ -118,6 +119,7 @@ var _modal_kernel_dispatch_edit = (function () {
                     return;
                 }
                 $('#kernelDispatchEditBuyer').val(order.buyer_name || '');
+                _hadCollectionDate = !!order.planned_collection_date;
                 $('#kernelDispatchEditCollection').val(formatDateForDisplay(order.planned_collection_date));
                 $('#kernelDispatchEditDelivery').val(formatDateForDisplay(order.delivery_date));
                 $('#kernelDispatchEditBestBefore').val(formatDateForDisplay(order.best_before_date));
@@ -279,6 +281,10 @@ var _modal_kernel_dispatch_edit = (function () {
             } else {
                 var colRaw = ($('#kernelDispatchEditCollection').val() || '').trim();
                 if (colRaw) collectionIso = isoFromDdMmYyyy(colRaw);
+            }
+            if (!collectionIso && _hadCollectionDate) {
+                if (typeof Swal !== 'undefined') Swal.fire('Validation', 'Choose a planned collection date (it can be changed but not removed).', 'warning');
+                return;
             }
             // ISO dates compare correctly as strings. Empty collection (old orders) skips the check.
             if (collectionIso && collectionIso > deliveryIso) {

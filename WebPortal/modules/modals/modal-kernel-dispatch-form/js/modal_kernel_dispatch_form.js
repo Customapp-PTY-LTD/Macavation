@@ -9,6 +9,9 @@ var _modal_kernel_dispatch_form = (function () {
     var readOnlyMode = false;
     var _flatpickrInstance = null;
     var orderWasDispatched = false;
+    // Paperwork as last opened. revert_kernel_dispatch_order clears record on the server, so Edit re-applies this
+    // to the form (signature, comments, photos, attachments, transport details) and Save & dispatch writes it back.
+    var lastRecord = {};
     var dsp = DispatchFormShared.create({ prefix: 'kernelDsp', folder: 'Macavation/KernelDispatch' });
 
     /** Display date dd/mm/yyyy; use _common.formatDateDDMMYYYY when available (company standard). */
@@ -132,8 +135,10 @@ var _modal_kernel_dispatch_form = (function () {
                     if (rec != null && typeof rec === 'string') {
                         try { rec = JSON.parse(rec); } catch (e) { rec = null; }
                     }
-                    scope.applyDispatchRecord(rec || {}, data.order);
+                    lastRecord = rec || {};
+                    scope.applyDispatchRecord(lastRecord, data.order);
                 } else {
+                    lastRecord = {};
                     var dateInputB = document.getElementById('dispatchDateDispatched');
                     if (dateInputB) dateInputB.value = formatDateForDisplay(new Date());
                 }
@@ -383,7 +388,7 @@ var _modal_kernel_dispatch_form = (function () {
                     var order = data && data.order ? data.order : null;
                     scope.renderBasketLines(lines, order);
                     orderWasDispatched = false;
-                    scope.applyDispatchRecord({}, order || {});
+                    scope.applyDispatchRecord(lastRecord || {}, order || {});
                     return loadExtras(order, false).then(function () {
                         scope.setFormReadOnly(false);
                         dsp.setReadOnly(false);

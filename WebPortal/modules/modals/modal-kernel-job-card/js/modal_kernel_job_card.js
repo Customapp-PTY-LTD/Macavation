@@ -207,7 +207,9 @@ var _modal_kernel_job_card = (function () {
                         var opts = Object.assign({}, FLATPICKR_DDMMYYYY);
                         if (el.id === 'jobCardPackingStartDate') {
                             opts.onChange = function (selectedDates) {
-                                _jobCardPackingStartISO = selectedDates[0] ? selectedDates[0].toISOString().split('T')[0] : null;
+                                // Local date parts, not toISOString(): local midnight in SAST is the previous day in UTC.
+                                var sd = selectedDates[0];
+                                _jobCardPackingStartISO = sd ? (sd.getFullYear() + '-' + String(sd.getMonth() + 1).padStart(2, '0') + '-' + String(sd.getDate()).padStart(2, '0')) : null;
                                 _jobCardBestBeforeISO = _jobCardPackingStartISO ? bestBeforeFromPackingStartISO(_jobCardPackingStartISO) : null;
                                 scope.syncBestBeforeFromStartDate();
                             };
