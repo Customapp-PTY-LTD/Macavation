@@ -215,11 +215,12 @@ var _kernelDispatchGrid = function () {
                 var pendingMsg = scope.listFiltersActive()
                     ? 'No baskets match your search in <strong>Ready to dispatch</strong>. Try buyer name, batch #, or supplier received date, or clear search.'
                     : 'No orders ready to dispatch. Go to Stock (Kernel), select styles for batches, then Send to Dispatch to create an order.';
-                pendingTbody.html('<tr><td colspan="6" class="text-center text-muted py-4">' + pendingMsg + '</td></tr>');
+                pendingTbody.html('<tr><td colspan="8" class="text-center text-muted py-4">' + pendingMsg + '</td></tr>');
             } else {
                 pending.forEach(function (o) {
                     var buyer = (o.buyer_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') || '—';
                     var deliveryStr = formatDate(o.delivery_date);
+                    var collectionStr = formatDate(o.planned_collection_date) || '—';
                     var createdStr = formatDate(o.created_at);
                     var lineCount = o.line_count != null ? o.line_count : 0;
                     var totalKg = o.total_kg != null ? Number(o.total_kg) : 0;
@@ -232,7 +233,7 @@ var _kernelDispatchGrid = function () {
                             { label: 'Dispatch', className: 'js-dispatch-order', icon: 'fas fa-truck', dataAttrs: { 'order-id': o.id || '' } }
                         ]
                     });
-                    pendingTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td class="mac-table-actions-col">' + statusBadge + ' ' + actions + '</td></tr>');
+                    pendingTbody.append('<tr><td>' + buyer + '</td><td>' + collectionStr + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(2) + ' kg</td><td>' + statusBadge + '</td><td class="mac-table-actions-col">' + actions + '</td></tr>');
                 });
             }
 
@@ -242,11 +243,12 @@ var _kernelDispatchGrid = function () {
                 var dispMsg = scope.listFiltersActive()
                     ? 'No baskets match your search in <strong>Dispatched</strong>. Adjust search or clear it.'
                     : 'No baskets marked as dispatched yet. Use the Dispatch button above to complete an order.';
-                dispatchedTbody.html('<tr><td colspan="6" class="text-center text-muted py-4">' + dispMsg + '</td></tr>');
+                dispatchedTbody.html('<tr><td colspan="8" class="text-center text-muted py-4">' + dispMsg + '</td></tr>');
             } else {
                 dispatched.forEach(function (o) {
                     var buyer = (o.buyer_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') || '—';
                     var deliveryStr = formatDate(o.delivery_date);
+                    var collectionStr = formatDate(o.planned_collection_date) || '—';
                     var createdStr = formatDate(o.created_at);
                     var lineCount = o.line_count != null ? o.line_count : 0;
                     var totalKg = o.total_kg != null ? Number(o.total_kg) : 0;
@@ -258,7 +260,7 @@ var _kernelDispatchGrid = function () {
                             { label: 'View sheet', className: 'js-view-dispatch-order', icon: 'fas fa-clipboard-list', dataAttrs: { 'order-id': o.id || '' } }
                         ]
                     });
-                    dispatchedTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td class="mac-table-actions-col">' + statusBadge + ' ' + actions + '</td></tr>');
+                    dispatchedTbody.append('<tr><td>' + buyer + '</td><td>' + collectionStr + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(2) + ' kg</td><td>' + statusBadge + '</td><td class="mac-table-actions-col">' + actions + '</td></tr>');
                 });
             }
             MacTableActions.init(document.getElementById('kernelDispatchTable'));
@@ -294,6 +296,7 @@ var _kernelDispatchGrid = function () {
                 var esc = KanbanHelper._esc;
                 var buyer = esc(o.buyer_name || '—');
                 var deliveryStr = formatDate(o.delivery_date);
+                var collectionStr = formatDate(o.planned_collection_date);
                 var createdStr = formatDate(o.created_at);
                 var lineCount = o.line_count != null ? o.line_count : 0;
                 var totalKg = o.total_kg != null ? Number(o.total_kg).toFixed(1) : '0.0';
@@ -302,7 +305,8 @@ var _kernelDispatchGrid = function () {
                 var html = '<div class="kanban-card" data-order-id="' + (o.id || '') + '">';
                 html += '<div class="kanban-card-title">' + buyer + '</div>';
                 html += '<div class="kanban-card-meta">';
-                if (deliveryStr) html += '<div class="kanban-card-meta-item"><i class="fas fa-calendar"></i> ' + esc(deliveryStr) + '</div>';
+                if (collectionStr) html += '<div class="kanban-card-meta-item"><i class="fas fa-calendar-plus"></i> Collect ' + esc(collectionStr) + '</div>';
+                if (deliveryStr) html += '<div class="kanban-card-meta-item"><i class="fas fa-calendar"></i> Deliver ' + esc(deliveryStr) + '</div>';
                 html += '<div class="kanban-card-meta-item"><i class="fas fa-list"></i> ' + lineCount + ' lines</div>';
                 html += '<div class="kanban-card-meta-item"><i class="fas fa-weight-hanging"></i> ' + totalKg + ' kg</div>';
                 html += '</div>';

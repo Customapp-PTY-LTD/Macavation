@@ -17,8 +17,15 @@ function fromISO(isoStr) {
     return parts[2] + '/' + parts[1] + '/' + parts[0];
 }
 
-/** Best Before = packing start + _common.KERNEL_BEST_BEFORE_MONTHS. Returns YYYY-MM-DD or null. */
-function bestBeforeFromPackingStartISO(isoStr) {
+/**
+ * Best Before for a packing start date. Keeps the stored best-before (storedBestBeforeISO, from the saved job card) only
+ * when the saved packing start (storedStartISO) is known and equals the current one; otherwise
+ * packing start + _common.KERNEL_BEST_BEFORE_MONTHS (configured in Kernel Pipeline Settings). Returns YYYY-MM-DD or null.
+ */
+function bestBeforeFromPackingStartISO(isoStr, storedBestBeforeISO, storedStartISO) {
+    var stored = storedBestBeforeISO ? String(storedBestBeforeISO).split('T')[0] : null;
+    var storedStart = storedStartISO ? String(storedStartISO).split('T')[0] : null;
+    if (stored && /^\d{4}-\d{2}-\d{2}$/.test(stored) && storedStart && storedStart === isoStr) return stored;
     if (typeof _common === 'undefined' || !_common.kernelBestBeforeFromPackingStart) return null;
     return _common.kernelBestBeforeFromPackingStart(isoStr);
 }
@@ -300,6 +307,8 @@ var _modal_production_stages = (function () {
         },
 
         init: () => {
+            // Warm the configured shelf-life months (Best Before) before any job card payload is built; falls back to 24.
+            if (typeof _common !== 'undefined' && _common.loadKernelPipelineConfig) _common.loadKernelPipelineConfig();
             const scope = _modal_production_stages;
             $('#productionStagesTabs').off('shown.bs.tab').on('shown.bs.tab', function (e) {
                 var newTabId = (e.target && e.target.id) ? e.target.id : ($(e.target).attr && $(e.target).attr('id'));
@@ -1663,7 +1672,11 @@ var _modal_production_stages = (function () {
                 var crackDates = unwrapped.map(function (s) { return (s.cracking_data && s.cracking_data.date) ? String(s.cracking_data.date).split('T')[0] : null; }).filter(function (d) { return d && /^\d{4}-\d{2}-\d{2}$/.test(d); });
                 if (crackDates.length) { crackDates.sort(); receivedDate = crackDates[0]; }
             }
-            // Start = chronologically first packing date (earliest calendar date). Best Before = Start + _common.KERNEL_BEST_BEFORE_MONTHS.
+            // Start = chronologically first packing date (earliest calendar date). Best Before = the saved job card's value if its
+            // packing start is unchanged, else Start + _common.KERNEL_BEST_BEFORE_MONTHS. (get_kernel_batches has no packing_start_date,
+            // so the saved job card comes from the loaded batch detail.)
+            var savedDetail = _modal_production_stages._loadedKernelDetail;
+            var savedJc = (savedDetail && savedDetail.job_card_data && typeof savedDetail.job_card_data === 'object') ? savedDetail.job_card_data : {};
             var packingDates = [];
             unwrapped.forEach(function (s) {
                 var p = s.packing_data;
@@ -1675,7 +1688,7 @@ var _modal_production_stages = (function () {
             packingDates.sort();
             var packingStart = packingDates.length ? packingDates[0] : null;
             var packingCompletion = packingDates.length ? packingDates[packingDates.length - 1] : null;
-            var bestBeforeDate = (packingStart && /^\d{4}-\d{2}-\d{2}$/.test(packingStart)) ? bestBeforeFromPackingStartISO(packingStart) : null;
+            var bestBeforeDate = (packingStart && /^\d{4}-\d{2}-\d{2}$/.test(packingStart)) ? bestBeforeFromPackingStartISO(packingStart, savedJc.best_before_date, savedJc.packing_start_date) : null;
             var p = (agg.packing_data && typeof agg.packing_data === 'object') ? agg.packing_data : {};
             var soundKernelStyles = [];
             [
@@ -2134,6 +2147,13 @@ var _modal_production_stages = (function () {
         /** Completes the "Finish batch production" action: sets production_finished_at, status→qa, auto-saves job card, closes modal, refreshes grid. */
         doFinishBatchProduction: (batchId) => {
             const scope = _modal_production_stages;
+            // The configured shelf-life months must be loaded before the job card's best-before is built (resolves null on failure -> 24).
+            if (!scope._shelfLifeReady && typeof _common !== 'undefined' && _common.loadKernelPipelineConfig) {
+                return _common.loadKernelPipelineConfig().then(function () {
+                    scope._shelfLifeReady = true;
+                    return scope.doFinishBatchProduction(batchId);
+                });
+            }
             if (typeof dataFunctions === 'undefined' || typeof dataFunctions.upsertKernelProduction !== 'function') {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Finish batch function not available', 'error');
                 return;

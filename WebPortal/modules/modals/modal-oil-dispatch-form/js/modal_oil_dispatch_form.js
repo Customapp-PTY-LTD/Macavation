@@ -8,6 +8,8 @@ var _modal_oil_dispatch_form = (function () {
     var currentOrderId = null;
     var readOnlyMode = false;
     var _flatpickrInstance = null;
+    var orderWasDispatched = false;
+    var dsp = DispatchFormShared.create({ prefix: 'oilDsp', folder: 'Macavation/OilDispatch' });
 
     function formatDateForDisplay(v) {
         if (!v) return '';
@@ -41,12 +43,44 @@ var _modal_oil_dispatch_form = (function () {
         return _common.escapeHtml(s);
     }
 
+    /** Fill a text input only when it is currently empty. */
+    function fillIfEmpty(id, val) {
+        var $el = $('#' + id);
+        if (val && !String($el.val() || '').trim()) { $el.val(val); return true; }
+        return false;
+    }
+
+    /** The "Filled from the customer record" / "Fills in once ..." hints under the prefilled fields. */
+    function showPrefillHints(person, cell, to) {
+        $('#oilDispatchPersonHint').toggleClass('d-none', !person);
+        $('#oilDispatchCellHint').toggleClass('d-none', !cell);
+        $('#oilDispatchDispatchedToHint').toggleClass('d-none', !to);
+    }
+
+    /** Loads the transporter list and (for an open order) pre-fills Attention / Cell / Dispatched to from the customer contact. Never rejects. */
+    function loadExtras(order, ro) {
+        var contactP = (!ro && order) ? dsp.loadCustomerContact(order.buyer_contact_id) : Promise.resolve(null);
+        return Promise.all([dsp.loadTransporters(), contactP]).then(function (r) {
+            var c = r[1];
+            if (ro || !order) return;
+            var filledPerson = false, filledTo = false;
+            if (c) {
+                filledPerson = fillIfEmpty('oilDispatchPerson', c.name);
+                fillIfEmpty('oilDispatchCell', c.cell);
+                filledTo = fillIfEmpty('oilDispatchDispatchedTo', c.company);
+            }
+            filledTo = fillIfEmpty('oilDispatchDispatchedTo', order.buyer_name) || filledTo;
+            showPrefillHints(filledPerson, !String($('#oilDispatchCell').val() || '').trim(), filledTo);
+        }).catch(function (e) { console.warn('[Dispatch form] extras failed', e); });
+    }
+
     return {
         init: () => {
             const scope = _modal_oil_dispatch_form;
             var modalEl = document.getElementById('oilDispatchFormModal');
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
                 modalEl.addEventListener('shown.bs.modal', function () {
+                    dsp.initSignature();
                     var input = document.getElementById('oilDispatchDateDispatched');
                     if (input && typeof flatpickr !== 'undefined') {
                         if (_flatpickrInstance) _flatpickrInstance.destroy();
@@ -59,6 +93,7 @@ var _modal_oil_dispatch_form = (function () {
                     readOnlyMode = false;
                 });
             }
+            dsp.init();
             scope.initHandlers();
         },
 
@@ -83,6 +118,8 @@ var _modal_oil_dispatch_form = (function () {
                 if (dateInputA) dateInputA.value = formatDateForDisplay(new Date());
                 readOnlyMode = false;
                 scope.setFormReadOnly(false);
+                dsp.setReadOnly(false);
+                dsp.loadTransporters();
                 scope.openModal();
                 return;
             }
@@ -105,8 +142,12 @@ var _modal_oil_dispatch_form = (function () {
                     if (dateInputB) dateInputB.value = formatDateForDisplay(new Date());
                 }
 
-                scope.setFormReadOnly(ro);
-                scope.openModal();
+                orderWasDispatched = ro;
+                return loadExtras(data && data.order ? data.order : null, ro).then(function () {
+                    scope.setFormReadOnly(ro);
+                    dsp.setReadOnly(ro);
+                    scope.openModal();
+                });
             }).catch(function (e) {
                 console.warn('[Oil Dispatch Form] Could not load order', e);
                 readOnlyMode = false;
@@ -114,6 +155,8 @@ var _modal_oil_dispatch_form = (function () {
                 var dateInputC = document.getElementById('oilDispatchDateDispatched');
                 if (dateInputC) dateInputC.value = formatDateForDisplay(new Date());
                 scope.setFormReadOnly(false);
+                dsp.setReadOnly(false);
+                dsp.loadTransporters();
                 scope.openModal();
             });
         },
@@ -123,10 +166,11 @@ var _modal_oil_dispatch_form = (function () {
             var meta = document.getElementById('oilDispatchFormOrderMeta');
             if (meta) {
                 if (order) {
+                    var col = formatDateForDisplay(order.planned_collection_date);
                     var del = formatDateForDisplay(order.delivery_date);
                     var parts = [order.buyer_name || '—'];
-                    if (del) parts.push('Delivery ' + del);
-                    if (order.status) parts.push(order.status);
+                    if (col) parts.push('collect ' + col);
+                    if (del) parts.push('deliver ' + del);
                     meta.textContent = parts.join(' · ');
                 } else {
                     meta.textContent = '';
@@ -148,7 +192,7 @@ var _modal_oil_dispatch_form = (function () {
                     qtyDisplay = qtyL.toFixed(2) + ' L';
                     if (qtyKg != null && !isNaN(qtyKg)) qtyDisplay += ' <span class="text-muted small">(≈ ' + qtyKg.toFixed(1) + ' kg)</span>';
                 } else if (line.cartons != null && line.cartons >= 0) {
-                    qtyDisplay = line.cartons + ' ct · ' + (qtyKg != null ? qtyKg : '—') + ' kg';
+                    qtyDisplay = '<strong>' + DispatchFormShared.cartonLabel(line.cartons) + '</strong> · ' + (qtyKg != null ? Number(qtyKg).toFixed(2) : '—') + ' kg';
                 } else {
                     qtyDisplay = qtyKg != null ? qtyKg + ' kg' : '—';
                 }
@@ -160,15 +204,11 @@ var _modal_oil_dispatch_form = (function () {
 
         applyDispatchRecord: (record, order) => {
             record = record || {};
-            setRadioByValue('oilVehicleClean', record.vehicle_clean_yn);
-            setRadioByValue('oilVehicleEnclosed', record.vehicle_enclosed_yn);
-            setRadioByValue('oilHazardSubstances', record.hazard_substances_yn);
-            setRadioByValue('oilPestInfestations', record.pest_infestations_yn);
-            setRadioByValue('oilPalletsCondition', record.pallets_condition_yn);
-            setRadioByValue('oilTruckBinLocked', record.truck_bin_locked_yn);
+            dsp.setInspection(record);
 
             $('#oilDispatchPerson').val(record.dispatch_person || '');
-            $('#oilDispatchTransportCompany').val(record.transport_company || '');
+            $('#oilDispatchCell').val(record.attention_cell || '');
+            dsp.setTransporter(record.transport_company || '', record.transporter_id || null);
             $('#oilDispatchDeliveryNote').val(record.delivery_note_number || '');
             var dateInput = document.getElementById('oilDispatchDateDispatched');
             if (dateInput) {
@@ -187,8 +227,10 @@ var _modal_oil_dispatch_form = (function () {
             } else {
                 $('#oilDispatchTime').val('');
             }
-            $('#oilDispatchDispatchedTo').val(record.dispatched_to || order.buyer_name || '');
-            $('#oilDispatchSignature').val(record.dispatch_signature || '');
+            // Empty here is filled from the customer contact (or the buyer name) by loadExtras().
+            $('#oilDispatchDispatchedTo').val(record.dispatched_to || '');
+            dsp.setSignature(record.dispatch_signature || '');
+            dsp.setAttachments(record.attachments);
         },
 
         setFormReadOnly: (ro) => {
@@ -224,11 +266,9 @@ var _modal_oil_dispatch_form = (function () {
             var tbody = document.getElementById('oilDispatchFormBasketBody');
             if (tbody) tbody.innerHTML = '';
 
-            var names = ['oilVehicleClean', 'oilVehicleEnclosed', 'oilHazardSubstances', 'oilPestInfestations', 'oilPalletsCondition', 'oilTruckBinLocked'];
-            names.forEach(function (name) {
-                $('input[name="' + name + '"]').prop('checked', false);
-            });
-            var ids = ['oilDispatchPerson', 'oilDispatchTransportCompany', 'oilDispatchDeliveryNote', 'oilDispatchDateDispatched', 'oilDispatchTruckReg', 'oilDispatchDriverName', 'oilDispatchTime', 'oilDispatchDispatchedTo', 'oilDispatchSignature', 'oilDispatchFormOrderId'];
+            dsp.reset();
+            showPrefillHints(false, false, false);
+            var ids = ['oilDispatchPerson', 'oilDispatchCell', 'oilDispatchDeliveryNote', 'oilDispatchDateDispatched', 'oilDispatchTruckReg', 'oilDispatchDriverName', 'oilDispatchTime', 'oilDispatchDispatchedTo', 'oilDispatchFormOrderId'];
             ids.forEach(function (id) {
                 $('#' + id).val('');
             });
@@ -265,30 +305,41 @@ var _modal_oil_dispatch_form = (function () {
                 return;
             }
 
-            var vehicleClean = $('input[name="oilVehicleClean"]:checked');
-            var vehicleEnclosed = $('input[name="oilVehicleEnclosed"]:checked');
-            var hazardSubstances = $('input[name="oilHazardSubstances"]:checked');
-            var pestInfestations = $('input[name="oilPestInfestations"]:checked');
-            var palletsCondition = $('input[name="oilPalletsCondition"]:checked');
-            var truckBinLocked = $('input[name="oilTruckBinLocked"]:checked');
+            if (dsp.isUploading()) {
+                if (typeof Swal !== 'undefined') Swal.fire('Please wait', 'A file is still uploading. Try again in a moment.', 'info');
+                return;
+            }
+            var problems = dsp.validateInspection(!orderWasDispatched);
+            if (problems.length) {
+                if (typeof Swal !== 'undefined') Swal.fire('Check the inspection', problems[0] + (problems.length > 1 ? ' (and ' + (problems.length - 1) + ' more)' : ''), 'warning');
+                return;
+            }
+            var insp = dsp.getInspection();
+            var transport = dsp.getTransporter();
+            var attachments = dsp.getAttachments();
 
             var payload = {
                 dispatch_order_id: orderId,
-                vehicle_clean_yn: vehicleClean.length ? vehicleClean.val() : null,
-                vehicle_enclosed_yn: vehicleEnclosed.length ? vehicleEnclosed.val() : null,
-                hazard_substances_yn: hazardSubstances.length ? hazardSubstances.val() : null,
-                pest_infestations_yn: pestInfestations.length ? pestInfestations.val() : null,
-                pallets_condition_yn: palletsCondition.length ? palletsCondition.val() : null,
-                truck_bin_locked_yn: truckBinLocked.length ? truckBinLocked.val() : null,
+                vehicle_clean_yn: insp.answers.vehicle_clean_yn,
+                vehicle_enclosed_yn: insp.answers.vehicle_enclosed_yn,
+                hazard_substances_yn: insp.answers.hazard_substances_yn,
+                pest_infestations_yn: insp.answers.pest_infestations_yn,
+                pallets_condition_yn: insp.answers.pallets_condition_yn,
+                truck_bin_locked_yn: insp.answers.truck_bin_locked_yn,
                 dispatch_person: ($('#oilDispatchPerson').val() || '').trim() || null,
-                transport_company: ($('#oilDispatchTransportCompany').val() || '').trim() || null,
+                attention_cell: ($('#oilDispatchCell').val() || '').trim() || null,
+                transport_company: transport.name,
+                transporter_id: transport.id,
                 delivery_note_number: ($('#oilDispatchDeliveryNote').val() || '').trim() || null,
                 date_dispatched: scope.getDateISO(),
                 truck_registration: ($('#oilDispatchTruckReg').val() || '').trim() || null,
                 driver_name: ($('#oilDispatchDriverName').val() || '').trim() || null,
                 time_dispatched: ($('#oilDispatchTime').val() || '').trim() || null,
                 dispatched_to: ($('#oilDispatchDispatchedTo').val() || '').trim() || null,
-                dispatch_signature: ($('#oilDispatchSignature').val() || '').trim() || null
+                dispatch_signature: dsp.getSignature(),
+                inspection_comments: insp.comments,
+                inspection_photos: insp.photos,
+                attachments: attachments
             };
 
             if (typeof dataFunctions === 'undefined' || !dataFunctions.saveOilDispatchRecord) {

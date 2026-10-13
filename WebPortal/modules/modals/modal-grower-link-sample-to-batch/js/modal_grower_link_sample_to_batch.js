@@ -97,22 +97,12 @@ var _modal_grower_link_sample_to_batch = (function () {
         return null;
     }
 
-    // Returns 'ok' | 'warn' | 'bad' | 'noLimits' | '' (no value entered)
-    function classifySpec(spec, value) {
-        if (value == null) return '';
-        if (!spec || spec.green_limit == null || spec.yellow_limit == null) return 'noLimits';
-        var g = Number(spec.green_limit), y = Number(spec.yellow_limit);
-        if (isNaN(g) || isNaN(y)) return 'noLimits';
-        if (spec.direction === 'min') return value >= g ? 'ok' : (value >= y ? 'warn' : 'bad');
-        return value <= g ? 'ok' : (value <= y ? 'warn' : 'bad');
-    }
-
     function updateSpecColours() {
         Object.keys(SPEC_INPUTS).forEach(function (key) {
             var input = document.getElementById(SPEC_INPUTS[key]);
             var hint = document.getElementById(SPEC_INPUTS[key] + 'Hint');
             if (!input) return;
-            var state = classifySpec(getSpec(key), getFloat(SPEC_INPUTS[key]));
+            var state = _common.classifySpec(getSpec(key), getFloat(SPEC_INPUTS[key]));
             input.classList.remove('is-valid', 'is-invalid', 'border-warning');
             if (state === 'ok') input.classList.add('is-valid');
             else if (state === 'warn') input.classList.add('border-warning');

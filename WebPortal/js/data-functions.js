@@ -5230,7 +5230,8 @@ var _dataFunctions = function () {
                 p_delivery_date: payload.delivery_date || null,
                 p_best_before_date: payload.best_before_date || null,
                 p_buyer_contact_id: payload.buyer_contact_id || null,
-                p_lines: Array.isArray(payload.lines) ? payload.lines : []
+                p_lines: Array.isArray(payload.lines) ? payload.lines : [],
+                p_planned_collection_date: payload.planned_collection_date || null
             };
             const result = await this._callWithActor('create_kernel_dispatch_order', params, token, { useCache: false });
             this.clearCachePattern('kernel_dispatch_orders_list');
@@ -5247,14 +5248,15 @@ var _dataFunctions = function () {
             return result;
         },
 
-        /** Update buyer, delivery/best-before dates, and line cartons (not allowed after dispatched). */
+        /** Update buyer, planned collection/delivery/best-before dates, and line cartons (not allowed after dispatched). */
         updateKernelDispatchOrder: async function (payload, token = null) {
             const params = {
                 p_order_id: payload.order_id || null,
                 p_buyer_name: payload.buyer_name != null ? payload.buyer_name : null,
                 p_delivery_date: payload.delivery_date || null,
                 p_best_before_date: payload.best_before_date != null ? payload.best_before_date : null,
-                p_lines: Array.isArray(payload.lines) ? payload.lines : []
+                p_lines: Array.isArray(payload.lines) ? payload.lines : [],
+                p_planned_collection_date: payload.planned_collection_date || null
             };
             const result = await this.callFunction('update_kernel_dispatch_order', params, token, { useCache: false });
             this.clearCachePattern('kernel_dispatch_orders_list');
@@ -5353,7 +5355,12 @@ var _dataFunctions = function () {
                 p_driver_name: payload.driver_name || null,
                 p_time_dispatched: payload.time_dispatched || null,
                 p_dispatched_to: payload.dispatched_to || null,
-                p_dispatch_signature: payload.dispatch_signature || null
+                p_dispatch_signature: payload.dispatch_signature || null,
+                p_attention_cell: payload.attention_cell || null,
+                p_transporter_id: payload.transporter_id || null,
+                p_inspection_comments: payload.inspection_comments || null,
+                p_inspection_photos: payload.inspection_photos || null,
+                p_attachments: payload.attachments || null
             };
             const result = await this.callFunction('save_kernel_dispatch_record', params, token, { useCache: false });
             this.clearCachePattern('kernel_dispatch_orders_list');
@@ -5443,7 +5450,12 @@ var _dataFunctions = function () {
                 p_driver_name: payload.driver_name || null,
                 p_time_dispatched: payload.time_dispatched || null,
                 p_dispatched_to: payload.dispatched_to || null,
-                p_dispatch_signature: payload.dispatch_signature || null
+                p_dispatch_signature: payload.dispatch_signature || null,
+                p_attention_cell: payload.attention_cell || null,
+                p_transporter_id: payload.transporter_id || null,
+                p_inspection_comments: payload.inspection_comments || null,
+                p_inspection_photos: payload.inspection_photos || null,
+                p_attachments: payload.attachments || null
             };
             const result = await this.callFunction('save_oil_dispatch_record', params, token, { useCache: false });
             this.clearCachePattern('oil_dispatch_orders_list');
