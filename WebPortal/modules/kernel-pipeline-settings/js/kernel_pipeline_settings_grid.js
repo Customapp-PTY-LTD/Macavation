@@ -56,9 +56,9 @@ var _kernelPipelineSettingsGrid = (function () {
 
     function dis() { return canEdit() ? '' : ' disabled'; }
 
-    function saveBtn(id) {
+    function saveBtn(id, label) {
         return canEdit()
-            ? '<button type="button" class="btn btn-primary btn-sm" id="' + id + '"><i class="fas fa-save me-1"></i>Save</button>'
+            ? '<button type="button" class="btn btn-primary btn-sm" id="' + id + '"><i class="fas fa-save me-1"></i>' + esc(label || 'Save') + '</button>'
             : '';
     }
 
@@ -163,18 +163,17 @@ var _kernelPipelineSettingsGrid = (function () {
         var body = '<div class="mb-4"><label class="form-label" for="kpsShelfMonths">Kernel best before (months after packing start)</label>' +
             '<input type="number" step="1" min="1" max="60" class="form-control kps-num" id="kpsShelfMonths" value="' + numAttr(v.months) + '"' + dis() + '>' +
             '<div class="kps-hint">Applies to new batches. Existing best-before dates are not changed.</div></div>' +
-            '<h6>Time Left colours</h6>' +
+            '<h6>Time Left colours on Kernel Stock</h6>' +
             '<div class="d-flex flex-wrap align-items-center gap-2">' +
-            '<span class="badge bg-success">Green</span><span>when more than</span>' +
+            '<span class="badge bg-success">Green</span><span>more than</span>' +
             '<input type="number" step="1" min="2" max="120" class="form-control form-control-sm kps-num" id="kpsBandGreen" value="' + numAttr(v.green) + '" aria-label="Green when more than this many months"' + dis() + '>' +
             '<span>months</span></div>' +
             '<div class="d-flex flex-wrap align-items-center gap-2 mt-2">' +
             '<span class="badge bg-warning text-dark">Yellow</span><span>from</span>' +
             '<input type="number" step="1" min="1" max="119" class="form-control form-control-sm kps-num" id="kpsBandYellow" value="' + numAttr(v.yellow) + '" aria-label="Yellow from this many months"' + dis() + '>' +
-            '<span>months</span></div>' +
-            '<div class="d-flex flex-wrap align-items-center gap-2 mt-2"><span class="badge bg-danger">Red</span><span>below that, or expired</span></div>' +
-            '<div class="kps-hint mt-2">Shown on the Time Left column of the Kernel Stock grid. Green months must be more than yellow months.</div>';
-        return card('Shelf life', body, saveBtn('kpsSaveShelf'));
+            '<span>months up to green</span></div>' +
+            '<div class="d-flex flex-wrap align-items-center gap-2 mt-2"><span class="badge bg-danger">Red</span><span>under the yellow months, or expired</span></div>';
+        return card('Shelf life', body, saveBtn('kpsSaveShelf', 'Save shelf life'));
     }
 
     function listHtml(kind, items) {

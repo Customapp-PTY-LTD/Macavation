@@ -34,6 +34,11 @@ var _modal_stock_send_to_dispatch = (function () {
     function cartonLabel(n) {
         return n + (n === 1 ? ' Carton' : ' Cartons');
     }
+    /** The single note under a carton input: 'of N' (empty), '= x kg' (entered) or 'max N' (over). */
+    function setQtyNote(el, kind, text) {
+        el.className = 'small text-center js-dispatch-qty-kg ' + (kind === 'over' ? 'text-danger fw-semibold' : (kind === 'kg' ? 'text-primary fw-semibold' : 'text-muted'));
+        el.textContent = text;
+    }
     function cartonsToKg(n) {
         return Math.round(n * KG_PER_CARTON * 100) / 100;
     }
@@ -151,6 +156,8 @@ var _modal_stock_send_to_dispatch = (function () {
             if (step2) step2.style.display = 'none';
             if (footer1) footer1.style.display = '';
             if (footer2) footer2.style.display = 'none';
+            $('#sendToDispatchTitleText').text('Send to Dispatch');
+            $('#sendToDispatchStepLabel').text('Step 1 of 2');
         },
 
         showStep2: function (details) {
@@ -162,6 +169,8 @@ var _modal_stock_send_to_dispatch = (function () {
             if (step2) step2.style.display = '';
             if (footer1) footer1.style.display = 'none';
             if (footer2) footer2.style.display = '';
+            $('#sendToDispatchTitleText').text('Select Stock');
+            $('#sendToDispatchStepLabel').text('Step 2 of 2');
             var d = details || _pendingDetails || {};
             var buyerLabelEl = document.getElementById('sendToDispatchStep2BuyerLabel');
             var collectionLabelEl = document.getElementById('sendToDispatchStep2CollectionLabel');
@@ -212,10 +221,8 @@ var _modal_stock_send_to_dispatch = (function () {
                 var tr = document.createElement('tr');
 
                 var tdBatch = document.createElement('td');
-                var badge = document.createElement('span');
-                badge.className = 'badge bg-secondary';
-                badge.textContent = (b.batch_number || '').toString();
-                tdBatch.appendChild(badge);
+                tdBatch.className = 'fw-semibold';
+                tdBatch.textContent = (b.batch_number || '').toString();
                 tr.appendChild(tdBatch);
 
                 var bbISO = toISODate(b.best_before_date);
@@ -271,15 +278,12 @@ var _modal_stock_send_to_dispatch = (function () {
                     var fb = document.createElement('div');
                     fb.className = 'invalid-feedback small text-end';
                     var kg = document.createElement('div');
-                    kg.className = 'small text-muted text-end js-dispatch-qty-kg';
-                    if (selectedLine && selectedLine.cartons > 0) kg.textContent = '= ' + cartonsToKg(selectedLine.cartons).toFixed(2) + ' kg';
-                    var avail = document.createElement('div');
-                    avail.className = 'small text-muted text-end';
-                    avail.textContent = 'of ' + cartonsAvail;
+                    kg.className = 'js-dispatch-qty-kg';
+                    if (selectedLine && selectedLine.cartons > 0) setQtyNote(kg, 'kg', '= ' + cartonsToKg(selectedLine.cartons).toFixed(2) + ' kg');
+                    else setQtyNote(kg, 'avail', 'of ' + cartonsAvail);
                     td.appendChild(input);
                     td.appendChild(fb);
                     td.appendChild(kg);
-                    td.appendChild(avail);
                     tr.appendChild(td);
                 });
                 body.appendChild(tr);
@@ -305,19 +309,23 @@ var _modal_stock_send_to_dispatch = (function () {
             var kgEl = cell ? cell.querySelector('.js-dispatch-qty-kg') : null;
             var idx = _dispatchLines.findIndex(function (l) { return l.kernel_id === batchId && String(l.style) === style; });
             var msg = '';
+            var over = false;
             var cartons = 0;
             if (raw !== '') {
                 if (!/^\d+$/.test(raw)) {
                     msg = 'Whole cartons only (no decimals or negatives).';
                 } else {
                     cartons = parseInt(raw, 10);
-                    if (cartons > maxCartons) msg = 'Only ' + maxCartons + ' available.';
+                    if (cartons > maxCartons) over = true;
                 }
             }
-            if (msg) {
+            if (msg || over) {
                 inputEl.classList.add('is-invalid');
                 if (fb) fb.textContent = msg;
-                if (kgEl) kgEl.textContent = '';
+                if (kgEl) {
+                    if (over) setQtyNote(kgEl, 'over', 'max ' + maxCartons);
+                    else setQtyNote(kgEl, 'avail', 'of ' + maxCartons);
+                }
                 // An invalid entry is not part of the order until it is corrected.
                 if (idx >= 0) _dispatchLines.splice(idx, 1);
             } else {
@@ -325,11 +333,11 @@ var _modal_stock_send_to_dispatch = (function () {
                 if (fb) fb.textContent = '';
                 if (cartons <= 0) {
                     if (idx >= 0) _dispatchLines.splice(idx, 1);
-                    if (kgEl) kgEl.textContent = '';
+                    if (kgEl) setQtyNote(kgEl, 'avail', 'of ' + maxCartons);
                 } else {
                     var line = { kernel_id: batchId, batch_number: batchNum, style: style, quantity_kg: cartonsToKg(cartons), cartons: cartons };
                     if (idx >= 0) _dispatchLines[idx] = line; else _dispatchLines.push(line);
-                    if (kgEl) kgEl.textContent = '= ' + cartonsToKg(cartons).toFixed(2) + ' kg';
+                    if (kgEl) setQtyNote(kgEl, 'kg', '= ' + cartonsToKg(cartons).toFixed(2) + ' kg');
                 }
             }
             api.renderBasket();
@@ -346,6 +354,7 @@ var _modal_stock_send_to_dispatch = (function () {
             if (_dispatchLines.length === 0) {
                 if (basketEl) basketEl.style.display = 'none';
                 if (sendBtn) sendBtn.disabled = true;
+                if (basketTotal) basketTotal.textContent = '0 Cartons · 0.00 kg';
                 return;
             }
             if (basketEl) basketEl.style.display = '';
@@ -359,10 +368,8 @@ var _modal_stock_send_to_dispatch = (function () {
                 totalCartons += cartons;
                 var tr = document.createElement('tr');
                 var tdB = document.createElement('td');
-                var badge = document.createElement('span');
-                badge.className = 'badge bg-primary';
-                badge.textContent = line.batch_number || '—';
-                tdB.appendChild(badge);
+                tdB.className = 'fw-semibold';
+                tdB.textContent = line.batch_number || '—';
                 var tdS = document.createElement('td');
                 tdS.textContent = (line.style !== undefined && line.style !== null) ? line.style : '—';
                 var tdQ = document.createElement('td');
@@ -386,7 +393,7 @@ var _modal_stock_send_to_dispatch = (function () {
                 tr.appendChild(tdX);
                 basketBody.appendChild(tr);
             });
-            if (basketTotal) basketTotal.textContent = 'Total: ' + cartonLabel(totalCartons) + ' · ' + totalKg.toFixed(2) + ' kg';
+            if (basketTotal) basketTotal.textContent = cartonLabel(totalCartons) + ' · ' + totalKg.toFixed(2) + ' kg';
         },
 
         populateBuyerDropdown: function () {

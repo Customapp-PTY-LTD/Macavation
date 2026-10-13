@@ -51,7 +51,15 @@ var _modal_kernel_dispatch_form = (function () {
     /** Fill a text input only when it is currently empty. */
     function fillIfEmpty(id, val) {
         var $el = $('#' + id);
-        if (val && !String($el.val() || '').trim()) $el.val(val);
+        if (val && !String($el.val() || '').trim()) { $el.val(val); return true; }
+        return false;
+    }
+
+    /** The "Filled from the customer record" / "Fills in once ..." hints under the prefilled fields. */
+    function showPrefillHints(person, cell, to) {
+        $('#dispatchPersonHint').toggleClass('d-none', !person);
+        $('#dispatchCellHint').toggleClass('d-none', !cell);
+        $('#dispatchDispatchedToHint').toggleClass('d-none', !to);
     }
 
     /** Loads the transporter list and (for an open order) pre-fills Attention / Cell / Dispatched to from the customer contact. Never rejects. */
@@ -60,12 +68,14 @@ var _modal_kernel_dispatch_form = (function () {
         return Promise.all([dsp.loadTransporters(), contactP]).then(function (r) {
             var c = r[1];
             if (ro || !order) return;
+            var filledPerson = false, filledTo = false;
             if (c) {
-                fillIfEmpty('dispatchPerson', c.name);
+                filledPerson = fillIfEmpty('dispatchPerson', c.name);
                 fillIfEmpty('dispatchCell', c.cell);
-                fillIfEmpty('dispatchDispatchedTo', c.company);
+                filledTo = fillIfEmpty('dispatchDispatchedTo', c.company);
             }
-            fillIfEmpty('dispatchDispatchedTo', order.buyer_name);
+            filledTo = fillIfEmpty('dispatchDispatchedTo', order.buyer_name) || filledTo;
+            showPrefillHints(filledPerson, !String($('#dispatchCell').val() || '').trim(), filledTo);
         }).catch(function (e) { console.warn('[Dispatch form] extras failed', e); });
     }
 
@@ -167,10 +177,11 @@ var _modal_kernel_dispatch_form = (function () {
             var meta = document.getElementById('kernelDispatchFormOrderMeta');
             if (meta) {
                 if (order) {
+                    var col = formatDateForDisplay(order.planned_collection_date);
                     var del = formatDateForDisplay(order.delivery_date);
                     var parts = [order.buyer_name || '—'];
-                    if (del) parts.push('Delivery ' + del);
-                    if (order.status) parts.push(order.status);
+                    if (col) parts.push('collect ' + col);
+                    if (del) parts.push('deliver ' + del);
                     meta.textContent = parts.join(' · ');
                 } else {
                     meta.textContent = '';
@@ -190,7 +201,7 @@ var _modal_kernel_dispatch_form = (function () {
                     ? (Math.round(line.cartons * kgPerCarton * 100) / 100)
                     : (line.quantity_kg != null ? Number(line.quantity_kg) : null);
                 var qtyDisplay = (line.cartons != null && line.cartons >= 0)
-                    ? (DispatchFormShared.cartonLabel(line.cartons) + ' · ' + (qtyKg != null ? qtyKg : '—') + ' kg')
+                    ? ('<strong>' + DispatchFormShared.cartonLabel(line.cartons) + '</strong> · ' + (qtyKg != null ? Number(qtyKg).toFixed(2) : '—') + ' kg')
                     : (qtyKg != null ? qtyKg + ' kg' : '—');
                 tr.innerHTML = '<td>' + escapeHtml(line.batch_number || '—') + '</td><td>' + escapeHtml(line.style || '—') + '</td><td class="text-end">' + qtyDisplay + '</td>';
                 tbody.appendChild(tr);
@@ -263,6 +274,7 @@ var _modal_kernel_dispatch_form = (function () {
             if (tbody) tbody.innerHTML = '';
 
             dsp.reset();
+            showPrefillHints(false, false, false);
             var ids = ['dispatchPerson', 'dispatchCell', 'dispatchDeliveryNote', 'dispatchDateDispatched', 'dispatchTruckReg', 'dispatchDriverName', 'dispatchTime', 'dispatchDispatchedTo', 'kernelDispatchFormOrderId'];
             ids.forEach(function (id) {
                 $('#' + id).val('');

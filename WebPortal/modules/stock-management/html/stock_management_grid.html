@@ -169,6 +169,10 @@
             <div class="alert alert-info py-2 px-3 small mb-2" id="kernelAdjustModeHint" style="display: none;">
                 Adjustment mode is on. Click the batch/style cell you want to change, then enter <code>+</code> or <code>-</code> and the number of cartons.
             </div>
+            <div class="d-flex align-items-center flex-wrap gap-2 mb-2 small text-muted">
+                <span>Finished kernel batches · cartons per style</span>
+                <span class="ms-auto" id="kernelStockSortInfo">Click a heading to sort</span>
+            </div>
             <div class="table-responsive kernel-stock-table-wrapper">
                 <table class="table align-middle table-bordered" id="kernelStockByStyleTable">
                     <thead>
@@ -190,7 +194,7 @@
                             <th class="text-center">Batch action</th>
                         </tr>
                         <tr id="kernelStockByStyleTotalsRow" class="table-light fw-bold">
-                            <td>Totals</td>
+                            <td>Total</td>
                             <td class="text-end kernel-style-col" data-style="SP" title="Sound Kernel SP — premium SP grade. Remaining cartons (or carton equivalent from kg).">0</td>
                             <td class="text-end kernel-style-col" data-style="0" title="Sound kernel — style 0. Remaining cartons (or carton equivalent from kg).">0</td>
                             <td class="text-end kernel-style-col" data-style="1" title="Sound kernel — style 1. Remaining cartons (or carton equivalent from kg).">0</td>
@@ -201,13 +205,14 @@
                             <td class="text-end kernel-style-col" data-style="7/8" title="Butter — style 7/8. Remaining cartons (or carton equivalent from kg).">0</td>
                             <td class="text-end kernel-style-col" data-style="Butter High Oil" title="Butter High Oil grade. Remaining cartons (or carton equivalent from kg).">0</td>
                             <td class="text-end kernel-style-col" data-style="Butter Low Oil" title="Butter Low Oil grade. Remaining cartons (or carton equivalent from kg).">0</td>
-                            <td class="text-end" title="Totals not applicable">—</td><td class="text-end" title="Totals not applicable">—</td><td class="text-end" title="Totals not applicable">—</td>
+                            <td></td><td></td><td></td>
                             <td></td>
                         </tr>
                     </thead>
                     <tbody id="kernelStockByStyleBody"></tbody>
                 </table>
             </div>
+            <div class="d-flex flex-wrap align-items-center gap-4 mt-3 small" id="kernelStockLegend"></div>
                     <div class="d-flex justify-content-end mt-3" id="kernelAdjustModeAddBatchRow" style="display: none;">
                         <button type="button" class="btn btn-primary" id="kernelAdjustModeAddBatchBtn" data-action-perm="stock.import_batch">
                             <i class="fas fa-plus me-1"></i>Add Batch

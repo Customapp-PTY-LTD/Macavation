@@ -83,10 +83,10 @@
             } else {
                 $name = $('<span></span>').text(f.name || 'file');
             }
-            $row.append($('<i class="fas fa-paperclip text-muted"></i>')).append($name);
+            $row.append($name);
             if (canRemove) {
-                $row.append($('<button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" aria-label="Remove file"></button>')
-                    .append('<i class="fas fa-times"></i>')
+                $row.append($('<button type="button" class="btn btn-link btn-sm text-danger p-0 text-decoration-none">Remove</button>')
+                    .attr('aria-label', 'Remove ' + (f.name || 'file'))
                     .on('click', function () { onRemove(i); }));
             }
             $el.append($row);
@@ -158,30 +158,33 @@
 
         function buildCheck(c) {
             var name = radioName(c);
-            var $item = $('<div class="mb-3"></div>');
-            $item.append($('<label class="form-label"></label>').text(c.q));
-            var $opts = $('<div></div>');
+            var $item = $('<div class="py-2 border-bottom"></div>');
+            var $head = $('<div class="d-flex align-items-center justify-content-between gap-3"></div>');
+            $head.append($('<span></span>').text(c.q));
+            var $opts = $('<div class="d-flex gap-3"></div>');
             ['Yes', 'No'].forEach(function (v) {
                 var id = P + 'Chk_' + c.key + '_' + v;
                 var $input = $('<input class="form-check-input" type="radio">').attr({ name: name, id: id, value: v });
-                $opts.append($('<div class="form-check form-check-inline"></div>')
+                $opts.append($('<div class="form-check form-check-inline me-0"></div>')
                     .append($input)
                     .append($('<label class="form-check-label"></label>').attr('for', id).text(v)));
             });
-            $item.append($opts);
+            $head.append($opts);
+            $item.append($head);
 
-            var $extra = $('<div class="border rounded p-3 mt-2 d-none"></div>').attr('id', P + 'Extra_' + c.key);
+            var $extra = $('<div class="border border-danger-subtle bg-danger-subtle rounded p-3 mt-2 d-none"></div>').attr('id', P + 'Extra_' + c.key);
             var cId = P + 'Comment_' + c.key;
             var pId = P + 'Photos_' + c.key;
-            $extra.append($('<label class="form-label required"></label>').attr('for', cId).text('What was wrong and what action was taken?'));
+            $extra.append($('<label class="form-label fw-semibold text-danger"></label>').attr('for', cId).text('What was wrong and what action was taken? *'));
             $extra.append($('<textarea class="form-control mb-2" rows="2"></textarea>').attr('id', cId));
-            $extra.append($('<label class="form-label"></label>').attr('for', pId).text('Photos (optional)'));
-            $extra.append($('<input type="file" class="form-control form-control-sm" accept="image/*" multiple>').attr('id', pId));
+            $extra.append($('<button type="button" class="btn btn-outline-secondary btn-sm js-add-photo">Add photo</button>'));
+            $extra.append($('<input type="file" class="d-none" accept="image/*" multiple>').attr('id', pId));
             $extra.append($('<div class="text-danger small mt-1 d-none"></div>').attr('id', P + 'PhotoErr_' + c.key));
             $extra.append($('<div class="mt-2"></div>').attr('id', P + 'Thumbs_' + c.key));
             $item.append($extra);
 
             $item.on('change', 'input[name="' + name + '"]', function () { syncVisibility(c); });
+            $extra.find('.js-add-photo').on('click', function () { $extra.find('input[type="file"]').trigger('click'); });
             $extra.find('textarea').on('input', function () { state[c.key].comment = $(this).val(); });
             $extra.find('input[type="file"]').on('change', function () {
                 var files = Array.prototype.slice.call(this.files || []);
@@ -361,7 +364,7 @@
             if (!canvas || !pad) return;
             var keep = pad.isEmpty() ? '' : pad.toDataURL('image/png');
             var ratio = Math.max(w.devicePixelRatio || 1, 1);
-            canvas.style.height = '160px';
+            canvas.style.height = '150px';
             canvas.width = canvas.offsetWidth * ratio;
             canvas.height = canvas.offsetHeight * ratio;
             canvas.getContext('2d').scale(ratio, ratio);
@@ -379,7 +382,7 @@
             var canvas = $id('SigCanvas')[0];
             if (!canvas || typeof SignaturePad === 'undefined') return;
             if (pad) { try { pad.off(); } catch (e) { /* ignore */ } }
-            canvas.style.height = '160px';
+            canvas.style.height = '150px';
             pad = new SignaturePad(canvas, { penColor: 'black', backgroundColor: 'rgba(255,255,255,0)' });
             var ratio = Math.max(w.devicePixelRatio || 1, 1);
             canvas.width = canvas.offsetWidth * ratio;
@@ -483,6 +486,7 @@
             $id('TransportAddBtn').prop('disabled', readOnly).toggleClass('d-none', readOnly || !configLoaded);
             if (readOnly) $id('TransportAddForm').addClass('d-none');
             $id('AttachAddWrap').toggleClass('d-none', readOnly);
+            $('#' + P + 'InspColA, #' + P + 'InspColB').find('.js-add-photo').toggleClass('d-none', readOnly);
             CHECKS.forEach(renderPhotos);
             renderAttachments();
         };
@@ -524,6 +528,7 @@
                 }
             });
             $id('SigClear').off('click').on('click', function () { api.clearSignature(); sigLegacy = ''; applySigLegacy(); });
+            $id('AttachBtn').off('click').on('click', function () { $id('AttachInput').trigger('click'); });
             $id('AttachInput').off('change').on('change', function () {
                 var files = Array.prototype.slice.call(this.files || []);
                 this.value = '';

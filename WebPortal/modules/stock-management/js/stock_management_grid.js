@@ -1368,6 +1368,48 @@ var _stockManagementGrid = function () {
             });
         },
 
+        /** "Sorted by SP, highest first - click a heading to sort" line above the grid. */
+        renderKernelSortInfo: function () {
+            var scope = _stockManagementGrid;
+            var $el = $('#kernelStockSortInfo');
+            if (!$el.length) return;
+            var k = scope.kernelSort && scope.kernelSort.key;
+            if (!k) { $el.text('Click a heading to sort'); return; }
+            var desc = scope.kernelSort.dir === 'desc';
+            var name, dirText;
+            if (k === 'batch') { name = 'Batch'; dirText = desc ? 'Z–A' : 'A–Z'; }
+            else if (k === 'ffa') { name = 'FFA'; dirText = desc ? 'highest first' : 'lowest first'; }
+            else if (k === 'bestbefore') { name = 'Best Before Date'; dirText = desc ? 'latest first' : 'soonest first'; }
+            else if (k === 'timeleft') { name = 'Time Left'; dirText = desc ? 'most time first' : 'least time first'; }
+            else { name = k.slice(6); dirText = desc ? 'highest first' : 'lowest first'; }
+            $el.empty().append(document.createTextNode('Sorted by ')).append($('<strong>').text(name + ', ' + dirText)).append(document.createTextNode(' — click a heading to sort'));
+        },
+
+        /** FFA + Time Left colour legend under the grid, using the configured limits / bands (defaults 2 / 6 and 12 / 6). */
+        renderKernelLegend: function (ffaSpec, bands) {
+            var $el = $('#kernelStockLegend');
+            if (!$el.length) return;
+            var g = ffaSpec && ffaSpec.green_limit != null ? Number(ffaSpec.green_limit) : NaN;
+            var y = ffaSpec && ffaSpec.yellow_limit != null ? Number(ffaSpec.yellow_limit) : NaN;
+            if (isNaN(g) || isNaN(y)) { g = 2; y = 6; }
+            var op = ffaSpec && ffaSpec.direction === 'min' ? '≥' : '≤';
+            var gm = parseInt(bands && bands.green, 10), ym = parseInt(bands && bands.yellow, 10);
+            if (isNaN(gm) || isNaN(ym) || gm <= ym) { gm = 12; ym = 6; }
+            var gmText = gm % 12 === 0 ? '> ' + (gm / 12) + (gm === 12 ? ' year' : ' years') : '> ' + gm + ' months';
+            function item(cls, sample, text) {
+                return $('<span>').append($('<span>').addClass('badge ' + cls).text(sample)).append(document.createTextNode(' ' + text));
+            }
+            $el.empty()
+                .append($('<span>').addClass('fw-semibold').text('FFA'))
+                .append(item('bg-success', '0.8', 'within spec (' + op + ' ' + g + '%)'))
+                .append(item('bg-warning text-dark', '3.4', 'borderline (' + op + ' ' + y + '%)'))
+                .append(item('bg-danger', '6.8', 'out of spec'))
+                .append($('<span>').addClass('fw-semibold ms-3').text('Time Left'))
+                .append(item('bg-success', '1y 3m', gmText))
+                .append(item('bg-warning text-dark', '9m 20d', ym + '–' + gm + ' months'))
+                .append(item('bg-danger', '3m 28d', '< ' + ym + ' months'));
+        },
+
         renderKernelStockByStyle: function () {
             var scope = _stockManagementGrid;
             var body = $('#kernelStockByStyleBody');
@@ -1380,6 +1422,7 @@ var _stockManagementGrid = function () {
             // Sort a COPY: scope.kernelFinishedBatches is replaced on refresh and read directly by the Send to Dispatch modal.
             batches = scope.sortKernelBatches(batches);
             scope.updateKernelSortHeaders();
+            scope.renderKernelSortInfo();
             var cfg = scope.kernelPipelineConfig;
             var ffaSpec = null;
             if (cfg && Array.isArray(cfg.spec_thresholds)) {
@@ -1387,6 +1430,7 @@ var _stockManagementGrid = function () {
             }
             var bands = (cfg && cfg.settings && cfg.settings.best_before_bands) ? cfg.settings.best_before_bands : { green: 12, yellow: 6 };
             var shelfMonths = _common.KERNEL_BEST_BEFORE_MONTHS;
+            scope.renderKernelLegend(ffaSpec, bands);
             $('#kernelStockBestBeforeTh').attr('title', 'Best Before Date (from Job Card, or packing start + ' + shelfMonths + ' months)');
             var totals = { 'SP': 0, '0': 0, '1': 0, '1S': 0, '4L': 0, '5': 0, '6': 0, '7/8': 0, 'Butter High Oil': 0, 'Butter Low Oil': 0 };
             var styleKeys = KERNEL_STYLE_OPTIONS.slice();

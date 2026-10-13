@@ -46,7 +46,15 @@ var _modal_oil_dispatch_form = (function () {
     /** Fill a text input only when it is currently empty. */
     function fillIfEmpty(id, val) {
         var $el = $('#' + id);
-        if (val && !String($el.val() || '').trim()) $el.val(val);
+        if (val && !String($el.val() || '').trim()) { $el.val(val); return true; }
+        return false;
+    }
+
+    /** The "Filled from the customer record" / "Fills in once ..." hints under the prefilled fields. */
+    function showPrefillHints(person, cell, to) {
+        $('#oilDispatchPersonHint').toggleClass('d-none', !person);
+        $('#oilDispatchCellHint').toggleClass('d-none', !cell);
+        $('#oilDispatchDispatchedToHint').toggleClass('d-none', !to);
     }
 
     /** Loads the transporter list and (for an open order) pre-fills Attention / Cell / Dispatched to from the customer contact. Never rejects. */
@@ -55,12 +63,14 @@ var _modal_oil_dispatch_form = (function () {
         return Promise.all([dsp.loadTransporters(), contactP]).then(function (r) {
             var c = r[1];
             if (ro || !order) return;
+            var filledPerson = false, filledTo = false;
             if (c) {
-                fillIfEmpty('oilDispatchPerson', c.name);
+                filledPerson = fillIfEmpty('oilDispatchPerson', c.name);
                 fillIfEmpty('oilDispatchCell', c.cell);
-                fillIfEmpty('oilDispatchDispatchedTo', c.company);
+                filledTo = fillIfEmpty('oilDispatchDispatchedTo', c.company);
             }
-            fillIfEmpty('oilDispatchDispatchedTo', order.buyer_name);
+            filledTo = fillIfEmpty('oilDispatchDispatchedTo', order.buyer_name) || filledTo;
+            showPrefillHints(filledPerson, !String($('#oilDispatchCell').val() || '').trim(), filledTo);
         }).catch(function (e) { console.warn('[Dispatch form] extras failed', e); });
     }
 
@@ -156,10 +166,11 @@ var _modal_oil_dispatch_form = (function () {
             var meta = document.getElementById('oilDispatchFormOrderMeta');
             if (meta) {
                 if (order) {
+                    var col = formatDateForDisplay(order.planned_collection_date);
                     var del = formatDateForDisplay(order.delivery_date);
                     var parts = [order.buyer_name || '—'];
-                    if (del) parts.push('Delivery ' + del);
-                    if (order.status) parts.push(order.status);
+                    if (col) parts.push('collect ' + col);
+                    if (del) parts.push('deliver ' + del);
                     meta.textContent = parts.join(' · ');
                 } else {
                     meta.textContent = '';
@@ -181,7 +192,7 @@ var _modal_oil_dispatch_form = (function () {
                     qtyDisplay = qtyL.toFixed(2) + ' L';
                     if (qtyKg != null && !isNaN(qtyKg)) qtyDisplay += ' <span class="text-muted small">(≈ ' + qtyKg.toFixed(1) + ' kg)</span>';
                 } else if (line.cartons != null && line.cartons >= 0) {
-                    qtyDisplay = DispatchFormShared.cartonLabel(line.cartons) + ' · ' + (qtyKg != null ? qtyKg : '—') + ' kg';
+                    qtyDisplay = '<strong>' + DispatchFormShared.cartonLabel(line.cartons) + '</strong> · ' + (qtyKg != null ? Number(qtyKg).toFixed(2) : '—') + ' kg';
                 } else {
                     qtyDisplay = qtyKg != null ? qtyKg + ' kg' : '—';
                 }
@@ -256,6 +267,7 @@ var _modal_oil_dispatch_form = (function () {
             if (tbody) tbody.innerHTML = '';
 
             dsp.reset();
+            showPrefillHints(false, false, false);
             var ids = ['oilDispatchPerson', 'oilDispatchCell', 'oilDispatchDeliveryNote', 'oilDispatchDateDispatched', 'oilDispatchTruckReg', 'oilDispatchDriverName', 'oilDispatchTime', 'oilDispatchDispatchedTo', 'oilDispatchFormOrderId'];
             ids.forEach(function (id) {
                 $('#' + id).val('');
