@@ -1,0 +1,7 @@
+# Per-function config for read-import-file.
+#
+# Auth is done inside the function (X-Portal-Session validated via assistant_validate_session, plus
+# the reports.data.edit check), the same as portal-assistant - the portal has no Supabase JWT, so
+# platform JWT verification is disabled here.
+[functions.read-import-file]
+verify_jwt = false
