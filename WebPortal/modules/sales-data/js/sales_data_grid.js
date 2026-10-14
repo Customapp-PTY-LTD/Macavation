@@ -1248,7 +1248,16 @@ var _salesDataGrid = function () {
         // period change, router's promptOnFormExit/routeTo) can await it before navigating away.
         flushAutoSave: flushAutoSave,
 
-        hasPendingEdits: hasPendingEdits
+        hasPendingEdits: hasPendingEdits,
+
+        // Called after a Data health import or undo: every ledger tab forgets its rows and range so
+        // the next time it opens it refetches, instead of showing (and later saving over) rows an
+        // undo has just removed.
+        invalidateLedgers: function () {
+            Object.keys(state.ledgers).forEach(function (k) {
+                state.ledgers[k] = { from: null, to: null, rows: [], dirty: {}, newSeq: 0 };
+            });
+        }
     };
 }();
 
