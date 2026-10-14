@@ -243,6 +243,18 @@ var _roleMenuConfig = function () {
                 label: 'Dashboard',
                 category: 'main'
             },
+            'kernel-dashboard': {
+                route: 'kernel-dashboard',
+                icon: 'fas fa-chart-line',
+                label: 'Kernel Dashboard',
+                category: 'main'
+            },
+            'oil-dashboard': {
+                route: 'oil-dashboard',
+                icon: 'fas fa-oil-can',
+                label: 'Oil Dashboard',
+                category: 'main'
+            },
             'my-day': {
                 route: 'my-day',
                 icon: 'fas fa-calendar-day',
@@ -511,6 +523,8 @@ var _roleMenuConfig = function () {
          */
         portalModuleOrder: [
             'dashboard',
+            'kernel-dashboard',
+            'oil-dashboard',
             'my-day',
             'batch-journey',
             'grower-intake-grid',
