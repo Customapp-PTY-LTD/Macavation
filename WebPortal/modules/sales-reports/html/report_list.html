@@ -173,6 +173,13 @@
             <div class="modal-body">
                 <form id="addReportRecipientForm">
                     <div class="mb-3">
+                        <label for="addReportRecipientUser" class="form-label">Pick from users (optional)</label>
+                        <select class="form-select" id="addReportRecipientUser" name="addReportRecipientUser">
+                            <option value="">Someone not on the system: type their details below</option>
+                        </select>
+                        <div class="form-text" id="addReportRecipientUserHint"></div>
+                    </div>
+                    <div class="mb-3">
                         <label for="addReportRecipientName" class="form-label">Name</label>
                         <input type="text" class="form-control" id="addReportRecipientName" name="addReportRecipientName" maxlength="200" required>
                     </div>
