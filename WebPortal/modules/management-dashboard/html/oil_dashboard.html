@@ -1,0 +1,144 @@
+<!-- Oil Dashboard - raw materials in, oil and protein out, stock and sales by financial year (Apr-Mar).
+     Same layout as the Kernel Dashboard. Data: get_oil_dashboard (migrations/20261014120000) and
+     get_stock_soh_history('oil'). -->
+<div class="module-content mgmt-dashboard" id="oilDashboardModule">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Oil Dashboard</h1>
+        <div class="text-muted small" id="odPeriodLabel">&nbsp;</div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-auto">
+                    <label for="odFy" class="form-label">Financial year</label>
+                    <select class="form-select" id="odFy"></select>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label d-block">Quarter</label>
+                    <div class="btn-group mgmt-chips" role="group" id="odQuarter" aria-label="Quarter">
+                        <button type="button" class="btn btn-outline-secondary active" data-q="0">Full year</button>
+                        <button type="button" class="btn btn-outline-secondary" data-q="1" title="Apr - Jun">Q1</button>
+                        <button type="button" class="btn btn-outline-secondary" data-q="2" title="Jul - Sep">Q2</button>
+                        <button type="button" class="btn btn-outline-secondary" data-q="3" title="Oct - Dec">Q3</button>
+                        <button type="button" class="btn btn-outline-secondary" data-q="4" title="Jan - Mar">Q4</button>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <label for="odFrom" class="form-label">Or from</label>
+                    <input type="date" class="form-control" id="odFrom">
+                </div>
+                <div class="col-auto">
+                    <label for="odTo" class="form-label">to</label>
+                    <input type="date" class="form-control" id="odTo">
+                </div>
+                <div class="col-auto">
+                    <button type="button" class="btn btn-outline-secondary" id="odClearDates" title="Clear the dates and go back to the financial year">
+                        <i class="fas fa-times me-1"></i>Clear dates
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mgmt-jump mb-2">
+        <a href="#" data-jump="odProcurement">Procurement</a>
+        <a href="#" data-jump="odProduction">Production</a>
+        <a href="#" data-jump="odStock">Stock</a>
+        <a href="#" data-jump="odSales">Sales</a>
+    </div>
+
+    <!-- Procurement: raw materials in -->
+    <section class="card mb-3 mgmt-section" id="odProcurement">
+        <div class="card-body">
+            <div class="mgmt-section-head">
+                <h2 class="h5 mb-0">Procurement</h2>
+                <span class="text-muted small">Raw materials in (kg), by type of material</span>
+                <span id="odProcFresh"></span>
+            </div>
+            <div class="mgmt-tiles" id="odProcTiles"></div>
+            <div class="row g-3">
+                <div class="col-lg-6">
+                    <h3 class="mgmt-chart-title">Raw materials in (kg) per month</h3>
+                    <div class="mgmt-chart"><canvas id="odIntakeMonthChart"></canvas></div>
+                </div>
+                <div class="col-lg-6">
+                    <h3 class="mgmt-chart-title">By type of material</h3>
+                    <div class="mgmt-chart"><canvas id="odIntakeMaterialChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Production -->
+    <section class="card mb-3 mgmt-section" id="odProduction">
+        <div class="card-body">
+            <div class="mgmt-section-head">
+                <h2 class="h5 mb-0">Production</h2>
+                <span class="text-muted small">Litres of oil and kg of protein out, and the yield</span>
+                <span id="odProdFresh"></span>
+            </div>
+            <div class="mgmt-tiles" id="odProdTiles"></div>
+            <div class="row g-3">
+                <div class="col-lg-6">
+                    <h3 class="mgmt-chart-title">Oil out (litres) per month</h3>
+                    <div class="mgmt-chart"><canvas id="odOilChart"></canvas></div>
+                </div>
+                <div class="col-lg-6">
+                    <h3 class="mgmt-chart-title">Protein out (kg) per month</h3>
+                    <div class="mgmt-chart"><canvas id="odProteinChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stock -->
+    <section class="card mb-3 mgmt-section" id="odStock">
+        <div class="card-body">
+            <div class="mgmt-section-head">
+                <h2 class="h5 mb-0">Stock</h2>
+                <span class="text-muted small">Finished oil and protein on hand, last 12 months (not affected by the filters above)</span>
+                <span id="odStockFresh"></span>
+            </div>
+            <div class="mgmt-tiles" id="odStockTiles"></div>
+            <div class="row g-3">
+                <div class="col-lg-7">
+                    <h3 class="mgmt-chart-title">On hand (kg), weekly</h3>
+                    <div class="mgmt-chart"><canvas id="odSohChart"></canvas></div>
+                </div>
+                <div class="col-lg-5">
+                    <h3 class="mgmt-chart-title">On hand by stream today</h3>
+                    <table class="table table-sm mgmt-table" id="odStreamTable"></table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sales -->
+    <section class="card mb-3 mgmt-section" id="odSales">
+        <div class="card-body">
+            <div class="mgmt-section-head">
+                <h2 class="h5 mb-0">Sales</h2>
+                <span class="text-muted small">Local sales and exports</span>
+                <span id="odSalesFresh"></span>
+                <div class="ms-auto">
+                    <div class="btn-group btn-group-sm mgmt-chips" role="group" id="odSalesUnit" aria-label="Show sales in">
+                        <button type="button" class="btn btn-outline-secondary active" data-v="kg">kg</button>
+                        <button type="button" class="btn btn-outline-secondary" data-v="R">R (excl. VAT)</button>
+                    </div>
+                </div>
+            </div>
+            <div class="mgmt-tiles" id="odSalesTiles"></div>
+            <div class="row g-3">
+                <div class="col-lg-7">
+                    <h3 class="mgmt-chart-title" id="odSalesMonthTitle">Sold per month</h3>
+                    <div class="mgmt-chart"><canvas id="odSalesMonthChart"></canvas></div>
+                </div>
+                <div class="col-lg-5">
+                    <h3 class="mgmt-chart-title">Local sales by product line</h3>
+                    <div class="mgmt-chart"><canvas id="odSalesLineChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>

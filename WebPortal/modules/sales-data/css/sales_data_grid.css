@@ -64,3 +64,51 @@ textarea.js-sales-data-input {
         font-size: 0.875rem;
     }
 }
+
+/* ------------------------------------------------------------------
+   Data health tab (js/data-health-panel.js). Colours are --mac-* tokens only.
+   ------------------------------------------------------------------ */
+.dh-top { display: flex; align-items: center; flex-wrap: wrap; gap: var(--mac-space-xs); margin-bottom: var(--mac-space-md); }
+.dh-fy { width: auto; }
+.dh-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: var(--mac-space-sm); }
+.dh-sum { border: 1px solid var(--mac-border); border-left-width: 4px; border-radius: var(--mac-radius-md); padding: var(--mac-space-sm) var(--mac-space-md); }
+.dh-sum-red { border-left-color: var(--mac-danger); }
+.dh-sum-green { border-left-color: var(--mac-success); }
+.dh-sum-grey { border-left-color: var(--mac-border-strong); }
+.dh-sum-k { font-size: var(--mac-text-xs); color: var(--mac-text-tertiary); }
+.dh-sum-v { font-size: var(--mac-text-lg); font-weight: 700; color: var(--mac-text); }
+.dh-sum-s { font-size: var(--mac-text-xs); color: var(--mac-text-secondary); }
+.dh-legend { display: flex; flex-wrap: wrap; gap: var(--mac-space-xs) var(--mac-space-md); font-size: var(--mac-text-xs); color: var(--mac-text-secondary); margin: var(--mac-space-md) 0 var(--mac-space-sm); }
+.dh-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+.dh-sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; }
+.dh-grid-wrap { overflow-x: auto; border: 1px solid var(--mac-border); border-radius: var(--mac-radius-md); }
+.dh-grid { border-collapse: separate; border-spacing: 3px; font-size: var(--mac-text-xs); }
+.dh-grid .dh-month { text-align: left; color: var(--mac-text-secondary); font-weight: 600; white-space: nowrap; }
+.dh-grid .dh-day { text-align: center; color: var(--mac-text-tertiary); font-weight: 600; }
+.dh-grid .dh-name { white-space: nowrap; padding-right: var(--mac-space-sm); font-size: var(--mac-text-sm); color: var(--mac-text); position: sticky; left: 0; background-color: var(--mac-bg-secondary); }
+.dh-grid .dh-name small { display: block; color: var(--mac-text-tertiary); font-size: var(--mac-text-xs); }
+.dh-grid .dh-c { width: 22px; min-width: 22px; height: 28px; border-radius: 4px; cursor: pointer; }
+.dh-ok { background-color: var(--mac-success); }
+.dh-miss { background-color: var(--mac-danger); }
+.dh-diff { background-color: var(--mac-warning); }
+.dh-none { background-color: var(--mac-bg-tertiary); }
+.dh-cant { background-color: var(--mac-bg-secondary); border: 1px dotted var(--mac-border-strong); }
+.dh-future { background-color: var(--mac-bg-secondary); border: 1px dashed var(--mac-border); }
+.dh-grid .dh-c.dh-future { cursor: default; }
+.dh-grid .dh-c.dh-cut { box-shadow: inset 3px 0 0 var(--mac-info); }
+.dh-grid .dh-c.dh-sel { outline: 2px solid var(--mac-text); outline-offset: 1px; }
+.dh-grid .dh-c:focus-visible { outline: 2px solid var(--mac-info); outline-offset: 1px; }
+.dh-cutnote { font-size: var(--mac-text-xs); color: var(--mac-info); margin: var(--mac-space-xs) 0 0; }
+.dh-detail { margin-top: var(--mac-space-md); border: 1px solid var(--mac-border); border-radius: var(--mac-radius-md); padding: var(--mac-space-md); }
+.dh-detail-title { font-size: var(--mac-text-md); font-weight: 600; margin: 0 0 2px; }
+.dh-detail-sub { font-size: var(--mac-text-xs); color: var(--mac-text-tertiary); margin-bottom: var(--mac-space-sm); }
+.dh-fixbar { display: flex; gap: var(--mac-space-sm); flex-wrap: wrap; margin-top: var(--mac-space-sm); }
+.dh-pill { display: inline-block; font-size: var(--mac-text-xs); font-weight: 600; padding: 1px 8px; border-radius: var(--mac-radius-pill); vertical-align: 2px; }
+.dh-pill-ok { background-color: var(--mac-success-light); color: var(--mac-silo-high-text); }
+.dh-pill-miss { background-color: var(--mac-danger-light); color: var(--mac-silo-low-text); }
+.dh-pill-diff { background-color: var(--mac-warning-light); color: var(--mac-warning-text); }
+.dh-pill-none, .dh-pill-cant, .dh-pill-future { background-color: var(--mac-bg-tertiary); color: var(--mac-text-tertiary); }
+.dh-explain { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: var(--mac-space-md); margin-top: var(--mac-space-md); }
+.dh-explain > div { background-color: var(--mac-bg-tertiary); border-radius: var(--mac-radius-md); padding: var(--mac-space-sm) var(--mac-space-md); font-size: var(--mac-text-sm); color: var(--mac-text-secondary); }
+.dh-explain h4 { font-size: var(--mac-text-sm); font-weight: 600; color: var(--mac-text); margin: 0 0 4px; }
+.dh-explain p { margin: 0; }
