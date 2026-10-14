@@ -33,7 +33,20 @@ var DataHealthPanel = (function () {
     var LABELS = { ok: 'Captured', miss: 'Missing', diff: 'Differs', none: 'No activity', cant: 'Can’t check', future: '–' };
     var RANK = { miss: 5, diff: 4, cant: 3, ok: 2, none: 1, future: 0 };
 
-    var state = { fy: null, byIso: {}, weeks: [], status: {}, todayIso: null, onOpen: null, root: null, sel: null };
+    var state = { fy: null, byIso: {}, weeks: [], status: {}, todayIso: null, onOpen: null, root: null, sel: null, container: null };
+
+    // Fill gaps from a file (data-import-wizard.js): offered only to people who may edit data pages,
+    // and only when the wizard script loaded.
+    function canImport() {
+        return typeof DataImportWizard !== 'undefined' && typeof hasAction === 'function' && hasAction('reports.data.edit');
+    }
+
+    function openImport(datasetKey, from, to) {
+        DataImportWizard.open({
+            datasetKey: datasetKey, from: from, to: to,
+            onDone: function () { if (state.container && document.body.contains(state.container)) load(state.container); }
+        });
+    }
 
     // ------------------------------------------------------------------
     // Helpers.
@@ -308,6 +321,14 @@ var DataHealthPanel = (function () {
             if (typeof state.onOpen === 'function') state.onOpen(rk, isoOf(w.start), isoOf(w.end));
         });
         bar.appendChild(btn);
+        if (canImport() && DataImportWizard.canImport(rk)) {
+            var imp = el('button', 'btn btn-outline-secondary btn-sm');
+            imp.type = 'button';
+            imp.appendChild(el('i', 'fas fa-file-import me-1'));
+            imp.appendChild(document.createTextNode('Fill this week from a file'));
+            imp.addEventListener('click', function () { openImport(rk, isoOf(w.start), isoOf(w.end)); });
+            bar.appendChild(imp);
+        }
         host.appendChild(bar);
     }
 
@@ -353,6 +374,16 @@ var DataHealthPanel = (function () {
         top.appendChild(sel);
         top.appendChild(el('span', 'dh-intro text-muted small ms-3',
             'What each data page is missing, week by week, compared with what the factory captured.'));
+        if (canImport()) {
+            var fill = el('button', 'btn btn-primary btn-sm ms-auto');
+            fill.type = 'button';
+            fill.appendChild(el('i', 'fas fa-file-import me-1'));
+            fill.appendChild(document.createTextNode('Fill gaps from a file'));
+            fill.addEventListener('click', function () {
+                openImport('nis_intake', (state.fy - 1) + '-04-01', state.todayIso || isoOf(new Date()));
+            });
+            top.appendChild(fill);
+        }
         root.appendChild(top);
         root.appendChild(el('div', 'dh-summary'));
         root.appendChild(el('div', 'dh-legend'));
@@ -371,6 +402,7 @@ var DataHealthPanel = (function () {
         explain.appendChild(e1);
         explain.appendChild(e2);
         root.appendChild(explain);
+        root.appendChild(el('div', 'dh-imports'));
         container.appendChild(root);
         state.root = root;
 
@@ -409,6 +441,65 @@ var DataHealthPanel = (function () {
             res.days.forEach(function (r) { if (Array.isArray(r) && r[0]) state.byIso[String(r[0]).slice(0, 10)] = r; });
             compute();
             renderAll();
+            renderImports();
+        });
+    }
+
+    // Recent imports, newest first, each undoable. Hidden when the import functions are not on this
+    // database yet (getDataImportBatches resolves to null).
+    function renderImports() {
+        var host = state.root && state.root.querySelector('.dh-imports');
+        if (!host) return;
+        clear(host);
+        var df = (typeof dataFunctions !== 'undefined') ? dataFunctions : null;
+        if (!df || typeof df.getDataImportBatches !== 'function') return;
+        df.getDataImportBatches(null, 20).then(function (rows) {
+            if (!Array.isArray(rows)) {
+                console.warn('[data-health] import history unavailable - is migration 20261015090000 applied?');
+                return;
+            }
+            clear(host);
+            host.appendChild(el('h4', 'dh-imports-title', 'Recent imports'));
+            if (!rows.length) {
+                host.appendChild(el('div', 'text-muted small', 'Nothing has been imported yet.'));
+                return;
+            }
+            var t = el('table', 'table table-sm dh-imports-table');
+            var thead = el('thead'), hr = el('tr');
+            ['When', 'File', 'Page', 'Rows', 'kg', 'By', ''].forEach(function (h, i) { hr.appendChild(el('th', i === 3 || i === 4 ? 'text-end' : null, h)); });
+            thead.appendChild(hr);
+            t.appendChild(thead);
+            var tbody = el('tbody');
+            var names = (typeof DataImportWizard !== 'undefined') ? DataImportWizard.DATASETS : {};
+            rows.forEach(function (b) {
+                var tr = el('tr', b.undone_at ? 'dh-import-undone' : '');
+                var when = b.created_at ? new Date(b.created_at) : null;
+                tr.appendChild(el('td', 'text-nowrap', when ? fmt(when) + ' ' + pad(when.getHours()) + ':' + pad(when.getMinutes()) : ''));
+                tr.appendChild(el('td', null, b.file_name || ''));
+                tr.appendChild(el('td', null, (names[b.dataset_key] && names[b.dataset_key].label) || b.dataset_key || ''));
+                tr.appendChild(el('td', 'text-end', num(b.row_count)));
+                tr.appendChild(el('td', 'text-end', num(b.total_qty)));
+                tr.appendChild(el('td', null, b.created_by_name || ''));
+                var td = el('td', 'text-end');
+                if (b.undone_at) {
+                    td.appendChild(el('span', 'text-muted small', 'Undone'));
+                } else if (canImport()) {
+                    var u = el('button', 'btn btn-outline-secondary btn-sm');
+                    u.type = 'button';
+                    u.textContent = 'Undo';
+                    u.addEventListener('click', function () {
+                        DataImportWizard.undo(b.id, function (msg) {
+                            if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire({ text: msg, icon: 'info' });
+                            if (state.container && document.body.contains(state.container)) load(state.container);
+                        });
+                    });
+                    td.appendChild(u);
+                }
+                tr.appendChild(td);
+                tbody.appendChild(tr);
+            });
+            t.appendChild(tbody);
+            host.appendChild(t);
         });
     }
 
@@ -419,6 +510,7 @@ var DataHealthPanel = (function () {
          */
         render: function (container, onOpen) {
             state.onOpen = onOpen;
+            state.container = container;
             if (!state.fy) state.fy = fyOf(new Date());
             shell(container);
             return load(container);

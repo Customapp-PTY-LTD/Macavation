@@ -112,3 +112,54 @@ textarea.js-sales-data-input {
 .dh-explain > div { background-color: var(--mac-bg-tertiary); border-radius: var(--mac-radius-md); padding: var(--mac-space-sm) var(--mac-space-md); font-size: var(--mac-text-sm); color: var(--mac-text-secondary); }
 .dh-explain h4 { font-size: var(--mac-text-sm); font-weight: 600; color: var(--mac-text); margin: 0 0 4px; }
 .dh-explain p { margin: 0; }
+
+/* ------------------------------------------------------------------
+   Fill gaps from a file - import wizard (js/data-import-wizard.js) and Recent imports.
+   Colours are --mac-* tokens only.
+   ------------------------------------------------------------------ */
+.dh-imports { margin-top: var(--mac-space-lg); }
+.dh-imports-title { font-size: var(--mac-text-md); font-weight: 600; margin: 0 0 var(--mac-space-xs); }
+.dh-imports-table .dh-import-undone > td { color: var(--mac-text-tertiary); text-decoration: line-through; }
+.dimp-steps { display: flex; border-bottom: 1px solid var(--mac-border); padding: 0 var(--mac-space-md); }
+.dimp-step { flex: 1; text-align: center; font-size: var(--mac-text-xs); color: var(--mac-text-tertiary); padding: var(--mac-space-sm) var(--mac-space-xs); border-bottom: 3px solid transparent; }
+.dimp-step b { display: inline-block; width: 20px; height: 20px; line-height: 20px; border-radius: 50%; background-color: var(--mac-bg-tertiary); color: var(--mac-text-tertiary); margin-right: 6px; font-size: var(--mac-text-xs); }
+.dimp-step-on { color: var(--mac-green); border-bottom-color: var(--mac-green); font-weight: 600; }
+.dimp-step-on b, .dimp-step-done b { background-color: var(--mac-green); color: #fff; }
+.dimp-body { min-height: 380px; }
+.dimp-foot { justify-content: space-between; }
+.dimp-src { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: var(--mac-space-sm); }
+.dimp-srcopt { border: 2px solid var(--mac-border); border-radius: var(--mac-radius-md); padding: var(--mac-space-md); cursor: pointer; }
+.dimp-srcopt:focus-visible { outline: 2px solid var(--mac-info); outline-offset: 2px; }
+.dimp-srcopt-on { border-color: var(--mac-green); background-color: var(--mac-green-light); }
+.dimp-srcopt-title { font-weight: 600; margin-bottom: 2px; }
+.dimp-drop { margin-top: var(--mac-space-md); border: 2px dashed var(--mac-border-strong); border-radius: var(--mac-radius-md); padding: var(--mac-space-lg); text-align: center; color: var(--mac-text-secondary); }
+.dimp-drop-has { border-style: solid; border-color: var(--mac-green); background-color: var(--mac-green-light); text-align: left; }
+.dimp-drop-over { border-color: var(--mac-green); background-color: var(--mac-green-light); }
+.dimp-drop-title { font-weight: 600; }
+.dimp-reading { display: flex; gap: var(--mac-space-sm); align-items: center; justify-content: center; padding: var(--mac-space-2xl) 0; color: var(--mac-text-secondary); }
+.dimp-note { font-size: var(--mac-text-xs); color: var(--mac-text-secondary); background-color: var(--mac-bg-tertiary); border-radius: var(--mac-radius-md); padding: var(--mac-space-sm) var(--mac-space-md); margin-top: var(--mac-space-sm); }
+.dimp-pill { display: inline-block; font-size: var(--mac-text-xs); font-weight: 600; padding: 1px 8px; border-radius: var(--mac-radius-pill); white-space: nowrap; }
+.dimp-pill-ai { background-color: var(--mac-info-light); color: var(--mac-info); }
+.dimp-pill-new { background-color: var(--mac-success-light); color: var(--mac-silo-high-text); }
+.dimp-pill-dup { background-color: var(--mac-bg-tertiary); color: var(--mac-text-tertiary); }
+.dimp-pill-unk { background-color: var(--mac-warning-light); color: var(--mac-warning-text); }
+.dimp-pill-miss { background-color: var(--mac-danger-light); color: var(--mac-silo-low-text); }
+.dimp-conf { display: inline-flex; align-items: center; gap: 6px; font-size: var(--mac-text-xs); color: var(--mac-text-secondary); white-space: nowrap; }
+.dimp-conf-bar { display: inline-block; width: 46px; height: 6px; background-color: var(--mac-bg-tertiary); border-radius: 3px; overflow: hidden; }
+.dimp-conf-bar i { display: block; height: 100%; background-color: var(--mac-success); }
+.dimp-conf-low .dimp-conf-bar i { background-color: var(--mac-warning); }
+.dimp-preview { max-width: 100%; max-height: 520px; border: 1px solid var(--mac-border); border-radius: var(--mac-radius-sm); }
+.dimp-docrow { border: 1px solid var(--mac-border); border-radius: var(--mac-radius-md); padding: var(--mac-space-sm) var(--mac-space-md); margin-top: var(--mac-space-sm); }
+.dimp-docfield { display: grid; grid-template-columns: 8rem 1fr auto auto; gap: var(--mac-space-xs); align-items: center; margin-bottom: 4px; }
+.dimp-sumrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: var(--mac-space-sm); margin-bottom: var(--mac-space-md); }
+.dimp-sum { border: 1px solid var(--mac-border); border-radius: var(--mac-radius-md); padding: var(--mac-space-xs) var(--mac-space-md); }
+.dimp-sum-k { font-size: var(--mac-text-xs); color: var(--mac-text-tertiary); }
+.dimp-sum-v { font-size: var(--mac-text-lg); font-weight: 700; color: var(--mac-text); }
+.dimp-sum-s { font-size: var(--mac-text-xs); color: var(--mac-text-secondary); }
+.dimp-scroll { max-height: 360px; overflow: auto; border: 1px solid var(--mac-border); border-radius: var(--mac-radius-md); }
+.dimp-table .dimp-off > td { opacity: 0.5; }
+.dimp-ok { color: var(--mac-silo-high-text); font-weight: 700; }
+.dimp-bad { color: var(--mac-silo-low-text); font-weight: 700; white-space: nowrap; }
+.dimp-done { text-align: center; padding: var(--mac-space-lg) 0; }
+.dimp-done-tick { font-size: 40px; color: var(--mac-success); }
+.dimp-batch { display: inline-flex; gap: var(--mac-space-md); align-items: center; border: 1px solid var(--mac-border); border-radius: var(--mac-radius-md); padding: var(--mac-space-sm) var(--mac-space-md); margin-top: var(--mac-space-sm); text-align: left; }

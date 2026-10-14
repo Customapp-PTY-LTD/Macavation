@@ -7041,6 +7041,88 @@ var _dataFunctions = function () {
         // NULLABLE and the insert has no date guard, unlike the sales ledgers.
         // ------------------------------------------------------------------
 
+        /**
+         * Fill gaps from a file (Data health) - migrations/20261015090000_data_page_import_batches.sql.
+         * import/undo return the RPC's first row ({success, error, ...}); a thrown error becomes
+         * {success: 0, error}. Rows are passed as the array itself, not JSON.stringify(rows).
+         */
+        importDataPageRows: async function (datasetKey, fileName, sourceKind, rows, token = null) {
+            try {
+                const result = await this.callFunction('import_data_page_rows', {
+                    p_dataset_key: datasetKey,
+                    p_file_name: fileName,
+                    p_source_kind: sourceKind,
+                    p_rows: Array.isArray(rows) ? rows : [],
+                    p_actor_user_id: this.getCurrentUserId() || null
+                }, token, { useCache: false, offlineOperation: false });
+                const row = Array.isArray(result) ? result[0] : result;
+                return row || { success: 0, error: 'The server did not answer.' };
+            } catch (e) {
+                console.warn('[DataImport] import_data_page_rows failed', e && e.message);
+                return { success: 0, error: (e && e.message) || 'The import could not be saved.' };
+            }
+        },
+
+        undoDataImportBatch: async function (batchId, token = null) {
+            try {
+                const result = await this.callFunction('undo_data_import_batch', {
+                    p_batch_id: batchId,
+                    p_actor_user_id: this.getCurrentUserId() || null
+                }, token, { useCache: false, offlineOperation: false });
+                const row = Array.isArray(result) ? result[0] : result;
+                return row || { success: 0, error: 'The server did not answer.' };
+            } catch (e) {
+                console.warn('[DataImport] undo_data_import_batch failed', e && e.message);
+                return { success: 0, error: (e && e.message) || 'The import could not be undone.' };
+            }
+        },
+
+        // Resolves to an array, or null when the function is missing (migration not applied yet).
+        getDataImportBatches: async function (datasetKey = null, limit = 20, token = null) {
+            try {
+                const result = await this.callFunction('get_data_import_batches', {
+                    p_dataset_key: datasetKey || null,
+                    p_limit: limit
+                }, token, { useCache: false });
+                if (Array.isArray(result)) return result;
+                if (result && Array.isArray(result.data)) return result.data;
+                return [];
+            } catch (e) {
+                console.warn('[DataImport] get_data_import_batches failed', e && e.message);
+                return null;
+            }
+        },
+
+        // The AI half (supabase/functions/read-import-file). Never throws: resolves to
+        // {ok: true, data} or {ok: false, error, status}.
+        readImportFile: async function (payload) {
+            try {
+                const cfg = (typeof window !== 'undefined' && window.MACAVATION_SUPABASE) || {};
+                const base = String(cfg.url || '').replace(/\/$/, '');
+                if (!base || !cfg.anonKey) return { ok: false, status: 0, error: 'The portal is not configured for AI reading.' };
+                let session = '';
+                try { session = (typeof Session !== 'undefined' && Session.get) ? (Session.get('token') || '') : ''; } catch (e) { session = ''; }
+                const headers = {
+                    'Content-Type': 'application/json',
+                    Authorization: 'Bearer ' + cfg.anonKey,
+                    apikey: cfg.anonKey
+                };
+                if (session) headers['X-Portal-Session'] = session;
+                const res = await fetch(base + '/functions/v1/read-import-file', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(payload || {})
+                });
+                let body = null;
+                try { body = await res.json(); } catch (e) { body = null; }
+                if (res.ok && body && body.success) return { ok: true, data: body.data };
+                return { ok: false, status: res.status, error: (body && body.error) || ('The AI service answered ' + res.status + '.') };
+            } catch (e) {
+                console.warn('[DataImport] read-import-file failed', e && e.message);
+                return { ok: false, status: 0, error: 'The AI service could not be reached.' };
+            }
+        },
+
         getDataNisIntake: async function (dateFrom, dateTo, limit = 500, offset = 0, token = null, forceRefresh = false) {
             const params = {
                 p_date_from: dateFrom || null,
