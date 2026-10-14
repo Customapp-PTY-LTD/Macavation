@@ -2156,6 +2156,52 @@ var _dataFunctions = function () {
         },
 
         /**
+         * Kernel / Oil dashboards and the Data health tab
+         * (migrations/20261014120000_kernel_oil_dashboards_data_health.sql).
+         *
+         * Each RPC returns ONE jsonb object. Every wrapper resolves to that object, or to null when the
+         * call fails - including "function does not exist" before the migration is applied - so each
+         * screen section can say "not available yet" on its own without blanking the others.
+         */
+        _dashboardObject: async function (name, params, token, requiredKey) {
+            try {
+                var raw = await this.callFunction(name, params, token, { useCache: false });
+                if (raw && typeof raw === 'object' && !Array.isArray(raw) && requiredKey in raw) return raw;
+                if (raw && raw[name] && typeof raw[name] === 'object' && requiredKey in raw[name]) return raw[name];
+                if (Array.isArray(raw) && raw[0] && typeof raw[0] === 'object') {
+                    var first = raw[0][name] || raw[0];
+                    if (first && requiredKey in first) return first;
+                }
+                return null;
+            } catch (e) {
+                console.warn('[Dashboard] ' + name + ' failed. Apply migration 20261014120000_kernel_oil_dashboards_data_health.sql if needed.', e.message);
+                return null;
+            }
+        },
+
+        getKernelDashboardProcurement: async function (from, to, token = null) {
+            return this._dashboardObject('get_kernel_dashboard_procurement', { p_from: from, p_to: to }, token, 'total_kg');
+        },
+
+        getKernelDashboardProduction: async function (from, to, token = null) {
+            return this._dashboardObject('get_kernel_dashboard_production', { p_from: from, p_to: to }, token, 'total_kg');
+        },
+
+        getKernelDashboardSales: async function (from, to, style, token = null) {
+            var params = { p_from: from, p_to: to };
+            if (style) params.p_style = style;
+            return this._dashboardObject('get_kernel_dashboard_sales', params, token, 'total_kg');
+        },
+
+        getOilDashboard: async function (from, to, token = null) {
+            return this._dashboardObject('get_oil_dashboard', { p_from: from, p_to: to }, token, 'intake_total_kg');
+        },
+
+        getDataHealth: async function (from, to, token = null) {
+            return this._dashboardObject('get_data_health', { p_from: from, p_to: to }, token, 'days');
+        },
+
+        /**
          * Raw-material runway: daily kg of nut-in-shell not yet put into production, actual history
          * plus a projection to the predicted run-out date.
          *

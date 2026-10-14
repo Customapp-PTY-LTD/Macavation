@@ -1,0 +1,135 @@
+/* Kernel and Oil dashboards - shared styles. Colours are --mac-* tokens only. */
+
+.mgmt-chips .btn.active {
+    background-color: var(--mac-green);
+    border-color: var(--mac-green);
+    color: var(--mac-bg-secondary);
+}
+
+.mgmt-jump {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mac-space-sm);
+}
+
+.mgmt-jump a {
+    font-size: var(--mac-text-sm);
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--mac-green);
+    background-color: var(--mac-green-light);
+    padding: 2px 12px;
+    border-radius: var(--mac-radius-pill);
+}
+
+.mgmt-section {
+    scroll-margin-top: 80px;
+}
+
+.mgmt-section-head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: var(--mac-space-sm) var(--mac-space-md);
+    margin-bottom: var(--mac-space-sm);
+}
+
+.mgmt-fresh {
+    font-size: var(--mac-text-xs);
+    color: var(--mac-text-tertiary);
+}
+
+.mgmt-stale {
+    font-size: var(--mac-text-xs);
+    font-weight: 600;
+    color: var(--mac-danger);
+    margin-left: var(--mac-space-sm);
+    text-decoration: none;
+}
+
+.mgmt-stale:hover {
+    text-decoration: underline;
+}
+
+.mgmt-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: var(--mac-space-sm);
+    margin: var(--mac-space-sm) 0 var(--mac-space-md);
+}
+
+.mgmt-tile {
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-md);
+    padding: var(--mac-space-sm) var(--mac-space-md);
+    background-color: var(--mac-bg-secondary);
+    min-width: 0;
+}
+
+.mgmt-tile-label {
+    font-size: var(--mac-text-xs);
+    color: var(--mac-text-tertiary);
+}
+
+.mgmt-tile-value {
+    font-size: var(--mac-text-xl);
+    font-weight: 700;
+    color: var(--mac-text);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mgmt-tile-value-after {
+    font-size: var(--mac-text-sm);
+    font-weight: 400;
+    color: var(--mac-text-secondary);
+}
+
+.mgmt-tile-note {
+    font-size: var(--mac-text-xs);
+    color: var(--mac-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mgmt-up { color: var(--mac-green); }
+.mgmt-down { color: var(--mac-danger); }
+
+.mgmt-chart-title {
+    font-size: var(--mac-text-sm);
+    font-weight: 600;
+    color: var(--mac-text-secondary);
+    margin-bottom: var(--mac-space-xs);
+}
+
+.mgmt-chart {
+    position: relative;
+    height: 280px;
+}
+
+.mgmt-chart-tall {
+    height: 380px;
+}
+
+.mgmt-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: 1px dashed var(--mac-border-strong);
+    border-radius: var(--mac-radius-md);
+}
+
+.mgmt-table .mgmt-total-row td {
+    font-weight: 700;
+    border-top: 2px solid var(--mac-border-strong);
+}
+
+.mgmt-style-select {
+    width: auto;
+}

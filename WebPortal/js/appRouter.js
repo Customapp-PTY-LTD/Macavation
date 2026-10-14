@@ -468,6 +468,16 @@ var _appRouter = function () {
                         initializeReportEditor();
                     }
                 },
+                'kernel-dashboard': () => {
+                    if (typeof _kernelDashboard !== 'undefined' && _kernelDashboard.init) {
+                        _kernelDashboard.init();
+                    }
+                },
+                'oil-dashboard': () => {
+                    if (typeof _oilDashboard !== 'undefined' && _oilDashboard.init) {
+                        _oilDashboard.init();
+                    }
+                },
                 'report-targets-grid': () => {
                     if (typeof _reportTargetsGrid !== 'undefined' && _reportTargetsGrid.init) {
                         _reportTargetsGrid.init();

@@ -1,4 +1,4 @@
-<!-- Sales & Production Data — Pete's standing data page. One tab per dataset from get_data_datasets(); only production_daily renders content in this release. -->
+<!-- Sales & Production Data — Pete's standing data page. A Data health tab first (data-health-panel.js), then one tab per dataset from get_data_datasets(). -->
 <div class="module-content" id="salesDataGridModule">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Sales &amp; Production Data</h1>
@@ -14,8 +14,8 @@
         </div>
     </div>
 
-    <!-- Period bar -->
-    <div class="card mb-3">
+    <!-- Period bar (hidden while the Data health tab is open) -->
+    <div class="card mb-3" id="salesDataPeriodCard">
         <div class="card-body">
             <div class="row g-3 align-items-end">
                 <div class="col-auto">

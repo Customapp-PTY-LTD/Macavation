@@ -645,6 +645,30 @@
                 "css/sales_reports.css"
             ]
         },
+        "kernel-dashboard": {
+            "description": "Kernel Dashboard",
+            "path": "management-dashboard",
+            "html": "html/kernel_dashboard.html",
+            "js": [
+                "js/mgmt_dashboard_common.js",
+                "js/kernel_dashboard.js"
+            ],
+            "css": [
+                "css/mgmt_dashboard.css"
+            ]
+        },
+        "oil-dashboard": {
+            "description": "Oil Dashboard",
+            "path": "management-dashboard",
+            "html": "html/oil_dashboard.html",
+            "js": [
+                "js/mgmt_dashboard_common.js",
+                "js/oil_dashboard.js"
+            ],
+            "css": [
+                "css/mgmt_dashboard.css"
+            ]
+        },
         "report-targets-grid": {
             "description": "Targets",
             "path": "report-targets",
@@ -663,6 +687,7 @@
             "js": [
                 "js/sales-data-column-defs.js",
                 "js/sales-data-row-grid.js",
+                "js/data-health-panel.js",
                 "js/sales_data_grid.js"
             ],
             "css": [
