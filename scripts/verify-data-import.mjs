@@ -54,6 +54,36 @@ if (exists(MIG)) {
     check(sql.includes("NOTIFY pgrst, 'reload schema'"), 'migration must end with NOTIFY pgrst');
 }
 
+// 1b. Fill everything: groups (migrations/20261015120000_data_import_groups.sql)
+const MIG2 = 'migrations/20261015120000_data_import_groups.sql';
+check(exists(MIG2), `${MIG2} is missing`);
+if (exists(MIG2)) {
+    const sql = read(MIG2);
+    const code = sql.split('\n').filter((l) => !/^\s*--/.test(l)).join('\n');
+    const fns = {
+        import_data_pages: '(text, jsonb, uuid)',
+        undo_data_import_group: '(uuid, uuid)',
+        get_data_import_batches: '(text, integer)'
+    };
+    for (const [fn, sig] of Object.entries(fns)) {
+        check(new RegExp(`FUNCTION public\\.${fn}\\([\\s\\S]*?SECURITY DEFINER[\\s\\S]*?SET search_path = public`).test(code),
+            `${fn}: must be SECURITY DEFINER with SET search_path = public`);
+        const g = code.match(new RegExp(`GRANT EXECUTE ON FUNCTION public\\.${fn}\\${sig.replace(')', '\\)')} TO ([^;]+);`));
+        check(g && /\banon\b/.test(g[1]), `${fn}${sig}: GRANT EXECUTE must include anon`);
+        check(code.includes(`REVOKE ALL ON FUNCTION public.${fn}${sig} FROM PUBLIC`), `${fn}${sig}: REVOKE ALL ... FROM PUBLIC missing`);
+    }
+    const importAll = (code.match(/FUNCTION public\.import_data_pages[\s\S]*?\n\$\$;/) || [''])[0];
+    check(/import_data_page_rows\(/.test(importAll), 'import_data_pages must save each page through import_data_page_rows');
+    check(/RAISE EXCEPTION/.test(importAll) && /WHEN raise_exception/.test(importAll),
+        'import_data_pages must roll every page back when one fails (raise inside a caught block)');
+    check(!/INSERT INTO public\.data_(nis|kernel|oil)/.test(importAll), 'import_data_pages must not insert ledger rows itself');
+    check(/undo_data_import_batch\(/.test((code.match(/FUNCTION public\.undo_data_import_group[\s\S]*?\n\$\$;/) || [''])[0]),
+        'undo_data_import_group must undo through undo_data_import_batch');
+    check(/import_group_id uuid\)/.test(code), 'get_data_import_batches must return import_group_id');
+    check(!/\bDROP\s+FUNCTION\b/i.test(code), `${MIG2}: rename the old function rather than DROP it`);
+    check(code.includes("NOTIFY pgrst, 'reload schema'"), `${MIG2}: must end with NOTIFY pgrst`);
+}
+
 // 2. Edge function
 const FN = 'supabase/functions/read-import-file/index.ts';
 check(exists(FN), `${FN} is missing`);
@@ -65,12 +95,17 @@ if (exists(FN)) {
     check(/stop_reason === "refusal"/.test(ts), 'read-import-file must handle a refusal before reading content');
     check(!/\.(from|insert|update|upsert|delete)\(/.test(ts.replace(/sb\.rpc\(/g, '')), 'read-import-file must not write to the database');
     check(/verify_jwt\s*=\s*false/.test(read('supabase/functions/read-import-file/config.toml')), 'read-import-file/config.toml must set verify_jwt = false');
+    check(/action === "identify_sheets"/.test(ts) && /handleIdentifySheets/.test(ts), 'read-import-file must handle identify_sheets');
+    const ident = (ts.match(/async function handleIdentifySheets[\s\S]*?\r?\n}\r?\n/) || [''])[0];
+    check(/cleanSheets\(body\.sheets\)/.test(ident), 'identify_sheets must send only cleaned headings and sample rows (cleanSheets)');
+    check(/MAX_SAMPLE_ROWS\s*=\s*5\b/.test(ts), 'read-import-file must cap sample rows at 5');
 }
 
 // 3. Browser code
 const JS = [
     'WebPortal/modules/sales-data/js/data-import-wizard.js',
-    'WebPortal/modules/sales-data/js/data-health-panel.js'
+    'WebPortal/modules/sales-data/js/data-health-panel.js',
+    'WebPortal/modules/sales-data/js/data-import-all-wizard.js'
 ];
 for (const f of JS) {
     check(exists(f), `${f} is missing`);
@@ -85,8 +120,16 @@ const wiz = exists(JS[0]) ? read(JS[0]) : '';
 check(/importDataPageRows/.test(wiz) && !/upsertData\w+\(/.test(wiz), 'the wizard must save through importDataPageRows, never the upsert wrappers');
 check(/invalidateLedgers/.test(wiz) && /flushAutoSave/.test(wiz), 'the wizard must flush pending edits and invalidate ledgers around a write');
 
+const all = exists(JS[2]) ? read(JS[2]) : '';
+check(/importDataPages\(/.test(all) && !/upsertData\w+\(|importDataPageRows\(/.test(all),
+    'Fill everything must save through importDataPages only (one transaction, one Undo)');
+check(/DataImportWizard\.engine/.test(all) && /withState\(/.test(all) && /\.classify\(\)/.test(all),
+    'Fill everything must check rows with the one-page wizard\'s engine (classify), not a copy of it');
+check(/flushGrid\(\)/.test(all) && /invalidateLedgers/.test(all), 'Fill everything must flush pending edits and invalidate ledgers around a write');
+check(/withState: function/.test(wiz) && /finally[\s\S]{0,40}S = saved/.test(wiz), 'DataImportWizard.engine.withState must restore the wizard state in finally');
+
 const df = read('WebPortal/js/data-functions.js');
-for (const w of ['importDataPageRows', 'undoDataImportBatch', 'getDataImportBatches', 'readImportFile']) {
+for (const w of ['importDataPageRows', 'undoDataImportBatch', 'getDataImportBatches', 'readImportFile', 'importDataPages', 'undoDataImportGroup']) {
     check(new RegExp(`\\b${w}: async function`).test(df), `data-functions.js: ${w} missing`);
 }
 check(/invalidateLedgers: function/.test(read('WebPortal/modules/sales-data/js/sales_data_grid.js')), 'sales_data_grid.js must export invalidateLedgers');
@@ -102,8 +145,9 @@ for (const f of walk(path.join(ROOT, 'WebPortal')).filter((f) => /\.(js|html)$/.
 // 4. Route order: the panel calls the wizard, so the wizard must load first.
 const cfg = read('WebPortal/js/appRouteConfig.json');
 const block = (cfg.match(/"sales-data-grid"\s*:\s*\{[\s\S]*?\]/) || [''])[0];
-const iw = block.indexOf('js/data-import-wizard.js'), ip = block.indexOf('js/data-health-panel.js');
+const iw = block.indexOf('js/data-import-wizard.js'), ia = block.indexOf('js/data-import-all-wizard.js'), ip = block.indexOf('js/data-health-panel.js');
 check(iw !== -1 && ip !== -1 && iw < ip, 'sales-data-grid must load js/data-import-wizard.js before js/data-health-panel.js');
+check(ia !== -1 && iw < ia && ia < ip, 'sales-data-grid must load js/data-import-all-wizard.js after the one-page wizard and before the panel');
 
 if (failures.length) {
     console.error('verify-data-import: FAIL');
