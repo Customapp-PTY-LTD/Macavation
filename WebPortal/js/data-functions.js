@@ -2876,6 +2876,35 @@ var _dataFunctions = function () {
             });
         },
 
+        /**
+         * Kernel batches received between two dates (inclusive, YYYY-MM-DD), any status — for the
+         * Grower Intake activity calendar. Deliberately bypasses getKernelBatches' cache: its cache
+         * key ignores p_limit, so a shared entry could hold a shorter list. get_kernel_batches sorts
+         * by received_date DESC, so paging stops once a page reaches dates before the window.
+         */
+        getKernelBatchesReceivedBetween: async function (fromIso, toIso, token = null) {
+            const PAGE = 500;
+            const out = [];
+            for (let offset = 0; offset < 20000; offset += PAGE) {
+                const raw = await this.callFunction('get_kernel_batches', {
+                    p_status: null, p_search: null, p_limit: PAGE, p_offset: offset
+                }, token, { useCache: false });
+                const rows = this.extractKernelBatchesRowsFromRaw(raw, 0);
+                if (rows.length === 0 && raw && (raw.error || raw.message)) {
+                    throw new Error(raw.message || raw.error || 'Failed to load kernel batches');
+                }
+                let reachedOlder = false;
+                rows.forEach(function (r) {
+                    const d = r && r.received_date ? String(r.received_date).slice(0, 10) : '';
+                    if (!d) return;
+                    if (d < fromIso) { reachedOlder = true; return; }
+                    if (d <= toIso) out.push(r);
+                });
+                if (reachedOlder || rows.length < PAGE) break;
+            }
+            return out;
+        },
+
         getKernelBatches: async function (token = null, forceRefresh = false, options = {}) {
             if (forceRefresh) {
                 this.clearCachePattern('kernel_batches');
@@ -5357,6 +5386,17 @@ var _dataFunctions = function () {
             if (raw && raw.success !== false && Array.isArray(raw.data)) return raw.data;
             if (raw && raw.data) return raw.data;
             return [];
+        },
+
+        /**
+         * Every kernel dispatch basket, newest first — for the Dispatch activity calendar.
+         * getKernelDispatchOrders stops at the latest 100; the calendar needs older months too.
+         * Uncached so a basket dispatched a minute ago shows when the calendar is reopened.
+         */
+        getKernelDispatchOrderHistory: async function (token = null) {
+            const raw = await this.callFunction('get_kernel_dispatch_orders', { p_limit: 5000, p_offset: 0 }, token, { useCache: false });
+            if (raw && raw.success === false) throw new Error(raw.error || 'Failed to load dispatch orders');
+            return raw && Array.isArray(raw.data) ? raw.data : [];
         },
 
         getKernelDispatchOrder: async function (orderId, token = null) {

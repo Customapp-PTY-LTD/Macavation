@@ -61,6 +61,7 @@ var _kernelDispatchGrid = function () {
         init: async () => {
             const scope = _kernelDispatchGrid;
             $('#kernelDispatchRefreshBtn').off('click').on('click', function () { scope.loadOrders(true); });
+            scope.initActivityCalendar();
 
             $('#kdFilterBatch').off('input.kdFilter').on('input.kdFilter', function () {
                 scope.scheduleDispatchFilterReload();
@@ -136,6 +137,45 @@ var _kernelDispatchGrid = function () {
                 if (typeof _modal_kernel_dispatch_edit !== 'undefined' && _modal_kernel_dispatch_edit.init) _modal_kernel_dispatch_edit.init();
             });
             await scope.loadOrders();
+        },
+
+        // Dispatch calendar: baskets created and baskets dispatched, by day.
+        initActivityCalendar: () => {
+            if (typeof MacActivityCalendar === 'undefined') return;
+            MacActivityCalendar.create({
+                mountId: 'kdActivityCalendarMount',
+                idPrefix: 'kdActivityCalendar',
+                title: 'Dispatch Calendar',
+                icon: 'fa-calendar-check',
+                intro: 'Days shaded green had dispatch activity. Click a day to see which baskets were dispatched or created, for which buyer, and how many kg.',
+                emptyDayText: 'No baskets were created or dispatched on this day.',
+                emptyMonthText: 'No baskets were created or dispatched in this month.',
+                loadMonth: async (fromIso, toIso) => {
+                    if (typeof dataFunctions === 'undefined' || !dataFunctions.getKernelDispatchOrderHistory) throw new Error('Dispatch orders are not available right now.');
+                    var orders = await dataFunctions.getKernelDispatchOrderHistory();
+                    var inMonth = function (iso) { return iso && iso >= fromIso && iso <= toIso; };
+                    var entries = [];
+                    orders.forEach(function (o) {
+                        if (String(o && o.status || '').toLowerCase() === 'cancelled') return;
+                        var created = MacActivityCalendar.dayOf(o.created_at);
+                        var dispatched = MacActivityCalendar.dayOf(o.dispatched_at);
+                        var detailTags = [];
+                        if (o.total_kg != null && Number(o.total_kg) > 0) detailTags.push({ text: MacActivityCalendar.formatKg(o.total_kg), tone: 'grey' });
+                        var lines = o.line_count != null ? Number(o.line_count) : 0;
+                        if (lines > 0) detailTags.push({ text: lines + ' line' + (lines === 1 ? '' : 's'), tone: 'grey' });
+                        var make = function (date, tags) {
+                            entries.push({ date: date, title: o.buyer_name || 'Buyer not set', subtitle: '', tags: tags.concat(detailTags) });
+                        };
+                        if (dispatched && dispatched === created) {
+                            if (inMonth(dispatched)) make(dispatched, [{ text: 'Created', tone: 'blue' }, { text: 'Dispatched' }]);
+                            return;
+                        }
+                        if (inMonth(created)) make(created, [{ text: 'Created', tone: 'blue' }]);
+                        if (inMonth(dispatched)) make(dispatched, [{ text: 'Dispatched' }]);
+                    });
+                    return entries;
+                }
+            });
         },
 
         loadOrders: async (forceRefresh) => {
