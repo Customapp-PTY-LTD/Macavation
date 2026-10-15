@@ -441,14 +441,14 @@ var DataImportWizard = (function () {
     }
 
     // Unmapped columns whose heading is the field's own label get mapped anyway (also the fallback
-    // when the AI is unavailable).
-    function autoFill(sheet, map) {
+    // when the AI is unavailable). `fields` defaults to the open wizard's page.
+    function autoFill(sheet, map, fields) {
         var used = {};
         Object.keys(map).forEach(function (c) { used[map[c].field] = true; });
         sheet.headers.forEach(function (h) {
             if (map[h]) return;
             var n = normName(h);
-            S.fields.forEach(function (f) {
+            (fields || S.fields).forEach(function (f) {
                 if (!used[f.key] && (normName(f.label) === n || normName(f.key) === n)) { map[h] = { field: f.key, confidence: 0.6, guessed: true }; used[f.key] = true; }
             });
         });
@@ -668,13 +668,17 @@ var DataImportWizard = (function () {
         });
     }
 
-    function fetchExisting() {
-        var meta = DATASETS[S.datasetKey];
+    // Arguments default to the open wizard's page and dates (Fill everything passes its own).
+    function fetchExisting(datasetKey, from, to) {
+        datasetKey = datasetKey || S.datasetKey;
+        from = from || S.from;
+        to = to || S.to;
+        var meta = DATASETS[datasetKey];
         var fn = dataFunctions[meta.getter];
         if (typeof fn !== 'function') return Promise.resolve([]);
         var all = [];
         function page(offset) {
-            return fn.call(dataFunctions, S.from, S.to, PAGE, offset, null, true).then(function (res) {
+            return fn.call(dataFunctions, from, to, PAGE, offset, null, true).then(function (res) {
                 var rows = Array.isArray(res) ? res : (res && Array.isArray(res.data) ? res.data : []);
                 rows.forEach(function (r) { if (r && r[meta.date]) all.push(r); });
                 var total = rows.length ? Number(rows[0].total_count) || 0 : 0;
@@ -685,19 +689,22 @@ var DataImportWizard = (function () {
         return page(0);
     }
 
-    function loadLookups() {
+    // Fills ctx.contacts (and ctx.styles when needStyles) once; ctx defaults to the open wizard.
+    function loadLookups(ctx, needStyles) {
+        ctx = ctx || S;
+        if (needStyles === undefined) needStyles = ctx.datasetKey === 'kernel_sales_lines';
         var tasks = [];
-        if (!S.contacts) {
+        if (!ctx.contacts) {
             tasks.push(dataFunctions.getContacts().then(function (rows) {
-                S.contacts = (Array.isArray(rows) ? rows : []).map(function (c) {
+                ctx.contacts = (Array.isArray(rows) ? rows : []).map(function (c) {
                     return { id: c && (c.id || c.contact_id), name: (c && (c.company_name || c.name || c.contact_name)) || '' };
                 }).filter(function (c) { return c.id && c.name; });
-            }).catch(function () { S.contacts = []; }));
+            }).catch(function () { ctx.contacts = []; }));
         }
-        if (!S.styles && S.datasetKey === 'kernel_sales_lines') {
+        if (!ctx.styles && needStyles) {
             tasks.push(dataFunctions.getKernelStyles().then(function (rows) {
-                S.styles = (Array.isArray(rows) ? rows : []).map(function (s) { return s && s.style_code; }).filter(Boolean);
-            }).catch(function () { S.styles = []; }));
+                ctx.styles = (Array.isArray(rows) ? rows : []).map(function (s) { return s && s.style_code; }).filter(Boolean);
+            }).catch(function () { ctx.styles = []; }));
         }
         return Promise.all(tasks);
     }
@@ -1081,7 +1088,37 @@ var DataImportWizard = (function () {
             go(1);
             S.bs.show();
         },
-        undo: undo
+        undo: undo,
+
+        /**
+         * The checking engine, shared with "Fill everything from a file" (data-import-all-wizard.js) so
+         * both wizards read cells, spot rows already in the portal and match names the same way.
+         * withState(ctx, fn) runs fn({buildRecords, classify, payloadRows, resolved}) with ctx standing in
+         * for this wizard's state. Synchronous only: those four read the state as they run.
+         * ctx needs: kind 'spreadsheet', sheets [sheet], sheetName, mapping, fields, datasetKey, from, to,
+         * and for classify/payloadRows: records, existing, contacts, styles.
+         */
+        engine: {
+            LOW_CONFIDENCE: LOW_CONFIDENCE,
+            targetFields: targetFields,
+            parseDate: parseDate,
+            normName: normName,
+            similarity: similarity,
+            readWorkbook: readWorkbook,
+            autoFill: autoFill,
+            fetchExisting: fetchExisting,
+            loadLookups: loadLookups,
+            flushGrid: flushGrid,
+            withState: function (ctx, fn) {
+                var saved = S;
+                S = ctx;
+                try {
+                    return fn({ buildRecords: buildRecords, classify: classify, payloadRows: payloadRows, resolved: resolved });
+                } finally {
+                    S = saved;
+                }
+            }
+        }
     };
 }());
 

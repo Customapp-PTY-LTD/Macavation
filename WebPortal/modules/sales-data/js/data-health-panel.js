@@ -30,10 +30,10 @@ var DataHealthPanel = (function () {
     var CUTOVER_ISO = '2026-11-01';
     var DIFF_TOLERANCE = 0.05;
 
-    var LABELS = { ok: 'Captured', miss: 'Missing', diff: 'Differs', none: 'No activity', cant: 'Can’t check', future: '–' };
+    var LABELS = { ok: 'Captured', miss: 'Missing', diff: 'Differs', none: 'No activity', cant: 'Can’t check', future: '–', will: 'Filled by this file' };
     var RANK = { miss: 5, diff: 4, cant: 3, ok: 2, none: 1, future: 0 };
 
-    var state = { fy: null, byIso: {}, weeks: [], status: {}, todayIso: null, onOpen: null, root: null, sel: null, container: null };
+    var state = { fy: null, byIso: {}, weeks: [], status: {}, todayIso: null, onOpen: null, root: null, sel: null, container: null, lastImport: null };
 
     // Fill gaps from a file (data-import-wizard.js): offered only to people who may edit data pages,
     // and only when the wizard script loaded.
@@ -46,6 +46,85 @@ var DataHealthPanel = (function () {
             datasetKey: datasetKey, from: from, to: to,
             onDone: function () { if (state.container && document.body.contains(state.container)) load(state.container); }
         });
+    }
+
+    // Fill everything from a file (data-import-all-wizard.js): the whole financial year, every page.
+    function canImportAll() { return canImport() && typeof DataImportAllWizard !== 'undefined'; }
+
+    function reload() { if (state.container && document.body.contains(state.container)) load(state.container); }
+
+    function openImportAll() {
+        if (!state.weeks.length) return;
+        DataImportAllWizard.open({
+            snapshot: snapshot(),
+            onSaved: function (result) { state.lastImport = result; reload(); },
+            onUndone: function () { state.lastImport = null; reload(); }
+        });
+    }
+
+    // What the Fill everything wizard needs to know about this grid.
+    function snapshot() {
+        return {
+            fy: state.fy,
+            todayIso: state.todayIso,
+            cutoverIso: CUTOVER_ISO,
+            weeks: state.weeks.map(function (w) { return { startIso: isoOf(w.start), endIso: isoOf(w.end), label: fmt(w.start) }; }),
+            status: JSON.parse(JSON.stringify(state.status))
+        };
+    }
+
+    // Missing weeks a file is meant to fill: those that start before the cut-over.
+    function missWeeks(key) {
+        return (state.status[key] || []).reduce(function (a, s, i) {
+            if (s === 'miss' && isoOf(state.weeks[i].start) < CUTOVER_ISO) a.push(i);
+            return a;
+        }, []);
+    }
+
+    // Under the grid: how many missing weeks a file could fill, or what the last import in this
+    // session did (with its Undo).
+    function renderGapBar(host) {
+        clear(host);
+        if (!host || !canImportAll()) return;
+        var last = state.lastImport;
+        var bar = el('div', 'dh-gapbar');
+        var text = el('span');
+        if (last) {
+            bar.classList.add('dh-gapbar-done');
+            var left = missWeeks('nis_intake').length + missWeeks('kernel_sales_lines').length;
+            text.appendChild(document.createTextNode('✓ '));
+            text.appendChild(el('b', null, 'Imported ' + last.code));
+            text.appendChild(document.createTextNode(' from ' + last.fileName + '. '
+                + (left ? left + ' missing week' + (left === 1 ? '' : 's') + ' left that the file couldn’t fill.' : 'No missing weeks left.')));
+            bar.appendChild(text);
+            var u = el('button', 'btn btn-outline-secondary btn-sm', '↶ Undo');
+            u.type = 'button';
+            u.addEventListener('click', function () {
+                DataImportAllWizard.undo(last.groupId, function (msg) {
+                    if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire({ text: msg, icon: 'info' });
+                    state.lastImport = null;
+                    reload();
+                });
+            });
+            bar.appendChild(u);
+            host.appendChild(bar);
+            return;
+        }
+        var nis = missWeeks('nis_intake').length, ker = missWeeks('kernel_sales_lines').length, prod = missWeeks('production_daily').length;
+        if (!nis && !ker) return;
+        var parts = [];
+        if (nis) parts.push('Nut in Shell Intake ' + nis);
+        if (ker) parts.push('Kernel Sales ' + ker);
+        text.appendChild(document.createTextNode('⚠ '));
+        text.appendChild(el('b', null, (nis + ker) + ' missing week' + (nis + ker === 1 ? '' : 's')));
+        text.appendChild(document.createTextNode(' can be filled from a file: ' + parts.join(', ') + '.'
+            + (prod ? ' Production’s ' + prod + ' week' + (prod === 1 ? '' : 's') + ' come' + (prod === 1 ? 's' : '') + ' from the factory instead.' : '')));
+        bar.appendChild(text);
+        var b = el('button', 'btn btn-outline-secondary btn-sm', 'Fill everything from a file →');
+        b.type = 'button';
+        b.addEventListener('click', openImportAll);
+        bar.appendChild(b);
+        host.appendChild(bar);
     }
 
     // ------------------------------------------------------------------
@@ -197,7 +276,13 @@ var DataHealthPanel = (function () {
         });
     }
 
-    function renderGrid(table) {
+    // statusOf(rowKey, weekIndex) defaults to the computed status. The Fill everything wizard passes
+    // its own to draw the "after this import" preview, with interactive false (no focus, no clicks)
+    // and dim naming rows to grey out.
+    function renderGrid(table, statusOf, opts) {
+        opts = opts || {};
+        statusOf = statusOf || function (rk, i) { return state.status[rk][i]; };
+        var interactive = opts.interactive !== false;
         clear(table);
         var thead = el('thead');
         // Month row
@@ -224,19 +309,24 @@ var DataHealthPanel = (function () {
 
         var tbody = el('tbody');
         ROWS.forEach(function (r) {
-            var tr = el('tr');
+            var dim = opts.dim && opts.dim[r.key];
+            var tr = el('tr', dim ? 'dh-row-dim' : null);
             var name = el('td', 'dh-name', r.name);
-            name.appendChild(el('small', null, r.sub));
+            name.appendChild(el('small', null, dim || r.sub));
             tr.appendChild(name);
             state.weeks.forEach(function (w, i) {
-                var status = state.status[r.key][i];
+                var status = statusOf(r.key, i);
                 var td = el('td', 'dh-c dh-' + status);
                 var cutIso = CUTOVER_ISO;
                 if (isoOf(w.start) <= cutIso && isoOf(w.end) >= cutIso) td.classList.add('dh-cut');
-                td.title = r.name + ' · week of ' + fmt(w.start) + ': ' + LABELS[status];
-                td.setAttribute('data-r', r.key);
-                td.setAttribute('data-w', String(i));
-                if (status !== 'future') td.tabIndex = 0;
+                td.title = r.name + ' · week of ' + fmt(w.start) + ': ' + (LABELS[status] || '');
+                if (interactive) {
+                    td.setAttribute('data-r', r.key);
+                    td.setAttribute('data-w', String(i));
+                    if (status !== 'future') td.tabIndex = 0;
+                } else {
+                    td.classList.add('dh-static');
+                }
                 tr.appendChild(td);
             });
             tbody.appendChild(tr);
@@ -343,6 +433,7 @@ var DataHealthPanel = (function () {
         renderSummary(root.querySelector('.dh-summary'));
         renderLegend(root.querySelector('.dh-legend'));
         renderGrid(root.querySelector('table.dh-grid'));
+        renderGapBar(root.querySelector('.dh-gapbar-host'));
         // Open on the first missing production week, else the latest started week.
         var wi = state.status.production_daily.indexOf('miss');
         var rk = 'production_daily';
@@ -375,14 +466,25 @@ var DataHealthPanel = (function () {
         top.appendChild(el('span', 'dh-intro text-muted small ms-3',
             'What each data page is missing, week by week, compared with what the factory captured.'));
         if (canImport()) {
-            var fill = el('button', 'btn btn-primary btn-sm ms-auto');
-            fill.type = 'button';
-            fill.appendChild(el('i', 'fas fa-file-import me-1'));
-            fill.appendChild(document.createTextNode('Fill gaps from a file'));
-            fill.addEventListener('click', function () {
+            var btns = el('div', 'dh-top-btns ms-auto');
+            var one = el('button', 'btn btn-outline-secondary btn-sm');
+            one.type = 'button';
+            one.title = 'One page and chosen dates, from Excel or a photo/PDF';
+            one.appendChild(el('i', 'fas fa-file-import me-1'));
+            one.appendChild(document.createTextNode('One page from a file'));
+            one.addEventListener('click', function () {
                 openImport('nis_intake', (state.fy - 1) + '-04-01', state.todayIso || isoOf(new Date()));
             });
-            top.appendChild(fill);
+            btns.appendChild(one);
+            if (canImportAll()) {
+                var all = el('button', 'btn btn-primary btn-sm');
+                all.type = 'button';
+                all.appendChild(el('i', 'fas fa-upload me-1'));
+                all.appendChild(document.createTextNode('Fill everything from a file'));
+                all.addEventListener('click', openImportAll);
+                btns.appendChild(all);
+            }
+            top.appendChild(btns);
         }
         root.appendChild(top);
         root.appendChild(el('div', 'dh-summary'));
@@ -390,6 +492,7 @@ var DataHealthPanel = (function () {
         var wrap = el('div', 'dh-grid-wrap');
         wrap.appendChild(el('table', 'dh-grid'));
         root.appendChild(wrap);
+        root.appendChild(el('div', 'dh-gapbar-host'));
         root.appendChild(el('p', 'dh-cutnote', '▎ The blue line marks 1 November 2026. Before it, gaps are filled from the client’s Excel. From then on everything is captured in the portal, and this page should stay green.'));
         root.appendChild(el('div', 'dh-detail'));
         var explain = el('div', 'dh-explain');
@@ -471,27 +574,48 @@ var DataHealthPanel = (function () {
             t.appendChild(thead);
             var tbody = el('tbody');
             var names = (typeof DataImportWizard !== 'undefined') ? DataImportWizard.DATASETS : {};
+            // A Fill everything import is one batch per page sharing import_group_id: one line, one Undo.
+            var lines = [], byGroup = {};
             rows.forEach(function (b) {
-                var tr = el('tr', b.undone_at ? 'dh-import-undone' : '');
+                var label = (names[b.dataset_key] && names[b.dataset_key].label) || b.dataset_key || '';
+                if (b.import_group_id && byGroup[b.import_group_id]) {
+                    var g = byGroup[b.import_group_id];
+                    g.pages.unshift(label);
+                    g.row_count += Number(b.row_count) || 0;
+                    g.total_qty += Number(b.total_qty) || 0;
+                    g.undone = g.undone && !!b.undone_at;
+                    return;
+                }
+                var line = { id: b.id, groupId: b.import_group_id || null, created_at: b.created_at, file_name: b.file_name,
+                    pages: [label], row_count: Number(b.row_count) || 0, total_qty: Number(b.total_qty) || 0,
+                    by: b.created_by_name || '', undone: !!b.undone_at };
+                if (line.groupId) byGroup[line.groupId] = line;
+                lines.push(line);
+            });
+            lines.forEach(function (b) {
+                var tr = el('tr', b.undone ? 'dh-import-undone' : '');
                 var when = b.created_at ? new Date(b.created_at) : null;
                 tr.appendChild(el('td', 'text-nowrap', when ? fmt(when) + ' ' + pad(when.getHours()) + ':' + pad(when.getMinutes()) : ''));
                 tr.appendChild(el('td', null, b.file_name || ''));
-                tr.appendChild(el('td', null, (names[b.dataset_key] && names[b.dataset_key].label) || b.dataset_key || ''));
+                tr.appendChild(el('td', null, b.pages.join(', ')));
                 tr.appendChild(el('td', 'text-end', num(b.row_count)));
                 tr.appendChild(el('td', 'text-end', num(b.total_qty)));
-                tr.appendChild(el('td', null, b.created_by_name || ''));
+                tr.appendChild(el('td', null, b.by));
                 var td = el('td', 'text-end');
-                if (b.undone_at) {
+                if (b.undone) {
                     td.appendChild(el('span', 'text-muted small', 'Undone'));
-                } else if (canImport()) {
+                } else if (canImport() && (!b.groupId || canImportAll())) {
                     var u = el('button', 'btn btn-outline-secondary btn-sm');
                     u.type = 'button';
                     u.textContent = 'Undo';
                     u.addEventListener('click', function () {
-                        DataImportWizard.undo(b.id, function (msg) {
+                        var report = function (msg) {
                             if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire({ text: msg, icon: 'info' });
-                            if (state.container && document.body.contains(state.container)) load(state.container);
-                        });
+                            if (b.groupId && state.lastImport && state.lastImport.groupId === b.groupId) state.lastImport = null;
+                            reload();
+                        };
+                        if (b.groupId) DataImportAllWizard.undo(b.groupId, report);
+                        else DataImportWizard.undo(b.id, report);
                     });
                     td.appendChild(u);
                 }
@@ -514,7 +638,21 @@ var DataHealthPanel = (function () {
             if (!state.fy) state.fy = fyOf(new Date());
             shell(container);
             return load(container);
-        }
+        },
+
+        /**
+         * Draws the grid as it is now into another table - used by Fill everything for its
+         * before/after preview. statusOf(rowKey, weekIndex) may return 'will' for "filled by this file".
+         * @param {HTMLTableElement} table
+         * @param {function(string, number): string} [statusOf]
+         * @param {Object<string, string>} [dim] - row key -> replacement subtitle, drawn greyed out
+         */
+        renderPreviewGrid: function (table, statusOf, dim) {
+            if (!state.weeks.length) return;
+            renderGrid(table, statusOf, { interactive: false, dim: dim || null });
+        },
+
+        LABELS: LABELS
     };
 }());
 

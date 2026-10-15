@@ -712,6 +712,7 @@
                 "js/sales-data-column-defs.js",
                 "js/sales-data-row-grid.js",
                 "js/data-import-wizard.js",
+                "js/data-import-all-wizard.js",
                 "js/data-health-panel.js",
                 "js/sales_data_grid.js"
             ],

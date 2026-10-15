@@ -1,16 +1,19 @@
 /**
  * read-import-file - the AI half of "Fill gaps from a file" (Sales & Production Data > Data health).
  *
- * Two actions (POST body { action: ... }):
+ * Three actions (POST body { action: ... }):
  *   map_columns   - given a spreadsheet's sheet names, headings and up to 5 sample rows, say which
  *                   sheet holds the transactions and which column goes into which data-page field.
  *                   Only headings and samples are ever sent; every value is read in the browser,
  *                   so no figure is ever produced by the model.
+ *   identify_sheets - "Fill everything from a file": the same inputs plus every importable page's
+ *                   fields; says which page (or none) each sheet belongs to, and maps its columns.
  *   read_document - read a photo (jpeg/png) or PDF of a delivery note / invoice into rows, with a
  *                   confidence per field. The person checks every row before anything is saved.
  *
  * This function never writes to the database. Saving goes through import_data_page_rows
- * (migrations/20261015090000_data_page_import_batches.sql) from the browser, after review.
+ * (migrations/20261015090000_data_page_import_batches.sql) or import_data_pages
+ * (migrations/20261015120000_data_import_groups.sql) from the browser, after review.
  *
  * Auth: the X-Portal-Session header, validated through the service-role RPC
  * assistant_validate_session (same as portal-assistant) - fail closed. Because each call costs
@@ -111,6 +114,16 @@ function cell(v: unknown): string {
   return String(v ?? "").replace(/\s+/g, " ").trim().slice(0, MAX_CELL_CHARS);
 }
 
+// Sheet names, headings and up to five sample rows - never more.
+function cleanSheets(raw: unknown): AnyRow[] {
+  return (Array.isArray(raw) ? raw : []).slice(0, MAX_SHEETS).map((s: AnyRow) => ({
+    name: cell(s?.name),
+    headers: (Array.isArray(s?.headers) ? s.headers : []).slice(0, MAX_COLUMNS).map(cell),
+    sample_rows: (Array.isArray(s?.sample_rows) ? s.sample_rows : []).slice(0, MAX_SAMPLE_ROWS)
+      .map((r: unknown) => (Array.isArray(r) ? r : []).slice(0, MAX_COLUMNS).map(cell)),
+  })).filter((s: AnyRow) => s.headers.length);
+}
+
 // ── Model call ────────────────────────────────────────────────────────────
 
 function client(): Anthropic | null {
@@ -175,12 +188,7 @@ async function askForJson(
 async function handleMapColumns(anthropic: Anthropic, body: AnyRow, userId: string): Promise<Response> {
   const fields = cleanFields(body.target_fields);
   if (!fields.length) return jsonResponse({ success: false, error: "No target fields were sent." }, 400);
-  const sheets = (Array.isArray(body.sheets) ? body.sheets : []).slice(0, MAX_SHEETS).map((s: AnyRow) => ({
-    name: cell(s?.name),
-    headers: (Array.isArray(s?.headers) ? s.headers : []).slice(0, MAX_COLUMNS).map(cell),
-    sample_rows: (Array.isArray(s?.sample_rows) ? s.sample_rows : []).slice(0, MAX_SAMPLE_ROWS)
-      .map((r: unknown) => (Array.isArray(r) ? r : []).slice(0, MAX_COLUMNS).map(cell)),
-  })).filter((s: AnyRow) => s.headers.length);
+  const sheets = cleanSheets(body.sheets);
   if (!sheets.length) return jsonResponse({ success: false, error: "The file has no sheet with column headings." }, 400);
 
   const schema = {
@@ -216,6 +224,79 @@ async function handleMapColumns(anthropic: Anthropic, body: AnyRow, userId: stri
   const prompt = JSON.stringify({ page: String(body.dataset_key || ""), fields, sheets });
 
   const r = await askForJson(anthropic, "low", system, [{ type: "text", text: prompt }], schema, "map_columns", userId);
+  if (!r.ok) return jsonResponse({ success: false, error: r.error }, r.status);
+  return jsonResponse({ success: true, data: r.data });
+}
+
+// ── identify_sheets ───────────────────────────────────────────────────────
+// "Fill everything from a file": for every sheet of a workbook, say which data page it belongs to
+// (or none) and map its columns onto that page's fields. Same rule as map_columns: only headings and
+// up to five sample rows are sent, and every value is read in the browser afterwards.
+
+const PAGE_KEYS = ["nis_intake", "kernel_sales_lines", "oil_sales_lines", "oil_export_register"];
+
+async function handleIdentifySheets(anthropic: Anthropic, body: AnyRow, userId: string): Promise<Response> {
+  const pages = (Array.isArray(body.pages) ? body.pages : [])
+    .map((p: AnyRow) => ({
+      key: String(p?.dataset_key ?? ""),
+      label: String(p?.label ?? "").slice(0, 60),
+      fields: cleanFields(p?.fields),
+    }))
+    .filter((p: AnyRow) => PAGE_KEYS.includes(p.key) && p.fields.length);
+  if (!pages.length) return jsonResponse({ success: false, error: "No pages were sent." }, 400);
+  const sheets = cleanSheets(body.sheets);
+  if (!sheets.length) return jsonResponse({ success: false, error: "The file has no sheet with column headings." }, 400);
+
+  const allFieldKeys = [...new Set(pages.flatMap((p: AnyRow) => p.fields.map((f: TargetField) => f.key)))];
+  const schema = {
+    type: "object",
+    additionalProperties: false,
+    required: ["sheets"],
+    properties: {
+      sheets: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["sheet", "page", "reason", "confidence", "mapping"],
+          properties: {
+            sheet: { type: "string", enum: [...new Set(sheets.map((s: AnyRow) => s.name))] },
+            page: { anyOf: [{ type: "string", enum: pages.map((p: AnyRow) => p.key) }, { type: "null" }] },
+            reason: { type: "string" },
+            confidence: { type: "number" },
+            mapping: {
+              type: "array",
+              items: {
+                type: "object",
+                additionalProperties: false,
+                required: ["column", "field", "confidence"],
+                properties: {
+                  column: { type: "string" },
+                  field: { anyOf: [{ type: "string", enum: allFieldKeys }, { type: "null" }] },
+                  confidence: { type: "number" },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+
+  const system =
+    "You sort the sheets of a macadamia processor's workbook onto its data-entry pages. Give exactly one " +
+    "entry per sheet, in the order the sheets are listed. A sheet belongs to a page only when it holds one " +
+    "row per transaction of that kind (a nut-in-shell delivery, a kernel invoice line, an oil or protein " +
+    "invoice line, an oil export). Pivot, summary, chart and lookup sheets belong to no page (null). A sheet " +
+    "of daily production or cracking figures also belongs to no page: Production (daily) is filled from the " +
+    "factory with 'Refresh from factory' on the Production tab, so say that in its reason. For a sheet with a " +
+    "page, give one mapping entry per column heading, in order, using only that page's field keys; map a " +
+    "column to at most one field, use each field at most once, and use null for a column that fits no field. " +
+    "For a sheet with no page, give an empty mapping. Confidence is 0 to 1. 'reason' is one short " +
+    "plain-English sentence a farm administrator would understand.";
+  const prompt = JSON.stringify({ pages, sheets });
+
+  const r = await askForJson(anthropic, "low", system, [{ type: "text", text: prompt }], schema, "identify_sheets", userId);
   if (!r.ok) return jsonResponse({ success: false, error: r.error }, r.status);
   return jsonResponse({ success: true, data: r.data });
 }
@@ -302,7 +383,7 @@ export async function handler(req: Request): Promise<Response> {
   }
 
   const action = String(body.action || "");
-  if (action !== "map_columns" && action !== "read_document") {
+  if (action !== "map_columns" && action !== "identify_sheets" && action !== "read_document") {
     return jsonResponse({ success: false, error: "Unknown action." }, 400);
   }
 
@@ -315,6 +396,7 @@ export async function handler(req: Request): Promise<Response> {
 
   try {
     if (action === "map_columns") return await handleMapColumns(anthropic, body, caller.userId);
+    if (action === "identify_sheets") return await handleIdentifySheets(anthropic, body, caller.userId);
     return await handleReadDocument(anthropic, body, caller.userId);
   } catch (e) {
     console.error("[read-import-file] action failed:", action, e instanceof Error ? e.message : e);

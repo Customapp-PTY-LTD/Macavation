@@ -7077,6 +7077,40 @@ var _dataFunctions = function () {
             }
         },
 
+        /**
+         * Fill everything from a file - migrations/20261015120000_data_import_groups.sql. pages is
+         * [{dataset_key, rows}]; all pages save in one transaction or none do. Resolves to
+         * {success, error, group_id, batches}; never throws.
+         */
+        importDataPages: async function (fileName, pages, token = null) {
+            try {
+                const result = await this.callFunction('import_data_pages', {
+                    p_file_name: fileName,
+                    p_pages: Array.isArray(pages) ? pages : [],
+                    p_actor_user_id: this.getCurrentUserId() || null
+                }, token, { useCache: false, offlineOperation: false });
+                const row = Array.isArray(result) ? result[0] : result;
+                return row || { success: 0, error: 'The server did not answer.' };
+            } catch (e) {
+                console.warn('[DataImport] import_data_pages failed', e && e.message);
+                return { success: 0, error: (e && e.message) || 'The import could not be saved.' };
+            }
+        },
+
+        undoDataImportGroup: async function (groupId, token = null) {
+            try {
+                const result = await this.callFunction('undo_data_import_group', {
+                    p_group_id: groupId,
+                    p_actor_user_id: this.getCurrentUserId() || null
+                }, token, { useCache: false, offlineOperation: false });
+                const row = Array.isArray(result) ? result[0] : result;
+                return row || { success: 0, error: 'The server did not answer.' };
+            } catch (e) {
+                console.warn('[DataImport] undo_data_import_group failed', e && e.message);
+                return { success: 0, error: (e && e.message) || 'The import could not be undone.' };
+            }
+        },
+
         // Resolves to an array, or null when the function is missing (migration not applied yet).
         getDataImportBatches: async function (datasetKey = null, limit = 20, token = null) {
             try {
