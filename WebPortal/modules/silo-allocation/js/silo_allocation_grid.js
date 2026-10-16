@@ -794,12 +794,63 @@ var _siloAllocationGrid = (function () {
             .on('click.siloAlloc', '#siloRefreshBtn', function () { load(); });
     }
 
+    // ------------------------------------------------------------------
+    // Silo calendar: bags allocated and silos cracked, by day.
+    // ------------------------------------------------------------------
+
+    function initActivityCalendar() {
+        if (typeof MacActivityCalendar === 'undefined') { return; }
+        var fmtKg = MacActivityCalendar.formatKg;
+        var runEntry = function (r, date) {
+            var tags = [{ text: r.closed_at ? 'Cracked' : 'Cracking now', tone: r.closed_at ? 'green' : 'blue' }];
+            if (r.volume_kg != null && Number(r.volume_kg) > 0) { tags.push({ text: fmtKg(r.volume_kg), tone: 'grey' }); }
+            tags.push({ text: localTime(r.opened_at) + (r.closed_at ? '–' + localTime(r.closed_at) : ''), tone: 'grey' });
+            if (r.closed_at && r.left_kg != null && Number(r.left_kg) > 0) { tags.push({ text: fmtKg(r.left_kg) + ' left', tone: 'amber' }); }
+            return { date: date, title: 'Silo ' + r.silo_number, subtitle: r.batch_numbers || '', tags: tags };
+        };
+        MacActivityCalendar.create({
+            mountId: 'siloActivityCalendarMount',
+            idPrefix: 'siloActivityCalendar',
+            title: 'Silo Calendar',
+            icon: 'fa-calendar-check',
+            intro: 'Days shaded green had silo activity. Click a day to see which bags went into which silo, and which silos were cracked, how many kg and when.',
+            emptyDayText: 'No bags were allocated and no silos were cracked on this day.',
+            emptyMonthText: 'No silo activity in this month.',
+            loadMonth: function (fromIso, toIso) {
+                return safe(dataFunctions.getSiloActivity(fromIso, toIso)).then(function (r) {
+                    if (!isOk(r)) { return runsOnly(r); }
+                    var entries = [];
+                    (r.allocations || []).forEach(function (a) {
+                        var bags = a.bag_nos || [];
+                        var tags = [{ text: 'Allocated to silo ' + a.silo_number }];
+                        tags.push({ text: bags.length + ' bag' + (bags.length === 1 ? '' : 's') + ' · ' + fmtKg(a.bag_kg), tone: 'grey' });
+                        if (Number(a.removed_kg) > 0) { tags.push({ text: 'Pre-sizer ' + fmtKg(a.removed_kg), tone: 'amber' }); }
+                        entries.push({ date: a.day, title: a.batch_number || 'Batch', subtitle: a.grower_name || '', tags: tags });
+                    });
+                    (r.runs || []).forEach(function (run) { entries.push(runEntry(run, run.day)); });
+                    return entries;
+                });
+                // Database without migration 20261016090000: still show cracking runs from the log.
+                function runsOnly(failed) {
+                    console.warn('[Silo Allocation] get_silo_activity unavailable, showing cracking runs only:', errText(failed, ''));
+                    return safe(dataFunctions.getSiloRuns(500)).then(function (r) {
+                        if (!isOk(r)) { throw new Error(errText(r, 'Could not load silo activity.')); }
+                        return (r.runs || []).map(function (run) {
+                            return runEntry(run, MacActivityCalendar.dayOf(run.closed_at || run.opened_at));
+                        }).filter(function (e) { return e.date >= fromIso && e.date <= toIso; });
+                    });
+                }
+            }
+        });
+    }
+
     return {
         init: function () {
             stopTicker();
             state.batchId = null;
             state.tally = null;
             bindEvents();
+            initActivityCalendar();
             load();
         },
         destroy: stopTicker

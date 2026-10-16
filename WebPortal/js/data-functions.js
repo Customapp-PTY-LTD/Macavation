@@ -2070,6 +2070,10 @@ var _dataFunctions = function () {
         getSiloAllocationBatches: async function (token = null) {
             return this._kpUnwrap(await this.callFunction('get_silo_allocation_batches', {}, token, { useCache: false }));
         },
+        /** { allocations[], runs[] } for a date window (max 62 days). Migration 20261016090000. */
+        getSiloActivity: async function (fromIso, toIso, token = null) {
+            return this._kpUnwrap(await this.callFunction('get_silo_activity', { p_date_from: fromIso, p_date_to: toIso }, token, { useCache: false }));
+        },
         getSiloRuns: async function (limit = 50, token = null) {
             return this._kpUnwrap(await this.callFunction('get_silo_runs', { p_limit: limit }, token, { useCache: false }));
         },
