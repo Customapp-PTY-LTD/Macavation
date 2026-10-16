@@ -4,9 +4,13 @@
 <div class="module-content" id="siloAllocationModule">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Silo Allocation</h1>
-        <button type="button" class="btn btn-outline-secondary" id="siloRefreshBtn">
-            <i class="fas fa-sync-alt me-1"></i>Refresh
-        </button>
+        <div class="d-flex gap-2 align-items-center">
+            <!-- Silo calendar: bags allocated and silos cracked each day (js/mac-activity-calendar.js) -->
+            <div id="siloActivityCalendarMount"></div>
+            <button type="button" class="btn btn-outline-secondary" id="siloRefreshBtn">
+                <i class="fas fa-sync-alt me-1"></i>Refresh
+            </button>
+        </div>
     </div>
 
     <div id="siloNotice"></div>
