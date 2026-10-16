@@ -51,6 +51,7 @@ var _growerIntakeGrid = function () {
             if (typeof initMacSectionCollapses === 'function') {
                 initMacSectionCollapses(document.querySelector('.module-content'));
             }
+            scope.initActivityCalendar();
             scope.loadIntakeBatches(true);
             scope.loadProcurements(true);
             const loadPromises = [];
@@ -684,6 +685,44 @@ var _growerIntakeGrid = function () {
         // ================================================================
 
         _procIsoFromDate: (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'),
+
+        // Intake calendar: what was actually received each day, whatever stage the batch is at now.
+        // (The Procurement Calendar above is the plan; this is what happened.)
+        initActivityCalendar: () => {
+            if (typeof MacActivityCalendar === 'undefined') return;
+            var df = typeof _dataFunctions !== 'undefined' && _dataFunctions ? _dataFunctions
+                   : typeof dataFunctions !== 'undefined' ? dataFunctions : null;
+            var NOW_AT = {
+                intake: 'Still at intake', receiving: 'Still at intake',
+                production: 'In production', qa: 'Awaiting release', complete: 'In stock'
+            };
+            MacActivityCalendar.create({
+                mountId: 'giActivityCalendarMount',
+                idPrefix: 'giActivityCalendar',
+                title: 'Intake Calendar',
+                icon: 'fa-calendar-check',
+                intro: 'Days shaded green had kernel batches received. Click a day to see which batches came in, from which grower, and where each batch is now.',
+                emptyDayText: 'No batches were received on this day.',
+                emptyMonthText: 'No batches were received in this month.',
+                loadMonth: async (fromIso, toIso) => {
+                    if (!df || typeof df.getKernelBatchesReceivedBetween !== 'function') throw new Error('Kernel batches are not available right now.');
+                    var batches = await df.getKernelBatchesReceivedBetween(fromIso, toIso);
+                    return batches.map(function (b) {
+                        var kg = (b.actual_wet_nis_kg != null && b.actual_wet_nis_kg !== '') ? b.actual_wet_nis_kg : b.wet_nis_received_kg;
+                        var tags = [{ text: 'Received' }];
+                        if (kg != null && kg !== '' && Number(kg) > 0) tags.push({ text: MacActivityCalendar.formatKg(kg) + ' wet NIS', tone: 'grey' });
+                        var status = String(b.status || '').toLowerCase();
+                        if (status) tags.push({ text: NOW_AT[status] || ('Now: ' + status), tone: 'blue' });
+                        return {
+                            date: String(b.received_date).slice(0, 10),
+                            title: b.batch_number || 'Batch',
+                            subtitle: b.grower_name || '',
+                            tags: tags
+                        };
+                    });
+                }
+            });
+        },
 
         _procParseIso: (iso) => {
             if (!iso) return null;

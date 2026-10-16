@@ -1,0 +1,96 @@
+/* MacActivityCalendar (js/mac-activity-calendar.js) — "what happened on which day" calendar.
+   Mirrors the compact Kernel Production calendar (.kp-production-calendar-* in
+   kernel_production_grid.css / .html) so the screens look the same. */
+
+.mac-acal-menu { width: 720px; max-width: 94vw; }
+
+.mac-acal-toolbar { display: flex; align-items: center; gap: 0.5rem; }
+.mac-acal-month { min-width: 140px; text-align: center; font-weight: 600; }
+
+.mac-acal-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(190px, 1fr);
+    gap: 0.75rem;
+    align-items: start;
+}
+
+.mac-acal-weekdays,
+.mac-acal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.3rem;
+}
+.mac-acal-weekdays { margin-bottom: 0.5rem; }
+.mac-acal-weekdays div {
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--mac-text);
+}
+
+.mac-acal-day {
+    min-height: 44px;
+    border: 1px solid var(--mac-border);
+    border-radius: 0.4rem;
+    background: var(--mac-bg-secondary);
+    padding: 0.3rem;
+    text-align: left;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+.mac-acal-day:hover { border-color: var(--mac-green); }
+.mac-acal-day.is-outside-month { opacity: 0.45; }
+.mac-acal-day.has-activity { background: var(--mac-green-light); border-color: var(--mac-green); }
+.mac-acal-day.is-active {
+    border-color: var(--mac-green);
+    box-shadow: 0 0 0 2px rgba(var(--mac-green-rgb), 0.15);
+}
+.mac-acal-daynum { font-weight: 600; color: var(--mac-text); }
+.mac-acal-dot {
+    width: 7px;
+    height: 7px;
+    margin: 0.3rem auto 0;
+    border-radius: 50%;
+    background: var(--mac-green);
+}
+
+.mac-acal-detail {
+    max-height: 420px;
+    overflow-y: auto;
+    border: 1px solid var(--mac-border);
+    border-radius: 0.75rem;
+    background: var(--mac-bg);
+    padding: 0.75rem;
+}
+.mac-acal-detail-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; }
+.mac-acal-detail-empty { color: var(--mac-text); font-size: 0.9rem; }
+
+.mac-acal-entry {
+    border: 1px solid var(--mac-border);
+    border-radius: 0.6rem;
+    background: var(--mac-bg-secondary);
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+.mac-acal-entry:last-child { margin-bottom: 0; }
+.mac-acal-entry-title { font-weight: 700; color: var(--mac-text); }
+.mac-acal-entry-sub { color: var(--mac-text); font-size: 0.85rem; }
+
+.mac-acal-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+.mac-acal-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: var(--mac-green-light);
+    color: var(--mac-green);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.mac-acal-tag.is-blue { background: var(--bs-primary-bg-subtle); color: var(--bs-primary-text-emphasis); }
+.mac-acal-tag.is-amber { background: var(--bs-warning-bg-subtle); color: var(--bs-warning-text-emphasis); }
+.mac-acal-tag.is-grey { background: var(--bs-secondary-bg-subtle); color: var(--bs-secondary-text-emphasis); }
+
+@media (max-width: 767.98px) {
+    .mac-acal-menu { width: 92vw; }
+    .mac-acal-layout { grid-template-columns: 1fr; }
+}

@@ -266,6 +266,7 @@ var _stockManagementGrid = function () {
             var scope = _stockManagementGrid;
             console.log('[Stock Management] Initializing grid...');
             scope.applyStreamFromRoute();
+            scope.initActivityCalendar();
             if (typeof BatchStatus !== 'undefined') {
                 var route = (typeof _appRouter !== 'undefined' && _appRouter.currentRoute) ? _appRouter.currentRoute : '';
                 if (route === 'stock-management-oil') BatchStatus.applyModuleSubtitle('stock-management-oil');
@@ -850,6 +851,76 @@ var _stockManagementGrid = function () {
         // Reads stock_soh_history through get_stock_edit_history (migration 20260816090000).
 
         STOCK_HISTORY_PAGE_SIZE: 50,
+
+        // Stock calendar: the same history, grouped by day and batch. The Kernel page also shows
+        // shell waste (it is managed there); the Oil page shows oil & protein.
+        initActivityCalendar: function () {
+            if (typeof MacActivityCalendar === 'undefined') return;
+            var EVENT = {
+                stock_in: { text: 'Stock in', tone: 'green' },
+                dispatch_out: { text: 'Dispatched out', tone: 'blue' },
+                adjustment: { text: 'Adjusted', tone: 'amber' }
+            };
+            var STREAM_LABEL = { kernel: 'Kernel', oil: 'Oil & protein', shell: 'Shell waste' };
+            var signedKg = function (n) {
+                var r = Math.round(n * 10) / 10;
+                return (r > 0 ? '+' : r < 0 ? '−' : '') + Math.abs(r).toLocaleString('en-ZA') + ' kg';
+            };
+            MacActivityCalendar.create({
+                mountId: 'stockActivityCalendarMount',
+                idPrefix: 'stockActivityCalendar',
+                title: 'Stock Calendar',
+                icon: 'fa-calendar-check',
+                intro: 'Days shaded green had stock changes. Click a day to see which batches went into stock, went out on dispatch, or were adjusted, and by how many kg.',
+                emptyDayText: 'No stock changes on this day.',
+                emptyMonthText: 'No stock changes in this month.',
+                loadMonth: async function (fromIso, toIso) {
+                    if (typeof dataFunctions === 'undefined' || !dataFunctions.getStockEditHistory) throw new Error('Stock history is not available right now.');
+                    var streamEl = document.getElementById('filterStockStream');
+                    var streams = streamEl && streamEl.value === 'oil' ? ['oil'] : ['kernel', 'shell'];
+                    var PAGE = 200; // get_stock_edit_history caps p_limit at 200
+                    var rows = [];
+                    for (var offset = 0; offset < 10000; offset += PAGE) {
+                        var res = await dataFunctions.getStockEditHistory({ dateFrom: fromIso, dateTo: toIso, limit: PAGE, offset: offset });
+                        rows = rows.concat(res.rows || []);
+                        if (!res.rows || res.rows.length < PAGE || rows.length >= res.total) break;
+                    }
+                    // One card per day + stream + batch, with the kg summed per kind of change.
+                    var groups = {};
+                    rows.forEach(function (r) {
+                        if (streams.indexOf(r.stream) === -1) return;
+                        var day = MacActivityCalendar.dayOf(r.occurred_at);
+                        if (!day) return;
+                        var key = day + '|' + r.stream + '|' + (r.batch_number || r.style || '');
+                        var g = groups[key];
+                        if (!g) {
+                            g = groups[key] = { date: day, stream: r.stream, batch: r.batch_number || '', styles: [], buyers: [], kg: {}, order: [] };
+                        }
+                        if (r.style && g.styles.indexOf(r.style) === -1) g.styles.push(r.style);
+                        var buyer = r.detail && r.detail.buyer_name;
+                        if (buyer && g.buyers.indexOf(String(buyer)) === -1) g.buyers.push(String(buyer));
+                        var ev = r.event_type || 'adjustment';
+                        if (!(ev in g.kg)) { g.kg[ev] = 0; g.order.push(ev); }
+                        g.kg[ev] += parseNum(r.qty_kg) || 0;
+                    });
+                    return Object.keys(groups).map(function (k) {
+                        var g = groups[k];
+                        var sub = [STREAM_LABEL[g.stream] || g.stream];
+                        if (g.styles.length) sub.push(g.styles.join(', '));
+                        if (g.buyers.length) sub.push('Buyer: ' + g.buyers.join(', '));
+                        return {
+                            date: g.date,
+                            title: g.batch || (g.styles[0] || 'Stock'),
+                            subtitle: sub.join(' · '),
+                            tags: g.order.map(function (ev) {
+                                var meta = EVENT[ev] || { text: ev, tone: 'grey' };
+                                return { text: meta.text + (g.kg[ev] ? ' ' + signedKg(g.kg[ev]) : ''), tone: meta.tone };
+                            })
+                        };
+                    });
+                }
+            });
+        },
 
         openStockHistoryModal: function () {
             var scope = _stockManagementGrid;
