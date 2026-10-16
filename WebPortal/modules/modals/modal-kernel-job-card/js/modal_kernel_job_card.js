@@ -214,14 +214,11 @@ var _modal_kernel_job_card = (function () {
                                 scope.syncBestBeforeFromStartDate();
                             };
                         }
-                        if (el.value && el.value.trim()) {
-                            var iso = jobCardToISO(el.value.trim());
-                            if (iso) opts.defaultDate = iso;
-                        }
+                        // No ISO defaultDate: flatpickr parses strings with dateFormat (d/m/Y), so "2026-09-29" reads as 20/06/2026.
                         var fp = flatpickr(el, opts);
                         if (el.value && el.value.trim() && fp) {
                             var v = el.value.trim();
-                            if (/^\d{4}-\d{2}-\d{2}/.test(v)) fp.setDate(v.split('T')[0], false);
+                            if (/^\d{4}-\d{2}-\d{2}/.test(v)) fp.setDate(v.split('T')[0], false, 'Y-m-d');
                             else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(v)) fp.setDate(v, false, 'd/m/Y');
                         }
                     }
@@ -326,7 +323,8 @@ var _modal_kernel_job_card = (function () {
                     if (str && (/^\d{4}-\d{2}-\d{2}(?:T|$)/.test(str))) displayStr = formatDateForDisplay(str);
                     if (el._flatpickr) {
                         if (str) {
-                            if (/^\d{4}-\d{2}-\d{2}/.test(str)) el._flatpickr.setDate(str.split('T')[0], false);
+                            // ISO strings need the explicit format; without it flatpickr parses them as d/m/Y.
+                            if (/^\d{4}-\d{2}-\d{2}/.test(str)) el._flatpickr.setDate(str.split('T')[0], false, 'Y-m-d');
                             else el._flatpickr.setDate(str, false, 'd/m/Y');
                         } else el._flatpickr.clear();
                     } else {
