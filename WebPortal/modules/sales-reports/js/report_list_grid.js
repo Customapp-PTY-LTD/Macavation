@@ -458,7 +458,11 @@ var _reportListGrid = function () {
             '</td>';
     }
 
+    // The last list shown, so the "Pick from users" dropdown can mark who is already on it.
+    var lastRecipients = [];
+
     function renderDistribution(recipients) {
+        lastRecipients = recipients || [];
         var $tbody = $('#reportDistributionTableBody');
         if (!$tbody.length) return;
 
@@ -530,9 +534,70 @@ var _reportListGrid = function () {
     // silently opt them into anything). Follows the panel's existing re-fetch-after-write pattern.
     // ------------------------------------------------------------------
 
+    // "Pick from users" — fills Name and WhatsApp number from a portal user so they don't have to
+    // be retyped. The verified WhatsApp number wins over the profile mobile. Saving still goes
+    // through upsert_report_recipient, which matches on the normalised phone, so picking someone
+    // already on the list updates their row rather than duplicating it.
+    var pickerUsers = [];
+
+    function phoneTail(p) {
+        return String(p == null ? '' : p).replace(/\D/g, '').slice(-9);
+    }
+
+    function userDisplayName(u) {
+        var name = [u.first_name, u.last_name].map(function (x) { return (x || '').trim(); })
+            .filter(Boolean).join(' ');
+        return name || u.email || '';
+    }
+
+    function userPhone(u) {
+        return (u.whatsapp_phone || '').trim() || (u.mobile_number || '').trim();
+    }
+
+    function loadRecipientUserPicker() {
+        var $sel = $('#addReportRecipientUser');
+        $('#addReportRecipientUserHint').text('');
+        if (!$sel.length || !dataFunctions.getUsers) return;
+        $sel.find('option:not(:first)').remove();
+        dataFunctions.getUsers()
+            .then(function (users) {
+                var onList = {};
+                lastRecipients.forEach(function (r) {
+                    if (r.is_active && phoneTail(r.phone)) onList[phoneTail(r.phone)] = true;
+                });
+                pickerUsers = (users || []).filter(function (u) { return u && u.is_active !== false; })
+                    .sort(function (a, b) { return userDisplayName(a).localeCompare(userDisplayName(b)); });
+                $sel.append(pickerUsers.map(function (u, i) {
+                    var phone = userPhone(u);
+                    var note = !phone ? ' (no number on profile)'
+                        : (onList[phoneTail(phone)] ? ' (already on the list)' : '');
+                    return '<option value="' + i + '">' + distributionEsc(userDisplayName(u) + note) + '</option>';
+                }).join(''));
+            })
+            .catch(function (err) {
+                console.warn('[sales-reports] getUsers failed', err);
+            });
+    }
+
+    function applyPickedUser() {
+        var idx = $('#addReportRecipientUser').val();
+        var u = idx === '' ? null : pickerUsers[Number(idx)];
+        var $hint = $('#addReportRecipientUserHint');
+        if (!u) {
+            $hint.text('');
+            return;
+        }
+        var phone = userPhone(u);
+        $('#addReportRecipientName').val(userDisplayName(u));
+        $('#addReportRecipientPhone').val(phone);
+        $hint.text(phone ? '' : 'There is no number on their user profile. Type their WhatsApp number below.');
+        if (!phone) $('#addReportRecipientPhone').trigger('focus');
+    }
+
     function openAddRecipientModal() {
         var form = document.getElementById('addReportRecipientForm');
         if (form) form.reset();
+        loadRecipientUserPicker();
         var modalEl = document.getElementById('addReportRecipientModal');
         if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(modalEl).show();
         else if (typeof $ !== 'undefined' && $.fn.modal) $('#addReportRecipientModal').modal('show');
@@ -677,6 +742,9 @@ var _reportListGrid = function () {
         });
         $(document).on('click.salesReports', '#addReportRecipientBtn', function () {
             openAddRecipientModal();
+        });
+        $(document).on('change.salesReports', '#addReportRecipientUser', function () {
+            applyPickedUser();
         });
         $(document).on('click.salesReports', '#saveReportRecipientBtn', function () {
             handleAddRecipient();
