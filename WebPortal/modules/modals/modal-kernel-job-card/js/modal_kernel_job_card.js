@@ -37,6 +37,19 @@ var _modal_kernel_job_card = (function () {
     var _suppressAutoSave = false;
     /** Set when opening a batch whose job card is already approved (re-save edits without closing). */
     var _jobCardIsApproved = false;
+    /**
+     * Date guard. The dates of a job card as last saved (ISO, keyed by input id; null for a card with no saved
+     * job_card_data) and the date inputs the user actually changed since it was opened. A saved date that now
+     * reads differently although nobody touched it is display drift, not an edit: the 20/06/2026 bug (flatpickr
+     * parsing ISO as d/m/Y) showed wrong dates on reopen and a save then wrote them over the right ones.
+     */
+    var GUARDED_DATE_LABELS = {
+        jobCardReceivedDate: 'Received Date',
+        jobCardPackingStartDate: 'Start Date',
+        jobCardPackingCompletionDate: 'Completion Date'
+    };
+    var _jobCardSavedDates = null;
+    var _jobCardTouchedDates = {};
 
     function jobCardDataHasContent(jc) {
         if (!jc || typeof jc !== 'object') return false;
@@ -251,6 +264,10 @@ var _modal_kernel_job_card = (function () {
             });
             $(document).on('input', '#jobCardWasteOilKernel, #jobCardWasteShellFines, #jobCardWasteCompost, #jobCardWasteShell', function () { scope.calculateMassBalance(); });
             $(document).on('change', '#jobCardPackingStartDate', function () { scope.syncBestBeforeFromStartDate(); });
+            // flatpickr fires 'change' only for a user pick; setDate(..., false) and .val() do not, so this marks real edits.
+            $(document).off('change.jobCardDateGuard').on('change.jobCardDateGuard', '#jobCardReceivedDate, #jobCardPackingStartDate, #jobCardPackingCompletionDate', function () {
+                _jobCardTouchedDates[this.id] = true;
+            });
             $(document).on('input change', '#kernelJobCardModal :input, #kernelJobCardModal select', function () {
                 scope.scheduleAutoSave();
             });
@@ -515,6 +532,12 @@ var _modal_kernel_job_card = (function () {
                 if (hasSavedJobCard) {
                     // Populate from saved job_card_data (source of truth)
                     scope.populateJobCardFormFromData(jc);
+                    // Snapshot from the data, not the form, so the guard compares against what is really stored.
+                    _jobCardSavedDates = {
+                        jobCardReceivedDate: jobCardToISO(jc.received_date),
+                        jobCardPackingStartDate: jobCardToISO(jc.packing_start_date),
+                        jobCardPackingCompletionDate: jobCardToISO(jc.packing_completion_date)
+                    };
                 } else if (detail && typeof _modal_production_stages !== 'undefined' && _modal_production_stages.buildJobCardPayloadFromBatchAndStages) {
                     // No saved job card — pre-fill from production stage arrays
                     var cracking = Array.isArray(detail.cracking_data) ? detail.cracking_data : [];
@@ -656,6 +679,8 @@ var _modal_kernel_job_card = (function () {
             _jobCardPackingStartISO = null;
             _jobCardBestBeforeISO = null;
             _jobCardIsApproved = false;
+            _jobCardSavedDates = null;
+            _jobCardTouchedDates = {};
             $('#jobCardSupplierMismatchAlert').addClass('d-none');
             var $form = $('#kernelJobCardForm');
             if ($form.length) $form[0].reset();
@@ -903,6 +928,68 @@ var _modal_kernel_job_card = (function () {
             verifyApproval(inner, finishApproved);
         },
 
+        /** Saved dates that now read differently although the user never changed that input. */
+        _jobCardDateDrift: () => {
+            var drift = [];
+            if (!_jobCardSavedDates) return drift;
+            Object.keys(GUARDED_DATE_LABELS).forEach(function (id) {
+                var saved = _jobCardSavedDates[id];
+                if (!saved || _jobCardTouchedDates[id]) return;
+                var now = jobCardToISO($('#' + id).val());
+                if (now !== saved) drift.push({ id: id, label: GUARDED_DATE_LABELS[id], saved: saved, now: now });
+            });
+            return drift;
+        },
+
+        _restoreSavedJobCardDates: (drift) => {
+            const scope = _modal_kernel_job_card;
+            drift.forEach(function (d) { scope.setJobCardField(d.id, d.saved); });
+            if (drift.some(function (d) { return d.id === 'jobCardPackingStartDate'; })) scope.syncBestBeforeFromStartDate();
+        },
+
+        /** Explicit save/approve with drifted dates: keep the saved dates (default), keep what is on screen, or cancel. */
+        _confirmJobCardDateDrift: (drift, proceed) => {
+            const scope = _modal_kernel_job_card;
+            if (typeof Swal === 'undefined') {
+                scope._restoreSavedJobCardDates(drift);
+                proceed();
+                return;
+            }
+            var rows = drift.map(function (d) {
+                return d.label + ': saved ' + formatDateForDisplay(d.saved) + ', now showing ' + (d.now ? formatDateForDisplay(d.now) : 'blank');
+            });
+            var list = document.createElement('ul');
+            list.className = 'text-start mb-0';
+            rows.forEach(function (r) {
+                var li = document.createElement('li');
+                li.textContent = r;
+                list.appendChild(li);
+            });
+            var intro = document.createElement('p');
+            intro.textContent = 'These dates changed although nobody edited them:';
+            var wrap = document.createElement('div');
+            wrap.appendChild(intro);
+            wrap.appendChild(list);
+            Swal.fire({
+                icon: 'warning',
+                title: 'Check the dates',
+                html: wrap,
+                showDenyButton: true,
+                showCancelButton: true,
+                confirmButtonText: 'Keep saved dates',
+                denyButtonText: 'Use dates on screen',
+                cancelButtonText: 'Cancel'
+            }).then(function (res) {
+                if (res.isConfirmed) {
+                    scope._restoreSavedJobCardDates(drift);
+                    proceed();
+                } else if (res.isDenied) {
+                    drift.forEach(function (d) { _jobCardTouchedDates[d.id] = true; });
+                    proceed();
+                }
+            });
+        },
+
         doSaveJobCard: (silent) => {
             _modal_kernel_job_card.doSaveJobCardRun(!!silent, false);
         },
@@ -921,6 +1008,17 @@ var _modal_kernel_job_card = (function () {
             if (!silent) {
                 var form = $('#kernelJobCardForm')[0];
                 if (!scope._reportJobCardFormValidation(form)) return;
+            }
+            var drift = scope._jobCardDateDrift();
+            if (drift.length) {
+                if (silent) {
+                    // Autosave never writes a date nobody edited: put the saved ones back and carry on.
+                    console.warn('[Kernel Job Card] restored saved dates that changed without an edit', drift);
+                    scope._restoreSavedJobCardDates(drift);
+                } else {
+                    scope._confirmJobCardDateDrift(drift, function () { scope.doSaveJobCardRun(silent, approve); });
+                    return;
+                }
             }
             var $status = $('#jobCardAutoSaveStatus');
             if (silent && $status.length) $status.removeClass('text-success text-danger').text('Saving…');
