@@ -1,6 +1,6 @@
 /**
  * Modal: Send to Dispatch.
- * Step 1: Enter buyer + delivery date.
+ * Step 1: Pick customer + planned collection and delivery dates.
  * Step 2: Shopping cart — browse kernel batches by style, pick quantities, then send.
  */
 var _modal_stock_send_to_dispatch = (function () {
@@ -28,7 +28,39 @@ var _modal_stock_send_to_dispatch = (function () {
     }
     var _dispatchLines = [];
     var _pendingDetails = null;
-    var MAX_DROPDOWN_OPTIONS = 51;
+    var DEFAULT_BB_BANDS = { green: 12, yellow: 6 };
+    var _bbBands = DEFAULT_BB_BANDS;
+
+    function cartonLabel(n) {
+        return n + (n === 1 ? ' Carton' : ' Cartons');
+    }
+    /** The single note under a carton input: 'of N' (empty), '= x kg' (entered) or 'max N' (over). */
+    function setQtyNote(el, kind, text) {
+        el.className = 'small text-center js-dispatch-qty-kg ' + (kind === 'over' ? 'text-danger fw-semibold' : (kind === 'kg' ? 'text-primary fw-semibold' : 'text-muted'));
+        el.textContent = text;
+    }
+    function cartonsToKg(n) {
+        return Math.round(n * KG_PER_CARTON * 100) / 100;
+    }
+    /** Date or date string -> 'YYYY-MM-DD' (local parts for Date objects), '' when unusable. */
+    function toISODate(v) {
+        if (!v) return '';
+        if (v instanceof Date) {
+            if (isNaN(v.getTime())) return '';
+            return v.getFullYear() + '-' + String(v.getMonth() + 1).padStart(2, '0') + '-' + String(v.getDate()).padStart(2, '0');
+        }
+        var t = String(v).split('T')[0];
+        return /^\d{4}-\d{2}-\d{2}$/.test(t) ? t : '';
+    }
+    /** Resolves true when real bands were loaded (defaults are used otherwise). */
+    function loadBands() {
+        if (typeof _common === 'undefined' || !_common.loadKernelPipelineConfig) return Promise.resolve(false);
+        return _common.loadKernelPipelineConfig(false).then(function (cfg) {
+            var b = cfg && cfg.settings && cfg.settings.best_before_bands;
+            _bbBands = b || DEFAULT_BB_BANDS;
+            return !!b;
+        }).catch(function () { return false; });
+    }
 
     function deliveryDateToISO(displayStr) {
         if (!displayStr || !/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(displayStr.trim())) return null;
@@ -60,16 +92,7 @@ var _modal_stock_send_to_dispatch = (function () {
                 e.preventDefault();
                 api.onSend();
             });
-            // Buyer contact → autofill buyer name
-            $(document).off('change.dispatchModal', '#dispatchBuyerContact').on('change.dispatchModal', '#dispatchBuyerContact', function () {
-                var sel = this.options[this.selectedIndex];
-                var buyerInput = document.getElementById('dispatchBuyer');
-                if (sel && sel.value && buyerInput) {
-                    buyerInput.value = sel.getAttribute('data-buyer-name') || sel.textContent || '';
-                    buyerInput.classList.remove('is-invalid');
-                }
-            });
-            // Create new buyer (inline form – no SweetAlert to avoid focus/aria-hidden issues)
+            // Create new customer (inline form – no SweetAlert to avoid focus/aria-hidden issues)
             $(document).off('click.dispatchModal', '#dispatchAddBuyerBtn').on('click.dispatchModal', '#dispatchAddBuyerBtn', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -84,70 +107,16 @@ var _modal_stock_send_to_dispatch = (function () {
                 api.hideAddBuyerForm();
             });
             // Clear invalid highlights on input
-            $(document).off('input.dispatchModalValid', '#sendToDispatchModal .is-invalid').on('input.dispatchModalValid', '#sendToDispatchModal .is-invalid', function () {
+            $(document).off('input.dispatchModalValid', '#sendToDispatchStep1 .is-invalid').on('input.dispatchModalValid', '#sendToDispatchStep1 .is-invalid', function () {
+                $(this).removeClass('is-invalid');
+            });
+            $(document).off('change.dispatchModalValid', '#dispatchBuyerContact').on('change.dispatchModalValid', '#dispatchBuyerContact', function () {
                 $(this).removeClass('is-invalid');
             });
 
-            // Qty pick from shopping table (use attr for style so "0" is not treated as falsy)
-            $(document).off('click.dispatchShop', '#sendToDispatchModal .js-modal-dispatch-qty-pick').on('click.dispatchShop', '#sendToDispatchModal .js-modal-dispatch-qty-pick', function (e) {
-                e.preventDefault();
-                var batchId = String($(this).data('batch-id') || '');
-                var style = $(this).attr('data-style');
-                style = (style == null || style === '') ? '' : String(style);
-                var cartons = parseInt($(this).data('quantity'), 10);
-                if (!batchId || style === '' || isNaN(cartons)) return;
-                var batches = (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.kernelFinishedBatches) ? _stockManagementGrid.kernelFinishedBatches : [];
-                var batch = findKernelBatchByRpcId(batches, batchId);
-                var batchNum = batch ? (batch.batch_number || batchId) : batchId;
-                var idx = _dispatchLines.findIndex(function (l) { return l.kernel_id === batchId && String(l.style) === style; });
-                if (cartons <= 0) {
-                    if (idx >= 0) _dispatchLines.splice(idx, 1);
-                } else {
-                    var quantity_kg = Math.round(cartons * KG_PER_CARTON * 100) / 100;
-                    var line = { kernel_id: batchId, batch_number: batchNum, style: style, quantity_kg: quantity_kg, cartons: cartons };
-                    if (idx >= 0) _dispatchLines[idx] = line; else _dispatchLines.push(line);
-                }
-                api.renderShoppingTable();
-                api.renderBasket();
-            });
-
-            // "Other…" custom cartons (use attr for style so "0" is not treated as falsy)
-            $(document).off('click.dispatchShopOther', '#sendToDispatchModal .js-modal-dispatch-qty-other').on('click.dispatchShopOther', '#sendToDispatchModal .js-modal-dispatch-qty-other', function (e) {
-                e.preventDefault();
-                var batchId = String($(this).data('batch-id') || '');
-                var style = $(this).attr('data-style');
-                style = (style == null || style === '') ? '' : String(style);
-                var maxCartons = parseInt($(this).data('max-qty'), 10) || 0;
-                if (!batchId || style === '' || maxCartons <= 0) return;
-                var batches = (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.kernelFinishedBatches) ? _stockManagementGrid.kernelFinishedBatches : [];
-                var batch = findKernelBatchByRpcId(batches, batchId);
-                var batchNum = batch ? (batch.batch_number || batchId) : batchId;
-                Swal.fire({
-                    title: 'Enter cartons',
-                    html: '<label class="form-label">Cartons (max ' + maxCartons + ')</label><input type="number" id="dispatchModalOtherQtyInput" class="form-control" min="1" max="' + maxCartons + '" value="1" step="1">',
-                    showCancelButton: true,
-                    confirmButtonText: 'Add',
-                    focusConfirm: false,
-                    preConfirm: function () {
-                        var input = document.getElementById('dispatchModalOtherQtyInput');
-                        var num = input ? parseInt(input.value, 10) : NaN;
-                        if (isNaN(num) || num <= 0 || num > maxCartons) {
-                            Swal.showValidationMessage('Please enter a value between 1 and ' + maxCartons + '.');
-                            return false;
-                        }
-                        return num;
-                    }
-                }).then(function (result) {
-                    if (result && result.isConfirmed && typeof result.value === 'number') {
-                        var cartons = result.value;
-                        var quantity_kg = Math.round(cartons * KG_PER_CARTON * 100) / 100;
-                        var idx = _dispatchLines.findIndex(function (l) { return l.kernel_id === batchId && String(l.style) === style; });
-                        var line = { kernel_id: batchId, batch_number: batchNum, style: style, quantity_kg: quantity_kg, cartons: cartons };
-                        if (idx >= 0) _dispatchLines[idx] = line; else _dispatchLines.push(line);
-                        api.renderShoppingTable();
-                        api.renderBasket();
-                    }
-                });
+            // Carton entry: integer inputs, updated in place (no table re-render, so focus is never stolen while typing)
+            $(document).off('input.dispatchQty change.dispatchQty', '#sendToDispatchModal .js-dispatch-qty-input').on('input.dispatchQty change.dispatchQty', '#sendToDispatchModal .js-dispatch-qty-input', function () {
+                api.onQtyInput(this);
             });
 
             // Remove from basket (use attr for style so "0" is not treated as falsy)
@@ -165,13 +134,15 @@ var _modal_stock_send_to_dispatch = (function () {
             // Flatpickr init when modal opens
             if (typeof $ !== 'undefined') {
                 $(document).on('shown.bs.modal', '#sendToDispatchModal', function () {
-                    var deliveryInput = document.getElementById('dispatchDeliveryDate');
-                    if (deliveryInput && !deliveryInput._flatpickr && typeof flatpickr !== 'undefined') {
-                        flatpickr(deliveryInput, FLATPICKR_DDMMYYYY);
-                    }
-                    if (deliveryInput && deliveryInput._flatpickr) {
-                        deliveryInput._flatpickr.setDate(new Date());
-                    }
+                    ['dispatchCollectionDate', 'dispatchDeliveryDate'].forEach(function (id) {
+                        var el = document.getElementById(id);
+                        if (el && !el._flatpickr && typeof flatpickr !== 'undefined') {
+                            flatpickr(el, FLATPICKR_DDMMYYYY);
+                        }
+                        if (el && el._flatpickr) {
+                            el._flatpickr.setDate(new Date());
+                        }
+                    });
                 });
             }
         },
@@ -185,6 +156,8 @@ var _modal_stock_send_to_dispatch = (function () {
             if (step2) step2.style.display = 'none';
             if (footer1) footer1.style.display = '';
             if (footer2) footer2.style.display = 'none';
+            $('#sendToDispatchTitleText').text('Send to Dispatch');
+            $('#sendToDispatchStepLabel').text('Step 1 of 2');
         },
 
         showStep2: function (details) {
@@ -196,17 +169,35 @@ var _modal_stock_send_to_dispatch = (function () {
             if (step2) step2.style.display = '';
             if (footer1) footer1.style.display = 'none';
             if (footer2) footer2.style.display = '';
+            $('#sendToDispatchTitleText').text('Select Stock');
+            $('#sendToDispatchStepLabel').text('Step 2 of 2');
             var d = details || _pendingDetails || {};
             var buyerLabelEl = document.getElementById('sendToDispatchStep2BuyerLabel');
+            var collectionLabelEl = document.getElementById('sendToDispatchStep2CollectionLabel');
             var deliveryLabelEl = document.getElementById('sendToDispatchStep2DeliveryLabel');
             if (buyerLabelEl) buyerLabelEl.textContent = d.buyer_name || '—';
+            if (collectionLabelEl) collectionLabelEl.textContent = (d.planned_collection_date ? deliveryDateFromISO(d.planned_collection_date) : '') || '—';
             if (deliveryLabelEl) deliveryLabelEl.textContent = (d.delivery_date ? deliveryDateFromISO(d.delivery_date) : '') || '—';
             api.renderShoppingTable();
             api.renderBasket();
+            // Bands may still be loading: re-render once they arrive, unless the user is already typing in the table.
+            loadBands().then(function (changed) {
+                var active = document.activeElement;
+                var typing = active && active.classList && active.classList.contains('js-dispatch-qty-input');
+                if (changed && !typing) api.renderShoppingTable();
+            });
         },
 
         renderShoppingTable: function () {
-            var batches = (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.kernelFinishedBatches) ? _stockManagementGrid.kernelFinishedBatches : [];
+            var source = (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.kernelFinishedBatches) ? _stockManagementGrid.kernelFinishedBatches : [];
+            // Order a COPY (oldest best-before first, undated last): the source array is shared with the Stock grid.
+            var batches = source.slice().sort(function (a, b) {
+                var da = toISODate(a && a.best_before_date), db = toISODate(b && b.best_before_date);
+                if (da === db) return 0;
+                if (!da) return 1;
+                if (!db) return -1;
+                return da < db ? -1 : 1;
+            });
             var body = document.getElementById('dispatchShoppingBody');
             var totalsRow = document.getElementById('dispatchShoppingTotalsRow');
             if (!body) return;
@@ -214,43 +205,87 @@ var _modal_stock_send_to_dispatch = (function () {
             var totals = {};
             STYLE_KEYS.forEach(function (k) { totals[k] = 0; });
             if (batches.length === 0) {
-                body.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-3">No stock available.</td></tr>';
+                var emptyTr = document.createElement('tr');
+                var emptyTd = document.createElement('td');
+                emptyTd.colSpan = 13;
+                emptyTd.className = 'text-center text-muted py-3';
+                emptyTd.textContent = 'No stock available.';
+                emptyTr.appendChild(emptyTd);
+                body.appendChild(emptyTr);
                 return;
             }
             batches.forEach(function (b) {
                 var cells = (b.remaining_by_style_cartons && typeof b.remaining_by_style_cartons === 'object') ? b.remaining_by_style_cartons : null;
                 if (cells == null) cells = (b.yield_by_style_cartons && typeof b.yield_by_style_cartons === 'object') ? b.yield_by_style_cartons : {};
                 var batchId = kernelRpcIdFromBatch(b);
-                var batchNum = (b.batch_number || '').toString().replace(/"/g, '&quot;');
                 var tr = document.createElement('tr');
-                var html = '<td><span class="badge bg-secondary">' + batchNum + '</span></td>';
+
+                var tdBatch = document.createElement('td');
+                tdBatch.className = 'fw-semibold';
+                tdBatch.textContent = (b.batch_number || '').toString();
+                tr.appendChild(tdBatch);
+
+                var bbISO = toISODate(b.best_before_date);
+                var tdBB = document.createElement('td');
+                tdBB.className = 'text-nowrap';
+                tdBB.textContent = bbISO ? deliveryDateFromISO(bbISO) : '—';
+                tr.appendChild(tdBB);
+                var tdTL = document.createElement('td');
+                tdTL.className = 'text-nowrap';
+                var tu = (bbISO && typeof _common !== 'undefined' && _common.timeUntil) ? _common.timeUntil(bbISO) : null;
+                if (tu) {
+                    var tlCls = _common.bestBeforeBandClass(tu, _bbBands);
+                    if (tlCls) {
+                        var tlBadge = document.createElement('span');
+                        tlBadge.className = 'badge bg-' + tlCls + (tlCls === 'warning' ? ' text-dark' : '');
+                        tlBadge.textContent = tu.label;
+                        tdTL.appendChild(tlBadge);
+                    } else {
+                        tdTL.textContent = tu.label;
+                    }
+                } else {
+                    tdTL.textContent = '—';
+                }
+                tr.appendChild(tdTL);
+
                 STYLE_KEYS.forEach(function (k) {
                     var val = cells[k] != null ? cells[k] : 0;
                     if (typeof val === 'number') totals[k] += val;
                     var cartonsAvail = (typeof val === 'number' && val > 0) ? Math.floor(val) : 0;
-                    var displayVal = (cartonsAvail > 0) ? cartonsAvail : '—';
-                    var selectedLine = _dispatchLines.find(function (l) { return l.kernel_id === batchId && String(l.style) === k; });
-                    if (cartonsAvail > 0) {
-                        var cellId = 'dshop_' + (batchId + '_' + k).replace(/[^a-zA-Z0-9_-]/g, '_');
-                        var maxOpt = Math.min(cartonsAvail, MAX_DROPDOWN_OPTIONS - 1);
-                        var menuItems = '<li><a class="dropdown-item js-modal-dispatch-qty-pick" href="#" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-quantity="0">0 (clear)</a></li>';
-                        for (var n = 1; n <= maxOpt; n++) {
-                            menuItems += '<li><a class="dropdown-item js-modal-dispatch-qty-pick" href="#" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-quantity="' + n + '">' + n + '</a></li>';
-                        }
-                        if (cartonsAvail > maxOpt) {
-                            menuItems += '<li><a class="dropdown-item js-modal-dispatch-qty-pick" href="#" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-quantity="' + cartonsAvail + '">' + cartonsAvail + ' (max)</a></li>';
-                        }
-                        menuItems += '<li><hr class="dropdown-divider"></li><li><a class="dropdown-item js-modal-dispatch-qty-other" href="#" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-max-qty="' + cartonsAvail + '">Other…</a></li>';
-                        var btnClass = selectedLine ? 'btn-primary' : 'btn-outline-secondary';
-                        var btnLabel = selectedLine ? ((selectedLine.cartons != null ? selectedLine.cartons : selectedLine.quantity_kg) + ' / ' + displayVal) : displayVal;
-                        html += '<td class="text-end kernel-qty-cell"><div class="dropdown">' +
-                            '<button class="btn btn-sm ' + btnClass + ' py-0 px-1" type="button" id="' + cellId + '" data-bs-toggle="dropdown" aria-expanded="false">' + btnLabel + '</button>' +
-                            '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="' + cellId + '">' + menuItems + '</ul></div></td>';
-                    } else {
-                        html += '<td class="text-end text-muted">—</td>';
+                    var td = document.createElement('td');
+                    if (cartonsAvail <= 0) {
+                        td.className = 'text-end text-muted';
+                        td.textContent = '—';
+                        tr.appendChild(td);
+                        return;
                     }
+                    td.className = 'kernel-qty-cell';
+                    var selectedLine = _dispatchLines.find(function (l) { return l.kernel_id === batchId && String(l.style) === k; });
+                    var input = document.createElement('input');
+                    input.type = 'number';
+                    input.className = 'form-control form-control-sm text-end js-dispatch-qty-input';
+                    input.min = '0';
+                    input.max = String(cartonsAvail);
+                    input.step = '1';
+                    input.placeholder = '0';
+                    input.setAttribute('inputmode', 'numeric');
+                    input.setAttribute('aria-label', 'Cartons of style ' + k + ', batch ' + (b.batch_number || '') + ' (max ' + cartonsAvail + ')');
+                    input.setAttribute('data-batch-id', batchId);
+                    input.setAttribute('data-style', k);
+                    input.setAttribute('data-max-qty', String(cartonsAvail));
+                    input.setAttribute('data-batch-number', (b.batch_number || '').toString());
+                    if (selectedLine && selectedLine.cartons > 0) input.value = String(selectedLine.cartons);
+                    var fb = document.createElement('div');
+                    fb.className = 'invalid-feedback small text-end';
+                    var kg = document.createElement('div');
+                    kg.className = 'js-dispatch-qty-kg';
+                    if (selectedLine && selectedLine.cartons > 0) setQtyNote(kg, 'kg', '= ' + cartonsToKg(selectedLine.cartons).toFixed(2) + ' kg');
+                    else setQtyNote(kg, 'avail', 'of ' + cartonsAvail);
+                    td.appendChild(input);
+                    td.appendChild(fb);
+                    td.appendChild(kg);
+                    tr.appendChild(td);
                 });
-                tr.innerHTML = html;
                 body.appendChild(tr);
             });
             if (totalsRow) {
@@ -261,45 +296,117 @@ var _modal_stock_send_to_dispatch = (function () {
             }
         },
 
+        /** Handle typing in a carton input: validate, flag over-max, update line + basket without re-rendering the table. */
+        onQtyInput: function (inputEl) {
+            var batchId = inputEl.getAttribute('data-batch-id') || '';
+            var style = inputEl.getAttribute('data-style');
+            style = (style == null) ? '' : String(style);
+            var maxCartons = parseInt(inputEl.getAttribute('data-max-qty'), 10) || 0;
+            var batchNum = inputEl.getAttribute('data-batch-number') || batchId;
+            var raw = (inputEl.value || '').trim();
+            var cell = inputEl.closest('td');
+            var fb = cell ? cell.querySelector('.invalid-feedback') : null;
+            var kgEl = cell ? cell.querySelector('.js-dispatch-qty-kg') : null;
+            var idx = _dispatchLines.findIndex(function (l) { return l.kernel_id === batchId && String(l.style) === style; });
+            var msg = '';
+            var over = false;
+            var cartons = 0;
+            if (raw !== '') {
+                if (!/^\d+$/.test(raw)) {
+                    msg = 'Whole cartons only (no decimals or negatives).';
+                } else {
+                    cartons = parseInt(raw, 10);
+                    if (cartons > maxCartons) over = true;
+                }
+            }
+            if (msg || over) {
+                inputEl.classList.add('is-invalid');
+                if (fb) fb.textContent = msg;
+                if (kgEl) {
+                    if (over) setQtyNote(kgEl, 'over', 'max ' + maxCartons);
+                    else setQtyNote(kgEl, 'avail', 'of ' + maxCartons);
+                }
+                // An invalid entry is not part of the order until it is corrected.
+                if (idx >= 0) _dispatchLines.splice(idx, 1);
+            } else {
+                inputEl.classList.remove('is-invalid');
+                if (fb) fb.textContent = '';
+                if (cartons <= 0) {
+                    if (idx >= 0) _dispatchLines.splice(idx, 1);
+                    if (kgEl) setQtyNote(kgEl, 'avail', 'of ' + maxCartons);
+                } else {
+                    var line = { kernel_id: batchId, batch_number: batchNum, style: style, quantity_kg: cartonsToKg(cartons), cartons: cartons };
+                    if (idx >= 0) _dispatchLines[idx] = line; else _dispatchLines.push(line);
+                    if (kgEl) setQtyNote(kgEl, 'kg', '= ' + cartonsToKg(cartons).toFixed(2) + ' kg');
+                }
+            }
+            api.renderBasket();
+        },
+
         renderBasket: function () {
             var basketEl = document.getElementById('dispatchModalBasket');
             var basketBody = document.getElementById('dispatchModalBasketBody');
             var basketTotal = document.getElementById('dispatchModalBasketTotal');
             var sendBtn = document.getElementById('dispatchModalSendBtn');
             if (!basketBody) return;
+            var hasInvalid = !!document.querySelector('#dispatchShoppingBody .js-dispatch-qty-input.is-invalid');
+            basketBody.innerHTML = '';
             if (_dispatchLines.length === 0) {
                 if (basketEl) basketEl.style.display = 'none';
                 if (sendBtn) sendBtn.disabled = true;
+                if (basketTotal) basketTotal.textContent = '0 Cartons · 0.00 kg';
                 return;
             }
             if (basketEl) basketEl.style.display = '';
-            if (sendBtn) sendBtn.disabled = false;
+            if (sendBtn) sendBtn.disabled = hasInvalid;
             var totalKg = 0;
-            var html = '';
+            var totalCartons = 0;
             _dispatchLines.forEach(function (line) {
                 var cartons = line.cartons != null ? line.cartons : 0;
-                var qtyKg = (cartons > 0 || line.cartons === 0) ? (Math.round(cartons * KG_PER_CARTON * 100) / 100) : (parseFloat(line.quantity_kg) || 0);
+                var qtyKg = cartonsToKg(cartons);
                 totalKg += qtyKg;
-                var styleAttr = (line.style !== undefined && line.style !== null) ? String(line.style).replace(/"/g, '&quot;') : '';
-                html += '<tr><td><span class="badge bg-primary">' + (line.batch_number || '—') + '</span></td>' +
-                    '<td>' + (line.style !== undefined && line.style !== null ? line.style : '—') + '</td>' +
-                    '<td class="text-end">' + cartons + ' ct · ' + qtyKg.toFixed(2) + ' kg</td>' +
-                    '<td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger js-modal-basket-remove" title="Remove" data-batch-id="' + (line.kernel_id || '') + '" data-style="' + styleAttr + '"><i class="fas fa-times"></i></button></td></tr>';
+                totalCartons += cartons;
+                var tr = document.createElement('tr');
+                var tdB = document.createElement('td');
+                tdB.className = 'fw-semibold';
+                tdB.textContent = line.batch_number || '—';
+                var tdS = document.createElement('td');
+                tdS.textContent = (line.style !== undefined && line.style !== null) ? line.style : '—';
+                var tdQ = document.createElement('td');
+                tdQ.className = 'text-end';
+                tdQ.textContent = cartonLabel(cartons) + ' · ' + qtyKg.toFixed(2) + ' kg';
+                var tdX = document.createElement('td');
+                tdX.className = 'text-end';
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-sm btn-outline-danger js-modal-basket-remove';
+                btn.title = 'Remove';
+                btn.setAttribute('data-batch-id', line.kernel_id || '');
+                btn.setAttribute('data-style', (line.style !== undefined && line.style !== null) ? String(line.style) : '');
+                var ico = document.createElement('i');
+                ico.className = 'fas fa-times';
+                btn.appendChild(ico);
+                tdX.appendChild(btn);
+                tr.appendChild(tdB);
+                tr.appendChild(tdS);
+                tr.appendChild(tdQ);
+                tr.appendChild(tdX);
+                basketBody.appendChild(tr);
             });
-            basketBody.innerHTML = html;
-            if (basketTotal) basketTotal.textContent = 'Total: ' + totalKg.toFixed(1) + ' kg';
+            if (basketTotal) basketTotal.textContent = cartonLabel(totalCartons) + ' · ' + totalKg.toFixed(2) + ' kg';
         },
 
         populateBuyerDropdown: function () {
             var buyerSelect = document.getElementById('dispatchBuyerContact');
-            if (!buyerSelect) return;
-            buyerSelect.innerHTML = '<option value="">— Select buyer —</option>';
-            if (typeof dataFunctions === 'undefined' || !dataFunctions.getContacts) return;
-            dataFunctions.getContacts(null, true).then(function (raw) {
+            if (!buyerSelect) return Promise.resolve();
+            buyerSelect.innerHTML = '<option value="">— Select customer —</option>';
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.getContacts) return Promise.resolve();
+            return dataFunctions.getContacts(null, true).then(function (raw) {
                 var contacts = Array.isArray(raw) ? raw : (raw && raw.get_contacts ? raw.get_contacts : (raw && raw.data ? raw.data : []));
                 if (!Array.isArray(contacts)) return;
                 var kernelCustomers = contacts.filter(function (c) { return c.contact_type === 'kernel_customer'; });
                 kernelCustomers.forEach(function (c) {
+                    // Dispatch buyer_name: company name, falling back to trading name
                     var name = c.company_name || c.trading_name || c.primary_contact_name || c.id;
                     if (!name) return;
                     var opt = document.createElement('option');
@@ -368,23 +475,29 @@ var _modal_stock_send_to_dispatch = (function () {
             dataFunctions.createContact(payload).then(function (res) {
                 var id = (res && res.id) || (res && res.data && res.data.id);
                 if (id) {
-                    api.populateBuyerDropdown();
-                    var buyerSelect = document.getElementById('dispatchBuyerContact');
-                    var buyerInput = document.getElementById('dispatchBuyer');
-                    if (buyerSelect) buyerSelect.value = id;
-                    if (buyerInput) {
-                        buyerInput.value = data.company_name;
-                        buyerInput.classList.remove('is-invalid');
-                    }
                     api.hideAddBuyerForm();
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Buyer added', timer: 1500, showConfirmButton: false });
+                    api.populateBuyerDropdown().then(function () {
+                        var buyerSelect = document.getElementById('dispatchBuyerContact');
+                        if (!buyerSelect) return;
+                        if (!Array.prototype.some.call(buyerSelect.options, function (o) { return o.value === String(id); })) {
+                            // Contact list did not return the new row yet: add it so the selection is not lost.
+                            var opt = document.createElement('option');
+                            opt.value = id;
+                            opt.textContent = data.company_name;
+                            opt.setAttribute('data-buyer-name', data.company_name);
+                            buyerSelect.appendChild(opt);
+                        }
+                        buyerSelect.value = id;
+                        buyerSelect.classList.remove('is-invalid');
+                    });
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Customer added', timer: 1500, showConfirmButton: false });
                 } else {
-                    if (typeof Swal !== 'undefined') Swal.fire('Error', (res && res.error) || 'Failed to add buyer', 'error');
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', (res && res.error) || 'Failed to add customer', 'error');
                 }
             }).catch(function (e) {
-                var msg = e && e.message ? e.message : 'Failed to add buyer.';
+                var msg = e && e.message ? e.message : 'Failed to add customer.';
                 if (e && (e.status === 404 || (typeof e.status === 'number' && e.status >= 400))) {
-                    msg = 'Could not create buyer. The server returned an error (' + (e.status || '') + '). Check that the backend proxy and create-contact (or contacts table) are configured.';
+                    msg = 'Could not create customer. The server returned an error (' + (e.status || '') + '). Check that the backend proxy and create-contact (or contacts table) are configured.';
                 }
                 if (typeof Swal !== 'undefined') Swal.fire('Error', msg, 'error');
             });
@@ -394,17 +507,16 @@ var _modal_stock_send_to_dispatch = (function () {
             _dispatchLines = [];
             _pendingDetails = null;
             api.showStep1();
-            var buyerInput = document.getElementById('dispatchBuyer');
             var buyerSelect = document.getElementById('dispatchBuyerContact');
-            var deliveryInput = document.getElementById('dispatchDeliveryDate');
-            if (buyerInput) { buyerInput.value = ''; buyerInput.classList.remove('is-invalid'); }
-            if (deliveryInput && deliveryInput._flatpickr) {
-                deliveryInput._flatpickr.setDate(new Date());
-            } else if (deliveryInput) {
-                deliveryInput.value = '';
-                deliveryInput.classList.remove('is-invalid');
-            }
+            if (buyerSelect) buyerSelect.classList.remove('is-invalid');
+            ['dispatchCollectionDate', 'dispatchDeliveryDate'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (!el) return;
+                el.classList.remove('is-invalid');
+                if (el._flatpickr) el._flatpickr.setDate(new Date()); else el.value = '';
+            });
             api.populateBuyerDropdown();
+            loadBands();
             var modalEl = document.getElementById('sendToDispatchModal');
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
                 bootstrap.Modal.getOrCreateInstance(modalEl).show();
@@ -414,25 +526,43 @@ var _modal_stock_send_to_dispatch = (function () {
         },
 
         onNextSelectBoxes: function () {
-            var buyerInput = document.getElementById('dispatchBuyer');
             var buyerSelect = document.getElementById('dispatchBuyerContact');
+            var collectionInput = document.getElementById('dispatchCollectionDate');
             var deliveryInput = document.getElementById('dispatchDeliveryDate');
-            var buyerName = (buyerInput && buyerInput.value && buyerInput.value.trim()) ? buyerInput.value.trim() : null;
+            function warn(msg) {
+                if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire('Validation', msg, 'warning');
+            }
+            var opt = (buyerSelect && buyerSelect.value) ? buyerSelect.options[buyerSelect.selectedIndex] : null;
+            var buyerName = opt ? ((opt.getAttribute('data-buyer-name') || opt.textContent || '').trim() || null) : null;
             if (!buyerName) {
-                if (buyerInput) buyerInput.classList.add('is-invalid');
-                if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire('Validation', 'Please enter the buyer name.', 'warning');
+                if (buyerSelect) buyerSelect.classList.add('is-invalid');
+                warn('Please select a customer.');
+                return;
+            }
+            var collectionDisplay = collectionInput && collectionInput.value ? collectionInput.value.trim() : null;
+            var collectionISO = collectionDisplay ? deliveryDateToISO(collectionDisplay) : null;
+            if (!collectionISO) {
+                if (collectionInput) collectionInput.classList.add('is-invalid');
+                warn('Please select the planned collection date.');
                 return;
             }
             var deliveryDisplay = deliveryInput && deliveryInput.value ? deliveryInput.value.trim() : null;
             var deliveryDateISO = deliveryDisplay ? deliveryDateToISO(deliveryDisplay) : null;
             if (!deliveryDateISO) {
                 if (deliveryInput) deliveryInput.classList.add('is-invalid');
-                if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire('Validation', 'Please select the delivery date.', 'warning');
+                warn('Please select the planned delivery date.');
+                return;
+            }
+            // ISO dates compare correctly as strings
+            if (deliveryDateISO < collectionISO) {
+                if (deliveryInput) deliveryInput.classList.add('is-invalid');
+                warn('The planned delivery date cannot be before the planned collection date.');
                 return;
             }
             _pendingDetails = {
                 buyer_name: buyerName,
-                buyer_contact_id: (buyerSelect && buyerSelect.value) ? buyerSelect.value : null,
+                buyer_contact_id: buyerSelect.value,
+                planned_collection_date: collectionISO,
                 delivery_date: deliveryDateISO
             };
             api.showStep2(_pendingDetails);
@@ -440,7 +570,7 @@ var _modal_stock_send_to_dispatch = (function () {
 
         onSend: function () {
             if (!_pendingDetails || !_pendingDetails.buyer_name) {
-                if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire('Error', 'Buyer details missing. Please go back and enter them.', 'error');
+                if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire('Error', 'Customer details missing. Please go back and select a customer.', 'error');
                 return;
             }
             if (_dispatchLines.length === 0) {
@@ -459,6 +589,7 @@ var _modal_stock_send_to_dispatch = (function () {
             dataFunctions.createKernelDispatchOrder({
                 buyer_name: _pendingDetails.buyer_name,
                 buyer_contact_id: _pendingDetails.buyer_contact_id || null,
+                planned_collection_date: _pendingDetails.planned_collection_date,
                 delivery_date: _pendingDetails.delivery_date,
                 lines: lines
             }).then(function (result) {

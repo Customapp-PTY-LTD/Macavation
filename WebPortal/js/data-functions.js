@@ -5150,7 +5150,8 @@ var _dataFunctions = function () {
                 p_delivery_date: payload.delivery_date || null,
                 p_best_before_date: payload.best_before_date || null,
                 p_buyer_contact_id: payload.buyer_contact_id || null,
-                p_lines: Array.isArray(payload.lines) ? payload.lines : []
+                p_lines: Array.isArray(payload.lines) ? payload.lines : [],
+                p_planned_collection_date: payload.planned_collection_date || null
             };
             const result = await this._callWithActor('create_kernel_dispatch_order', params, token, { useCache: false });
             this.clearCachePattern('kernel_dispatch_orders_list');
