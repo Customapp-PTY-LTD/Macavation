@@ -34,7 +34,12 @@ var _modal_stock_send_to_dispatch = (function () {
     function cartonLabel(n) {
         return n + (n === 1 ? ' Carton' : ' Cartons');
     }
-    /** The single note under a carton input: 'of N' (empty), '= x kg' (entered) or 'max N' (over). */
+    /** Whole cartons still available for one style cell (0 when none). */
+    function cartonsAvailable(cells, style) {
+        var val = cells[style];
+        return (typeof val === 'number' && val > 0) ? Math.floor(val) : 0;
+    }
+    /** The single note under a carton input: 'N left' (empty), '= x kg' (entered) or 'max N' (over). */
     function setQtyNote(el, kind, text) {
         el.className = 'small text-center js-dispatch-qty-kg ' + (kind === 'over' ? 'text-danger fw-semibold' : (kind === 'kg' ? 'text-primary fw-semibold' : 'text-muted'));
         el.textContent = text;
@@ -197,6 +202,13 @@ var _modal_stock_send_to_dispatch = (function () {
                 if (!da) return 1;
                 if (!db) return -1;
                 return da < db ? -1 : 1;
+            }).filter(function (b) {
+                // Only batches with at least one whole carton left (or already in the basket) are pickable.
+                var cells = (b.remaining_by_style_cartons && typeof b.remaining_by_style_cartons === 'object') ? b.remaining_by_style_cartons
+                    : ((b.yield_by_style_cartons && typeof b.yield_by_style_cartons === 'object') ? b.yield_by_style_cartons : {});
+                if (STYLE_KEYS.some(function (k) { return cartonsAvailable(cells, k) > 0; })) return true;
+                var id = kernelRpcIdFromBatch(b);
+                return _dispatchLines.some(function (l) { return l.kernel_id === id; });
             });
             var body = document.getElementById('dispatchShoppingBody');
             var totalsRow = document.getElementById('dispatchShoppingTotalsRow');
@@ -251,7 +263,7 @@ var _modal_stock_send_to_dispatch = (function () {
                 STYLE_KEYS.forEach(function (k) {
                     var val = cells[k] != null ? cells[k] : 0;
                     if (typeof val === 'number') totals[k] += val;
-                    var cartonsAvail = (typeof val === 'number' && val > 0) ? Math.floor(val) : 0;
+                    var cartonsAvail = cartonsAvailable(cells, k);
                     var td = document.createElement('td');
                     if (cartonsAvail <= 0) {
                         td.className = 'text-end text-muted';
@@ -262,13 +274,16 @@ var _modal_stock_send_to_dispatch = (function () {
                     td.className = 'kernel-qty-cell';
                     var selectedLine = _dispatchLines.find(function (l) { return l.kernel_id === batchId && String(l.style) === k; });
                     var input = document.createElement('input');
-                    input.type = 'number';
-                    input.className = 'form-control form-control-sm text-end js-dispatch-qty-input';
-                    input.min = '0';
-                    input.max = String(cartonsAvail);
-                    input.step = '1';
-                    input.placeholder = '0';
+                    // Plain text box (not type=number): no spinner arrows eating the narrow cell, so the
+                    // typed number stays visible. onQtyInput validates whole cartons and the max.
+                    input.type = 'text';
+                    input.className = 'form-control form-control-sm text-center fw-semibold js-dispatch-qty-input';
+                    input.style.minWidth = '4.5rem';
+                    input.placeholder = 'Type';
+                    input.autocomplete = 'off';
+                    input.title = 'Type how many boxes (up to ' + cartonsAvail + ')';
                     input.setAttribute('inputmode', 'numeric');
+                    input.setAttribute('pattern', '[0-9]*');
                     input.setAttribute('aria-label', 'Cartons of style ' + k + ', batch ' + (b.batch_number || '') + ' (max ' + cartonsAvail + ')');
                     input.setAttribute('data-batch-id', batchId);
                     input.setAttribute('data-style', k);
@@ -280,7 +295,7 @@ var _modal_stock_send_to_dispatch = (function () {
                     var kg = document.createElement('div');
                     kg.className = 'js-dispatch-qty-kg';
                     if (selectedLine && selectedLine.cartons > 0) setQtyNote(kg, 'kg', '= ' + cartonsToKg(selectedLine.cartons).toFixed(2) + ' kg');
-                    else setQtyNote(kg, 'avail', 'of ' + cartonsAvail);
+                    else setQtyNote(kg, 'avail', cartonsAvail + ' left');
                     td.appendChild(input);
                     td.appendChild(fb);
                     td.appendChild(kg);
@@ -324,7 +339,7 @@ var _modal_stock_send_to_dispatch = (function () {
                 if (fb) fb.textContent = msg;
                 if (kgEl) {
                     if (over) setQtyNote(kgEl, 'over', 'max ' + maxCartons);
-                    else setQtyNote(kgEl, 'avail', 'of ' + maxCartons);
+                    else setQtyNote(kgEl, 'avail', maxCartons + ' left');
                 }
                 // An invalid entry is not part of the order until it is corrected.
                 if (idx >= 0) _dispatchLines.splice(idx, 1);
@@ -333,7 +348,7 @@ var _modal_stock_send_to_dispatch = (function () {
                 if (fb) fb.textContent = '';
                 if (cartons <= 0) {
                     if (idx >= 0) _dispatchLines.splice(idx, 1);
-                    if (kgEl) setQtyNote(kgEl, 'avail', 'of ' + maxCartons);
+                    if (kgEl) setQtyNote(kgEl, 'avail', maxCartons + ' left');
                 } else {
                     var line = { kernel_id: batchId, batch_number: batchNum, style: style, quantity_kg: cartonsToKg(cartons), cartons: cartons };
                     if (idx >= 0) _dispatchLines[idx] = line; else _dispatchLines.push(line);
