@@ -81,3 +81,8 @@ asked to gate tests, turn the gate on/off, or explain why a change merged untest
 Before drafting or reviewing any plan that touches the database (new tables, functions,
 RLS, migrations), read `BluePrint/supabase-database-rules.md` in full - and check
 `BluePrint/` generally for this repo's other conventions before writing JS/UI code.
+
+## AWS Lambda runtimes
+
+Before creating, updating, or deploying any AWS Lambda function in this repo, follow
+`.claude/rules/lambda-runtime.md` - Node.js Lambdas use `nodejs24.x` or newer, never an older runtime.
