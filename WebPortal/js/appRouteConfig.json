@@ -563,7 +563,9 @@
             "js": [
                 "js/modal_grower_receiving_checklist.js"
             ],
-            "css": []
+            "css": [
+                "css/modal_grower_receiving_checklist.css"
+            ]
         },
         "grower-create-kernel-batch-modal": {
             "description": "Grower Intake Create Kernel Batch Modal",
@@ -645,6 +647,28 @@
                 "css/sales_reports.css"
             ]
         },
+        "silo-allocation-grid": {
+            "description": "Silo Allocation",
+            "path": "silo-allocation",
+            "html": "html/silo_allocation_grid.html",
+            "js": [
+                "js/silo_allocation_grid.js"
+            ],
+            "css": [
+                "css/silo_allocation_grid.css"
+            ]
+        },
+        "kernel-pipeline-settings": {
+            "description": "Kernel Pipeline Settings",
+            "path": "kernel-pipeline-settings",
+            "html": "html/kernel_pipeline_settings_grid.html",
+            "js": [
+                "js/kernel_pipeline_settings_grid.js"
+            ],
+            "css": [
+                "css/kernel_pipeline_settings_grid.css"
+            ]
+        },
         "kernel-dashboard": {
             "description": "Kernel Dashboard",
             "path": "management-dashboard",
@@ -688,6 +712,7 @@
                 "js/sales-data-column-defs.js",
                 "js/sales-data-row-grid.js",
                 "js/data-import-wizard.js",
+                "js/data-import-all-wizard.js",
                 "js/data-health-panel.js",
                 "js/sales_data_grid.js"
             ],

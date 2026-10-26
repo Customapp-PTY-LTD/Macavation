@@ -1,0 +1,34 @@
+---
+description: Required AWS Lambda runtime versions (Node.js 24 or newer). Apply when creating, updating, deploying, or reviewing any AWS Lambda function, SAM/CloudFormation/CDK/Terraform/serverless.yml Lambda config, Lambda container image, Lambda layer, or a deploy script that sets a Lambda runtime.
+globs: "**/template.{yml,yaml},**/serverless.{yml,yaml},**/*.tf,**/lambda/**,**/deploy*.sh"
+alwaysApply: false
+---
+
+# Lambda runtimes - always the current runtime, never an old one
+
+An old runtime eventually stops getting security patches from AWS, and anything still running on
+it carries known CVEs nobody will fix. AWS also blocks creating, then updating, functions on a
+retired runtime, so an old pin becomes a deploy that suddenly fails.
+
+## The rule
+
+- **Node.js Lambdas use `nodejs24.x` or newer.** Never `nodejs22.x`, `nodejs20.x`, `nodejs18.x`
+  or anything older. When AWS releases a newer Node.js runtime, prefer the newest one.
+- **Container-image Lambdas** use the matching AWS base image, for example
+  `public.ecr.aws/lambda/nodejs:24` or newer - never an older tag, and never `latest`.
+- **Other languages** use the newest runtime AWS currently supports for that language - never one
+  AWS has announced a deprecation date for.
+- **Write the runtime once** (template `Globals`, a shared constant, one deploy-script variable)
+  so the next upgrade is a one-line change.
+- **Match local tooling**: `engines.node` in `package.json` (and `.nvmrc`) on the same major.
+
+## Existing functions on an old runtime
+
+If your change edits that function's configuration or deploy path, upgrade the runtime in the
+same change and say so. If that is out of scope or risky (native modules, old SDK v2 imports),
+flag it to the user explicitly - never copy the old runtime into new code.
+
+## Dependencies
+
+Most CVEs arrive through packaged libraries and layers, not the runtime. Prefer current versions
+and run `npm audit` (or the language equivalent) before finishing.

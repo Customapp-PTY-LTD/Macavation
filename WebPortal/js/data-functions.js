@@ -1995,12 +1995,114 @@ var _dataFunctions = function () {
             return raw || {};
         },
 
-        autoCreateShellLotFromProduction: async function (batchNumber, shellKg, notes, token = null) {
+        /**
+         * Sets this production day's shell contribution on the batch's shell lot. Idempotent per
+         * (batch, production date) since 20261006090100 - re-saving a day adjusts by the difference
+         * instead of adding the whole total again. Pass productionDate (YYYY-MM-DD) whenever known.
+         */
+        autoCreateShellLotFromProduction: async function (batchNumber, shellKg, notes, token = null, productionDate = null) {
             return await this.callFunction('auto_create_shell_lot_from_production', {
                 p_batch_number: batchNumber,
                 p_shell_kg: shellKg,
-                p_notes: notes || null
-            }, token);
+                p_notes: notes || null,
+                p_production_date: productionDate || null
+            }, token, { useCache: false });
+        },
+
+        // ---------------------------------------------------------------------------------------
+        // Kernel Pipeline v2 (migrations 20261006090000-090300): settings, New Delivery, silos.
+        // Every call returns the RPC's jsonb ({ success, ... } or { success: false, error }).
+        // ---------------------------------------------------------------------------------------
+
+        _kpUnwrap: function (result) {
+            return result && (result.data !== undefined ? result.data : result);
+        },
+
+        /** { settings:{bag_numbering}, spec_thresholds[], crate_weights[], transporters[], transport_types[], silos[] } */
+        getKernelPipelineConfig: async function (token = null) {
+            return this._kpUnwrap(await this.callFunction('get_kernel_pipeline_config', {}, token, { useCache: false }));
+        },
+        setKernelPipelineSetting: async function (key, value, token = null) {
+            return this._kpUnwrap(await this.callFunction('set_kernel_pipeline_setting', { p_key: key, p_value: value }, token, { useCache: false, preserveNullParams: true }));
+        },
+        /** Pass null limits to clear them (no colour shown). */
+        upsertSampleSpecThreshold: async function (testKey, direction, greenLimit, yellowLimit, token = null) {
+            return this._kpUnwrap(await this.callFunction('upsert_sample_spec_threshold', {
+                p_test_key: testKey, p_direction: direction, p_green_limit: greenLimit, p_yellow_limit: yellowLimit
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
+        /** Pass null kgPerCrate to clear it (the kg field becomes a manual entry). */
+        upsertCrateWeight: async function (stage, crateType, kgPerCrate, token = null) {
+            return this._kpUnwrap(await this.callFunction('upsert_crate_weight', {
+                p_stage: stage, p_crate_type: crateType, p_kg_per_crate: kgPerCrate
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
+        /** Add (id omitted) or rename/deactivate a transport company. Adding an existing name returns its id. */
+        upsertTransporter: async function (name, id = null, isActive = true, token = null) {
+            return this._kpUnwrap(await this.callFunction('upsert_transporter', { p_name: name, p_id: id, p_is_active: isActive }, token, { useCache: false }));
+        },
+        upsertTransportType: async function (name, id = null, isActive = true, token = null) {
+            return this._kpUnwrap(await this.callFunction('upsert_transport_type', { p_name: name, p_id: id, p_is_active: isActive }, token, { useCache: false }));
+        },
+        upsertSiloCapacity: async function (siloNumber, capacityKg, token = null) {
+            return this._kpUnwrap(await this.callFunction('upsert_silo_capacity', { p_silo_number: siloNumber, p_capacity_kg: capacityKg }, token, { useCache: false }));
+        },
+        /**
+         * Save New Delivery details to kernel.intake_data.delivery and set the weighed total.
+         * @param {object} data - { kernel_id, bags:[{no, description, weight_kg}],
+         *   transport:{transporter_id, transporter_name, delivery_note_ref, collection_points[], transport_type_id,
+         *   transport_type_name, rate_zar}, documents:[{file_id, file_link, name}] }
+         */
+        saveKernelDelivery: async function (data, token = null) {
+            const result = await this.callFunction('save_kernel_delivery', {
+                p_kernel_id: data.kernel_id,
+                p_bags: data.bags || [],
+                p_transport: data.transport || {},
+                p_documents: data.documents || []
+            }, token, { useCache: false });
+            this.clearCachePattern('kernel_batches');
+            this.clearCachePattern('kernel_batch_detail');
+            return this._kpUnwrap(result);
+        },
+        getSiloOverview: async function (token = null) {
+            return this._kpUnwrap(await this.callFunction('get_silo_overview', {}, token, { useCache: false }));
+        },
+        getSiloAllocationBatches: async function (token = null) {
+            return this._kpUnwrap(await this.callFunction('get_silo_allocation_batches', {}, token, { useCache: false }));
+        },
+        /** { allocations[], runs[] } for a date window (max 62 days). Migration 20261016090000. */
+        getSiloActivity: async function (fromIso, toIso, token = null) {
+            return this._kpUnwrap(await this.callFunction('get_silo_activity', { p_date_from: fromIso, p_date_to: toIso }, token, { useCache: false }));
+        },
+        getSiloRuns: async function (limit = 50, token = null) {
+            return this._kpUnwrap(await this.callFunction('get_silo_runs', { p_limit: limit }, token, { useCache: false }));
+        },
+        /** removedPreSizerKg is required (0 if none). Migration 20261008090000. */
+        allocateBagsToSilo: async function (kernelId, bagNos, siloNumber, removedPreSizerKg, token = null) {
+            return this._kpUnwrap(await this.callFunction('allocate_bags_to_silo', {
+                p_kernel_id: kernelId, p_bag_nos: bagNos, p_silo_number: siloNumber,
+                p_removed_pre_sizer_kg: removedPreSizerKg != null ? Number(removedPreSizerKg) : null
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
+        unallocateSiloBag: async function (kernelId, bagNo, token = null) {
+            return this._kpUnwrap(await this.callFunction('unallocate_silo_bag', { p_kernel_id: kernelId, p_bag_no: bagNo }, token, { useCache: false }));
+        },
+        /** Pre-sizer tally for one batch: { groups[], total_bag_kg, total_removed_kg, waiting_bag_nos[] }. */
+        getPresizerTally: async function (kernelId, token = null) {
+            return this._kpUnwrap(await this.callFunction('get_presizer_tally', { p_kernel_id: kernelId }, token, { useCache: false }));
+        },
+        /** openedAt: ISO string, or null/omitted for "now". */
+        openSilo: async function (siloNumber, openedAt = null, token = null) {
+            const params = { p_silo_number: siloNumber };
+            if (openedAt) { params.p_opened_at = openedAt; }
+            return this._kpUnwrap(await this.callFunction('open_silo', params, token, { useCache: false }));
+        },
+        /** Stop cracking: leftKg = kg still in the silo (0 = silo empty). openedAt / closedAt: ISO strings, only when changed. */
+        closeSilo: async function (siloNumber, leftKg = 0, openedAt = null, closedAt = null, token = null) {
+            const params = { p_silo_number: siloNumber, p_left_kg: leftKg != null ? Number(leftKg) : 0 };
+            if (openedAt) { params.p_opened_at = openedAt; }
+            if (closedAt) { params.p_closed_at = closedAt; }
+            return this._kpUnwrap(await this.callFunction('close_silo', params, token, { useCache: false, preserveNullParams: true }));
         },
 
         dispatchShellStockLot: async function (lotId, customerRef, notes, token = null) {
@@ -2778,6 +2880,35 @@ var _dataFunctions = function () {
             });
         },
 
+        /**
+         * Kernel batches received between two dates (inclusive, YYYY-MM-DD), any status — for the
+         * Grower Intake activity calendar. Deliberately bypasses getKernelBatches' cache: its cache
+         * key ignores p_limit, so a shared entry could hold a shorter list. get_kernel_batches sorts
+         * by received_date DESC, so paging stops once a page reaches dates before the window.
+         */
+        getKernelBatchesReceivedBetween: async function (fromIso, toIso, token = null) {
+            const PAGE = 500;
+            const out = [];
+            for (let offset = 0; offset < 20000; offset += PAGE) {
+                const raw = await this.callFunction('get_kernel_batches', {
+                    p_status: null, p_search: null, p_limit: PAGE, p_offset: offset
+                }, token, { useCache: false });
+                const rows = this.extractKernelBatchesRowsFromRaw(raw, 0);
+                if (rows.length === 0 && raw && (raw.error || raw.message)) {
+                    throw new Error(raw.message || raw.error || 'Failed to load kernel batches');
+                }
+                let reachedOlder = false;
+                rows.forEach(function (r) {
+                    const d = r && r.received_date ? String(r.received_date).slice(0, 10) : '';
+                    if (!d) return;
+                    if (d < fromIso) { reachedOlder = true; return; }
+                    if (d <= toIso) out.push(r);
+                });
+                if (reachedOlder || rows.length < PAGE) break;
+            }
+            return out;
+        },
+
         getKernelBatches: async function (token = null, forceRefresh = false, options = {}) {
             if (forceRefresh) {
                 this.clearCachePattern('kernel_batches');
@@ -3242,6 +3373,26 @@ var _dataFunctions = function () {
             this.clearCachePattern('kernel_batch_detail_' + kernelId);
             this.clearCachePattern('kernel_batches');
             return result;
+        },
+
+        // --- Cracking runs on the production sheet (silo runs that cracked kg from one batch) ---
+        /** Closed silo runs on a day (SA time) that cracked kg from this batch. Returns { success, runs[], total_batch_kg }. */
+        getBatchCrackingRuns: async function (kernelId, dateISO, token = null) {
+            return this._kpUnwrap(await this.callFunction('get_batch_cracking_runs', {
+                p_kernel_id: kernelId, p_date: dateISO
+            }, token, { useCache: false }));
+        },
+        /** Record a finished silo run from the production sheet; empties the silo like "Stop cracking". */
+        recordSiloRun: async function (siloNumber, openedAt, closedAt, leftKg, token = null) {
+            return this._kpUnwrap(await this.callFunction('record_silo_run', {
+                p_silo_number: Number(siloNumber), p_opened_at: openedAt, p_closed_at: closedAt,
+                p_left_kg: leftKg != null ? Number(leftKg) : 0
+            }, token, { useCache: false }));
+        },
+        updateSiloRunTimes: async function (runId, openedAt, closedAt, token = null) {
+            return this._kpUnwrap(await this.callFunction('update_silo_run_times', {
+                p_run_id: runId, p_opened_at: openedAt, p_closed_at: closedAt
+            }, token, { useCache: false }));
         },
 
         /**
@@ -4505,11 +4656,16 @@ var _dataFunctions = function () {
                 p_pest_infestations:       data.pest_infestations       || null,
                 p_pallets_condition:       data.pallets_condition       || null,
                 p_raw_materials_condition: data.raw_materials_condition || null,
-                p_comments:               data.comments                || null,
-                p_received_items:         data.received_items          || [],
-                p_removed_pre_sizer_kg:   data.removed_pre_sizer_kg    != null ? data.removed_pre_sizer_kg : null
+                // '' (not null) so a cleared comment really clears; the RPC merges and keeps unsent keys.
+                p_comments:               data.comments != null ? String(data.comments) : null,
+                // Bag lines now live on New Delivery (saveKernelDelivery). Omit when not sent so the
+                // stored lines and weighed total are kept (20261006090100 merges, never wipes).
+                p_received_items:         data.received_items && data.received_items.length ? data.received_items : null,
+                p_removed_pre_sizer_kg:   data.removed_pre_sizer_kg    != null ? data.removed_pre_sizer_kg : null,
+                p_item_comments:          data.item_comments           || null,
+                p_item_photos:            data.item_photos             || null
             };
-            const result = await this.callFunction('upsert_kernel_checklist', params, token, { useCache: false });
+            const result = await this.callFunction('upsert_kernel_checklist', params, token, { useCache: false, preserveEmptyParams: true });
             this.clearCachePattern('kernel_batches');
             this.clearCachePattern('kernel_batch_detail');
             return result && (result.data !== undefined ? result.data : result);
@@ -4518,11 +4674,14 @@ var _dataFunctions = function () {
         /**
          * Release a kernel batch to production.
          * Validates both ziplock_sample and five_kg_sample are saved, then sets status = 'production'.
-         * @param {object} data - { kernel_id }
+         * @param {object} data - { kernel_id, removed_pre_sizer_kg (optional; captured at silo allocation since 20261008) }
          * @returns {Promise<object>} { success, kernel_id } or { success: false, error }
          */
         releaseKernelToProduction: async function (data, token = null) {
-            const params = { p_kernel_id: data.kernel_id };
+            const params = {
+                p_kernel_id: data.kernel_id,
+                p_removed_pre_sizer_kg: data.removed_pre_sizer_kg != null ? data.removed_pre_sizer_kg : null
+            };
             const result = await this.callFunction('release_kernel_to_production', params, token, { useCache: false });
             this.clearCachePattern('kernel_batches');
             return result && (result.data !== undefined ? result.data : result);
@@ -5168,14 +5327,15 @@ var _dataFunctions = function () {
             return result;
         },
 
-        /** Update buyer, delivery/best-before dates, and line cartons (not allowed after dispatched). */
+        /** Update buyer, planned collection/delivery/best-before dates, and line cartons (not allowed after dispatched). */
         updateKernelDispatchOrder: async function (payload, token = null) {
             const params = {
                 p_order_id: payload.order_id || null,
                 p_buyer_name: payload.buyer_name != null ? payload.buyer_name : null,
                 p_delivery_date: payload.delivery_date || null,
                 p_best_before_date: payload.best_before_date != null ? payload.best_before_date : null,
-                p_lines: Array.isArray(payload.lines) ? payload.lines : []
+                p_lines: Array.isArray(payload.lines) ? payload.lines : [],
+                p_planned_collection_date: payload.planned_collection_date || null
             };
             const result = await this.callFunction('update_kernel_dispatch_order', params, token, { useCache: false });
             this.clearCachePattern('kernel_dispatch_orders_list');
@@ -5232,6 +5392,17 @@ var _dataFunctions = function () {
             return [];
         },
 
+        /**
+         * Every kernel dispatch basket, newest first — for the Dispatch activity calendar.
+         * getKernelDispatchOrders stops at the latest 100; the calendar needs older months too.
+         * Uncached so a basket dispatched a minute ago shows when the calendar is reopened.
+         */
+        getKernelDispatchOrderHistory: async function (token = null) {
+            const raw = await this.callFunction('get_kernel_dispatch_orders', { p_limit: 5000, p_offset: 0 }, token, { useCache: false });
+            if (raw && raw.success === false) throw new Error(raw.error || 'Failed to load dispatch orders');
+            return raw && Array.isArray(raw.data) ? raw.data : [];
+        },
+
         getKernelDispatchOrder: async function (orderId, token = null) {
             if (!orderId) return null;
             const raw = await this.callFunction('get_kernel_dispatch_order', { p_order_id: orderId }, token, { useCache: false });
@@ -5274,7 +5445,12 @@ var _dataFunctions = function () {
                 p_driver_name: payload.driver_name || null,
                 p_time_dispatched: payload.time_dispatched || null,
                 p_dispatched_to: payload.dispatched_to || null,
-                p_dispatch_signature: payload.dispatch_signature || null
+                p_dispatch_signature: payload.dispatch_signature || null,
+                p_attention_cell: payload.attention_cell || null,
+                p_transporter_id: payload.transporter_id || null,
+                p_inspection_comments: payload.inspection_comments || null,
+                p_inspection_photos: payload.inspection_photos || null,
+                p_attachments: payload.attachments || null
             };
             const result = await this.callFunction('save_kernel_dispatch_record', params, token, { useCache: false });
             this.clearCachePattern('kernel_dispatch_orders_list');
@@ -5364,7 +5540,12 @@ var _dataFunctions = function () {
                 p_driver_name: payload.driver_name || null,
                 p_time_dispatched: payload.time_dispatched || null,
                 p_dispatched_to: payload.dispatched_to || null,
-                p_dispatch_signature: payload.dispatch_signature || null
+                p_dispatch_signature: payload.dispatch_signature || null,
+                p_attention_cell: payload.attention_cell || null,
+                p_transporter_id: payload.transporter_id || null,
+                p_inspection_comments: payload.inspection_comments || null,
+                p_inspection_photos: payload.inspection_photos || null,
+                p_attachments: payload.attachments || null
             };
             const result = await this.callFunction('save_oil_dispatch_record', params, token, { useCache: false });
             this.clearCachePattern('oil_dispatch_orders_list');
@@ -6936,6 +7117,40 @@ var _dataFunctions = function () {
                 return row || { success: 0, error: 'The server did not answer.' };
             } catch (e) {
                 console.warn('[DataImport] undo_data_import_batch failed', e && e.message);
+                return { success: 0, error: (e && e.message) || 'The import could not be undone.' };
+            }
+        },
+
+        /**
+         * Fill everything from a file - migrations/20261015120000_data_import_groups.sql. pages is
+         * [{dataset_key, rows}]; all pages save in one transaction or none do. Resolves to
+         * {success, error, group_id, batches}; never throws.
+         */
+        importDataPages: async function (fileName, pages, token = null) {
+            try {
+                const result = await this.callFunction('import_data_pages', {
+                    p_file_name: fileName,
+                    p_pages: Array.isArray(pages) ? pages : [],
+                    p_actor_user_id: this.getCurrentUserId() || null
+                }, token, { useCache: false, offlineOperation: false });
+                const row = Array.isArray(result) ? result[0] : result;
+                return row || { success: 0, error: 'The server did not answer.' };
+            } catch (e) {
+                console.warn('[DataImport] import_data_pages failed', e && e.message);
+                return { success: 0, error: (e && e.message) || 'The import could not be saved.' };
+            }
+        },
+
+        undoDataImportGroup: async function (groupId, token = null) {
+            try {
+                const result = await this.callFunction('undo_data_import_group', {
+                    p_group_id: groupId,
+                    p_actor_user_id: this.getCurrentUserId() || null
+                }, token, { useCache: false, offlineOperation: false });
+                const row = Array.isArray(result) ? result[0] : result;
+                return row || { success: 0, error: 'The server did not answer.' };
+            } catch (e) {
+                console.warn('[DataImport] undo_data_import_group failed', e && e.message);
                 return { success: 0, error: (e && e.message) || 'The import could not be undone.' };
             }
         },

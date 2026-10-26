@@ -163,3 +163,50 @@ textarea.js-sales-data-input {
 .dimp-done { text-align: center; padding: var(--mac-space-lg) 0; }
 .dimp-done-tick { font-size: 40px; color: var(--mac-success); }
 .dimp-batch { display: inline-flex; gap: var(--mac-space-md); align-items: center; border: 1px solid var(--mac-border); border-radius: var(--mac-radius-md); padding: var(--mac-space-sm) var(--mac-space-md); margin-top: var(--mac-space-sm); text-align: left; }
+
+/* ------------------------------------------------------------------
+   Fill everything from a file (js/data-import-all-wizard.js) and the Data health gap bar.
+   Colours are --mac-* tokens only. Flat: no gradients (ui:verify).
+   ------------------------------------------------------------------ */
+.dh-top-btns { display: flex; gap: var(--mac-space-xs); flex-wrap: wrap; }
+.dh-gapbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--mac-space-sm); margin-top: var(--mac-space-sm); padding: var(--mac-space-sm) var(--mac-space-md); border: 1px solid var(--mac-danger); border-radius: var(--mac-radius-md); background-color: var(--mac-danger-light); color: var(--mac-silo-low-text); font-size: var(--mac-text-sm); }
+.dh-gapbar-done { border-color: var(--mac-success); background-color: var(--mac-success-light); color: var(--mac-silo-high-text); }
+.dh-will { background-color: var(--mac-success); box-shadow: inset 0 0 0 3px var(--mac-bg-secondary); outline: 2px solid var(--mac-silo-high-text); outline-offset: -2px; }
+.dh-grid .dh-c.dh-static { cursor: default; }
+.dh-grid .dh-row-dim .dh-name { color: var(--mac-text-tertiary); }
+.dh-grid .dh-row-dim .dh-c { opacity: 0.35; }
+.dimpa-drop { padding: var(--mac-space-xl) var(--mac-space-lg); }
+.dimpa-drop-icon { font-size: 1.6rem; color: var(--mac-text-tertiary); margin-bottom: var(--mac-space-xs); }
+.dimpa-drop-title { font-size: var(--mac-text-md); }
+.dimpa-drop-link { font-size: inherit; }
+.dimpa-promise { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: var(--mac-space-sm); margin-top: var(--mac-space-md); }
+.dimpa-promise > div { border: 1px solid var(--mac-border); border-radius: var(--mac-radius-md); padding: var(--mac-space-sm) var(--mac-space-md); font-size: var(--mac-text-sm); color: var(--mac-text-secondary); }
+.dimpa-promise strong { display: block; color: var(--mac-text); margin-bottom: 2px; }
+.dimpa-reading { max-width: 26rem; margin: 0 auto; padding: var(--mac-space-2xl) 0; color: var(--mac-text-secondary); }
+.dimpa-reading > div { display: flex; gap: var(--mac-space-sm); align-items: center; padding: 4px 0; opacity: 0.35; }
+.dimpa-reading > div.dimpa-on { opacity: 1; }
+.dimpa-sheets .dimpa-skip > td { color: var(--mac-text-tertiary); }
+.dimpa-maprow > td { background-color: var(--mac-bg-tertiary); }
+.dimpa-warn { color: var(--mac-warning-text); }
+.dimpa-good { color: var(--mac-silo-high-text); }
+.dimpa-pg { border: 1px solid var(--mac-border); border-radius: var(--mac-radius-md); margin-top: var(--mac-space-sm); overflow: hidden; }
+.dimpa-pg-h { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--mac-space-sm); width: 100%; border: 0; background-color: var(--mac-bg-secondary); color: var(--mac-text); padding: var(--mac-space-sm) var(--mac-space-md); text-align: left; }
+.dimpa-pg-h:hover { background-color: var(--mac-bg-tertiary); }
+.dimpa-pg-h:focus-visible { outline: 2px solid var(--mac-info); outline-offset: -2px; }
+.dimpa-car { width: 14px; color: var(--mac-text-tertiary); margin-right: 4px; }
+.dimpa-pg-b { border-top: 1px solid var(--mac-border); padding: var(--mac-space-sm) var(--mac-space-md) var(--mac-space-md); margin: 0; }
+.dimpa-grp > td { background-color: var(--mac-bg-tertiary); font-size: var(--mac-text-xs); font-weight: 600; color: var(--mac-text-secondary); }
+.dimpa-rownote { max-width: 18rem; }
+.dimpa-report { max-width: 48rem; margin: var(--mac-space-sm) auto 0; }
+.dimpa-r { display: flex; gap: var(--mac-space-sm); align-items: flex-start; padding: var(--mac-space-sm) 0; border-bottom: 1px solid var(--mac-border); font-size: var(--mac-text-sm); }
+.dimpa-r-ic { width: 1.5rem; flex: none; text-align: center; }
+.dimpa-todo { max-width: 48rem; margin: var(--mac-space-md) auto 0; padding: var(--mac-space-sm) var(--mac-space-md); border: 1px solid var(--mac-warning); border-radius: var(--mac-radius-md); background-color: var(--mac-warning-light); color: var(--mac-warning-text); font-size: var(--mac-text-sm); }
+.dimpa-todo ul { margin: 4px 0 0; padding-left: 1.2rem; }
+.dimpa-pg-b { display: grid; gap: var(--mac-space-md); }
+.dimpa-tablewrap { overflow-x: auto; }
+.dimpa-recon th { white-space: nowrap; }
+.dimpa-modal .modal-dialog { max-width: min(1360px, calc(100vw - 2rem)); }
+.dimpa-pg-b { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+.dimpa-recon { font-size: var(--mac-text-xs); }
+.dimpa-match { min-width: 12rem; }
+@media (max-width: 991.98px) { .dimpa-pg-b { grid-template-columns: minmax(0, 1fr); } }

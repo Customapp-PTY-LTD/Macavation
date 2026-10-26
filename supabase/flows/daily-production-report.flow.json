@@ -1,0 +1,161 @@
+{
+  "version": "7.3",
+  "screens": [
+    {
+      "id": "SUMMARY",
+      "title": "Production report",
+      "data": {
+        "label": {
+          "type": "string",
+          "__example__": "Tue 13 Oct"
+        },
+        "description": {
+          "type": "string",
+          "__example__": "Figures as at 17:30 SAST · 2 batches in production. Tap a row for the detail."
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "main-content": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              },
+              "end": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              },
+              "on-click-action": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "next": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "payload": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "cracked",
+              "main-content": {
+                "title": "Kernel cracked",
+                "description": "Week 22 274 kg"
+              },
+              "end": {
+                "title": "4 820 kg",
+                "description": "93% of target"
+              },
+              "on-click-action": {
+                "name": "navigate",
+                "next": {
+                  "type": "screen",
+                  "name": "DETAIL"
+                },
+                "payload": {
+                  "body_markdown": "# Kernel cracked\n\n| | |\n|---|---|\n| Today | 4 820 kg |\n| Target today | 5 200 kg |\n\nAs at 17:30 SAST."
+                }
+              }
+            },
+            {
+              "id": "packed",
+              "main-content": {
+                "title": "Kernel packed",
+                "description": "Week 12 191 kg"
+              },
+              "end": {
+                "title": "2 310 kg",
+                "description": "today"
+              },
+              "on-click-action": {
+                "name": "navigate",
+                "next": {
+                  "type": "screen",
+                  "name": "DETAIL"
+                },
+                "payload": {
+                  "body_markdown": "# Kernel packed\n\n| | |\n|---|---|\n| Today | 2 310 kg |\n| This week | 12 191 kg |\n\nAs at 17:30 SAST."
+                }
+              }
+            }
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "NavigationList",
+            "name": "rows",
+            "label": "${data.label}",
+            "description": "${data.description}",
+            "list-items": "${data.rows}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "DETAIL",
+      "title": "Production report",
+      "terminal": true,
+      "success": true,
+      "data": {
+        "body_markdown": {
+          "type": "string",
+          "__example__": "# Kernel cracked\n\n| | |\n|---|---|\n| Today | 4 820 kg |\n\nAs at 17:30 SAST."
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "RichText",
+            "text": "${data.body_markdown}"
+          },
+          {
+            "type": "Footer",
+            "label": "Done",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {
+                "flow": "daily_production_report"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

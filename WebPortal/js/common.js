@@ -161,6 +161,36 @@ var _common = {
         return _common.addMonthsToISODate(packingStartISO, _common.KERNEL_BEST_BEFORE_MONTHS);
     },
 
+    // ---- Kernel pipeline config (shelf life, spec limits, Time Left bands) ----
+    // Cached in memory. Resolves to the config object or null on ANY failure (old DB, no permission).
+    _kernelPipelineConfigPromise: null,
+    loadKernelPipelineConfig: function (force) {
+        if (_common._kernelPipelineConfigPromise && !force) return _common._kernelPipelineConfigPromise;
+        const p = Promise.resolve().then(function () {
+            if (typeof dataFunctions === 'undefined' || typeof dataFunctions.getKernelPipelineConfig !== 'function') return null;
+            return dataFunctions.getKernelPipelineConfig();
+        }).then(function (cfg) {
+            if (!cfg || cfg.success === false) return null;
+            const m = cfg.settings ? parseInt(cfg.settings.kernel_best_before_months, 10) : NaN;
+            if (!isNaN(m) && m >= 1 && m <= 60) _common.KERNEL_BEST_BEFORE_MONTHS = m;
+            return cfg;
+        }).catch(function () { return null; });
+        _common._kernelPipelineConfigPromise = p;
+        // Do not cache a failure: the next caller retries.
+        p.then(function (cfg) { if (!cfg && _common._kernelPipelineConfigPromise === p) _common._kernelPipelineConfigPromise = null; });
+        return p;
+    },
+
+    // Spec limit check (FFA / moisture / PV). Returns 'ok' | 'warn' | 'bad' | 'noLimits' | '' (no value).
+    classifySpec: function (spec, value) {
+        if (value == null) return '';
+        if (!spec || spec.green_limit == null || spec.yellow_limit == null) return 'noLimits';
+        const g = Number(spec.green_limit), y = Number(spec.yellow_limit);
+        if (isNaN(g) || isNaN(y)) return 'noLimits';
+        if (spec.direction === 'min') return value >= g ? 'ok' : (value >= y ? 'warn' : 'bad');
+        return value <= g ? 'ok' : (value <= y ? 'warn' : 'bad');
+    },
+
     // Calendar-correct time from today until a YYYY-MM-DD date (whole months, then remaining days).
     // Month-end safe: adding a month to the 31st clamps to the last day of the shorter month.
     // Returns { expired, years, months, days, totalMonths, label } or null for missing/invalid input.
@@ -285,6 +315,17 @@ var _common = {
             style: 'currency',
             currency: currency
         }).format(amount);
+    },
+
+    /**
+     * Kilogram (or gram) display: comma thousands separator, fixed decimals (default 2).
+     * formatKg(1234.5) -> "1,234.50". Returns '' for null/blank/non-numeric (Mike 1.a.i.4.c).
+     */
+    formatKg: function (value, decimals = 2) {
+        if (value === null || value === undefined || value === '') return '';
+        var n = typeof value === 'number' ? value : parseFloat(String(value).replace(/,/g, ''));
+        if (!isFinite(n)) return '';
+        return n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
     },
 
     // Debounce function

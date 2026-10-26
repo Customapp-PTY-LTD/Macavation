@@ -51,6 +51,7 @@ var _growerIntakeGrid = function () {
             if (typeof initMacSectionCollapses === 'function') {
                 initMacSectionCollapses(document.querySelector('.module-content'));
             }
+            scope.initActivityCalendar();
             scope.loadIntakeBatches(true);
             scope.loadProcurements(true);
             const loadPromises = [];
@@ -419,8 +420,8 @@ var _growerIntakeGrid = function () {
                     ' data-sample-done="' + (sampleDone ? '1' : '0') + '">' +
                     batchNumEscaped + '</a>';
 
-                var suppliedVal = b.wet_nis_received_kg != null ? b.wet_nis_received_kg : '';
-                var actualVal = b.actual_wet_nis_kg != null ? b.actual_wet_nis_kg : '';
+                var suppliedVal = b.wet_nis_received_kg != null ? _common.formatKg(b.wet_nis_received_kg) : '';
+                var actualVal = b.actual_wet_nis_kg != null ? _common.formatKg(b.actual_wet_nis_kg) : '';
                 var wetCellContent;
                 if (scope.wetNisDisplayMode === 'actual') {
                     wetCellContent = actualVal;
@@ -490,7 +491,7 @@ var _growerIntakeGrid = function () {
                     : '';
                 var deleteHtml = '<button type="button" class="btn btn-sm btn-outline-secondary js-intake-archive-btn" data-batch-id="' + b.id + '" title="Archive batch"><i class="fas fa-archive"></i></button>';
 
-                var weightLabel = b.wet_nis_received_kg != null ? b.wet_nis_received_kg + ' kg' : '';
+                var weightLabel = b.wet_nis_received_kg != null ? _common.formatKg(b.wet_nis_received_kg) + ' kg' : '';
 
                 var html = '<div class="kanban-card js-intake-batch-row" data-batch-id="' + b.id + '">';
                 html += '<div class="kanban-card-title">' + esc(batchNum) + '</div>';
@@ -533,6 +534,24 @@ var _growerIntakeGrid = function () {
         moveBatchToRawStock: async (batchId) => {
             const scope = _growerIntakeGrid;
             if (!batchId) return;
+            var relBatch = scope.intakeBatches.find(function (x) { return String(x.id) === String(batchId); });
+            var relNumber = relBatch && relBatch.batch_number ? relBatch.batch_number : 'batch';
+            var relDelivery = relBatch && relBatch.intake_data && relBatch.intake_data.delivery;
+            var relBags = relDelivery && Array.isArray(relDelivery.bags) ? relDelivery.bags : [];
+            var relHtml = '';
+            if (relBags.length) {
+                var relTotal = relBags.reduce(function (sum, bag) { return sum + (Number(bag.weight_kg) || 0); }, 0);
+                relHtml += '<p class="mb-2">Weighed total: <strong>' + _common.escapeHtml(_common.formatKg(relTotal)) + ' kg</strong> from ' + relBags.length + ' bag' + (relBags.length === 1 ? '' : 's') + '.</p>';
+            }
+            relHtml += '<p class="mb-0 text-muted">The pre-sizer figure is now entered when bags are allocated to a silo.</p>';
+            const confirmRes = await Swal.fire({
+                title: 'Release ' + _common.escapeHtml(relNumber) + ' to production',
+                html: relHtml,
+                showCancelButton: true,
+                confirmButtonText: 'Release',
+                cancelButtonText: 'Cancel'
+            });
+            if (!confirmRes.isConfirmed) return;
             try {
                 const result = await dataFunctions.releaseKernelToProduction({ kernel_id: batchId });
                 if (result && result.success !== false) {
@@ -666,6 +685,44 @@ var _growerIntakeGrid = function () {
         // ================================================================
 
         _procIsoFromDate: (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'),
+
+        // Intake calendar: what was actually received each day, whatever stage the batch is at now.
+        // (The Procurement Calendar above is the plan; this is what happened.)
+        initActivityCalendar: () => {
+            if (typeof MacActivityCalendar === 'undefined') return;
+            var df = typeof _dataFunctions !== 'undefined' && _dataFunctions ? _dataFunctions
+                   : typeof dataFunctions !== 'undefined' ? dataFunctions : null;
+            var NOW_AT = {
+                intake: 'Still at intake', receiving: 'Still at intake',
+                production: 'In production', qa: 'Awaiting release', complete: 'In stock'
+            };
+            MacActivityCalendar.create({
+                mountId: 'giActivityCalendarMount',
+                idPrefix: 'giActivityCalendar',
+                title: 'Intake Calendar',
+                icon: 'fa-calendar-check',
+                intro: 'Days shaded green had kernel batches received. Click a day to see which batches came in, from which grower, and where each batch is now.',
+                emptyDayText: 'No batches were received on this day.',
+                emptyMonthText: 'No batches were received in this month.',
+                loadMonth: async (fromIso, toIso) => {
+                    if (!df || typeof df.getKernelBatchesReceivedBetween !== 'function') throw new Error('Kernel batches are not available right now.');
+                    var batches = await df.getKernelBatchesReceivedBetween(fromIso, toIso);
+                    return batches.map(function (b) {
+                        var kg = (b.actual_wet_nis_kg != null && b.actual_wet_nis_kg !== '') ? b.actual_wet_nis_kg : b.wet_nis_received_kg;
+                        var tags = [{ text: 'Received' }];
+                        if (kg != null && kg !== '' && Number(kg) > 0) tags.push({ text: MacActivityCalendar.formatKg(kg) + ' wet NIS', tone: 'grey' });
+                        var status = String(b.status || '').toLowerCase();
+                        if (status) tags.push({ text: NOW_AT[status] || ('Now: ' + status), tone: 'blue' });
+                        return {
+                            date: String(b.received_date).slice(0, 10),
+                            title: b.batch_number || 'Batch',
+                            subtitle: b.grower_name || '',
+                            tags: tags
+                        };
+                    });
+                }
+            });
+        },
 
         _procParseIso: (iso) => {
             if (!iso) return null;
