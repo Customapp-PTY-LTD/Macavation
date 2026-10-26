@@ -1,0 +1,30 @@
+---
+description: Security rules pointer - canonical file is BluePrint/security-rules.md
+globs:
+alwaysApply: true
+---
+
+# Security rules - read before you write
+
+Canonical file: `BluePrint/security-rules.md`. This file exists only so Cursor's `alwaysApply`
+actually picks it up. The same trigger list appears in the BluePrint doc and the Claude Code
+pointer (`.claude/rules/security-rules.md`) - change all three lists together.
+
+**Read the matching section of `BluePrint/security-rules.md` before you plan or write code that:**
+
+- adds, upgrades or removes a library (npm package, vendored script, CDN tag) - section 1, 2
+- handles a key, token, password or login - section 3
+- adds or changes a server endpoint (Lambda, Function URL, edge function, API route) - section 4, 10
+- verifies who a user is, or what they may access, on the server - section 4
+- encrypts or decrypts anything - section 5
+- makes an outbound HTTP call from the server, or follows a URL a user supplied - section 6
+- writes HTML into the page, sends messages between windows, or stores generated HTML - section 2, 7
+- runs a regex a user or admin typed - section 8
+- decides which environment (dev / uat / prod) the code is running in - section 9
+- changes the site's hosting headers or what gets published to the site - section 9
+- logs, or returns error messages, from server code - section 10
+- uploads a file that will be shared by a public link - section 11
+- silences a scanner finding or accepts a risk - section 12
+
+The rules apply to code you write or change. If existing code breaks one, report it in your
+summary - do not refactor it as part of an unrelated change.
