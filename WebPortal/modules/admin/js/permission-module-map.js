@@ -77,7 +77,8 @@ var _permissionModuleMap = (function () {
     // actions.module (catalogue label) -> sidebar feature keys that own those buttons.
     var ACTION_MODULE_FEATURE_KEYS = {
         'Grower Intake': ['grower-intake-grid'],
-        'Kernel Production': ['kernel-production-grid'],
+        'Kernel Production': ['kernel-production-grid', 'silo-allocation-grid'],
+        'Kernel Pipeline': ['kernel-pipeline-settings'],
         'Kernel Dispatch': ['kernel-dispatch-grid'],
         'Stock': ['stock-management-kernel', 'stock-management-oil'],
         'Oil Production': ['oil-production-grid'],

@@ -32,6 +32,11 @@ var _salesDataGrid = function () {
 
     // Used only if get_data_datasets() is missing/errors, so the one dataset this plan actually
     // builds still renders rather than leaving the whole shell blank.
+    // Data health (data-health-panel.js) is the first tab: a read-only view of what each data page is
+    // missing against the factory side. It is not a dataset - it has no column defs, no autosave and
+    // no period - so it lives under its own key and the period bar is hidden while it is open.
+    var HEALTH_KEY = '__data_health';
+
     var FALLBACK_DATASETS = [
         { dataset_key: 'production_daily', label: 'Production (daily)', supports_reseed: true }
     ];
@@ -112,6 +117,16 @@ var _salesDataGrid = function () {
     function renderTabStrip() {
         var $strip = $('#salesDataTabStrip');
         $strip.empty();
+        if (typeof DataHealthPanel !== 'undefined') {
+            var $hli = $('<li>', { 'class': 'nav-item' });
+            var $ha = $('<a>', { 'class': 'nav-link js-sales-data-tab', href: '#' })
+                .attr('data-dataset-key', HEALTH_KEY)
+                .append($('<i>', { 'class': 'fas fa-heartbeat me-1' }))
+                .append(document.createTextNode('Data health'));
+            if (state.activeDatasetKey === HEALTH_KEY) $ha.addClass('active');
+            $hli.append($ha);
+            $strip.append($hli);
+        }
         state.datasets.forEach(function (d) {
             var key = d && d.dataset_key ? String(d.dataset_key) : '';
             if (!key) return;
@@ -133,7 +148,10 @@ var _salesDataGrid = function () {
 
     function ensureActiveDataset() {
         var keys = state.datasets.map(function (d) { return d && d.dataset_key; });
+        if (typeof DataHealthPanel !== 'undefined') keys.unshift(HEALTH_KEY);
         if (state.activeDatasetKey && keys.indexOf(state.activeDatasetKey) !== -1) return;
+        // Open on Data health: it says what needs filling in before anyone starts typing.
+        if (keys[0] === HEALTH_KEY) { state.activeDatasetKey = HEALTH_KEY; return; }
         state.activeDatasetKey = keys.indexOf('production_daily') !== -1 ? 'production_daily' : (keys[0] || null);
     }
 
@@ -843,6 +861,10 @@ var _salesDataGrid = function () {
 
     function renderTabContent(key, forceReload) {
         var $content = $('#salesDataTabContent');
+        $('#salesDataPeriodCard').toggleClass('d-none', key === HEALTH_KEY);
+        if (key === HEALTH_KEY) {
+            return DataHealthPanel.render($content[0], openFromHealth);
+        }
         if (key === 'production_daily') {
             buildProductionTableShell($content);
             return loadProductionData(!!forceReload);
@@ -855,6 +877,23 @@ var _salesDataGrid = function () {
         $content.html(macEmptyState('fa-table', datasetLabel(key) + ' is not built yet',
             'This dataset will be added in a later release.'));
         return Promise.resolve();
+    }
+
+    // A Data health "Open ... for this week" button: production_daily jumps the weekly period to that
+    // week; a ledger tab opens with its From/To set to the week.
+    function openFromHealth(key, weekStartIso, weekEndIso) {
+        if (!key || key === HEALTH_KEY) return Promise.resolve();
+        if (key === 'production_daily') {
+            state.periodType = 'weekly';
+            $('#salesDataPeriodWeekly').prop('checked', true);
+            return resolvePeriodFromDate(weekStartIso).then(function () {
+                return switchTab(key, true);
+            }).catch(handleTabRenderFailure);
+        }
+        var ls = ledgerState(key);
+        ls.from = weekStartIso;
+        ls.to = weekEndIso;
+        return switchTab(key, true).catch(handleTabRenderFailure);
     }
 
     function switchTab(key, forceReload) {
@@ -1209,7 +1248,16 @@ var _salesDataGrid = function () {
         // period change, router's promptOnFormExit/routeTo) can await it before navigating away.
         flushAutoSave: flushAutoSave,
 
-        hasPendingEdits: hasPendingEdits
+        hasPendingEdits: hasPendingEdits,
+
+        // Called after a Data health import or undo: every ledger tab forgets its rows and range so
+        // the next time it opens it refetches, instead of showing (and later saving over) rows an
+        // undo has just removed.
+        invalidateLedgers: function () {
+            Object.keys(state.ledgers).forEach(function (k) {
+                state.ledgers[k] = { from: null, to: null, rows: [], dirty: {}, newSeq: 0 };
+            });
+        }
     };
 }();
 

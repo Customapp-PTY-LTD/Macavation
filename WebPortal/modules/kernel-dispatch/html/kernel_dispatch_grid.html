@@ -4,6 +4,8 @@
         <h1 class="h2">Kernel Dispatch</h1>
         <div class="btn-toolbar align-items-center gap-2">
             <a target="_blank" rel="noopener noreferrer" href="help/index.html#kernel-dispatch-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+            <!-- Dispatch calendar: baskets created / dispatched each day (js/mac-activity-calendar.js) -->
+            <div id="kdActivityCalendarMount" class="me-2"></div>
             <button type="button" class="btn btn-outline-secondary btn-sm" id="kernelDispatchRefreshBtn"><i class="fas fa-sync-alt me-1"></i>Refresh</button>
         </div>
     </div>
@@ -59,11 +61,13 @@
                 <table class="table align-middle table-hover" id="kernelDispatchTable">
                     <thead>
                         <tr>
-                            <th>Buyer</th>
+                            <th>Customer</th>
+                            <th>Collection date</th>
                             <th>Delivery date</th>
                             <th>Created</th>
                             <th class="text-end">Lines</th>
-                            <th class="text-end">Total (kg)</th>
+                            <th class="text-end">Total</th>
+                            <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -82,11 +86,13 @@
                 <table class="table align-middle table-hover" id="kernelDispatchedTable">
                     <thead>
                         <tr>
-                            <th>Buyer</th>
+                            <th>Customer</th>
+                            <th>Collection date</th>
                             <th>Delivery date</th>
                             <th>Created</th>
                             <th class="text-end">Lines</th>
-                            <th class="text-end">Total (kg)</th>
+                            <th class="text-end">Total</th>
+                            <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -95,6 +101,7 @@
             </div>
         </div>
     </div>
+    <p class="text-muted small mb-4">Orders made before this change show "—" for collection date. The edit screen can set or change it.</p>
     </div><!-- /kdTableCards -->
 </div>
 

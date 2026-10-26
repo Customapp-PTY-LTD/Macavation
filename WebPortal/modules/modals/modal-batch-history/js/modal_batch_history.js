@@ -25,6 +25,31 @@ function historyFmt(v, nilStr) {
     return historyEscapeHtml(String(v));
 }
 
+/** kg display: comma thousands via _common.formatKg when numeric, else escaped text. */
+function historyFmtKg(v, nilStr) {
+    nilStr = nilStr == null ? BATCH_HISTORY_NIL : nilStr;
+    if (v == null || (typeof v === 'string' && v.trim() === '')) return nilStr;
+    var n = parseFloat(v);
+    if (isNaN(n) || typeof _common === 'undefined' || !_common.formatKg) return historyEscapeHtml(String(v));
+    return historyEscapeHtml(_common.formatKg(n));
+}
+
+/** Link to an uploaded file; only http(s) links are made clickable, always opening in a new tab. */
+function historyFileLinkHtml(f) {
+    if (!f || typeof f !== 'object') return '';
+    var name = f.name != null && String(f.name).trim() !== '' ? String(f.name) : 'Document';
+    var link = f.file_link != null ? String(f.file_link) : '';
+    if (/^https?:\/\//i.test(link)) {
+        return '<a href="' + historyEscapeHtml(link) + '" target="_blank" rel="noopener noreferrer">' + historyEscapeHtml(name) + '</a>';
+    }
+    return historyEscapeHtml(name);
+}
+
+function historyFileLinksHtml(files) {
+    if (!Array.isArray(files) || !files.length) return '';
+    return files.map(historyFileLinkHtml).filter(Boolean).join(', ');
+}
+
 function historyFmtProductionDate(raw, nilStr) {
     nilStr = nilStr == null ? BATCH_HISTORY_NIL : nilStr;
     if (raw == null || raw === '') return nilStr;
@@ -91,8 +116,13 @@ var BATCH_HISTORY_CRACKING_SCHEMA = [
     { key: 'end1', label: 'End time' },
     { key: 'timespent1', label: 'Time spent' },
     { key: 'startqty1', label: 'Start qty', unit: 'kg' },
-    { key: 'endqty1', label: 'End qty', unit: 'kg' },
-    { key: 'silo1', label: 'Silo qty', unit: 'kg' },
+    { key: 'endqty1', label: 'End qty (before Oct 2026: kg cracked)', unit: 'kg' },
+    { key: 'endqty_left', label: 'End quantity, left in silo', unit: 'kg' },
+    { key: 'silo_number', label: 'Silo' },
+    { key: 'volume_cracked', label: 'Volume cracked (kg)', unit: 'kg' },
+    { key: 'vol_cracked_per_hour', label: 'Volume cracked / hour', unit: 'kg/h' },
+    { key: 'vol_cracked_per_min', label: 'Volume cracked / minute', unit: 'kg/min' },
+    { key: 'silo1', label: 'Silo qty (legacy)', unit: 'kg' },
     { key: 'totaltime', label: 'Total time' },
     { key: 'totalqty', label: 'Total qty', unit: 'kg' },
     { key: 'wholes_07', label: 'Wholes 07h00', unit: 'kg' },
@@ -107,14 +137,41 @@ var BATCH_HISTORY_CRACKING_SCHEMA = [
     { key: 'avg_wholes', label: 'Average wholes', unit: 'kg' },
     { key: 'avg_uncracks', label: 'Average uncracks', unit: 'kg' },
     { key: 'avg_total', label: 'Average total', unit: 'kg' },
-    { key: 'shell_bag1', label: 'Shell bag #1' },
-    { key: 'shell_batch1', label: 'Shell batch #1' },
-    { key: 'shell_qty1', label: 'Shell qty #1', unit: 'kg' },
-    { key: 'shell_bag2', label: 'Shell bag #2' },
-    { key: 'shell_batch2', label: 'Shell batch #2' },
-    { key: 'shell_qty2', label: 'Shell qty #2', unit: 'kg' },
     { key: 'shell_total', label: 'Total shell waste', unit: 'kg' }
 ];
+
+/**
+ * Cracking schema for one merged day object: the fixed rows, plus any minute-test % keys present (pct_wholes_NN / pct_uncracks_NN)
+ * and every shell_bagN / shell_batchN / shell_qtyN present (sorted by N; #1 and #2 always shown), inserted before the shell total.
+ */
+function buildBatchHistoryCrackingSchema(obj) {
+    obj = obj || {};
+    var keys = Object.keys(obj);
+    var pct = [];
+    var shellNums = { 1: true, 2: true };
+    keys.forEach(function (k) {
+        var m = /^pct_(wholes|uncracks)_(\d+)$/.exec(k);
+        if (m) pct.push({ key: k, label: (m[1] === 'wholes' ? '% Wholes ' : '% Uncracks ') + m[2] + 'h00', unit: '%', hh: parseInt(m[2], 10), w: m[1] === 'wholes' ? 0 : 1 });
+        var s = /^shell_(?:bag|batch|qty)(\d+)$/.exec(k);
+        if (s) shellNums[parseInt(s[1], 10)] = true;
+    });
+    pct.sort(function (a, b) { return a.hh - b.hh || a.w - b.w; });
+    var shell = [];
+    Object.keys(shellNums).map(Number).sort(function (a, b) { return a - b; }).forEach(function (n) {
+        shell.push({ key: 'shell_bag' + n, label: 'Shell bag #' + n });
+        shell.push({ key: 'shell_batch' + n, label: 'Shell batch #' + n });
+        shell.push({ key: 'shell_qty' + n, label: 'Shell qty #' + n, unit: 'kg' });
+    });
+    var out = [];
+    BATCH_HISTORY_CRACKING_SCHEMA.forEach(function (spec) {
+        if (spec.key === 'shell_total') {
+            pct.forEach(function (p) { out.push(p); });
+            shell.forEach(function (sp) { out.push(sp); });
+        }
+        out.push(spec);
+    });
+    return out;
+}
 
 var BATCH_HISTORY_WASHING_SCHEMA = [
     { key: 'date', label: 'Date', type: 'date' },
@@ -218,7 +275,7 @@ function renderBatchHistoryProductionSchemaTable(schema, obj, nilStr) {
         } else if (spec.type === 'date') {
             cell = historyFmtProductionDate(raw, nilStr);
         } else if (raw != null && raw !== '' && spec.unit) {
-            cell = historyEscapeHtml(String(raw)) + ' ' + spec.unit;
+            cell = (/^kg/.test(spec.unit) && !isNaN(parseFloat(raw)) ? historyFmtKg(raw, nilStr) : historyEscapeHtml(String(raw))) + ' ' + spec.unit;
         } else {
             cell = raw != null && raw !== '' ? historyEscapeHtml(String(raw)) : nilStr;
         }
@@ -232,7 +289,7 @@ function buildProductionDayHistoryBody(dayGroup, nilStr) {
     var h = '<div class="small">';
     if (batchHistoryStageArrayHasMeaningful(dayGroup.cracking)) {
         h += '<h6 class="small fw-semibold mb-1">Cracking</h6>';
-        h += renderBatchHistoryProductionSchemaTable(BATCH_HISTORY_CRACKING_SCHEMA, mergeBatchHistoryStageObjects(dayGroup.cracking), nilStr);
+        h += renderBatchHistoryProductionSchemaTable(buildBatchHistoryCrackingSchema(mergeBatchHistoryStageObjects(dayGroup.cracking)), mergeBatchHistoryStageObjects(dayGroup.cracking), nilStr);
     }
     if (batchHistoryStageArrayHasMeaningful(dayGroup.washing)) {
         h += '<h6 class="small fw-semibold mb-1">Washing</h6>';
@@ -690,28 +747,69 @@ var _modal_batch_history = (function () {
                 // --- Intake: receiving checklist ---
                 var intake = detail.intake_data || {};
                 var cl = intake.receiving_checklist;
-                if (cl) {
+                var dlv = intake.delivery && typeof intake.delivery === 'object' ? intake.delivery : null;
+                var dlvBags = dlv && Array.isArray(dlv.bags) ? dlv.bags : [];
+                var dlvTr = dlv && dlv.transport && typeof dlv.transport === 'object' ? dlv.transport : {};
+                if (cl || dlv) {
+                    cl = cl || {};
+                    var recvDate = detail.received_date || cl.date_received || null;
+                    var recvRef = dlvTr.delivery_note_ref != null && String(dlvTr.delivery_note_ref).trim() !== '' ? dlvTr.delivery_note_ref : cl.delivery_note_ref;
                     var html = '<div class="small">';
                     html += '<table class="table align-middle table-bordered mb-2"><tbody>';
-                    html += '<tr><th class="text-nowrap bg-light" style="width:35%">Date received</th><td>' + historyFmtProductionDate(cl.date_received, nil) + '</td></tr>';
-                    html += '<tr><th class="text-nowrap bg-light">Delivery note ref</th><td>' + fmt(cl.delivery_note_ref) + '</td></tr>';
-                    html += '<tr><th class="text-nowrap bg-light">Vehicle clean</th><td>' + fmt(cl.vehicle_clean) + '</td></tr>';
-                    html += '<tr><th class="text-nowrap bg-light">Enclosed</th><td>' + fmt(cl.vehicle_enclosed) + '</td></tr>';
-                    html += '<tr><th class="text-nowrap bg-light">Pallets condition</th><td>' + fmt(cl.pallets_condition) + '</td></tr>';
+                    html += '<tr><th class="text-nowrap bg-light" style="width:35%">Date received</th><td>' + historyFmtProductionDate(recvDate, nil) + '</td></tr>';
+                    html += '<tr><th class="text-nowrap bg-light">Delivery note ref</th><td>' + fmt(recvRef) + '</td></tr>';
+                    if (dlv) {
+                        html += '<tr><th class="text-nowrap bg-light">Transporter</th><td>' + fmt(dlvTr.transporter_name) + '</td></tr>';
+                        html += '<tr><th class="text-nowrap bg-light">Transport type</th><td>' + fmt(dlvTr.transport_type_name) + '</td></tr>';
+                        html += '<tr><th class="text-nowrap bg-light">Rate</th><td>' + (dlvTr.rate_zar != null && dlvTr.rate_zar !== '' ? 'R ' + historyFmtKg(dlvTr.rate_zar, nil) : nil) + '</td></tr>';
+                        var cps = Array.isArray(dlvTr.collection_points) ? dlvTr.collection_points.filter(function (c) { return c != null && String(c).trim() !== ''; }) : [];
+                        html += '<tr><th class="text-nowrap bg-light">Collection points</th><td>' + (cps.length ? cps.map(historyEscapeHtml).join(', ') : nil) + '</td></tr>';
+                    }
+                    var clRows = [
+                        ['vehicle_clean', 'Vehicle clean'], ['vehicle_enclosed', 'Enclosed'], ['hazard_substances', 'Hazard substances'],
+                        ['pest_infestations', 'Pest infestations'], ['pallets_condition', 'Pallets condition'], ['raw_materials_condition', 'Raw materials condition']
+                    ];
+                    var clComments = cl.item_comments && typeof cl.item_comments === 'object' ? cl.item_comments : {};
+                    var clPhotos = cl.item_photos && typeof cl.item_photos === 'object' ? cl.item_photos : {};
+                    clRows.forEach(function (r) {
+                        var legacyCore = r[0] === 'vehicle_clean' || r[0] === 'vehicle_enclosed' || r[0] === 'pallets_condition';
+                        if (!legacyCore && cl[r[0]] == null) return;
+                        var cellHtml = fmt(cl[r[0]]);
+                        var cmt = clComments[r[0]];
+                        if (cmt != null && String(cmt).trim() !== '') cellHtml += '<div class="text-muted">' + historyEscapeHtml(String(cmt)) + '</div>';
+                        var photoHtml = historyFileLinksHtml(clPhotos[r[0]]);
+                        if (photoHtml) cellHtml += '<div>Photos: ' + photoHtml + '</div>';
+                        html += '<tr><th class="text-nowrap bg-light">' + historyEscapeHtml(r[1]) + '</th><td>' + cellHtml + '</td></tr>';
+                    });
                     html += '<tr><th class="text-nowrap bg-light">Comments</th><td>' + fmt(cl.comments) + '</td></tr>';
                     html += '</tbody></table>';
-                    var items = Array.isArray(cl.received_items) ? cl.received_items : [];
-                    html += '<p class="small fw-semibold mb-1">Received items</p>';
-                    html += '<table class="table align-middle table-bordered mt-0"><thead><tr><th>Description</th><th>Qty (kg)</th><th>Manufactured date</th></tr></thead><tbody>';
-                    if (items.length === 0) {
-                        html += '<tr><td>' + nil + '</td><td>' + nil + '</td><td>' + nil + '</td></tr>';
-                    } else {
-                        items.forEach(function (it) {
-                            html += '<tr><td>' + fmt(it && it.description) + '</td><td>' + fmt(it && it.quantity_kg) + '</td><td>' + historyFmtProductionDate(it && it.manufactured_date, nil) + '</td></tr>';
+                    if (dlvBags.length) {
+                        var bagTotal = 0;
+                        html += '<p class="small fw-semibold mb-1">Delivery bags</p>';
+                        html += '<table class="table align-middle table-bordered mt-0"><thead><tr><th>No.</th><th>Description</th><th>Weight (kg)</th></tr></thead><tbody>';
+                        dlvBags.forEach(function (bag) {
+                            bagTotal += parseFloat(bag && bag.weight_kg) || 0;
+                            html += '<tr><td>' + fmt(bag && bag.no) + '</td><td>' + fmt(bag && bag.description) + '</td><td>' + historyFmtKg(bag && bag.weight_kg, nil) + '</td></tr>';
                         });
+                        html += '<tr><th colspan="2" class="text-end">Weighed total</th><th>' + historyFmtKg(bagTotal, nil) + ' kg</th></tr>';
+                        html += '</tbody></table>';
+                    } else {
+                        var items = Array.isArray(cl.received_items) ? cl.received_items : [];
+                        html += '<p class="small fw-semibold mb-1">Received items</p>';
+                        html += '<table class="table align-middle table-bordered mt-0"><thead><tr><th>Description</th><th>Qty (kg)</th><th>Manufactured date</th></tr></thead><tbody>';
+                        if (items.length === 0) {
+                            html += '<tr><td>' + nil + '</td><td>' + nil + '</td><td>' + nil + '</td></tr>';
+                        } else {
+                            items.forEach(function (it) {
+                                html += '<tr><td>' + fmt(it && it.description) + '</td><td>' + historyFmtKg(it && it.quantity_kg, nil) + '</td><td>' + historyFmtProductionDate(it && it.manufactured_date, nil) + '</td></tr>';
+                            });
+                        }
+                        html += '</tbody></table>';
                     }
-                    html += '</tbody></table></div>';
-                    entries.push({ type: 'checklist', title: 'Receiving checklist', bodyHtml: html, date: cl.date_received || null });
+                    var dlvDocs = historyFileLinksHtml(dlv && dlv.documents);
+                    if (dlvDocs) html += '<p class="small mb-1"><strong>Documents:</strong> ' + dlvDocs + '</p>';
+                    html += '</div>';
+                    entries.push({ type: 'checklist', title: Object.keys(cl).length ? 'Receiving checklist' : 'Delivery', bodyHtml: html, date: recvDate });
                 }
 
                 // --- Intake: ziplock sample ---
@@ -823,7 +921,7 @@ var _modal_batch_history = (function () {
                         if (v == null || v === '') return nil;
                         var n = parseFloat(v);
                         if (isNaN(n)) return historyEscapeHtml(String(v));
-                        var text = Number.isInteger(n) ? String(n) : n.toFixed(2);
+                        var text = suffix === 'kg' ? historyFmtKg(n, nil) : (Number.isInteger(n) ? String(n) : n.toFixed(2));
                         return historyEscapeHtml(suffix ? text + ' ' + suffix : text);
                     };
                     var parseArray = function (value) {
@@ -842,7 +940,9 @@ var _modal_batch_history = (function () {
                     var supplierDisplay = jcVal('supplier_name') || detail.grower_name || null;
                     var totalWeightKg = jcVal('total_weight_kg');
                     if (totalWeightKg == null && detail.actual_wet_nis_kg != null && detail.actual_wet_nis_kg !== '') totalWeightKg = detail.actual_wet_nis_kg;
-                    var removedPreSizerKg = jcVal('removed_pre_sizer_kg');
+                    var removedPreSizerKg = (intake.removed_pre_sizer_kg != null && intake.removed_pre_sizer_kg !== '') ? intake.removed_pre_sizer_kg
+                        : (jcVal('removed_pre_sizer_kg') != null ? jcVal('removed_pre_sizer_kg')
+                            : (cl && cl.removed_pre_sizer_kg != null && cl.removed_pre_sizer_kg !== '' ? cl.removed_pre_sizer_kg : null));
                     var balanceKg = jcVal('balance_kg');
                     var receivingMoisture = jcVal('receiving_moisture_percentage');
                     var packingMoisture = jcVal('packing_moisture_percentage');

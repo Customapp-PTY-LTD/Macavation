@@ -1,0 +1,152 @@
+<!-- Kernel Dashboard - Procurement, Production, Stock and Sales by financial year (Apr-Mar).
+     Built from the 14 Oct 2026 mockup agreed with the client. Data: get_kernel_dashboard_* RPCs
+     (migrations/20261014120000) and get_stock_soh_history. -->
+<div class="module-content mgmt-dashboard" id="kernelDashboardModule">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Kernel Dashboard</h1>
+        <div class="text-muted small" id="kdPeriodLabel">&nbsp;</div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-auto">
+                    <label for="kdFy" class="form-label">Financial year</label>
+                    <select class="form-select" id="kdFy"></select>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label d-block">Quarter</label>
+                    <div class="btn-group mgmt-chips" role="group" id="kdQuarter" aria-label="Quarter">
+                        <button type="button" class="btn btn-outline-secondary active" data-q="0">Full year</button>
+                        <button type="button" class="btn btn-outline-secondary" data-q="1" title="Apr - Jun">Q1</button>
+                        <button type="button" class="btn btn-outline-secondary" data-q="2" title="Jul - Sep">Q2</button>
+                        <button type="button" class="btn btn-outline-secondary" data-q="3" title="Oct - Dec">Q3</button>
+                        <button type="button" class="btn btn-outline-secondary" data-q="4" title="Jan - Mar">Q4</button>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <label for="kdFrom" class="form-label">Or from</label>
+                    <input type="date" class="form-control" id="kdFrom">
+                </div>
+                <div class="col-auto">
+                    <label for="kdTo" class="form-label">to</label>
+                    <input type="date" class="form-control" id="kdTo">
+                </div>
+                <div class="col-auto">
+                    <button type="button" class="btn btn-outline-secondary" id="kdClearDates" title="Clear the dates and go back to the financial year">
+                        <i class="fas fa-times me-1"></i>Clear dates
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mgmt-jump mb-2">
+        <a href="#" data-jump="kdProcurement">Procurement</a>
+        <a href="#" data-jump="kdProduction">Production</a>
+        <a href="#" data-jump="kdStock">Stock</a>
+        <a href="#" data-jump="kdSales">Sales</a>
+    </div>
+
+    <!-- Procurement -->
+    <section class="card mb-3 mgmt-section" id="kdProcurement">
+        <div class="card-body">
+            <div class="mgmt-section-head">
+                <h2 class="h5 mb-0">Procurement</h2>
+                <span class="text-muted small">Nut in shell received</span>
+                <span id="kdProcFresh"></span>
+            </div>
+            <div class="mgmt-tiles" id="kdProcTiles"></div>
+            <div class="row g-3">
+                <div class="col-lg-6">
+                    <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-2">
+                        <h3 class="mgmt-chart-title mb-0">Nut in shell (kg) by supplier, ranked</h3>
+                        <div class="btn-group btn-group-sm mgmt-chips" role="group" id="kdSupplierFilter" aria-label="Supplier size">
+                            <button type="button" class="btn btn-outline-secondary active" data-v="0">All</button>
+                            <button type="button" class="btn btn-outline-secondary" data-v="10000">Above 10 t</button>
+                            <button type="button" class="btn btn-outline-secondary" data-v="20000">Above 20 t</button>
+                        </div>
+                    </div>
+                    <div class="mgmt-chart mgmt-chart-tall"><canvas id="kdSupplierChart"></canvas></div>
+                </div>
+                <div class="col-lg-6">
+                    <h3 class="mgmt-chart-title">Nut in shell (kg) received per month</h3>
+                    <div class="mgmt-chart"><canvas id="kdNisMonthChart"></canvas></div>
+                    <table class="table table-sm mt-2 mgmt-table" id="kdQuarterTable"></table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Production -->
+    <section class="card mb-3 mgmt-section" id="kdProduction">
+        <div class="card-body">
+            <div class="mgmt-section-head">
+                <h2 class="h5 mb-0">Production</h2>
+                <span class="text-muted small">Kernel cracked</span>
+                <span id="kdProdFresh"></span>
+            </div>
+            <div class="mgmt-tiles" id="kdProdTiles"></div>
+            <h3 class="mgmt-chart-title" id="kdProdTitle">Cracked (kg) per month</h3>
+            <div class="mgmt-chart mgmt-chart-tall"><canvas id="kdCrackedChart"></canvas></div>
+            <p class="text-muted small mb-0 mt-1">The current month is month to date (hollow dot), so a drop there is not a real fall-off.</p>
+        </div>
+    </section>
+
+    <!-- Stock -->
+    <section class="card mb-3 mgmt-section" id="kdStock">
+        <div class="card-body">
+            <div class="mgmt-section-head">
+                <h2 class="h5 mb-0">Stock</h2>
+                <span class="text-muted small">Kernel on hand, last 12 months (not affected by the filters above)</span>
+                <span id="kdStockFresh"></span>
+            </div>
+            <div class="mgmt-tiles" id="kdStockTiles"></div>
+            <div class="row g-3">
+                <div class="col-lg-7">
+                    <h3 class="mgmt-chart-title">Kernel on hand (kg), weekly</h3>
+                    <div class="mgmt-chart"><canvas id="kdSohChart"></canvas></div>
+                </div>
+                <div class="col-lg-5">
+                    <h3 class="mgmt-chart-title">On hand by style today</h3>
+                    <table class="table table-sm mgmt-table" id="kdStyleTable"></table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sales -->
+    <section class="card mb-3 mgmt-section" id="kdSales">
+        <div class="card-body">
+            <div class="mgmt-section-head">
+                <h2 class="h5 mb-0">Sales</h2>
+                <span class="text-muted small">Kernel sold</span>
+                <span id="kdSalesFresh"></span>
+                <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
+                    <div class="btn-group btn-group-sm mgmt-chips" role="group" id="kdSalesUnit" aria-label="Show sales in">
+                        <button type="button" class="btn btn-outline-secondary active" data-v="kg">kg</button>
+                        <button type="button" class="btn btn-outline-secondary" data-v="R">R (excl. VAT)</button>
+                    </div>
+                    <select class="form-select form-select-sm mgmt-style-select" id="kdSalesStyle" aria-label="Style">
+                        <option value="">All styles</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mgmt-tiles" id="kdSalesTiles"></div>
+            <div class="row g-3">
+                <div class="col-lg-6">
+                    <h3 class="mgmt-chart-title" id="kdSalesMonthTitle">Kernel sold per month</h3>
+                    <div class="mgmt-chart"><canvas id="kdSalesMonthChart"></canvas></div>
+                </div>
+                <div class="col-lg-6">
+                    <h3 class="mgmt-chart-title">By style</h3>
+                    <div class="mgmt-chart"><canvas id="kdSalesStyleChart"></canvas></div>
+                </div>
+                <div class="col-12">
+                    <h3 class="mgmt-chart-title">Top customers</h3>
+                    <div class="mgmt-chart"><canvas id="kdCustomerChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>

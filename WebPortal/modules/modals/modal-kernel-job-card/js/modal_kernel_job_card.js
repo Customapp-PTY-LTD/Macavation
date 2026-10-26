@@ -1,6 +1,8 @@
 /**
  * Modal: Kernel Job Card – form, sound kernel/butter grade rows, calculations, save.
- * Packing: Start Date = first production packing date. Best Before Date = Start Date + _common.KERNEL_BEST_BEFORE_MONTHS (always; never use stored value).
+ * Packing: Start Date = first production packing date. Best Before Date: the stored value is kept as long as the packing start date is unchanged;
+ * it is recomputed as Start Date + _common.KERNEL_BEST_BEFORE_MONTHS (configurable in Kernel Pipeline Settings) only when there is no stored value
+ * or the packing start date differs from the one the stored value was saved with.
  * Date inputs follow docs/markdown-archive/INSTRUCTIONS-DATE-FLATPICKR.md:
  * - HTML: type="text", class="flatpickr-date", data-input, placeholder dd/mm/yyyy (§3).
  * - Config: dateFormat 'd/m/Y', allowInput: false, disableMobile: true (§6).
@@ -30,6 +32,9 @@ var _modal_kernel_job_card = (function () {
     /** Module state for packing start and best-before (no DOM reads for Best Before). */
     var _jobCardPackingStartISO = null;
     var _jobCardBestBeforeISO = null;
+    // Best Before / packing start as last saved on the job card (null when none). Used to keep the stored date while the start date is unchanged.
+    var _jobCardStoredBestBeforeISO = null;
+    var _jobCardStoredStartISO = null;
     var _autoSaveTimer = null;
     /** Skip draft flush when closing after Jobcard approved (avoids racing draft save on hide). */
     var _skipFlushOnHide = false;
@@ -37,6 +42,19 @@ var _modal_kernel_job_card = (function () {
     var _suppressAutoSave = false;
     /** Set when opening a batch whose job card is already approved (re-save edits without closing). */
     var _jobCardIsApproved = false;
+    /**
+     * Date guard. The dates of a job card as last saved (ISO, keyed by input id; null for a card with no saved
+     * job_card_data) and the date inputs the user actually changed since it was opened. A saved date that now
+     * reads differently although nobody touched it is display drift, not an edit: the 20/06/2026 bug (flatpickr
+     * parsing ISO as d/m/Y) showed wrong dates on reopen and a save then wrote them over the right ones.
+     */
+    var GUARDED_DATE_LABELS = {
+        jobCardReceivedDate: 'Received Date',
+        jobCardPackingStartDate: 'Start Date',
+        jobCardPackingCompletionDate: 'Completion Date'
+    };
+    var _jobCardSavedDates = null;
+    var _jobCardTouchedDates = {};
 
     function jobCardDataHasContent(jc) {
         if (!jc || typeof jc !== 'object') return false;
@@ -111,10 +129,30 @@ var _modal_kernel_job_card = (function () {
         return rc && typeof rc === 'object' ? rc : null;
     }
 
-    function sumReceivedItemsKg(rc) {
-        if (!rc) return null;
-        var items = rc.received_items || rc.receivedItems;
-        if (!Array.isArray(items) || !items.length) return null;
+    function deliveryFromDetail(detail) {
+        if (!detail) return null;
+        var intake = detail.intake_data || detail.intakeData;
+        if (!intake || typeof intake !== 'object') return null;
+        var d = intake.delivery;
+        return d && typeof d === 'object' ? d : null;
+    }
+
+    /** Received items: delivery bags first (weight_kg mapped to quantity_kg), else the legacy receiving checklist items. */
+    function receivedItemsFromDetail(detail) {
+        var delivery = deliveryFromDetail(detail);
+        if (delivery && Array.isArray(delivery.bags) && delivery.bags.length) {
+            return delivery.bags.map(function (bag) {
+                return { bag_no: bag.no, description: bag.description, quantity_kg: bag.weight_kg };
+            });
+        }
+        var rc = receivingChecklistFromDetail(detail);
+        var items = rc && (rc.received_items || rc.receivedItems);
+        return Array.isArray(items) ? items : [];
+    }
+
+    function sumReceivedItemsKg(detail) {
+        var items = receivedItemsFromDetail(detail);
+        if (!items.length) return null;
         var sum = 0;
         var hasAny = false;
         items.forEach(function (item) {
@@ -133,7 +171,7 @@ var _modal_kernel_job_card = (function () {
             jc && jc.total_weight_kg,
             detail && detail.actual_wet_nis_kg,
             batch && batch.actual_wet_nis_kg,
-            sumReceivedItemsKg(rc),
+            sumReceivedItemsKg(detail),
             detail && detail.wet_nis_received_kg,
             batch && batch.wet_nis_received_kg
         ];
@@ -147,6 +185,7 @@ var _modal_kernel_job_card = (function () {
         var rc = receivingChecklistFromDetail(detail);
         var candidates = [
             jc && jc.removed_pre_sizer_kg,
+            detail && detail.intake_data && detail.intake_data.removed_pre_sizer_kg,
             rc && rc.removed_pre_sizer_kg,
             rc && rc.removedPreSizerKg
         ];
@@ -156,8 +195,12 @@ var _modal_kernel_job_card = (function () {
         return null;
     }
 
-    /** Best Before = packing start + _common.KERNEL_BEST_BEFORE_MONTHS. Returns YYYY-MM-DD or null. */
+    /**
+     * Best Before for a packing start date. Keeps the stored best-before when the start date is the one it was
+     * saved with; otherwise packing start + _common.KERNEL_BEST_BEFORE_MONTHS. Returns YYYY-MM-DD or null.
+     */
     function bestBeforeFromPackingStartISO(isoStr) {
+        if (_jobCardStoredBestBeforeISO && isoStr && isoStr === _jobCardStoredStartISO) return _jobCardStoredBestBeforeISO;
         if (typeof _common === 'undefined' || !_common.kernelBestBeforeFromPackingStart) return null;
         return _common.kernelBestBeforeFromPackingStart(isoStr);
     }
@@ -177,19 +220,18 @@ var _modal_kernel_job_card = (function () {
                         var opts = Object.assign({}, FLATPICKR_DDMMYYYY);
                         if (el.id === 'jobCardPackingStartDate') {
                             opts.onChange = function (selectedDates) {
-                                _jobCardPackingStartISO = selectedDates[0] ? selectedDates[0].toISOString().split('T')[0] : null;
+                                // Local date parts, not toISOString(): local midnight in SAST is the previous day in UTC.
+                                var sd = selectedDates[0];
+                                _jobCardPackingStartISO = sd ? (sd.getFullYear() + '-' + String(sd.getMonth() + 1).padStart(2, '0') + '-' + String(sd.getDate()).padStart(2, '0')) : null;
                                 _jobCardBestBeforeISO = _jobCardPackingStartISO ? bestBeforeFromPackingStartISO(_jobCardPackingStartISO) : null;
                                 scope.syncBestBeforeFromStartDate();
                             };
                         }
-                        if (el.value && el.value.trim()) {
-                            var iso = jobCardToISO(el.value.trim());
-                            if (iso) opts.defaultDate = iso;
-                        }
+                        // No ISO defaultDate: flatpickr parses strings with dateFormat (d/m/Y), so "2026-09-29" reads as 20/06/2026.
                         var fp = flatpickr(el, opts);
                         if (el.value && el.value.trim() && fp) {
                             var v = el.value.trim();
-                            if (/^\d{4}-\d{2}-\d{2}/.test(v)) fp.setDate(v.split('T')[0], false);
+                            if (/^\d{4}-\d{2}-\d{2}/.test(v)) fp.setDate(v.split('T')[0], false, 'Y-m-d');
                             else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(v)) fp.setDate(v, false, 'd/m/Y');
                         }
                     }
@@ -254,6 +296,10 @@ var _modal_kernel_job_card = (function () {
             });
             $(document).on('input', '#jobCardWasteOilKernel, #jobCardWasteShellFines, #jobCardWasteCompost, #jobCardWasteShell', function () { scope.calculateMassBalance(); });
             $(document).on('change', '#jobCardPackingStartDate', function () { scope.syncBestBeforeFromStartDate(); });
+            // flatpickr fires 'change' only for a user pick; setDate(..., false) and .val() do not, so this marks real edits.
+            $(document).off('change.jobCardDateGuard').on('change.jobCardDateGuard', '#jobCardReceivedDate, #jobCardPackingStartDate, #jobCardPackingCompletionDate', function () {
+                _jobCardTouchedDates[this.id] = true;
+            });
             $(document).on('input change', '#kernelJobCardModal :input, #kernelJobCardModal select', function () {
                 scope.scheduleAutoSave();
             });
@@ -294,7 +340,8 @@ var _modal_kernel_job_card = (function () {
                     if (str && (/^\d{4}-\d{2}-\d{2}(?:T|$)/.test(str))) displayStr = formatDateForDisplay(str);
                     if (el._flatpickr) {
                         if (str) {
-                            if (/^\d{4}-\d{2}-\d{2}/.test(str)) el._flatpickr.setDate(str.split('T')[0], false);
+                            // ISO strings need the explicit format; without it flatpickr parses them as d/m/Y.
+                            if (/^\d{4}-\d{2}-\d{2}/.test(str)) el._flatpickr.setDate(str.split('T')[0], false, 'Y-m-d');
                             else el._flatpickr.setDate(str, false, 'd/m/Y');
                         } else el._flatpickr.clear();
                     } else {
@@ -323,8 +370,16 @@ var _modal_kernel_job_card = (function () {
             scope.setJobCardField('jobCardRemovedMoisture', jc.removed_moisture_percentage);
             scope.setJobCardField('jobCardPackingStartDate', fmtDate(jc.packing_start_date));
             scope.setJobCardField('jobCardPackingCompletionDate', fmtDate(jc.packing_completion_date));
+            // Remember what was saved: kept while the start date is unchanged, recomputed otherwise.
+            _jobCardStoredBestBeforeISO = fmtDate(jc.best_before_date) || null;
+            _jobCardStoredStartISO = fmtDate(jc.packing_start_date) || null;
             scope.setJobCardField('jobCardBestBeforeDate', '');
             scope.syncBestBeforeFromStartDate();
+            if (!_jobCardBestBeforeISO && _jobCardStoredBestBeforeISO) {
+                // Stored best-before but no packing start: still show the stored date.
+                _jobCardBestBeforeISO = _jobCardStoredBestBeforeISO;
+                scope.setJobCardField('jobCardBestBeforeDate', _jobCardBestBeforeISO);
+            }
             scope.setJobCardField('jobCardWasteOilKernel', jc.waste_oil_kernel_kg);
             scope.setJobCardField('jobCardWasteShellFines', jc.waste_shell_fines_kg);
             scope.setJobCardField('jobCardWasteCompost', jc.waste_compost_kg);
@@ -488,7 +543,8 @@ var _modal_kernel_job_card = (function () {
                     });
                 }
                 $('#jobCardSupplier').html(html);
-                return getDetail;
+                // Configured shelf-life months must be loaded before any best-before is computed (falls back to 24).
+                return Promise.all([getDetail, _common.loadKernelPipelineConfig()]).then(function (r) { return r[0]; });
             }).then(function (detail) {
                 var df = (typeof dataFunctions !== 'undefined' && dataFunctions) ? dataFunctions : null;
                 _jobCardIsApproved = df && df.isKernelJobcardApproved
@@ -517,6 +573,12 @@ var _modal_kernel_job_card = (function () {
                 if (hasSavedJobCard) {
                     // Populate from saved job_card_data (source of truth)
                     scope.populateJobCardFormFromData(jc);
+                    // Snapshot from the data, not the form, so the guard compares against what is really stored.
+                    _jobCardSavedDates = {
+                        jobCardReceivedDate: jobCardToISO(jc.received_date),
+                        jobCardPackingStartDate: jobCardToISO(jc.packing_start_date),
+                        jobCardPackingCompletionDate: jobCardToISO(jc.packing_completion_date)
+                    };
                 } else if (detail && typeof _modal_production_stages !== 'undefined' && _modal_production_stages.buildJobCardPayloadFromBatchAndStages) {
                     // No saved job card — pre-fill from production stage arrays
                     var cracking = Array.isArray(detail.cracking_data) ? detail.cracking_data : [];
@@ -657,7 +719,11 @@ var _modal_kernel_job_card = (function () {
             const scope = _modal_kernel_job_card;
             _jobCardPackingStartISO = null;
             _jobCardBestBeforeISO = null;
+            _jobCardStoredBestBeforeISO = null;
+            _jobCardStoredStartISO = null;
             _jobCardIsApproved = false;
+            _jobCardSavedDates = null;
+            _jobCardTouchedDates = {};
             $('#jobCardSupplierMismatchAlert').addClass('d-none');
             var $form = $('#kernelJobCardForm');
             if ($form.length) $form[0].reset();
@@ -905,6 +971,68 @@ var _modal_kernel_job_card = (function () {
             verifyApproval(inner, finishApproved);
         },
 
+        /** Saved dates that now read differently although the user never changed that input. */
+        _jobCardDateDrift: () => {
+            var drift = [];
+            if (!_jobCardSavedDates) return drift;
+            Object.keys(GUARDED_DATE_LABELS).forEach(function (id) {
+                var saved = _jobCardSavedDates[id];
+                if (!saved || _jobCardTouchedDates[id]) return;
+                var now = jobCardToISO($('#' + id).val());
+                if (now !== saved) drift.push({ id: id, label: GUARDED_DATE_LABELS[id], saved: saved, now: now });
+            });
+            return drift;
+        },
+
+        _restoreSavedJobCardDates: (drift) => {
+            const scope = _modal_kernel_job_card;
+            drift.forEach(function (d) { scope.setJobCardField(d.id, d.saved); });
+            if (drift.some(function (d) { return d.id === 'jobCardPackingStartDate'; })) scope.syncBestBeforeFromStartDate();
+        },
+
+        /** Explicit save/approve with drifted dates: keep the saved dates (default), keep what is on screen, or cancel. */
+        _confirmJobCardDateDrift: (drift, proceed) => {
+            const scope = _modal_kernel_job_card;
+            if (typeof Swal === 'undefined') {
+                scope._restoreSavedJobCardDates(drift);
+                proceed();
+                return;
+            }
+            var rows = drift.map(function (d) {
+                return d.label + ': saved ' + formatDateForDisplay(d.saved) + ', now showing ' + (d.now ? formatDateForDisplay(d.now) : 'blank');
+            });
+            var list = document.createElement('ul');
+            list.className = 'text-start mb-0';
+            rows.forEach(function (r) {
+                var li = document.createElement('li');
+                li.textContent = r;
+                list.appendChild(li);
+            });
+            var intro = document.createElement('p');
+            intro.textContent = 'These dates changed although nobody edited them:';
+            var wrap = document.createElement('div');
+            wrap.appendChild(intro);
+            wrap.appendChild(list);
+            Swal.fire({
+                icon: 'warning',
+                title: 'Check the dates',
+                html: wrap,
+                showDenyButton: true,
+                showCancelButton: true,
+                confirmButtonText: 'Keep saved dates',
+                denyButtonText: 'Use dates on screen',
+                cancelButtonText: 'Cancel'
+            }).then(function (res) {
+                if (res.isConfirmed) {
+                    scope._restoreSavedJobCardDates(drift);
+                    proceed();
+                } else if (res.isDenied) {
+                    drift.forEach(function (d) { _jobCardTouchedDates[d.id] = true; });
+                    proceed();
+                }
+            });
+        },
+
         doSaveJobCard: (silent) => {
             _modal_kernel_job_card.doSaveJobCardRun(!!silent, false);
         },
@@ -923,6 +1051,17 @@ var _modal_kernel_job_card = (function () {
             if (!silent) {
                 var form = $('#kernelJobCardForm')[0];
                 if (!scope._reportJobCardFormValidation(form)) return;
+            }
+            var drift = scope._jobCardDateDrift();
+            if (drift.length) {
+                if (silent) {
+                    // Autosave never writes a date nobody edited: put the saved ones back and carry on.
+                    console.warn('[Kernel Job Card] restored saved dates that changed without an edit', drift);
+                    scope._restoreSavedJobCardDates(drift);
+                } else {
+                    scope._confirmJobCardDateDrift(drift, function () { scope.doSaveJobCardRun(silent, approve); });
+                    return;
+                }
             }
             var $status = $('#jobCardAutoSaveStatus');
             if (silent && $status.length) $status.removeClass('text-success text-danger').text('Saving…');

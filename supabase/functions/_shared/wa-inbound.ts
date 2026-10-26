@@ -80,6 +80,8 @@ export type ExtractedMessage =
   | { kind: 'text'; from: string; id: string; text: string; senderName?: string }
   | { kind: 'button_reply'; from: string; id: string; replyId: string; replyTitle: string; senderName?: string }
   | { kind: 'list_reply'; from: string; id: string; replyId: string; replyTitle: string; senderName?: string }
+  | { kind: 'contacts'; from: string; id: string; contacts: unknown[]; senderName?: string } // a shared contact card
+  | { kind: 'flow_reply'; from: string; id: string; response: Record<string, unknown>; senderName?: string } // a submitted WhatsApp Flow form
   | { kind: 'status' } // delivery/read receipts — classify and ignore
   | { kind: 'unsupported' }; // images, unknown types, unparseable
 
@@ -153,6 +155,22 @@ export function classifyMessage(msg: unknown, senderName: string | undefined): E
       }
       return { kind: 'unsupported' };
     }
+    // A submitted WhatsApp Flow form (a Footer `complete` action). Meta documents the shape as
+    // interactive.nfm_reply.response_json, a JSON STRING of the complete-action payload. Nothing has
+    // produced one on this line yet, so every step is guarded and anything off-shape is unsupported.
+    if (interactiveType === 'nfm_reply') {
+      const nfm = (interactive.nfm_reply as Record<string, unknown> | undefined) ?? {};
+      const raw = nfm.response_json;
+      if (!isNonEmptyString(raw)) return { kind: 'unsupported' };
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        return { kind: 'unsupported' };
+      }
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { kind: 'unsupported' };
+      return { kind: 'flow_reply', from, id, response: parsed as Record<string, unknown>, senderName };
+    }
     return { kind: 'unsupported' };
   }
 
@@ -168,6 +186,20 @@ export function classifyMessage(msg: unknown, senderName: string | undefined): E
     const replyTitle = isNonEmptyString(text) ? text : (payload as string);
     const replyId = isNonEmptyString(payload) ? payload : (text as string);
     return { kind: 'button_reply', from, id, replyId, replyTitle, senderName };
+  }
+
+  // A shared WhatsApp contact card (the paperclip > Contact attachment, not a typed message).
+  // whatsapp-inbound/index.ts's /contact draft reads msg.contacts[0] directly rather than through
+  // this classifier (see that file's processCommandForMessage for why), but this branch exists so
+  // classifyMessage/extractMessage stay a complete, accurate classification of every message type
+  // this line can receive, for any other caller (and for the plumbing tests in
+  // scripts/verify-wa-plumbing.mjs) to rely on.
+  if (type === 'contacts') {
+    const contactsArr = Array.isArray(m.contacts) ? (m.contacts as unknown[]) : [];
+    if (contactsArr.length > 0) {
+      return { kind: 'contacts', from, id, contacts: contactsArr, senderName };
+    }
+    return { kind: 'unsupported' };
   }
 
   return { kind: 'unsupported' };

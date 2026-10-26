@@ -1,0 +1,45 @@
+/* Kernel Pipeline Settings — card stack. Every selector is classed: the table standard owns bare td/th. */
+.kps-hint {
+    font-size: 0.85rem;
+    color: var(--bs-secondary-color);
+}
+
+.kps-table .kps-num {
+    max-width: 8rem;
+}
+
+.kps-table .kps-select {
+    min-width: 11rem;
+}
+
+.kps-inactive {
+    opacity: 0.6;
+}
+
+.kps-list-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--mac-border);
+}
+
+.kps-list-item .kps-list-name {
+    flex: 1 1 8rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.kps-silo-grid .kps-num {
+    max-width: none;
+}
+
+@media (max-width: 575.98px) {
+    .kps-table .kps-select,
+    .kps-table .kps-num {
+        max-width: none;
+        min-width: 0;
+        width: 100%;
+    }
+}

@@ -1,0 +1,152 @@
+/* Silo Allocation — silo cards with a tank graphic. Semantic tokens only. */
+.silo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 12px;
+}
+
+.silo-card {
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-md);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: #fff;
+}
+
+.silo-card.silo-open {
+    border-color: var(--mac-success);
+    background: var(--mac-success-light);
+}
+
+.silo-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+}
+
+.silo-tank {
+    position: relative;
+    height: 96px;
+    border: 2px solid var(--mac-border-strong);
+    border-radius: var(--mac-radius-sm);
+    overflow: hidden;
+    background: #fff;
+}
+
+.silo-level {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0.85;
+}
+
+/* Fill colour by how full the silo is: >=80% high, 40-79% mid, under 40% low, 0 empty. */
+.silo-tier-high .silo-level { background: var(--mac-silo-high); }
+.silo-tier-mid .silo-level { background: var(--mac-silo-mid); }
+.silo-tier-low .silo-level { background: var(--mac-silo-low); }
+.silo-tier-empty .silo-level { background: var(--mac-silo-empty); }
+
+.silo-pill {
+    font-size: var(--mac-text-xs);
+    font-weight: 600;
+    border-radius: 999px;
+    padding: 3px 9px;
+}
+.silo-tier-high .silo-pill { background: var(--mac-silo-high-light); color: var(--mac-silo-high-text); }
+.silo-tier-mid .silo-pill { background: var(--mac-silo-mid-light); color: var(--mac-silo-mid-text); }
+.silo-tier-low .silo-pill { background: var(--mac-silo-low-light); color: var(--mac-silo-low-text); }
+.silo-tier-empty .silo-pill { background: var(--mac-silo-empty-light); color: var(--mac-silo-empty-text); }
+
+.silo-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    color: var(--mac-text);
+}
+.silo-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.silo-swatch {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+}
+.silo-swatch-high { background: var(--mac-silo-high); }
+.silo-swatch-mid { background: var(--mac-silo-mid); }
+.silo-swatch-low { background: var(--mac-silo-low); }
+.silo-swatch-empty { background: var(--mac-silo-empty); }
+
+.silo-edited-pill {
+    display: inline-block;
+    font-size: var(--mac-text-xs);
+    font-weight: 600;
+    color: var(--mac-warning-text);
+    background: var(--mac-warning-light);
+    border-radius: 999px;
+    padding: 2px 7px;
+    margin-left: 4px;
+}
+
+/* Dialog summary: pre-sizer 'going into silo' strip and the stop dialog's Ran for / Cracked / Rate. */
+.silo-summary-strip {
+    display: flex;
+    justify-content: space-between;
+    background: var(--mac-bg);
+    border-radius: var(--mac-radius-sm);
+    padding: 12px 14px;
+}
+.silo-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    background: var(--mac-bg);
+    gap: 8px;
+    border-radius: var(--mac-radius-sm);
+    padding: 12px 14px;
+}
+.silo-summary-grid span {
+    display: block;
+    font-size: var(--mac-text-xs);
+    color: var(--mac-text-tertiary);
+}
+
+.silo-pct {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: var(--mac-text);
+}
+
+.silo-meta {
+    font-size: var(--mac-text-sm);
+    color: var(--mac-text-secondary);
+}
+
+.silo-timer {
+    font-family: var(--mac-font-mono);
+    font-size: 1.25rem;
+    font-weight: 600;
+    text-align: center;
+    color: var(--mac-text);
+}
+
+.silo-alloc-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.silo-alloc-row .form-select {
+    width: auto;
+    max-width: 100%;
+}
+
+.silo-col {
+    white-space: nowrap;
+}

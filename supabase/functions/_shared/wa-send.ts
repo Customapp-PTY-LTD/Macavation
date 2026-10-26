@@ -98,12 +98,21 @@ export type WaFlowRow = {
     payload: Record<string, unknown>;
   };
 };
-export type WaTemplateComponent = {
-  type: 'header' | 'body' | 'button';
-  sub_type?: 'url' | 'quick_reply';
-  index?: number;
-  parameters: { type: 'text'; text: string }[];
-};
+export type WaTemplateComponent =
+  | {
+      type: 'header' | 'body' | 'button';
+      sub_type?: 'url' | 'quick_reply';
+      index?: number;
+      parameters: { type: 'text'; text: string }[];
+    }
+  | {
+      // A template's FLOW button (Meta's own shape - the gateway passes `template` through as-is).
+      // flow_action_data is the first screen's data for a navigate-mode Flow, frozen at send time.
+      type: 'button';
+      sub_type: 'flow';
+      index: number;
+      parameters: { type: 'action'; action: { flow_token: string; flow_action_data?: Record<string, unknown> } }[];
+    };
 
 // ----------------------------------------------------------------------------------------------
 // Pure body builders — no module-scope value, no env, no network. Each returns a WaMessageBody.
@@ -231,6 +240,46 @@ export function buildFlowLaunchBody(
           flow_cta: ctaText.slice(0, 20),
           flow_action: 'navigate',
           flow_action_payload: { screen: entryScreenId, data: { rows } },
+        },
+      },
+    },
+  };
+}
+
+/**
+ * Opens a Flow straight onto one screen that takes NO launch data, e.g. the add-contact form
+ * (supabase/flows/add-contact.flow.json). buildFlowLaunchBody always sends `data: { rows }`, which
+ * only the menu Flow's REPORT_MENU screen declares; this sends no `data` key at all.
+ */
+export function buildFlowOpenBody(
+  to: string,
+  bodyText: string,
+  flowId: string,
+  screenId: string,
+  ctaText: string,
+  flowToken: string
+): WaMessageBody {
+  if (!flowId) {
+    throw new WaSendError('buildFlowOpenBody: flowId must not be empty.');
+  }
+  if (!screenId) {
+    throw new WaSendError('buildFlowOpenBody: screenId must not be empty.');
+  }
+  return {
+    to,
+    type: 'interactive',
+    content: {
+      type: 'flow',
+      body: { text: bodyText },
+      action: {
+        name: 'flow',
+        parameters: {
+          flow_message_version: '3',
+          flow_token: flowToken,
+          flow_id: flowId,
+          flow_cta: ctaText.slice(0, 20),
+          flow_action: 'navigate',
+          flow_action_payload: { screen: screenId },
         },
       },
     },
@@ -431,6 +480,19 @@ export async function sendList(
   sections: WaListSection[]
 ): Promise<WaSendResult> {
   const body = buildListBody(to, bodyText, buttonLabel, sections);
+  return sendViaControlRoom(body);
+}
+
+/** buildFlowOpenBody + sendViaControlRoom. Same 24-hour-window caveat as `sendButtons`/`sendList`. */
+export async function sendFlowScreen(
+  to: string,
+  bodyText: string,
+  flowId: string,
+  screenId: string,
+  ctaText: string,
+  flowToken: string
+): Promise<WaSendResult> {
+  const body = buildFlowOpenBody(to, bodyText, flowId, screenId, ctaText, flowToken);
   return sendViaControlRoom(body);
 }
 

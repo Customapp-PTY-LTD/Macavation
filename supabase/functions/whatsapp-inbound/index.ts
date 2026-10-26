@@ -84,6 +84,7 @@ import {
   parseReplyId,
   sendButtons,
   sendFlow,
+  sendFlowScreen,
   sendList,
   toWaPhone,
   type WaFlowRow,
@@ -781,6 +782,16 @@ const MENU_ITEMS: MenuItem[] = [
     feature: null,
     subMenu: commandMySettings,
   },
+  {
+    // Gated on crm-grid — the same feature key that gates the portal's CRM/Contacts grid — so a
+    // role that cannot see Contacts in the portal cannot create one from WhatsApp either. Placed
+    // last. startAddContact is defined further down (after commandHelp); function declarations
+    // hoist, so referencing it here, above its own definition, is safe.
+    action: 'addcontact',
+    title: 'Add contact',
+    feature: 'crm-grid',
+    subMenu: startAddContact,
+  },
 ];
 
 /**
@@ -839,6 +850,15 @@ function visibleItems(featureKeys: Set<string>): MenuItem[] {
 const MENU_NS = 'menu';
 
 /**
+ * The `menu:` action that means "send me the Reports list now" — the quick-reply button
+ * commandMenu sends alongside the Flow, in place of the old unconditional follow-up list. This is
+ * not a MENU_ITEMS entry: it has no row of its own on any menu, no feature gate, and no
+ * render/resolve/subMenu — renderMenuItem special-cases it before the MENU_ITEMS lookup, exactly
+ * like SETTINGS_NS/ALERT_NS are handled as sibling namespaces rather than fake rows.
+ */
+const REPORTS_BUTTON_ACTION = 'reports';
+
+/**
  * Meta's real Flow id for supabase/flows/daily-report-menu.flow.json, once published — this
  * repo cannot publish a Flow itself (draft-only via Control Room's create_flow/update_flow_json;
  * publish_flow requires access this repo's Control Room key does not have as of 2026-09-21).
@@ -847,6 +867,19 @@ const MENU_NS = 'menu';
  */
 const WA_DAILY_REPORT_FLOW_ID = Deno.env.get('WA_DAILY_REPORT_FLOW_ID') ?? '';
 const WA_DAILY_REPORT_FLOW_ENTRY_SCREEN_ID = 'REPORT_MENU';
+
+/**
+ * Meta's Flow id for supabase/flows/add-contact.flow.json, once published. When set, /contact and
+ * the "Add contact" menu entries open that one-screen form instead of asking the questions one
+ * message at a time. When unset, or if the Flow send fails, they fall back to the typed questions,
+ * so a missing or broken Flow can never leave a member unable to add a contact. A shared contact
+ * card always uses the typed questions, because the form cannot be prefilled from the card.
+ */
+const WA_ADD_CONTACT_FLOW_ID = Deno.env.get('WA_ADD_CONTACT_FLOW_ID') ?? '';
+const WA_ADD_CONTACT_FLOW_SCREEN_ID = 'ADD_CONTACT';
+
+/** The `menu:` action of the "Add contact" button sent with the menu Flow — the MENU_ITEMS row's own action. */
+const ADD_CONTACT_ACTION = 'addcontact';
 
 /**
  * Reply-id namespace for a WhatsApp PUSH template's per-alert button — currently only "Mark
@@ -941,13 +974,79 @@ async function sendMenuAsList(ctx: CommandContext, items: MenuItem[], detail?: s
 }
 
 /**
+ * The items commandMenu cannot put in the Flow — no `.render`, so no digest-backed content.
+ *
+ * 'addcontact' deliberately stays IN this set (not excluded), same as 'settings' above it: both
+ * are `subMenu` items with no `.render`, so both already ride the same "Reports" follow-up
+ * button/list as "My reports" on the WA_DAILY_REPORT_FLOW_ID-set path. Excluding 'addcontact'
+ * here would make it vanish from the menu entirely whenever that Flow id is set and the digest
+ * fetch succeeds (today it is unset — see WA_DAILY_REPORT_FLOW_ID's own comment — so this branch
+ * is dormant, but the function must stay correct for when it is not). The "Reports for {name}:"
+ * wording already stretches to cover 'settings' (delivery settings, not a report) today, so
+ * 'addcontact' joining it is the same pre-existing trade-off, not a new one.
+ */
+function followUpItemsOf(items: MenuItem[]): MenuItem[] {
+  // Reports only. "Add contact" is not a report: alongside the Flow it gets its own button
+  // (commandMenu), and in the native list it is an ordinary row.
+  return items.filter((i) => !i.render && i.action !== ADD_CONTACT_ACTION);
+}
+
+/**
+ * Text fallback for sendReportsFollowUpList, when the list send itself is rejected. Deliberately
+ * NOT menuFallbackText: that numbers items by their position in the FULL visible menu (matching
+ * renderMenuPosition's `items[position - 1]` indexing), but `items` here is the follow-up subset —
+ * numbering it 1., 2., … would print numbers that resolve to the WRONG items if replied to.
+ *
+ * Does not tell the member to type an item's name: only single-word titles have a COMMAND_HANDLERS
+ * shortcut (`REPORT` for the "Latest report" item; "My reports" has none), so a name-based
+ * instruction would be true for one item and false for the other. 99 (commandMenu, which resends
+ * this same Reports button) is the only reply this can honestly promise works for both.
+ */
+function reportsFallbackText(displayName: string, items: MenuItem[]): string {
+  const names = items.map((i) => i.title).join(' or ');
+  return `Hi ${displayName}, here are your report options: ${names}. Reply 99 to try again.`;
+}
+
+/**
+ * Sends "Latest report" / "My reports" as their own native list, on request. Used both by
+ * commandMenu (when offered via the Reports button) and by the REPORTS_BUTTON_ACTION handler
+ * below (when the member actually taps it). Kept separate from sendMenuAsList's body/button text
+ * so the two sends never look identical in the chat — the Flow's own trigger message already
+ * used the "Choose" button label.
+ */
+async function sendReportsFollowUpList(ctx: CommandContext, items: MenuItem[]): Promise<CommandResult> {
+  const rows = items.map((item) => ({ id: buildReplyId(MENU_NS, item.action), title: item.title }));
+  const result = await sendList(
+    toWaPhone(ctx.phone),
+    `Reports for ${ctx.displayName}:`,
+    'Open',
+    [{ title: 'Macavation', rows }]
+  );
+
+  if (!result.ok) {
+    console.error(`[whatsapp-inbound] sendReportsFollowUpList: list send failed: ${result.error}`);
+    return {
+      outcome: 'ok',
+      reply: reportsFallbackText(ctx.displayName, items),
+      command: 'MENU',
+      detail: 'reports list send failed; text fallback',
+    };
+  }
+
+  return { outcome: 'ok', reply: null, command: 'MENU' };
+}
+
+/**
  * The main menu entry point. When WA_DAILY_REPORT_FLOW_ID is set, sends the six digest-backed
  * items (production, stock, yield, alerts, intake, digest) as ONE tap-through Flow — replacing
  * the old arrangement where those six were plain-text list rows AND a separate "Full report" row
  * re-listed them again as a Flow. "Latest report" and "My reports" are not digest-render()-backed
  * (one calls a per-phone RPC, the other opens its own sub-list) and cannot be Flow rows, so they
- * are sent as a short follow-up native list right after the Flow, same sendList pattern
- * commandMySettings uses for its own list.
+ * are offered via a single "Reports" quick-reply button sent right after the Flow — tapping it is
+ * what actually triggers sendReportsFollowUpList, via REPORTS_BUTTON_ACTION below. This used to be
+ * an unconditional follow-up list sent to every member on every MENU open regardless of whether
+ * they wanted it; that surprised members with a second message they never asked for, so it is now
+ * opt-in, exactly like tapping "Choose" is what the Flow itself already required.
  *
  * Falls back to the plain native list (today's unchanged behaviour, all items in one list) when
  * WA_DAILY_REPORT_FLOW_ID is unset, the digest fetch fails, or the Flow send itself fails — so a
@@ -969,7 +1068,7 @@ async function commandMenu(ctx: CommandContext): Promise<CommandResult> {
   }
 
   const digestItems = items.filter((i) => i.render);
-  const followUpItems = items.filter((i) => !i.render);
+  const followUpItems = followUpItemsOf(items);
 
   if (!WA_DAILY_REPORT_FLOW_ID || digestItems.length === 0) {
     return sendMenuAsList(ctx, items, 'WA_DAILY_REPORT_FLOW_ID not set; native list');
@@ -1005,29 +1104,35 @@ async function commandMenu(ctx: CommandContext): Promise<CommandResult> {
     return sendMenuAsList(ctx, items, 'Flow send failed; native list');
   }
 
-  if (followUpItems.length === 0) {
+  // Things the Flow cannot hold, offered as buttons rather than sent automatically: "Reports"
+  // (Latest report / My reports) and "Add contact" (its own Flow). A failure here is reported on
+  // its own, since the Flow itself already sent successfully above and must never be duplicated by
+  // a fallback that re-sends the full list. Each tap re-checks the role (renderMenuItem).
+  const canAddContact = items.some((i) => i.action === ADD_CONTACT_ACTION);
+  const buttons: { id: string; title: string }[] = [];
+  if (followUpItems.length > 0) buttons.push({ id: buildReplyId(MENU_NS, REPORTS_BUTTON_ACTION), title: 'Reports' });
+  if (canAddContact) buttons.push({ id: buildReplyId(MENU_NS, ADD_CONTACT_ACTION), title: 'Add contact' });
+
+  if (buttons.length === 0) {
     return { outcome: 'ok', reply: null, command: 'MENU' };
   }
 
-  // Latest report / My reports: not Flow-representable, sent as a small follow-up native list.
-  // A failure here is reported on its own — the Flow itself already sent successfully above, so
-  // this must never fall back to re-sending the full native list (that would duplicate the menu
-  // the member just received as a Flow).
-  const followUpRows = followUpItems.map((item) => ({ id: buildReplyId(MENU_NS, item.action), title: item.title }));
-  const followUpResult = await sendList(
-    toWaPhone(ctx.phone),
-    `More options for ${ctx.displayName}:`,
-    'Choose',
-    [{ title: 'Macavation', rows: followUpRows }]
-  );
+  const prompt =
+    followUpItems.length > 0 && canAddContact
+      ? 'Need your latest report, your delivery settings, or to add a contact?'
+      : canAddContact
+        ? 'Need to add a contact?'
+        : 'Need your latest report or your delivery settings?';
+  const buttonResult = await sendButtons(toWaPhone(ctx.phone), prompt, buttons);
 
-  if (!followUpResult.ok) {
-    console.error(`[whatsapp-inbound] commandMenu: follow-up list send failed: ${followUpResult.error}`);
+  if (!buttonResult.ok) {
+    console.error(`[whatsapp-inbound] commandMenu: follow-up button send failed: ${buttonResult.error}`);
+    const fallbackItems = items.filter((i) => !i.render);
     return {
       outcome: 'ok',
-      reply: menuFallbackText(ctx.displayName, followUpItems),
+      reply: `${menuFallbackText(ctx.displayName, fallbackItems)}`,
       command: 'MENU',
-      detail: 'follow-up list send failed; text fallback',
+      detail: 'follow-up button send failed; text fallback',
     };
   }
 
@@ -1043,7 +1148,25 @@ async function commandMenu(ctx: CommandContext): Promise<CommandResult> {
  */
 async function renderMenuItem(ctx: CommandContext, action: string): Promise<CommandResult> {
   const featureKeys = await loadFeatureKeys(ctx.sb, ctx.roleId);
-  const item = visibleItems(featureKeys).find((i) => i.action === action);
+  const visible = visibleItems(featureKeys);
+
+  // Not a MENU_ITEMS row — the "Reports" button commandMenu sends alongside the Flow. Re-derive
+  // followUpItems from the CURRENT visible set, same re-check reasoning as the rest of this
+  // function: a member can tap a button from a menu sent before their role changed.
+  if (action === REPORTS_BUTTON_ACTION) {
+    const followUpItems = followUpItemsOf(visible);
+    if (followUpItems.length === 0) {
+      return {
+        outcome: 'denied',
+        reply: `Sorry ${ctx.displayName}, that option is not available to you. Reply 99 for the menu.`,
+        command: 'MENU:REPORTS',
+        detail: 'no follow-up items in current visible set',
+      };
+    }
+    return sendReportsFollowUpList(ctx, followUpItems);
+  }
+
+  const item = visible.find((i) => i.action === action);
 
   if (!item) {
     return {
@@ -1566,6 +1689,7 @@ async function dispatchSettingsAction(ctx: CommandContext, action: string): Prom
 const HELP_COMMAND_LIST =
   'MENU (or 99) — show the menu of reports\n' +
   'HELP — show this message\n' +
+  'CONTACT — add a new CRM contact\n' +
   'YES (or Y, CONFIRM) — confirm a pending request\n' +
   'NO (or N, CANCEL) — cancel a pending request\n' +
   'STOP — stop report messages (START undoes this)\n' +
@@ -1587,6 +1711,848 @@ function helpReplyText(displayName: string): string {
 
 async function commandHelp(ctx: CommandContext): Promise<CommandResult> {
   return { outcome: 'ok', reply: helpReplyText(ctx.displayName), command: 'HELP' };
+}
+
+// ============================================================================
+// /contact — add a CRM contact via guided questions (type, company, contact person, mobile,
+// email), gated on the SAME crm-grid feature key the portal's Contacts screen uses, with a
+// YES/NO confirm-before-save step matching every other write this router already does.
+//
+// Reached three ways: typing CONTACT / ADDCONTACT / NEWCONTACT / "ADD CONTACT", tapping the "Add
+// contact" row on the main menu (MENU_ITEMS, above), or sending a shared WhatsApp contact card
+// (processCommandForMessage's type:'contacts' branch) — all three funnel into startAddContact.
+//
+// STATE MACHINE: the draft lives in whatsapp_pending_commands (migrations/20260815130000) as
+// command ADD_CONTACT_DRAFT, with an explicit `step` field as the single source of truth for
+// "what are we asking next" — never inferred from which fields happen to be null, so a prefilled
+// field (from a shared contact card) and a not-yet-answered field are unambiguous even though
+// both are represented the same way (null) until filled. nextAddContactStep walks
+// ADD_CONTACT_STEP_ORDER looking for the first still-empty field; this ONE function drives both
+// the normal typed flow (every field starts null, so it always lands on 'type' first) and the
+// card-prefill flow (some fields already filled before the first question is even asked) with no
+// special-casing for either caller — contact_type can never be prefilled from a card, so 'type'
+// is always asked first either way.
+//
+// Once every field is filled, the draft is re-staged as ADD_CONTACT (a DIFFERENT command name)
+// and the member is asked to confirm — at that point the EXISTING YES/NO machinery
+// (commandYes/STAGED_COMMAND_HANDLERS) takes over with no changes needed here: routeAddContactDraft
+// (below) only ever intercepts a message when the peeked pending command is still
+// ADD_CONTACT_DRAFT, so once it becomes ADD_CONTACT a typed YES falls straight through to
+// commandYes exactly as every other staged write already does.
+// ============================================================================
+
+/**
+ * Reply-id namespace for the /contact "type" step's list taps (CONTACT_NS:<type>). Carries the
+ * contact_type enum value directly as the action segment — every value in CONTACT_TYPES below is
+ * well under buildReplyId's 24-character REPLY_SEGMENT_RE cap, so there is no need for a second,
+ * invented short code that would have to be kept in step with the real enum by hand.
+ */
+const CONTACT_NS = 'contact';
+
+/**
+ * The five contact_type values the portal's "Add contact" modal offers, in the same order
+ * (WebPortal/modules/modals/modal-crm-contact/html/modal_crm_contact.html:43-47), checked against
+ * contacts_contact_type_check
+ * (migrations/20260342000001_contacts_oil_ingredient_oil_protein_customer_types.sql). Legacy
+ * values ('customer', 'supplier', 'both') are valid in the database but not offered by the modal
+ * and are not offered here either — this flow creates NEW contacts the same way the modal does.
+ */
+const CONTACT_TYPES: { key: string; label: string }[] = [
+  { key: 'nis_supplier', label: 'NIS Supplier' },
+  { key: 'oil_processor', label: 'Oil Processor' },
+  { key: 'oil_ingredient_supplier', label: 'Oil Ingredient Supplier' },
+  { key: 'oil_protein_customer', label: 'Oil & Protein Customer' },
+  { key: 'kernel_customer', label: 'Kernel Customer' },
+];
+
+/** The fields a /contact draft collects — exactly what create_contact_simple is called with. */
+interface AddContactDraftFields {
+  contact_type: string | null;
+  company_name: string | null;
+  primary_contact_name: string | null;
+  primary_contact_mobile: string | null;
+  primary_contact_email: string | null;
+}
+
+const ADD_CONTACT_STEP_ORDER = ['type', 'company', 'person', 'mobile', 'email'] as const;
+type AddContactStep = (typeof ADD_CONTACT_STEP_ORDER)[number] | 'done';
+
+/** Stored verbatim in whatsapp_pending_commands.payload for command ADD_CONTACT_DRAFT. */
+interface AddContactDraftPayload extends AddContactDraftFields {
+  step: AddContactStep;
+}
+
+const ADD_CONTACT_STEP_FIELD: Record<(typeof ADD_CONTACT_STEP_ORDER)[number], keyof AddContactDraftFields> = {
+  type: 'contact_type',
+  company: 'company_name',
+  person: 'primary_contact_name',
+  mobile: 'primary_contact_mobile',
+  email: 'primary_contact_email',
+};
+
+/**
+ * Walks forward through ADD_CONTACT_STEP_ORDER starting at (and including) `from`, returning the
+ * first step whose field in `fields` is still null/blank, or 'done' once every field from `from`
+ * onward is filled. PURE — no client, no I/O — so verify-wa-add-contact can re-declare and test
+ * it. See this section's header comment for why one function serves both the typed flow and the
+ * card-prefill flow.
+ */
+function nextAddContactStep(fields: AddContactDraftFields, from: AddContactStep): AddContactStep {
+  const startIndex = from === 'done' ? ADD_CONTACT_STEP_ORDER.length : ADD_CONTACT_STEP_ORDER.indexOf(from);
+  for (let i = Math.max(startIndex, 0); i < ADD_CONTACT_STEP_ORDER.length; i++) {
+    const step = ADD_CONTACT_STEP_ORDER[i];
+    const value = fields[ADD_CONTACT_STEP_FIELD[step]];
+    if (value === null || value === undefined || String(value).trim() === '') return step;
+  }
+  return 'done';
+}
+
+/**
+ * Resolves a typed answer to the 'type' step into a contact_type key: a bare digit 1-5 (position
+ * in CONTACT_TYPES, same convention as the main menu's numbered fallback), the enum key itself
+ * (case-insensitive), or the display label (case-insensitive). Returns null for anything else —
+ * PURE, no I/O, re-declared and tested by verify-wa-add-contact.
+ */
+function contactTypeFromInput(input: string): string | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  if (/^[1-5]$/.test(trimmed)) {
+    return CONTACT_TYPES[Number(trimmed) - 1]?.key ?? null;
+  }
+  const lowerKey = trimmed.toLowerCase().replace(/\s+/g, '_');
+  const byKey = CONTACT_TYPES.find((t) => t.key === lowerKey);
+  if (byKey) return byKey.key;
+  const lowerLabel = trimmed.toLowerCase();
+  const byLabel = CONTACT_TYPES.find((t) => t.label.toLowerCase() === lowerLabel);
+  return byLabel ? byLabel.key : null;
+}
+
+function contactTypeLabel(key: string | null): string {
+  if (!key) return '—';
+  return CONTACT_TYPES.find((t) => t.key === key)?.label ?? key;
+}
+
+/**
+ * An explicit, case-insensitive "nothing to say here" answer for an OPTIONAL step (person,
+ * mobile, email — never type or company, both of which create_contact_simple itself requires).
+ * PURE, re-declared and tested by verify-wa-add-contact.
+ */
+function isSkipAnswer(input: string): boolean {
+  const normalised = input.trim().toLowerCase();
+  return normalised === 'skip' || normalised === '-' || normalised === 'none' || normalised === 'n/a';
+}
+
+/** Matches create_contact_simple's own guard (btrim(p_company_name) = '') plus a length cap matching company_name varchar(255). */
+function validateCompanyName(input: string): { ok: true; value: string } | { ok: false; error: string } {
+  const trimmed = input.trim();
+  if (!trimmed) {
+    return { ok: false, error: 'Company name cannot be empty. What is the company name?' };
+  }
+  if (trimmed.length > 255) {
+    return { ok: false, error: 'That company name is too long (max 255 characters). What is the company name?' };
+  }
+  return { ok: true, value: trimmed };
+}
+
+/**
+ * Normalises a typed mobile number: strips spaces/dashes/parentheses, keeps a leading '+', and
+ * requires 7-15 remaining digits (E.164's own bounds) — permissive about format (this is a free
+ * -text WhatsApp reply, not a web form), strict about plausibility. Matches
+ * primary_contact_mobile varchar(20): the longest value this can produce is a '+' plus 15 digits
+ * = 16 characters, well under the column's cap.
+ */
+function normaliseMobile(input: string): { ok: true; value: string } | { ok: false; error: string } {
+  const stripped = input.trim().replace(/[\s()-]/g, '');
+  const hasPlus = stripped.startsWith('+');
+  const digits = hasPlus ? stripped.slice(1) : stripped;
+  if (!/^\d{7,15}$/.test(digits)) {
+    return {
+      ok: false,
+      error: "That doesn't look like a mobile number. Please reply with a mobile number, or SKIP.",
+    };
+  }
+  return { ok: true, value: hasPlus ? `+${digits}` : digits };
+}
+
+const ADD_CONTACT_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Matches primary_contact_email varchar(255). */
+function validateEmail(input: string): { ok: true; value: string } | { ok: false; error: string } {
+  const trimmed = input.trim();
+  if (!ADD_CONTACT_EMAIL_RE.test(trimmed)) {
+    return {
+      ok: false,
+      error: "That doesn't look like an email address. Please reply with an email address, or SKIP.",
+    };
+  }
+  if (trimmed.length > 255) {
+    return {
+      ok: false,
+      error: 'That email address is too long (max 255 characters). Please reply with an email address, or SKIP.',
+    };
+  }
+  return { ok: true, value: trimmed };
+}
+
+/** The exact confirm-screen text — also what gets staged as ADD_CONTACT's `summary`. */
+function buildAddContactSummary(fields: AddContactDraftFields): string {
+  const lines = [
+    `Type: ${contactTypeLabel(fields.contact_type)}`,
+    `Company: ${fields.company_name ?? '—'}`,
+    `Contact person: ${fields.primary_contact_name ?? '—'}`,
+    `Mobile: ${fields.primary_contact_mobile ?? '—'}`,
+    `Email: ${fields.primary_contact_email ?? '—'}`,
+  ];
+  return `New contact:\n\n${lines.join('\n')}`;
+}
+
+/**
+ * Pulls raw strings off one WhatsApp shared-contact-card object (Meta's `contacts[]` message
+ * shape: contact.org.company, contact.name.formatted_name, contact.phones[0].phone/wa_id,
+ * contact.emails[0].email). Returns raw, UNVALIDATED strings (or null) — the caller
+ * (startAddContact, via sanitisePrefill*) runs each through the SAME validators the typed flow
+ * uses before accepting any of them as a prefill, so a malformed or missing card field can only
+ * ever result in that step being asked for normally, never a bad value reaching the confirm
+ * screen. PURE, re-declared and tested by verify-wa-add-contact.
+ */
+function extractSharedContact(contact: Any): {
+  company_name: string | null;
+  primary_contact_name: string | null;
+  primary_contact_mobile: string | null;
+  primary_contact_email: string | null;
+} {
+  const name = contact?.name?.formatted_name;
+  const company = contact?.org?.company;
+  const phone = contact?.phones?.[0]?.phone ?? contact?.phones?.[0]?.wa_id;
+  const email = contact?.emails?.[0]?.email;
+  return {
+    company_name: typeof company === 'string' && company.trim() ? company.trim() : null,
+    primary_contact_name: typeof name === 'string' && name.trim() ? name.trim() : null,
+    primary_contact_mobile: typeof phone === 'string' && phone.trim() ? phone.trim() : null,
+    primary_contact_email: typeof email === 'string' && email.trim() ? email.trim() : null,
+  };
+}
+
+function sanitisePrefillCompany(v: string | null): string | null {
+  if (!v) return null;
+  const r = validateCompanyName(v);
+  return r.ok ? r.value : null;
+}
+
+function sanitisePrefillName(v: string | null): string | null {
+  if (!v) return null;
+  const trimmed = v.trim();
+  return trimmed && trimmed.length <= 255 ? trimmed : null;
+}
+
+function sanitisePrefillMobile(v: string | null): string | null {
+  if (!v) return null;
+  const r = normaliseMobile(v);
+  return r.ok ? r.value : null;
+}
+
+function sanitisePrefillEmail(v: string | null): string | null {
+  if (!v) return null;
+  const r = validateEmail(v);
+  return r.ok ? r.value : null;
+}
+
+/**
+ * Read-only check for a live ADD_CONTACT_DRAFT via whatsapp_peek_pending_command
+ * (migrations/20261001120000). Returns null on anything that is not EXACTLY a live
+ * ADD_CONTACT_DRAFT with a recognised `step` — a missing RPC, an RPC error, nothing pending, or a
+ * pending command of a DIFFERENT name (e.g. the member already answered every question and it is
+ * now staged as ADD_CONTACT) all degrade to the same "no draft to route to" answer, which is
+ * exactly what lets routeAddContactDraft fall through to normal dispatch in every one of those
+ * cases.
+ */
+async function peekAddContactDraft(ctx: CommandContext): Promise<AddContactDraftPayload | null> {
+  try {
+    const { data, error } = await ctx.sb.rpc('whatsapp_peek_pending_command', {
+      p_phone: ctx.phone,
+      p_user_id: ctx.userId,
+    });
+    if (error) {
+      if (!isMissingRpc(error)) {
+        console.error('[whatsapp-inbound] whatsapp_peek_pending_command failed:', error.message);
+      }
+      return null;
+    }
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row || row.success !== 1) return null;
+    if (String(row.command || '').toUpperCase() !== 'ADD_CONTACT_DRAFT') return null;
+    const payload = row.payload as Any;
+    if (!payload || typeof payload !== 'object') return null;
+    const step = String(payload.step ?? '');
+    if (!(ADD_CONTACT_STEP_ORDER as readonly string[]).includes(step)) return null;
+    return {
+      step: step as AddContactStep,
+      contact_type: payload.contact_type ?? null,
+      company_name: payload.company_name ?? null,
+      primary_contact_name: payload.primary_contact_name ?? null,
+      primary_contact_mobile: payload.primary_contact_mobile ?? null,
+      primary_contact_email: payload.primary_contact_email ?? null,
+    };
+  } catch (e) {
+    console.error('[whatsapp-inbound] whatsapp_peek_pending_command threw:', e);
+    return null;
+  }
+}
+
+/** Clears whatever draft is pending, swallowing any error — used on CANCEL/0/99/MENU mid-draft. */
+async function clearAddContactDraft(ctx: CommandContext): Promise<void> {
+  try {
+    const { error } = await ctx.sb.rpc('whatsapp_clear_pending_command', {
+      p_phone: ctx.phone,
+      p_user_id: ctx.userId,
+    });
+    if (error && !isMissingRpc(error)) {
+      console.error('[whatsapp-inbound] whatsapp_clear_pending_command failed for ADD_CONTACT_DRAFT:', error.message);
+    }
+  } catch (e) {
+    console.error('[whatsapp-inbound] whatsapp_clear_pending_command threw for ADD_CONTACT_DRAFT:', e);
+  }
+}
+
+function addContactStepPromptText(step: 'company' | 'person' | 'mobile' | 'email'): string {
+  switch (step) {
+    case 'company':
+      return 'What is the company name?';
+    case 'person':
+      return 'Who is the contact person? (Reply SKIP if none.)';
+    case 'mobile':
+      return "What is their mobile number? (Reply SKIP if you don't have one.)";
+    case 'email':
+      return "What is their email address? (Reply SKIP if you don't have one.)";
+  }
+}
+
+/** Sends whatever `step` asks for, prefixed with an optional note (an invalid-answer message or a duplicate-company heads-up). */
+async function sendAddContactStepPrompt(
+  ctx: CommandContext,
+  step: AddContactStep,
+  note: string | null
+): Promise<CommandResult> {
+  if (step === 'type') {
+    const rows = CONTACT_TYPES.map((t) => ({
+      id: buildReplyId(CONTACT_NS, t.key),
+      title: truncate(t.label, MAX_LIST_TITLE),
+    }));
+    const bodyText = `${note ? `${note}\n\n` : ''}Hi ${ctx.displayName}, let's add a contact. What type of contact is this?`;
+    const result = await sendList(toWaPhone(ctx.phone), bodyText, 'Choose', [{ title: 'Contact type', rows }]);
+    if (!result.ok) {
+      console.error(`[whatsapp-inbound] /contact type list send failed, falling back to text: ${result.error}`);
+      const lines = CONTACT_TYPES.map((t, i) => `${i + 1}. ${t.label}`);
+      return {
+        outcome: 'ok',
+        reply: `${bodyText}\n\n${lines.join('\n')}\n\nReply with a number.`,
+        command: 'ADDCONTACT',
+        detail: 'type list send failed; text fallback',
+      };
+    }
+    return { outcome: 'ok', reply: null, command: 'ADDCONTACT' };
+  }
+
+  if (step === 'done') {
+    // Defensive only — stageAddContactDraft redirects to stageAddContactConfirm the moment
+    // nextAddContactStep returns 'done' and never calls this function with step: 'done'.
+    return {
+      outcome: 'error',
+      reply: `Sorry ${ctx.displayName}, something went wrong with that draft. Please start again with /contact.`,
+      command: 'ADDCONTACT',
+      detail: 'sendAddContactStepPrompt called with step=done',
+    };
+  }
+
+  const prompt = addContactStepPromptText(step);
+  return { outcome: 'ok', reply: note ? `${note}\n\n${prompt}` : prompt, command: 'ADDCONTACT' };
+}
+
+/**
+ * Stages `fields` as ADD_CONTACT_DRAFT at whatever step nextAddContactStep lands on from `from`,
+ * then sends that step's question — or, once every field is filled, hands off to
+ * stageAddContactConfirm. Shared by startAddContact (first stage) and advanceAddContactDraft
+ * (every subsequent answer) so there is exactly one place a draft is ever written and exactly one
+ * place the next question is chosen.
+ */
+async function stageAddContactDraft(
+  ctx: CommandContext,
+  fields: AddContactDraftFields,
+  from: AddContactStep,
+  note: string | null
+): Promise<CommandResult> {
+  const step = nextAddContactStep(fields, from);
+
+  if (step === 'done') {
+    return stageAddContactConfirm(ctx, fields);
+  }
+
+  const payload: AddContactDraftPayload = { ...fields, step };
+
+  try {
+    const { error } = await ctx.sb.rpc('whatsapp_stage_pending_command', {
+      p_phone: ctx.phone,
+      p_user_id: ctx.userId,
+      p_command: 'ADD_CONTACT_DRAFT',
+      p_payload: payload,
+      p_summary: `/contact draft — ${step} step`,
+    });
+    if (error) {
+      if (isMissingRpc(error)) {
+        console.error(
+          '[whatsapp-inbound] whatsapp_stage_pending_command is missing — migration 20260815130000 not applied.'
+        );
+      } else {
+        console.error('[whatsapp-inbound] whatsapp_stage_pending_command failed for ADD_CONTACT_DRAFT:', error.message);
+      }
+      return {
+        outcome: 'error',
+        reply: `Sorry ${ctx.displayName}, I could not continue that just now. Please try again shortly.`,
+        command: 'ADDCONTACT',
+        detail: error.message,
+      };
+    }
+  } catch (e) {
+    console.error('[whatsapp-inbound] whatsapp_stage_pending_command threw for ADD_CONTACT_DRAFT:', e);
+    return {
+      outcome: 'error',
+      reply: `Sorry ${ctx.displayName}, I could not continue that just now. Please try again shortly.`,
+      command: 'ADDCONTACT',
+      detail: String(e),
+    };
+  }
+
+  return sendAddContactStepPrompt(ctx, step, note);
+}
+
+/** Every field filled — stage the final confirm (command ADD_CONTACT) and ask for YES/NO. */
+async function stageAddContactConfirm(ctx: CommandContext, fields: AddContactDraftFields): Promise<CommandResult> {
+  const summary = buildAddContactSummary(fields);
+
+  try {
+    const { error } = await ctx.sb.rpc('whatsapp_stage_pending_command', {
+      p_phone: ctx.phone,
+      p_user_id: ctx.userId,
+      p_command: 'ADD_CONTACT',
+      p_payload: fields,
+      p_summary: summary,
+    });
+    if (error) {
+      if (isMissingRpc(error)) {
+        console.error(
+          '[whatsapp-inbound] whatsapp_stage_pending_command is missing — migration 20260815130000 not applied.'
+        );
+      } else {
+        console.error('[whatsapp-inbound] whatsapp_stage_pending_command failed for ADD_CONTACT:', error.message);
+      }
+      return {
+        outcome: 'error',
+        reply: `Sorry ${ctx.displayName}, I could not set that up just now. Please try again shortly.`,
+        command: 'ADDCONTACT',
+        detail: error.message,
+      };
+    }
+  } catch (e) {
+    console.error('[whatsapp-inbound] whatsapp_stage_pending_command threw for ADD_CONTACT:', e);
+    return {
+      outcome: 'error',
+      reply: `Sorry ${ctx.displayName}, I could not set that up just now. Please try again shortly.`,
+      command: 'ADDCONTACT',
+      detail: String(e),
+    };
+  }
+
+  return { outcome: 'ok', reply: `${summary}\n\nReply YES to confirm, or NO to cancel.`, command: 'ADDCONTACT' };
+}
+
+/**
+ * Processes one typed answer (or, from dispatchContactTypeTap, a resolved contact_type key)
+ * against the draft's current step: validates it, and either re-asks the SAME step (invalid
+ * answer, via sendAddContactStepPrompt with an error note) or re-stages via stageAddContactDraft
+ * and asks the NEXT one. The company step's duplicate-company check runs HERE, once, only when
+ * the company name is actively answered this way — never for a value that arrived prefilled from
+ * a shared contact card and was therefore skipped by nextAddContactStep, which never calls this
+ * function for a step it is skipping.
+ */
+async function advanceAddContactDraft(
+  ctx: CommandContext,
+  draft: AddContactDraftPayload,
+  rawAnswer: string
+): Promise<CommandResult> {
+  const fields: AddContactDraftFields = {
+    contact_type: draft.contact_type,
+    company_name: draft.company_name,
+    primary_contact_name: draft.primary_contact_name,
+    primary_contact_mobile: draft.primary_contact_mobile,
+    primary_contact_email: draft.primary_contact_email,
+  };
+
+  switch (draft.step) {
+    case 'type': {
+      const key = contactTypeFromInput(rawAnswer);
+      if (!key) {
+        return sendAddContactStepPrompt(
+          ctx,
+          'type',
+          "Sorry, I didn't understand that. Please choose from the list, or reply with a number 1-5."
+        );
+      }
+      fields.contact_type = key;
+      return stageAddContactDraft(ctx, fields, 'company', null);
+    }
+    case 'company': {
+      const result = validateCompanyName(rawAnswer);
+      if (!result.ok) {
+        return sendAddContactStepPrompt(ctx, 'company', result.error);
+      }
+      fields.company_name = result.value;
+
+      let note: string | null = null;
+      try {
+        const { data, error } = await ctx.sb.rpc('whatsapp_find_contacts_by_company', {
+          p_company_name: result.value,
+        });
+        if (error) {
+          if (!isMissingRpc(error)) {
+            console.error('[whatsapp-inbound] whatsapp_find_contacts_by_company failed:', error.message);
+          }
+        } else {
+          const rows: Any[] = Array.isArray(data) ? data : data ? [data] : [];
+          if (rows.length > 0) {
+            note =
+              rows.length === 1
+                ? 'Heads up: a contact already exists with this company name. Continuing anyway.'
+                : `Heads up: ${rows.length} contacts already exist with this company name. Continuing anyway.`;
+          }
+        }
+      } catch (e) {
+        console.error('[whatsapp-inbound] whatsapp_find_contacts_by_company threw:', e);
+      }
+
+      return stageAddContactDraft(ctx, fields, 'person', note);
+    }
+    case 'person': {
+      if (isSkipAnswer(rawAnswer)) {
+        fields.primary_contact_name = null;
+        return stageAddContactDraft(ctx, fields, 'mobile', null);
+      }
+      const trimmed = rawAnswer.trim();
+      if (!trimmed) {
+        return sendAddContactStepPrompt(ctx, 'person', "Please reply with the contact person's name, or SKIP.");
+      }
+      if (trimmed.length > 255) {
+        return sendAddContactStepPrompt(
+          ctx,
+          'person',
+          'That name is too long (max 255 characters). Please try again, or SKIP.'
+        );
+      }
+      fields.primary_contact_name = trimmed;
+      return stageAddContactDraft(ctx, fields, 'mobile', null);
+    }
+    case 'mobile': {
+      if (isSkipAnswer(rawAnswer)) {
+        fields.primary_contact_mobile = null;
+        return stageAddContactDraft(ctx, fields, 'email', null);
+      }
+      const result = normaliseMobile(rawAnswer);
+      if (!result.ok) {
+        return sendAddContactStepPrompt(ctx, 'mobile', result.error);
+      }
+      fields.primary_contact_mobile = result.value;
+      return stageAddContactDraft(ctx, fields, 'email', null);
+    }
+    case 'email': {
+      if (isSkipAnswer(rawAnswer)) {
+        fields.primary_contact_email = null;
+        return stageAddContactDraft(ctx, fields, 'done', null);
+      }
+      const result = validateEmail(rawAnswer);
+      if (!result.ok) {
+        return sendAddContactStepPrompt(ctx, 'email', result.error);
+      }
+      fields.primary_contact_email = result.value;
+      return stageAddContactDraft(ctx, fields, 'done', null);
+    }
+    default:
+      // 'done' should never reach here — a live ADD_CONTACT_DRAFT always has a step before
+      // 'done' (stageAddContactDraft hands off to stageAddContactConfirm the instant
+      // nextAddContactStep returns 'done' and never re-stages a draft with step: 'done').
+      return {
+        outcome: 'error',
+        reply: `Sorry ${ctx.displayName}, that request has expired. Please start again with /contact.`,
+        command: 'ADDCONTACT',
+        detail: `unexpected draft step: ${draft.step}`,
+      };
+  }
+}
+
+/**
+ * Dispatches a CONTACT_NS reply-id tap (the /contact type step's list) — `key` is the
+ * contact_type value carried directly as the reply id's action segment. Peeks for a live
+ * ADD_CONTACT_DRAFT at step 'type' first: a tap on an expired list, or one sent before the draft
+ * had already moved on (e.g. re-delivered), must not silently overwrite or skip ahead of whatever
+ * the draft is actually waiting on.
+ */
+async function dispatchContactTypeTap(ctx: CommandContext, key: string): Promise<CommandResult> {
+  const peeked = await peekAddContactDraft(ctx);
+  if (!peeked || peeked.step !== 'type') {
+    return {
+      outcome: 'unknown_command',
+      reply: `Sorry ${ctx.displayName}, that contact form has expired. Reply CONTACT to start again.`,
+      command: 'ADDCONTACT',
+      detail: 'no live ADD_CONTACT_DRAFT at step type',
+    };
+  }
+  return advanceAddContactDraft(ctx, peeked, key);
+}
+
+/**
+ * Called from handleCommand BEFORE the HELP/verb lookup, for every TYPED (non-tap) message from
+ * an enrolled member. Peeks for a live ADD_CONTACT_DRAFT; when there is NOT one, returns null so
+ * the caller falls through to normal dispatch UNCHANGED — this is what lets YES keep working once
+ * the draft is finalised and re-staged as ADD_CONTACT (a different `command` value: commandYes
+ * looks the staged command up by name, so it reaches STAGED_COMMAND_HANDLERS.ADD_CONTACT with no
+ * special-casing needed here).
+ *
+ * When there IS a live draft: CANCEL/NO/N clears it; 0/99/MENU clears it AND opens the menu
+ * (leaving a half-filled draft in place would otherwise block the member from reaching anything
+ * else); HELP answers without disturbing the draft. Anything else is treated as the answer to the
+ * draft's current step.
+ */
+async function routeAddContactDraft(ctx: CommandContext): Promise<CommandResult | null> {
+  const peeked = await peekAddContactDraft(ctx);
+  if (!peeked) return null;
+
+  const collapsed = ctx.rawBody.trim().replace(/\s+/g, ' ').replace(/^\//, '');
+  const verb = (collapsed.split(' ')[0] || '').toUpperCase();
+
+  if (verb === 'CANCEL' || verb === 'NO' || verb === 'N') {
+    await clearAddContactDraft(ctx);
+    return { outcome: 'ok', reply: `OK ${ctx.displayName}, cancelled — nothing was saved.`, command: 'ADDCONTACT' };
+  }
+
+  if (verb === '0' || verb === '99' || verb === 'MENU') {
+    await clearAddContactDraft(ctx);
+    return commandMenu(ctx);
+  }
+
+  if (verb === 'HELP') {
+    return commandHelp(ctx);
+  }
+
+  return advanceAddContactDraft(ctx, peeked, ctx.rawBody);
+}
+
+/**
+ * The top-level entry point for /contact: typed CONTACT/ADDCONTACT/NEWCONTACT/"ADD CONTACT", the
+ * "Add contact" menu row (MENU_ITEMS' subMenu), and a shared contact card
+ * (processCommandForMessage's type:'contacts' branch, which passes `prefill`).
+ *
+ * Checks the crm-grid feature first — the SAME key the portal's Contacts screen is gated on (see
+ * MENU_ITEMS' `feature` convention) — then checks the new RPCs exist (degrade, do not 500):
+ * whatsapp_peek_pending_command is called as an existence PROXY for the whole migration, since
+ * both new RPCs ship together in migrations/20261001120000_whatsapp_add_contact_support.sql.
+ *
+ * `prefill`, when given, is run through the SAME validators the typed flow itself uses
+ * (sanitisePrefillCompany/Name/Mobile/Email, each wrapping validateCompanyName/normaliseMobile/
+ * validateEmail) before being accepted — an invalid or unparseable value from a card is silently
+ * DROPPED rather than stored, so that step is simply asked for normally instead of a bad value
+ * ever reaching the confirm screen.
+ */
+async function startAddContact(
+  ctx: CommandContext,
+  prefill?: {
+    company_name?: string | null;
+    primary_contact_name?: string | null;
+    primary_contact_mobile?: string | null;
+    primary_contact_email?: string | null;
+  }
+): Promise<CommandResult> {
+  const featureKeys = await loadFeatureKeys(ctx.sb, ctx.roleId);
+  if (!featureKeys.has('crm-grid')) {
+    return {
+      outcome: 'denied',
+      reply: `Sorry ${ctx.displayName}, adding contacts is not on your access. Reply 99 for the menu.`,
+      command: 'ADDCONTACT',
+    };
+  }
+
+  const peek = await ctx.sb.rpc('whatsapp_peek_pending_command', { p_phone: ctx.phone, p_user_id: ctx.userId });
+  if (peek.error && isMissingRpc(peek.error)) {
+    console.error(
+      '[whatsapp-inbound] whatsapp_peek_pending_command is missing — migration 20261001120000 not applied.'
+    );
+    return {
+      outcome: 'error',
+      reply: `Adding contacts on WhatsApp is not switched on yet, ${ctx.displayName}. Please use the portal for now.`,
+      command: 'ADDCONTACT',
+      detail: 'migration 20261001120000 not applied',
+    };
+  }
+
+  if (!prefill && WA_ADD_CONTACT_FLOW_ID) {
+    const sent = await sendFlowScreen(
+      toWaPhone(ctx.phone),
+      `Hi ${ctx.displayName}, tap below to add a contact. You will get a summary to confirm before anything is saved.`,
+      WA_ADD_CONTACT_FLOW_ID,
+      WA_ADD_CONTACT_FLOW_SCREEN_ID,
+      'Add contact',
+      crypto.randomUUID()
+    );
+    if (sent.ok) {
+      return { outcome: 'ok', reply: null, command: 'ADDCONTACT:FLOW_SENT' };
+    }
+    console.error(`[whatsapp-inbound] startAddContact: Flow send failed, falling back to questions: ${sent.error}`);
+  }
+
+  const fields: AddContactDraftFields = {
+    contact_type: null,
+    company_name: sanitisePrefillCompany(prefill?.company_name ?? null),
+    primary_contact_name: sanitisePrefillName(prefill?.primary_contact_name ?? null),
+    primary_contact_mobile: sanitisePrefillMobile(prefill?.primary_contact_mobile ?? null),
+    primary_contact_email: sanitisePrefillEmail(prefill?.primary_contact_email ?? null),
+  };
+
+  return stageAddContactDraft(ctx, fields, 'type', null);
+}
+
+/**
+ * One text field off a submitted Flow form, trimmed. A field the member left empty can come back
+ * as an empty string, as a missing key, or (by some accounts of Meta's behaviour, unconfirmed
+ * here) as the unsubstituted `${form.x}` binding itself, so all three read as empty. PURE.
+ */
+function flowFieldString(v: unknown): string {
+  if (typeof v !== 'string') return '';
+  const trimmed = v.trim();
+  return trimmed.startsWith('${') ? '' : trimmed;
+}
+
+/**
+ * Validates the ADD_CONTACT Flow screen's submission with the SAME rules as the typed /contact
+ * steps. The Flow's own `required` flags run on the handset and are not trusted: every field is
+ * re-checked here. Returns every problem at once, so the member can fix them in one go. PURE,
+ * re-declared and tested by verify-wa-add-contact.
+ */
+function parseAddContactFlowSubmission(
+  response: Record<string, unknown>
+): { ok: true; fields: AddContactDraftFields } | { ok: false; errors: string[] } {
+  const errors: string[] = [];
+
+  const typeRaw = flowFieldString(response.contact_type);
+  const contactType = CONTACT_TYPES.some((t) => t.key === typeRaw) ? typeRaw : null;
+  if (!contactType) errors.push('Choose a contact type.');
+
+  const company = validateCompanyName(flowFieldString(response.company_name));
+  if (!company.ok) errors.push('Company name is required (max 255 characters).');
+
+  const personRaw = flowFieldString(response.contact_name);
+  if (personRaw.length > 255) errors.push('Contact person is too long (max 255 characters).');
+
+  const mobileRaw = flowFieldString(response.mobile);
+  const mobile = mobileRaw ? normaliseMobile(mobileRaw) : null;
+  if (mobile && !mobile.ok) errors.push("Mobile doesn't look like a phone number.");
+
+  const emailRaw = flowFieldString(response.email);
+  const email = emailRaw ? validateEmail(emailRaw) : null;
+  if (email && !email.ok) errors.push("Email doesn't look like an email address.");
+
+  if (errors.length > 0 || !company.ok) return { ok: false, errors };
+
+  return {
+    ok: true,
+    fields: {
+      contact_type: contactType,
+      company_name: company.value,
+      primary_contact_name: personRaw || null,
+      primary_contact_mobile: mobile && mobile.ok ? mobile.value : null,
+      primary_contact_email: email && email.ok ? email.value : null,
+    },
+  };
+}
+
+/**
+ * A submitted WhatsApp Flow form (processCommandForMessage's nfm_reply branch). Only the menu
+ * Flow's ADD_CONTACT screen means anything here. Every other submission, including the DETAIL
+ * screen's own "Close" button (payload `{ flow: 'daily_report_menu' }`), is logged and gets NO
+ * reply: closing a report must never produce a message.
+ *
+ * A valid add-contact form goes to the same place the typed flow ends up: stageAddContactConfirm
+ * stages ADD_CONTACT and asks for YES, and the ADD_CONTACT staged handler does the write. There
+ * is one write path, not two. The flow_token is not an authorisation; the enrolled sender is.
+ */
+async function handleAddContactFlowSubmit(
+  ctx: CommandContext,
+  response: Record<string, unknown>
+): Promise<CommandResult> {
+  if (response.form !== 'add_contact') {
+    return {
+      outcome: 'ok',
+      reply: null,
+      command: 'FLOW',
+      detail: `flow submission ignored (form=${String(response.form ?? response.flow ?? 'none').slice(0, 40)})`,
+    };
+  }
+
+  const featureKeys = await loadFeatureKeys(ctx.sb, ctx.roleId);
+  if (!featureKeys.has('crm-grid')) {
+    return {
+      outcome: 'denied',
+      reply: `Sorry ${ctx.displayName}, adding contacts is not on your access. Reply 99 for the menu.`,
+      command: 'ADDCONTACT:FLOW',
+    };
+  }
+
+  const parsed = parseAddContactFlowSubmission(response);
+  if (!parsed.ok) {
+    return {
+      outcome: 'ok',
+      reply:
+        `Sorry ${ctx.displayName}, that contact was not saved:\n\n` +
+        parsed.errors.map((e) => `• ${e}`).join('\n') +
+        `\n\nSend /contact to try again.`,
+      command: 'ADDCONTACT:FLOW',
+      detail: 'invalid form submission',
+    };
+  }
+
+  let note: string | null = null;
+  try {
+    const { data, error } = await ctx.sb.rpc('whatsapp_find_contacts_by_company', {
+      p_company_name: parsed.fields.company_name,
+    });
+    if (error) {
+      if (isMissingRpc(error)) {
+        console.error(
+          '[whatsapp-inbound] whatsapp_find_contacts_by_company is missing — migration 20261001120000 not applied.'
+        );
+        return {
+          outcome: 'error',
+          reply: `Adding contacts on WhatsApp is not switched on yet, ${ctx.displayName}. Please use the portal for now.`,
+          command: 'ADDCONTACT:FLOW',
+          detail: 'migration 20261001120000 not applied',
+        };
+      }
+      console.error('[whatsapp-inbound] whatsapp_find_contacts_by_company failed:', error.message);
+    } else {
+      const rows: Any[] = Array.isArray(data) ? data : data ? [data] : [];
+      if (rows.length > 0) {
+        note =
+          rows.length === 1
+            ? 'Heads up: a contact already exists with this company name.'
+            : `Heads up: ${rows.length} contacts already exist with this company name.`;
+      }
+    }
+  } catch (e) {
+    console.error('[whatsapp-inbound] whatsapp_find_contacts_by_company threw:', e);
+  }
+
+  const result = await stageAddContactConfirm(ctx, parsed.fields);
+  const tagged = { ...result, command: 'ADDCONTACT:FLOW' };
+  if (note && result.outcome === 'ok' && result.reply) {
+    return { ...tagged, reply: `${note}\n\n${result.reply}` };
+  }
+  return tagged;
 }
 
 // ============================================================================
@@ -1727,6 +2693,83 @@ const STAGED_COMMAND_HANDLERS: Record<
         'You will not receive any further report messages from Macavation. ' +
         'Text START if you want to allow them again.',
       command: 'STOP_ALL_REPORTS',
+    };
+  },
+
+  /**
+   * ADD_CONTACT — staged by stageAddContactConfirm once every /contact draft step is filled,
+   * applied when the member replies YES. Re-checks crm-grid HERE too, same reasoning as every
+   * other handler in this map: a draft can be confirmed minutes after it was finished and a
+   * role can change in between.
+   */
+  ADD_CONTACT: async (ctx, staged) => {
+    const featureKeys = await loadFeatureKeys(ctx.sb, ctx.roleId);
+    if (!featureKeys.has('crm-grid')) {
+      return {
+        outcome: 'denied',
+        reply: `Sorry ${ctx.displayName}, adding contacts is not on your access.`,
+        command: 'ADD_CONTACT',
+      };
+    }
+
+    const payload = staged.payload as Any;
+    const contactType = String(payload?.contact_type ?? '');
+    const companyName = String(payload?.company_name ?? '');
+    if (!contactType || !companyName) {
+      return {
+        outcome: 'error',
+        reply: `Sorry ${ctx.displayName}, I lost track of that draft. Please start again with /contact.`,
+        command: 'ADD_CONTACT',
+        detail: 'staged payload missing contact_type or company_name',
+      };
+    }
+
+    try {
+      const { data, error } = await ctx.sb.rpc('create_contact_simple', {
+        p_contact_type: contactType,
+        p_company_name: companyName,
+        p_primary_contact_name: payload?.primary_contact_name ?? null,
+        p_primary_contact_mobile: payload?.primary_contact_mobile ?? null,
+        p_primary_contact_email: payload?.primary_contact_email ?? null,
+      });
+      if (error) {
+        if (isMissingRpc(error)) {
+          console.error(
+            '[whatsapp-inbound] create_contact_simple is missing — migration 20260818090200 not applied.'
+          );
+        } else {
+          console.error('[whatsapp-inbound] create_contact_simple failed:', error.message);
+        }
+        return {
+          outcome: 'error',
+          reply: `Sorry ${ctx.displayName}, I could not save that just now. Please try again shortly.`,
+          command: 'ADD_CONTACT',
+          detail: error.message,
+        };
+      }
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row || row.success !== true) {
+        return {
+          outcome: 'error',
+          reply: `Sorry ${ctx.displayName}, I could not save that: ${row?.error ?? 'unknown error'}.`,
+          command: 'ADD_CONTACT',
+          detail: row?.error ?? null,
+        };
+      }
+    } catch (e) {
+      console.error('[whatsapp-inbound] create_contact_simple threw:', e);
+      return {
+        outcome: 'error',
+        reply: `Sorry ${ctx.displayName}, I could not save that just now. Please try again shortly.`,
+        command: 'ADD_CONTACT',
+        detail: String(e),
+      };
+    }
+
+    return {
+      outcome: 'ok',
+      reply: `Saved, ${ctx.displayName}. "${companyName}" has been added to Contacts.`,
+      command: 'ADD_CONTACT',
     };
   },
 };
@@ -2115,6 +3158,30 @@ const COMMAND_HANDLERS: Record<string, (ctx: CommandContext) => Promise<CommandR
   ALERTS: (ctx) => renderMenuItem(ctx, 'alerts'),
   INTAKE: (ctx) => renderMenuItem(ctx, 'intake'),
   DIGEST: (ctx) => renderMenuItem(ctx, 'digest'),
+  // /contact, /addcontact, /newcontact — same renderMenuItem shortcut shape as the shortcuts just
+  // above: re-checks crm-grid via the role's CURRENT visible set (renderMenuItem), then dispatches
+  // to the 'addcontact' MENU_ITEMS row's subMenu (startAddContact), exactly like a tap on that row.
+  CONTACT: (ctx) => renderMenuItem(ctx, 'addcontact'),
+  ADDCONTACT: (ctx) => renderMenuItem(ctx, 'addcontact'),
+  NEWCONTACT: (ctx) => renderMenuItem(ctx, 'addcontact'),
+  // ADD <contact|contacts> — "ADD" alone collides with no existing single-word verb, but a bare
+  // ADD is ambiguous (add what?), so this only starts the flow when the SECOND word is literally
+  // "contact"/"contacts"; anything else (including a bare "ADD") falls through to the menu, same
+  // as any other unrecognised text (handleCommand's own final fallback).
+  ADD: (ctx) => {
+    const rest = ctx.rawBody
+      .trim()
+      .replace(/\s+/g, ' ')
+      .replace(/^\//, '')
+      .split(' ')
+      .slice(1)
+      .join(' ')
+      .toLowerCase();
+    if (rest === 'contact' || rest === 'contacts') {
+      return renderMenuItem(ctx, 'addcontact');
+    }
+    return commandMenu(ctx);
+  },
   // ACK <n> — stages an alert acknowledgement, applied by YES.
   ACK: commandAck,
   // RESUME — lifts a paused daily report subscription. Post-gate: STOP is the pre-gate opt-out
@@ -2184,6 +3251,12 @@ async function handleCommand(ctx: CommandContext): Promise<CommandResult> {
     if (parsed && parsed.ns === ALERT_NS && parsed.action === ALERT_ACK_ACTION && parsed.arg) {
       return dispatchAlertAck(ctx, parsed.arg);
     }
+    // A tap on the /contact flow's "type" step list — the only step sent as taps rather than
+    // free text. See dispatchContactTypeTap's own comment for why this re-peeks the draft rather
+    // than trusting the tap alone.
+    if (parsed && parsed.ns === CONTACT_NS) {
+      return dispatchContactTypeTap(ctx, parsed.action);
+    }
     // A template quick-reply tap. hasOwnProperty for the same reason as the COMMAND_HANDLERS
     // lookup below: the key is text off a public WhatsApp line and this is a plain object.
     const templateKey = ctx.replyId.trim().toLowerCase();
@@ -2205,6 +3278,18 @@ async function handleCommand(ctx: CommandContext): Promise<CommandResult> {
       command: 'MENU',
       detail: `unrecognised reply id: ${ctx.replyId}`,
     };
+  }
+
+  // A live /contact draft claims every FREE-TEXT message (never a tap — those are handled above)
+  // ahead of every other branch below, including the bare-digit menu-position shortcut and the
+  // "unmatched text opens the menu" fallback: while a draft is mid-flow, a typed company name, a
+  // digit standing in for a type tap, or a bare "menu"/"cancel" must all be read as answers to or
+  // escapes from the DRAFT, never as ordinary menu input. Returns null (falls through to the
+  // normal dispatch below, unchanged) whenever there is no live ADD_CONTACT_DRAFT for this
+  // phone+user — see routeAddContactDraft's own comment for the full set of escapes it handles.
+  const draftResult = await routeAddContactDraft(ctx);
+  if (draftResult) {
+    return draftResult;
   }
 
   // A leading '/' is optional sugar over the same bare-word commands below ('/stock' and 'stock'
@@ -2699,6 +3784,7 @@ async function processCommandForMessage(
 
   let rawBody: string;
   let replyId: string | null = null;
+  let flowResponse: Record<string, unknown> | null = null;
 
   if (type === 'text') {
     // Read straight from the message rather than through classifyMessage: that classifier treats
@@ -2711,12 +3797,24 @@ async function processCommandForMessage(
     // tap on an approved template. It returns the id, not the display title, which is the whole
     // point: see CommandContext.replyId.
     const classified = classifyMessage(msg, undefined);
-    if (classified.kind !== 'button_reply' && classified.kind !== 'list_reply') {
+    if (classified.kind === 'flow_reply') {
+      // A submitted Flow form. Dispatched by handleAddContactFlowSubmit below, never as a verb or
+      // a tap. The audit log gets a placeholder, never the form's name/phone/email fields.
+      flowResponse = classified.response;
+      rawBody = '[flow submission]';
+    } else if (classified.kind === 'button_reply' || classified.kind === 'list_reply') {
+      replyId = classified.replyId;
+      // The audit log records the id that was dispatched on, not the label the member saw.
+      rawBody = classified.replyId;
+    } else {
       return;
     }
-    replyId = classified.replyId;
-    // The audit log records the id that was dispatched on, not the label the member saw.
-    rawBody = classified.replyId;
+  } else if (type === 'contacts') {
+    // A shared WhatsApp contact card — routed to the /contact draft as a PREFILL, not treated as
+    // a verb. rawBody is the same placeholder bodyForMessage already used for the outer webhook
+    // log (line ~170 above); the audit log below records that placeholder, never the card's own
+    // (potentially sensitive) name/phone/email fields.
+    rawBody = bodyForMessage(msg);
   } else {
     // Images, location, reactions and anything else already store a placeholder body via
     // bodyForMessage; never try to command off one.
@@ -2803,7 +3901,16 @@ async function processCommandForMessage(
       replyId,
     };
 
-    const result = await handleCommand(ctx);
+    // A shared contact card never goes through handleCommand's tap/verb parsing — there is no
+    // verb and no reply id, only card fields to offer as a prefill. extractSharedContact pulls
+    // the raw fields; startAddContact re-validates every one of them (sanitisePrefill*) before
+    // accepting any as a prefill, same as every other path into the draft.
+    const result =
+      type === 'contacts'
+        ? await startAddContact(ctx, extractSharedContact(msg?.contacts?.[0]))
+        : flowResponse
+          ? await handleAddContactFlowSubmit(ctx, flowResponse)
+          : await handleCommand(ctx);
 
     await logCommand(sb, {
       phone: from,

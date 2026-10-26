@@ -62,7 +62,7 @@ var _modal_oil_dispatch = (function () {
                             qtyDisplay = qtyL.toFixed(2) + ' L';
                             if (qtyKg != null && !isNaN(qtyKg)) qtyDisplay += ' <span class="text-muted small">(≈ ' + qtyKg.toFixed(1) + ' kg)</span>';
                         } else if (line.cartons != null && line.cartons >= 0) {
-                            qtyDisplay = line.cartons + ' ct · ' + (qtyKg != null ? qtyKg : '—') + ' kg';
+                            qtyDisplay = DispatchFormShared.cartonLabel(line.cartons) + ' · ' + (qtyKg != null ? qtyKg : '—') + ' kg';
                         } else {
                             qtyDisplay = qtyKg != null ? qtyKg + ' kg' : '—';
                         }

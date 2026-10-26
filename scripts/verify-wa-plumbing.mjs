@@ -623,6 +623,22 @@ const CLASSIFY_MESSAGE_LITERAL = block([
   '      }',
   "      return { kind: 'unsupported' };",
   '    }',
+  '    // A submitted WhatsApp Flow form (a Footer `complete` action). Meta documents the shape as',
+  '    // interactive.nfm_reply.response_json, a JSON STRING of the complete-action payload. Nothing has',
+  '    // produced one on this line yet, so every step is guarded and anything off-shape is unsupported.',
+  "    if (interactiveType === 'nfm_reply') {",
+  '      const nfm = (interactive.nfm_reply as Record<string, unknown> | undefined) ?? {};',
+  '      const raw = nfm.response_json;',
+  "      if (!isNonEmptyString(raw)) return { kind: 'unsupported' };",
+  '      let parsed: unknown;',
+  '      try {',
+  '        parsed = JSON.parse(raw);',
+  '      } catch {',
+  "        return { kind: 'unsupported' };",
+  '      }',
+  "      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { kind: 'unsupported' };",
+  "      return { kind: 'flow_reply', from, id, response: parsed as Record<string, unknown>, senderName };",
+  '    }',
   "    return { kind: 'unsupported' };",
   '  }',
   '',
@@ -638,6 +654,20 @@ const CLASSIFY_MESSAGE_LITERAL = block([
   '    const replyTitle = isNonEmptyString(text) ? text : (payload as string);',
   '    const replyId = isNonEmptyString(payload) ? payload : (text as string);',
   "    return { kind: 'button_reply', from, id, replyId, replyTitle, senderName };",
+  '  }',
+  '',
+  '  // A shared WhatsApp contact card (the paperclip > Contact attachment, not a typed message).',
+  "  // whatsapp-inbound/index.ts's /contact draft reads msg.contacts[0] directly rather than through",
+  '  // this classifier (see that file\'s processCommandForMessage for why), but this branch exists so',
+  '  // classifyMessage/extractMessage stay a complete, accurate classification of every message type',
+  '  // this line can receive, for any other caller (and for the plumbing tests in',
+  '  // scripts/verify-wa-plumbing.mjs) to rely on.',
+  "  if (type === 'contacts') {",
+  '    const contactsArr = Array.isArray(m.contacts) ? (m.contacts as unknown[]) : [];',
+  '    if (contactsArr.length > 0) {',
+  "      return { kind: 'contacts', from, id, contacts: contactsArr, senderName };",
+  '    }',
+  "    return { kind: 'unsupported' };",
   '  }',
   '',
   "  return { kind: 'unsupported' };",
@@ -684,6 +714,19 @@ function classifyMessage(msg, senderName) {
       }
       return { kind: 'unsupported' };
     }
+    if (interactiveType === 'nfm_reply') {
+      const nfm = interactive.nfm_reply ?? {};
+      const raw = nfm.response_json;
+      if (!isNonEmptyString(raw)) return { kind: 'unsupported' };
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        return { kind: 'unsupported' };
+      }
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { kind: 'unsupported' };
+      return { kind: 'flow_reply', from, id, response: parsed, senderName };
+    }
     return { kind: 'unsupported' };
   }
 
@@ -697,6 +740,14 @@ function classifyMessage(msg, senderName) {
     const replyTitle = isNonEmptyString(text) ? text : payload;
     const replyId = isNonEmptyString(payload) ? payload : text;
     return { kind: 'button_reply', from, id, replyId, replyTitle, senderName };
+  }
+
+  if (type === 'contacts') {
+    const contactsArr = Array.isArray(m.contacts) ? m.contacts : [];
+    if (contactsArr.length > 0) {
+      return { kind: 'contacts', from, id, contacts: contactsArr, senderName };
+    }
+    return { kind: 'unsupported' };
   }
 
   return { kind: 'unsupported' };
@@ -818,14 +869,18 @@ check('wa-send.ts header records the confirmed-from-source provenance for the no
   assert.ok(waSendSrc.includes('passed through UNCHANGED'));
 });
 
-check('wa-send.ts exports sendButtons / sendList / sendTemplate / sendFlow, each via sendViaControlRoom', () => {
+check('wa-send.ts exports sendButtons / sendList / sendTemplate / sendFlow / sendFlowScreen, each via sendViaControlRoom', () => {
   assert.ok(/export async function sendButtons\(/.test(waSendSrc));
   assert.ok(/export async function sendList\(/.test(waSendSrc));
   assert.ok(/export async function sendTemplate\(/.test(waSendSrc));
   assert.ok(/export async function sendFlow\(/.test(waSendSrc));
+  assert.ok(/export async function sendFlowScreen\(/.test(waSendSrc));
+  assert.ok(waSendSrc.includes('const body = buildFlowOpenBody(to, bodyText, flowId, screenId, ctaText, flowToken);'));
+  // buildFlowOpenBody opens a data-less screen: it must never send a `data` key.
+  assert.ok(waSendSrc.includes('flow_action_payload: { screen: screenId },'));
   // Every sender must go through the single signing path. A sender that builds its own fetch would
   // be a second place for the HMAC to drift out of step.
-  assert.equal((waSendSrc.match(/return sendViaControlRoom\(body\);/g) || []).length, 5);
+  assert.equal((waSendSrc.match(/return sendViaControlRoom\(body\);/g) || []).length, 6);
   assert.equal((waSendSrc.match(/await fetch\(/g) || []).length, 1);
 });
 
@@ -1127,6 +1182,54 @@ check('extractMessage: message missing id -> unsupported', () => {
 
 check("extractMessage: type:'image' -> unsupported", () => {
   const msg = { from: '27821234567', id: 'wamid.7', type: 'image', image: { id: 'media1' } };
+  assert.equal(extractMessage(envelope(msg)).kind, 'unsupported');
+});
+
+check("classifyMessage: interactive nfm_reply with a JSON object -> kind:'flow_reply'", () => {
+  const r = classifyMessage(
+    {
+      from: '27821234567',
+      id: 'wamid.f1',
+      type: 'interactive',
+      interactive: {
+        type: 'nfm_reply',
+        nfm_reply: { name: 'flow', body: 'Sent', response_json: '{"form":"add_contact","company_name":"Acme","flow_token":"t"}' },
+      },
+    },
+    undefined
+  );
+  assert.equal(r.kind, 'flow_reply');
+  assert.equal(r.response.form, 'add_contact');
+  assert.equal(r.response.company_name, 'Acme');
+});
+
+check('classifyMessage: nfm_reply with malformed, array, or missing response_json -> unsupported', () => {
+  for (const response_json of ['{not json', '[1,2]', 'null', '', undefined]) {
+    const r = classifyMessage(
+      { from: '27821234567', id: 'wamid.f2', type: 'interactive', interactive: { type: 'nfm_reply', nfm_reply: { response_json } } },
+      undefined
+    );
+    assert.equal(r.kind, 'unsupported', `response_json=${String(response_json)}`);
+  }
+  const noNfm = classifyMessage({ from: '27821234567', id: 'wamid.f3', type: 'interactive', interactive: { type: 'nfm_reply' } }, undefined);
+  assert.equal(noNfm.kind, 'unsupported');
+});
+
+check("extractMessage: type:'contacts' with a shared contact card -> kind:'contacts'", () => {
+  const msg = {
+    from: '27821234567',
+    id: 'wamid.8',
+    type: 'contacts',
+    contacts: [{ name: { formatted_name: 'Jane Smith' }, org: { company: 'Acme' } }],
+  };
+  const r = extractMessage(envelope(msg));
+  assert.equal(r.kind, 'contacts');
+  assert.equal(r.contacts.length, 1);
+  assert.equal(r.contacts[0].org.company, 'Acme');
+});
+
+check("extractMessage: type:'contacts' with an EMPTY contacts array -> unsupported", () => {
+  const msg = { from: '27821234567', id: 'wamid.9', type: 'contacts', contacts: [] };
   assert.equal(extractMessage(envelope(msg)).kind, 'unsupported');
 });
 

@@ -468,6 +468,26 @@ var _appRouter = function () {
                         initializeReportEditor();
                     }
                 },
+                'silo-allocation-grid': () => {
+                    if (typeof _siloAllocationGrid !== 'undefined' && _siloAllocationGrid.init) {
+                        _siloAllocationGrid.init();
+                    }
+                },
+                'kernel-pipeline-settings': () => {
+                    if (typeof _kernelPipelineSettingsGrid !== 'undefined' && _kernelPipelineSettingsGrid.init) {
+                        _kernelPipelineSettingsGrid.init();
+                    }
+                },
+                'kernel-dashboard': () => {
+                    if (typeof _kernelDashboard !== 'undefined' && _kernelDashboard.init) {
+                        _kernelDashboard.init();
+                    }
+                },
+                'oil-dashboard': () => {
+                    if (typeof _oilDashboard !== 'undefined' && _oilDashboard.init) {
+                        _oilDashboard.init();
+                    }
+                },
                 'report-targets-grid': () => {
                     if (typeof _reportTargetsGrid !== 'undefined' && _reportTargetsGrid.init) {
                         _reportTargetsGrid.init();

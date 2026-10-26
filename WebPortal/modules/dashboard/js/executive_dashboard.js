@@ -107,6 +107,9 @@ var _executiveDashboard = function () {
         return 'info';
     }
 
+    // alert_type -> short label shown beside the title (only types worth naming).
+    var EXEC_ALERT_TYPE_LABELS = { intake_problem: 'Intake problem' };
+
     function execAlertSeverityRank(sev) {
         if (sev === 'critical') return 0;
         if (sev === 'warning') return 1;
@@ -165,6 +168,13 @@ var _executiveDashboard = function () {
         var titleEl = document.createElement('strong');
         titleEl.textContent = ' ' + title;
         head.appendChild(titleEl);
+        var typeLabel = EXEC_ALERT_TYPE_LABELS[String(a.alert_type || '').toLowerCase()];
+        if (typeLabel && title.indexOf(typeLabel) !== 0) {
+            var typeEl = document.createElement('span');
+            typeEl.className = 'badge text-bg-light ms-2';
+            typeEl.textContent = typeLabel;
+            head.appendChild(typeEl);
+        }
         body.appendChild(head);
 
         var msgEl = document.createElement('div');
@@ -172,12 +182,22 @@ var _executiveDashboard = function () {
         msgEl.textContent = message;
         body.appendChild(msgEl);
 
+        if (a.created_at) {
+            var when = new Date(a.created_at);
+            if (!isNaN(when.getTime())) {
+                var timeEl = document.createElement('div');
+                timeEl.className = 'small text-muted';
+                timeEl.textContent = when.toLocaleString();
+                body.appendChild(timeEl);
+            }
+        }
+
         row.appendChild(body);
 
         var actions = document.createElement('div');
         actions.className = 'exec-alert-actions';
 
-        var selector = execMatchAlertGoToSelector(title + ' ' + message);
+        var selector = String(a.alert_type || '') === 'intake_problem' ? null : execMatchAlertGoToSelector(title + ' ' + message);
         if (selector) {
             var target = document.querySelector(selector);
             if (_executiveDashboard.execScrollTarget(target) === 'ok') {
