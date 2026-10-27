@@ -143,3 +143,41 @@
     }
 }
 
+
+/* Red task-count bubble on a menu icon (My Day, and the group that holds it), like a phone app badge.
+   The icon is wrapped in .mac-icon-badge-anchor by workflowViews.updateTaskBadge. */
+.mac-icon-badge-anchor {
+    position: relative;
+    display: inline-flex;
+    margin-right: 0.5rem;
+}
+.mac-icon-badge-anchor > i.me-2 { margin-right: 0 !important; }
+.mac-task-badge {
+    position: absolute;
+    top: -0.55rem;
+    right: -0.7rem;
+    min-width: 1.15rem;
+    height: 1.15rem;
+    padding: 0 0.3rem;
+    box-sizing: border-box;
+    border-radius: 999px;
+    background: var(--mac-danger);
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1.15rem;
+    text-align: center;
+    box-shadow: 0 0 0 2px var(--mac-bg-secondary);
+    pointer-events: none;
+}
+
+/* Task notifications in the sidebar bell: red so they stand out (js/notifications.js adds the classes). */
+.notif-item.notif-task {
+    border-left: 3px solid var(--mac-danger);
+}
+.notif-item.notif-task-unread {
+    background: var(--mac-danger-light);
+}
+.notif-item.notif-task-unread .text-dark {
+    color: var(--mac-danger) !important;
+}

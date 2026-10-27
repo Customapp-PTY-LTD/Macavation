@@ -40,7 +40,7 @@
     <!-- Metric UI Styles -->
     <link href="css/metric-ui.css" rel="stylesheet">
     <!-- Workflow Views Styles -->
-    <link href="css/workflow-views.css" rel="stylesheet">
+    <link href="css/workflow-views.css?v=20261027red" rel="stylesheet">
     <!-- Connected Workflows Styles -->
     <link href="css/connected-workflows.css" rel="stylesheet">
     <!-- Kanban Board Styles -->
@@ -60,7 +60,7 @@
     <!-- Metric UI -->
     <script src="js/metric-ui.js"></script>
     <!-- Workflow Views -->
-    <script src="js/workflow-views.js?v=20261027tasks"></script>
+    <script src="js/workflow-views.js?v=20261027red"></script>
     <!-- Connected Workflows -->
     <script src="js/connected-workflows.js"></script>
     <!-- Proactive Intelligence -->
@@ -104,6 +104,12 @@
                     </div>
                     <div class="flex-grow-1 sidebar-scroll">
                         <ul class="nav flex-column gap-1">
+                            <!-- My Day: its own top-level module (tasks + red count bubble), first in the menu -->
+                            <li class="nav-item d-none" data-route="my-day">
+                                <a class="nav-link" href="#" route="my-day" title="My Day">
+                                    <i class="fas fa-list-check me-2"></i>My Day
+                                </a>
+                            </li>
                             <!-- Home -->
                             <li class="nav-item d-none" data-parent="homeCollapse">
                                 <a class="nav-link" href="#" data-bs-toggle="collapse"
@@ -127,11 +133,6 @@
                                         <li class="nav-item d-none" data-route="oil-dashboard">
                                             <a class="nav-link" href="#" route="oil-dashboard" title="Oil Dashboard">
                                                 <i class="fas fa-oil-can me-2"></i>Oil Dashboard
-                                            </a>
-                                        </li>
-                                        <li class="nav-item d-none" data-route="my-day">
-                                            <a class="nav-link" href="#" route="my-day" title="My Day">
-                                                <i class="fas fa-list-check me-2"></i>My Day
                                             </a>
                                         </li>
                                     </ul>
@@ -577,7 +578,7 @@
     <script src="js/session.js?v=20260716d"></script>
     <script src="js/themes.js"></script>
     <script src="js/super-user-visibility.js?v=20260715a"></script>
-    <script src="js/data-functions.js?v=20261027switch"></script>
+    <script src="js/data-functions.js?v=20261027red"></script>
     <script src="js/auth-service.js?v=20260716c"></script>
     <script src="js/common.js?v=20261026p"></script>
     <script src="js/export-utils.js"></script>
@@ -593,10 +594,10 @@
          data-functions guards all offlineStorage usage with typeof checks.) -->
 
     <!-- Role-Based Menu Scripts -->
-    <script src="js/role-menu-config.js?v=20261027switch"></script>
+    <script src="js/role-menu-config.js?v=20261027red"></script>
     <script src="js/menu-filter.js?v=20260716d"></script>
     <script src="js/action-access.js?v=20260602a"></script>
-    <script src="js/notifications.js?v=20260602a"></script>
+    <script src="js/notifications.js?v=20261027red"></script>
     <script src="js/whatsapp-unread-badge.js"></script>
     <script src="js/stock-alerts-shared.js?v=20260629a"></script>
     
@@ -615,7 +616,7 @@
          script tag, so bumping it here is all that is needed to make a deployed change to any
          module actually reach a browser that has been in the portal before. Bump it whenever a
          module's html/js/css changes. -->
-    <script src="js/appRouter.js?v=20261027switch"></script>
+    <script src="js/appRouter.js?v=20261027red"></script>
     <script src="js/app.js"></script>
     <script src="js/index.js?v=20261027tasks"></script>
     <script src="js/shell.js"></script>

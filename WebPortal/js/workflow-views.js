@@ -5,6 +5,28 @@
  */
 
 var _workflowViews = function () {
+    // Red count bubble on a menu link's icon (styles: css/workflow-views.css .mac-task-badge).
+    function setIconBadge(a, n) {
+        var icon = a.querySelector('i.fas, i.far');
+        if (!icon) return;
+        var anchor = icon.parentElement.classList.contains('mac-icon-badge-anchor') ? icon.parentElement : null;
+        if (!anchor) {
+            anchor = document.createElement('span');
+            anchor.className = 'mac-icon-badge-anchor';
+            icon.parentNode.insertBefore(anchor, icon);
+            anchor.appendChild(icon);
+        }
+        var badge = anchor.querySelector('.mac-task-badge');
+        if (!n) { if (badge) badge.remove(); return; }
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'mac-task-badge';
+            anchor.appendChild(badge);
+        }
+        badge.textContent = n > 99 ? '99+' : String(n);
+        badge.setAttribute('aria-label', n + ' task' + (n === 1 ? '' : 's') + ' waiting');
+    }
+
     return {
         /**
          * Get user's role
@@ -280,8 +302,23 @@ var _workflowViews = function () {
             const { tasks, watching, dueItems, recentActivity, workQueue } = data;
             var wq = workQueue || { intake: [], production: [], stockDispatch: [] };
 
+            var openCount = (tasks || []).filter(function (t) { return !t.is_snoozed; }).length;
+            var countPill = openCount
+                ? '<span class="badge rounded-pill bg-danger ms-2">' + openCount + ' waiting</span>' : '';
+
+            // Tasks first and full width: they are what the person has to act on (Henry, 27 Oct 2026).
             const html = `
                 <div class="my-day-dashboard">
+                    <div class="card mb-4 my-day-tasks-card${openCount ? ' has-tasks' : ''}">
+                        <div class="card-header d-flex flex-wrap align-items-center gap-2">
+                            <h4 class="mb-0"><i class="fas fa-list-check me-2"></i>Your tasks</h4>${countPill}
+                            <span class="small text-muted ms-auto">Things waiting for you to do. Each new one also shows in the bell.</span>
+                        </div>
+                        <div class="card-body">
+                            ${this.renderWorkflowTasks(tasks)}
+                        </div>
+                    </div>
+
                     <div class="row g-4 mb-2">
                         <div class="col-lg-4">
                             <div class="card h-100">
@@ -309,66 +346,29 @@ var _workflowViews = function () {
                         </div>
                     </div>
 
-                    <div class="row g-4">
-                        <!-- Today's Workflow -->
-                        <div class="col-lg-8">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5 class="mb-0">
-                                        <i class="fas fa-list-check me-2"></i>
-                                        Tasks
-                                    </h5>
-                                </div>
-                                <div class="card-body">
-                                    ${this.renderWorkflowTasks(tasks)}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Due This Period -->
-                        <div class="col-lg-4">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5 class="mb-0">
-                                        <i class="fas fa-calendar-day me-2"></i>
-                                        Due This Period
-                                    </h5>
-                                </div>
-                                <div class="card-body">
-                                    ${this.renderDueItems(dueItems)}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="row g-4 mt-2">
-                        <!-- Watching (Proactive Intelligence) -->
-                        <div class="col-lg-6">
-                            <div class="card">
+                        <div class="col-lg-4">
+                            <div class="card h-100">
                                 <div class="card-header">
-                                    <h5 class="mb-0">
-                                        <i class="fas fa-eye me-2"></i>
-                                        Watching
-                                    </h5>
+                                    <h5 class="mb-0"><i class="fas fa-calendar-day me-2"></i>Due This Period</h5>
                                 </div>
-                                <div class="card-body">
-                                    ${this.renderWatchingItems(watching)}
-                                </div>
+                                <div class="card-body">${this.renderDueItems(dueItems)}</div>
                             </div>
                         </div>
-
-                        <!-- Recent Activity -->
-                        <div class="col-lg-6">
-                            <div class="card">
+                        <div class="col-lg-4">
+                            <div class="card h-100">
                                 <div class="card-header">
-                                    <h5 class="mb-0">
-                                        <i class="fas fa-clock-rotate-left me-2"></i>
-                                        Recent Activity
-                                    </h5>
+                                    <h5 class="mb-0"><i class="fas fa-eye me-2"></i>Watching</h5>
                                 </div>
-                                <div class="card-body">
-                                    ${this.renderRecentActivity(recentActivity)}
+                                <div class="card-body">${this.renderWatchingItems(watching)}</div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-clock-rotate-left me-2"></i>Recent Activity</h5>
                                 </div>
+                                <div class="card-body">${this.renderRecentActivity(recentActivity)}</div>
                             </div>
                         </div>
                     </div>
@@ -528,15 +528,14 @@ var _workflowViews = function () {
             var link = document.querySelector('.nav-item[data-route="my-day"] > a');
             if (!link) return;
             var n = (tasks || []).filter(function (t) { return !t.is_snoozed; }).length;
-            var badge = link.querySelector('.mac-task-badge');
-            if (!n) { if (badge) badge.remove(); return; }
-            if (!badge) {
-                badge = document.createElement('span');
-                badge.className = 'badge rounded-pill bg-success ms-2 mac-task-badge';
-                link.appendChild(badge);
-            }
-            badge.textContent = String(n);
-            badge.setAttribute('aria-label', n + ' open task' + (n === 1 ? '' : 's'));
+            // The My Day link (a top-level item now), plus the folding group's link if it is ever put
+            // back inside one, so the bubble still shows when that group is folded.
+            var links = [link];
+            var group = link.closest('.collapse');
+            var groupLink = group && group.id
+                ? document.querySelector('#sidebarMenu [data-bs-target="#' + group.id + '"]') : null;
+            if (groupLink) links.push(groupLink);
+            links.forEach(function (a) { setIconBadge(a, n); });
         },
 
         refreshTaskBadge: async function () {
