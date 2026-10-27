@@ -296,6 +296,8 @@ var _siloAllocationGrid = (function () {
         var opts = (state.overview || []).map(function (s) {
             var cap = Number(s.capacity_kg || 0), filled = Number(s.filled_kg || 0);
             var free = Math.max(0, cap - filled);
+            // A silo may be filled past capacity (migration 20261027120000): say how far over.
+            var room = (cap > 0 && filled > cap) ? 'full, ' + kg(filled - cap, 0) + ' kg over' : kg(free, 0) + ' kg free';
             var contents = s.contents || [];
             var mine = contents.filter(function (c) { return String(c.kernel_id) === String(batch.kernel_id); })[0];
             var other = contents.filter(function (c) { return String(c.kernel_id) !== String(batch.kernel_id); })[0];
@@ -304,7 +306,7 @@ var _siloAllocationGrid = (function () {
                 ok = false;
                 label = 'Silo ' + s.silo_number + ' · holds ' + other.batch_number + ' — other batch, can’t mix';
             } else if (mine) {
-                label = 'Silo ' + s.silo_number + ' · already holds ' + mine.batch_number + ' · ' + kg(free, 0) + ' kg free';
+                label = 'Silo ' + s.silo_number + ' · already holds ' + mine.batch_number + ' · ' + room;
             } else {
                 label = 'Silo ' + s.silo_number + ' · empty · ' + kg(free, 0) + ' kg free';
             }
@@ -486,7 +488,8 @@ var _siloAllocationGrid = (function () {
         var h = '';
         state.overview.forEach(function (s) {
             var cap = Number(s.capacity_kg || 0), filled = Number(s.filled_kg || 0);
-            var pct = cap > 0 ? Math.min(100, filled / cap * 100) : 0;
+            // pct is the real fill and can pass 100% (overfilled silo); the tank drawing stops at the top.
+            var pct = cap > 0 ? filled / cap * 100 : 0;
             var tier = siloTier(filled, cap);
             var open = s.open_run || null;
             var pill = open ? '<span class="badge bg-success">Cracking</span>'
@@ -508,7 +511,7 @@ var _siloAllocationGrid = (function () {
             h += '<div class="silo-card silo-tier-' + tier + (open ? ' silo-open' : '') + focus + '">' +
                 '<div class="silo-card-head"><span>Silo ' + esc(s.silo_number) + '</span>' + pill + '</div>' +
                 '<div class="silo-tank" role="img" aria-label="Silo ' + esc(s.silo_number) + ' ' + Math.round(pct) + ' percent full">' +
-                '<div class="silo-level" style="height:' + pct.toFixed(1) + '%"></div>' +
+                '<div class="silo-level" style="height:' + Math.min(100, pct).toFixed(1) + '%"></div>' +
                 '<div class="silo-pct">' + Math.round(pct) + '%</div></div>' +
                 '<div class="silo-meta">' + esc(kg(filled, 0)) + ' / ' + esc(kg(cap, 0)) + ' kg</div>' +
                 '<div>' + contents + '</div>';
