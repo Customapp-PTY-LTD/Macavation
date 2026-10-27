@@ -1,10 +1,10 @@
 /**
- * The 17:30 report as a WhatsApp Flow (supabase/flows/daily-production-report.flow.json).
+ * The 19:00 report as a WhatsApp Flow (supabase/flows/daily-production-report.flow.json).
  *
  * Pure builders only - no env, no network. Everything is computed ONCE per run from the same
  * get_daily_digest() payload the text template uses, and frozen into the template's FLOW button as
- * the SUMMARY screen's launch data. Opening the Flow at 20:00 still shows the 17:30 figures, which
- * is why every screen says "As at 17:30 SAST".
+ * the SUMMARY screen's launch data. Opening the Flow at 21:00 still shows the 19:00 figures, which
+ * is why every screen says "As at 19:00 SAST".
  *
  * Screen data contract (must match the Flow JSON exactly - Meta rejects undeclared keys):
  *   SUMMARY: { label: string, description: string, rows: NavigationList item[] }
@@ -97,7 +97,7 @@ function table(rows: [string, string][]): string {
   return '| | |\n|---|---|\n' + rows.map(([a, b]) => `| ${cell(a)} | ${cell(b)} |`).join('\n');
 }
 
-const AS_AT = 'As at 17:30 SAST. This week runs from Monday.';
+const AS_AT = 'As at 19:00 SAST. This week runs from Monday.';
 
 /**
  * Meta's NavigationList item length caps. The Flow validator only checks the Flow JSON, never the
@@ -153,7 +153,7 @@ export function buildFlowReport(digest: AnyRow, dateStr: string, targetKg: numbe
   const nisRunOutShort = dayMonth(digest?.nis_runway?.final_depletion_date);
   const target = targetKg !== null && targetKg > 0 ? targetKg : null;
 
-  // A day with nothing cracked by 17:30 is reported as such, never as a % of target. Whether the
+  // A day with nothing cracked by 19:00 is reported as such, never as a % of target. Whether the
   // sheets are late or nothing ran cannot be told apart from the digest, so the wording covers both.
   const nothingYet = cracked === null || cracked === 0;
   const pctOfTarget = !nothingYet && target !== null ? Math.round((cracked! / target) * 100) : null;
@@ -188,7 +188,7 @@ export function buildFlowReport(digest: AnyRow, dateStr: string, targetKg: numbe
         .join('\n') +
       (alerts.length > 10 ? `\n\nAnd ${alerts.length - 10} more on the portal.` : '') +
       '\n\nAlerts are cleared on the portal, not from here.'
-    : '# Open alerts\n\nNo open alerts at 17:30.';
+    : '# Open alerts\n\nNo open alerts at 19:00.';
 
   const rows = [
     row(
@@ -242,8 +242,8 @@ export function buildFlowReport(digest: AnyRow, dateStr: string, targetKg: numbe
 
   const label = dayLabel(dateStr);
   const description =
-    `Figures as at 17:30 SAST · ${fmt(batches) ?? 'no'} batches in production.` +
-    (nothingYet ? " No cracking was captured for today by 17:30, so this week's totals run up to the last capture." : '') +
+    `Figures as at 19:00 SAST · ${fmt(batches) ?? 'no'} batches in production.` +
+    (nothingYet ? " No cracking was captured for today by 19:00, so this week's totals run up to the last capture." : '') +
     ' Tap a row for the detail.';
 
   const auditText = [

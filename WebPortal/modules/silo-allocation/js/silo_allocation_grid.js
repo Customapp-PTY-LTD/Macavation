@@ -28,10 +28,17 @@ var _siloAllocationGrid = (function () {
         runs: null,       // array of runs, or null when the RPC failed
         tally: null,      // pre-sizer tally of the selected batch, or null when unavailable
         batchId: null,
+        pickedKernel: null, // "Show a batch" on the Silos card: kernel_id, or null for all silos
+        allocOpen: false,   // Allocate bags unfolded; remembered on this device
         timer: null
     };
 
     var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    var DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    // A run longer than this is almost always a stop time saved on the wrong day.
+    var LONG_RUN_MINUTES = 16 * 60;
+    var ALLOC_OPEN_KEY = 'mac.siloAllocation.allocOpen';
 
     // ------------------------------------------------------------------
     // Helpers.
@@ -104,6 +111,49 @@ var _siloAllocationGrid = (function () {
 
     function isoToMs(iso) {
         return iso ? new Date(iso).getTime() : NaN;
+    }
+
+    // 'YYYY-MM-DD' -> "Mon 26 Oct"
+    function fmtDay(dateStr) {
+        var p = String(dateStr || '').split('-');
+        if (p.length !== 3) { return String(dateStr || ''); }
+        var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+        if (isNaN(d.getTime())) { return String(dateStr); }
+        return DAYS[d.getDay()] + ' ' + pad2(d.getDate()) + ' ' + MONTHS[d.getMonth()];
+    }
+
+    // Supplier of a batch in a silo: from the overview (migration 20261027090000), else from the
+    // batch list, which has always carried grower_name.
+    function supplierOf(c) {
+        if (c && c.grower_name) { return String(c.grower_name); }
+        var list = state.batches || [];
+        for (var i = 0; i < list.length; i++) {
+            if (String(list[i].kernel_id) === String(c && c.kernel_id)) { return String(list[i].grower_name || ''); }
+        }
+        return '';
+    }
+
+    // Every silo holding bags of each batch: { kernel_id: { batch_number, supplier, silos: [no], kg } }.
+    function batchSpread() {
+        var out = {};
+        (state.overview || []).forEach(function (s) {
+            (s.contents || []).forEach(function (c) {
+                var k = String(c.kernel_id);
+                if (!out[k]) { out[k] = { kernel_id: k, batch_number: c.batch_number, supplier: supplierOf(c), silos: [], kg: 0 }; }
+                if (out[k].silos.indexOf(Number(s.silo_number)) === -1) { out[k].silos.push(Number(s.silo_number)); }
+                out[k].kg += Number(c.kg) || 0;
+            });
+        });
+        Object.keys(out).forEach(function (k) { out[k].silos.sort(function (a, b) { return a - b; }); });
+        return out;
+    }
+
+    function readAllocOpen() {
+        try { return window.localStorage.getItem(ALLOC_OPEN_KEY) === '1'; } catch (e) { return false; }
+    }
+
+    function writeAllocOpen(open) {
+        try { window.localStorage.setItem(ALLOC_OPEN_KEY, open ? '1' : '0'); } catch (e) { /* private mode: not remembered */ }
     }
 
     // [1,2,3,5] -> "1–3, 5"
@@ -229,6 +279,17 @@ var _siloAllocationGrid = (function () {
         startTicker();
     }
 
+    // Folded: Allocate bags shows only its one-line summary, and the pre-sizer tally (part of
+    // allocating) folds away with it.
+    function applyAllocOpen() {
+        var open = !!state.allocOpen;
+        $('.silo-alloc-card').toggleClass('is-open', open);
+        $('#siloAllocToggle').attr('aria-expanded', open ? 'true' : 'false');
+        $('#siloAllocToggleLabel').text(open ? 'Hide' : 'Show');
+        $('#siloAllocBody').toggleClass('d-none', !open);
+        renderTally();
+    }
+
     // Silo choices for the selected batch: empty or already holding THIS batch are selectable,
     // silos holding another batch are listed but disabled. Selectable ones come first.
     function siloOptions(batch) {
@@ -265,12 +326,15 @@ var _siloAllocationGrid = (function () {
             return;
         }
         if (!state.batches.length) {
+            $count.text('No bags waiting to allocate');
             $body.html('<div class="text-muted">No released deliveries are waiting. Bags appear here after a New Delivery is released to production.</div>');
             return;
         }
         var batch = currentBatch();
         var un = unallocated(batch);
-        $count.text(un.length + ' of ' + (batch.bags || []).length + ' bags not yet allocated');
+        $count.text(batchLabel(batch) + ' — ' + (un.length
+            ? un.length + ' of ' + (batch.bags || []).length + ' bags still to allocate'
+            : 'all bags allocated'));
 
         var h = '<div class="mb-3"><label for="siloBatchSel" class="form-label">Batch</label>' +
             '<select class="form-select" id="siloBatchSel">';
@@ -281,6 +345,13 @@ var _siloAllocationGrid = (function () {
                 esc(batchLabel(b) + (hint ? ' — ' + hint : '')) + '</option>';
         });
         h += '</select></div>';
+
+        var where = batchSpread()[String(batch.kernel_id)];
+        if (where && where.silos.length) {
+            h += '<div class="silo-where-strip mb-3"><span class="small fw-semibold">This batch is already in</span>';
+            where.silos.forEach(function (no) { h += '<span class="silo-where-chip">Silo ' + esc(no) + '</span>'; });
+            h += '<span class="small text-muted">· ' + esc(kg(where.kg, 0)) + ' kg</span></div>';
+        }
 
         if (un.length) {
             h += '<div class="table-responsive"><table class="table align-middle mb-2"><thead><tr>' +
@@ -339,7 +410,7 @@ var _siloAllocationGrid = (function () {
     function renderTally() {
         var $card = $('#siloTallyCard');
         var batch = currentBatch();
-        if (state.batches === null || !batch) { $card.addClass('d-none'); return; }
+        if (state.batches === null || !batch || !state.allocOpen) { $card.addClass('d-none'); return; }
         $card.removeClass('d-none');
         $('#siloTallyTitle').text('Pre-sizer tally · ' + String(batch.batch_number || ''));
         var $body = $('#siloTallyBody');
@@ -377,10 +448,41 @@ var _siloAllocationGrid = (function () {
 
     function renderSilos() {
         var $grid = $('#siloGrid');
+        var $chips = $('#siloBatchChips').empty();
+        var $spread = $('#siloBatchSpread').empty();
         if (state.overview === null) {
             $grid.html('<div class="text-muted">Unavailable until Silo Allocation is set up.</div>');
             return;
         }
+        var spread = batchSpread();
+        var keys = Object.keys(spread).sort(function (a, b) {
+            return String(spread[a].batch_number).localeCompare(String(spread[b].batch_number));
+        });
+        if (state.pickedKernel && !spread[state.pickedKernel]) { state.pickedKernel = null; }
+        var picked = state.pickedKernel;
+
+        // "Show a batch": one chip per batch sitting in a silo, plus "All silos".
+        if (keys.length) {
+            var ch = '<span class="small fw-semibold text-muted">Show a batch:</span>' +
+                '<button type="button" class="silo-batch-chip' + (picked ? '' : ' is-active') +
+                '" data-kernel="" aria-pressed="' + (picked ? 'false' : 'true') + '">All silos</button>';
+            keys.forEach(function (k) {
+                var b = spread[k], on = picked === k;
+                ch += '<button type="button" class="silo-batch-chip' + (on ? ' is-active' : '') + '" data-kernel="' +
+                    esc(k) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
+                    esc(b.batch_number + (b.supplier ? ' · ' + b.supplier : '') + ' (' + b.silos.length + ')') + '</button>';
+            });
+            $chips.html(ch);
+        }
+        if (picked) {
+            var p = spread[picked];
+            $spread.html('<div class="silo-batch-spread"><i class="fas fa-magnifying-glass" aria-hidden="true"></i>' +
+                '<strong>' + esc(p.batch_number + (p.supplier ? ' (' + p.supplier + ')' : '')) + '</strong>' +
+                '<span>is in ' + esc(p.silos.length) + ' silo' + (p.silos.length === 1 ? '' : 's') + ': <strong>' +
+                esc(p.silos.join(', ')) + '</strong></span>' +
+                '<span class="text-muted">· ' + esc(kg(p.kg, 0)) + ' kg still in silos</span></div>');
+        }
+
         var h = '';
         state.overview.forEach(function (s) {
             var cap = Number(s.capacity_kg || 0), filled = Number(s.filled_kg || 0);
@@ -389,16 +491,27 @@ var _siloAllocationGrid = (function () {
             var open = s.open_run || null;
             var pill = open ? '<span class="badge bg-success">Cracking</span>'
                 : '<span class="silo-pill">' + SILO_TIER_LABEL[tier] + '</span>';
+            var mine = false;
             var contents = (s.contents || []).map(function (c) {
-                return esc(c.batch_number) + ((c.bags && c.bags.length) ? ' (bags ' + esc(c.bags.join(', ')) + ')' : '');
-            }).join('<br>') || '&mdash;';
-            h += '<div class="silo-card silo-tier-' + tier + (open ? ' silo-open' : '') + '">' +
+                var k = String(c.kernel_id), others = spread[k] ? spread[k].silos.length - 1 : 0;
+                var supplier = supplierOf(c);
+                if (picked === k) { mine = true; }
+                return '<button type="button" class="silo-batch-btn" data-kernel="' + esc(k) + '">' +
+                    (supplier ? '<span class="silo-supplier">' + esc(supplier) + '</span>' : '') +
+                    '<span class="silo-meta">' + esc(c.batch_number) +
+                    ((c.bags && c.bags.length) ? ' (bags ' + esc(c.bags.join(', ')) + ')' : '') + '</span>' +
+                    '<span class="silo-spread">' + (others > 0
+                        ? 'Also in ' + esc(others) + ' other silo' + (others === 1 ? '' : 's')
+                        : 'Only in this silo') + '</span></button>';
+            }).join('') || '<div class="silo-meta">&mdash;</div>';
+            var focus = picked ? (mine ? ' is-picked' : ' is-dimmed') : '';
+            h += '<div class="silo-card silo-tier-' + tier + (open ? ' silo-open' : '') + focus + '">' +
                 '<div class="silo-card-head"><span>Silo ' + esc(s.silo_number) + '</span>' + pill + '</div>' +
                 '<div class="silo-tank" role="img" aria-label="Silo ' + esc(s.silo_number) + ' ' + Math.round(pct) + ' percent full">' +
                 '<div class="silo-level" style="height:' + pct.toFixed(1) + '%"></div>' +
                 '<div class="silo-pct">' + Math.round(pct) + '%</div></div>' +
                 '<div class="silo-meta">' + esc(kg(filled, 0)) + ' / ' + esc(kg(cap, 0)) + ' kg</div>' +
-                '<div class="silo-meta">' + contents + '</div>';
+                '<div>' + contents + '</div>';
             if (open) {
                 h += '<div class="silo-timer" data-opened="' + esc(open.opened_at) + '">00:00:00</div>' +
                     '<button type="button" class="btn btn-primary btn-sm silo-close" data-silo="' +
@@ -416,10 +529,16 @@ var _siloAllocationGrid = (function () {
         var $body = $('#siloRunsBody');
         var $sum = $('#siloTodaySummary').text('');
         if (state.runs === null) {
-            $body.html('<tr><td colspan="8" class="text-muted">Unavailable until Silo Allocation is set up.</td></tr>');
+            $body.html('<tr><td colspan="9" class="text-muted">Unavailable until Silo Allocation is set up.</td></tr>');
             return;
         }
         var today = todayStr(), totalKg = 0, totalMin = 0, any = false;
+        // grower_names comes with migration 20261027090000; until then, match on batch number.
+        var growerByBatch = {};
+        (state.batches || []).forEach(function (b) { if (b.grower_name) { growerByBatch[String(b.batch_number)] = String(b.grower_name); } });
+        (state.overview || []).forEach(function (s) {
+            (s.contents || []).forEach(function (c) { var g = supplierOf(c); if (g) { growerByBatch[String(c.batch_number)] = g; } });
+        });
         var h = '';
         state.runs.forEach(function (r) {
             var when = r.closed_at || r.opened_at;
@@ -429,16 +548,24 @@ var _siloAllocationGrid = (function () {
                 totalMin += Number(r.minutes) || 0;
             }
             var batches = Array.isArray(r.batch_numbers) ? r.batch_numbers.join(', ') : (r.batch_numbers || '');
+            var growers = r.grower_names;
+            if (growers == null) {
+                growers = String(batches).split(',').map(function (x) { return growerByBatch[x.trim()] || ''; })
+                    .filter(function (g, i, a) { return g && a.indexOf(g) === i; }).join(', ');
+            }
             var edited = r.times_edited ? ' <span class="silo-edited-pill">time changed</span>' : '';
-            h += '<tr><td class="silo-col">' + esc(localDate(when)) + '</td><td>' + esc(r.silo_number) + '</td><td>' +
-                esc(batches) + '</td><td class="text-end">' + esc(kg(r.volume_kg)) + '</td><td class="text-end">' +
+            var long = Number(r.minutes) > LONG_RUN_MINUTES;
+            var check = long ? ' <span class="silo-check-pill">Check times</span>' : '';
+            h += '<tr' + (long ? ' class="silo-run-long"' : '') + '><td class="silo-col">' + esc(localDate(when)) + '</td><td>' +
+                esc(r.silo_number) + '</td><td>' + esc(batches) + '</td><td>' + (growers ? esc(growers) : '&mdash;') +
+                '</td><td class="text-end">' + esc(kg(r.volume_kg)) + '</td><td class="text-end">' +
                 (r.left_kg == null || Number(r.left_kg) === 0 ? 'Empty' : esc(kg(r.left_kg))) + '</td><td class="text-end silo-col">' +
-                esc(localTime(r.opened_at)) + '–' + esc(localTime(r.closed_at)) + ' <span class="text-muted small">(' +
-                esc(fmtDuration(r.minutes)) + ')</span>' + edited + '</td><td class="text-end">' +
+                esc(localTime(r.opened_at)) + '–' + esc(localTime(r.closed_at)) + ' <span class="' + (long ? 'fw-bold' : 'text-muted small') + '">(' +
+                esc(fmtDuration(r.minutes)) + ')</span>' + check + edited + '</td><td class="text-end">' +
                 (r.kg_per_hour == null ? '&mdash;' : esc(kg(r.kg_per_hour))) + '</td><td class="silo-col">' +
                 '<a href="#" class="silo-edit-times" data-run="' + esc(r.id) + '">Edit times</a></td></tr>';
         });
-        $body.html(h || '<tr><td colspan="8" class="text-muted">No silos have been cracked yet.</td></tr>');
+        $body.html(h || '<tr><td colspan="9" class="text-muted">No silos have been cracked yet.</td></tr>');
         if (any) {
             var avg = totalMin > 0 ? totalKg / (totalMin / 60) : null;
             $sum.text('Today: ' + kg(totalKg) + ' kg cracked' + (avg == null ? '' : ' · average ' + kg(avg) + ' kg/hour'));
@@ -610,6 +737,70 @@ var _siloAllocationGrid = (function () {
         });
     }
 
+    // "Did it stop on the day it started?" check for the stop / edit-times dialogs. A run over
+    // LONG_RUN_MINUTES is nearly always a stop time saved against the wrong day (e.g. entered the
+    // next morning), so the dialog asks, offers a one-tap move to the start day, and won't save
+    // until the person either moves it or says the run really was that long.
+    //   cfg.box        selector of the (empty) warning container inside the dialog
+    //   cfg.times()    -> { startDate, stopDate, startMs, endMs }
+    //   cfg.setStopDate(dateStr), cfg.onChange()
+    function longRunCheck(cfg) {
+        var acceptedLong = false, movedTo = null;
+
+        function minutes() {
+            var t = cfg.times();
+            return (t.endMs - t.startMs) / 60000;
+        }
+
+        function isLong() {
+            var m = minutes();
+            return isFinite(m) && m > LONG_RUN_MINUTES;
+        }
+
+        function refresh() {
+            var $box = $(cfg.box);
+            var t = cfg.times();
+            if (isLong() && !acceptedLong) {
+                var sameDay = t.startDate === t.stopDate;
+                $box.html('<div class="silo-long-warn text-start mt-3"><div class="mb-2">' +
+                    '<i class="fas fa-triangle-exclamation me-2" aria-hidden="true"></i>That is <strong>' +
+                    esc(fmtDuration(minutes())) + '</strong> of cracking — longer than one shift. ' +
+                    (sameDay ? 'Check the start and stop times.'
+                        : 'Did it stop on <strong>' + esc(fmtDay(t.startDate)) + '</strong>, the day it started?') +
+                    '</div><div class="d-flex flex-wrap gap-2">' +
+                    (sameDay ? '' : '<button type="button" class="btn btn-primary silo-long-same">Yes, it stopped on ' +
+                        esc(fmtDay(t.startDate)) + '</button>') +
+                    '<button type="button" class="btn btn-outline-secondary silo-long-ok">No, it really ran that long</button>' +
+                    '</div></div>');
+            } else if (movedTo && !isLong()) {
+                $box.html('<div class="silo-long-ok text-start mt-3"><i class="fas fa-check me-2" aria-hidden="true"></i>' +
+                    'Stop date set to ' + esc(fmtDay(movedTo)) + '.</div>');
+            } else {
+                $box.empty();
+            }
+        }
+
+        $(cfg.box)
+            .on('click', '.silo-long-same', function () {
+                movedTo = cfg.times().startDate;
+                cfg.setStopDate(movedTo);
+                cfg.onChange();
+            })
+            .on('click', '.silo-long-ok', function () {
+                acceptedLong = true;
+                cfg.onChange();
+            });
+
+        return {
+            refresh: refresh,
+            error: function () {
+                return (isLong() && !acceptedLong)
+                    ? 'This run would be ' + fmtDuration(minutes()) + ' long. Check the stop date, or press “No, it really ran that long”.'
+                    : null;
+            }
+        };
+    }
+
     // Stop cracking from a silo. Staff enter the kg still in the silo (estimated until a sensor
     // is fitted; the rest stays in the silo for the next run) or press "Silo is empty". The start
     // and stop times can be corrected; they are sent only when changed.
@@ -617,20 +808,35 @@ var _siloAllocationGrid = (function () {
         var silo = siloByNumber(no);
         var inSilo = silo ? Number(silo.filled_kg) || 0 : 0;
         var openedIso = silo && silo.open_run ? silo.open_run.opened_at : null;
-        var startDate = openedIso ? localDate(openedIso) : todayStr();
+        var startD0 = openedIso ? localDate(openedIso) : todayStr();
         var startT0 = openedIso ? localTime(openedIso) : nowTimeStr();
-        var stopDate = todayStr(), stopT0 = nowTimeStr();
+        var stopD0 = todayStr(), stopT0 = nowTimeStr();
+        var who = silo ? (silo.contents || []).map(function (c) {
+            var g = supplierOf(c);
+            return c.batch_number + (g ? ' · ' + g : '');
+        }).join(', ') : '';
+        var check;
 
-        // Started / stopped as Date objects, using the exact stored start while untouched.
+        // Started / stopped as Date objects: the exact stored start while untouched, and "now"
+        // while the stop date and time are untouched. The stop has its own date because a run is
+        // often stopped on the system the morning after it actually stopped (27 Oct 2026: a run
+        // started 07:10 and stopped 15:49 the same day was saved as 32 hours).
         function times() {
-            var st = $('#siloStopStart').val(), en = $('#siloStopEnd').val();
-            var startMs = (st === startT0 && openedIso) ? isoToMs(openedIso) : isoToMs(toIso(startDate, st));
-            var endMs = (en === stopT0) ? Date.now() : isoToMs(toIso(stopDate, en));
-            return { st: st, en: en, startMs: startMs, endMs: endMs };
+            var sd = $('#siloStopStartD').val(), st = $('#siloStopStart').val();
+            var ed = $('#siloStopEndD').val(), en = $('#siloStopEnd').val();
+            var startChanged = sd !== startD0 || st !== startT0;
+            var endChanged = ed !== stopD0 || en !== stopT0;
+            var startMs = (!startChanged && openedIso) ? isoToMs(openedIso) : isoToMs(toIso(sd, st));
+            var endMs = !endChanged ? Date.now() : isoToMs(toIso(ed, en));
+            return {
+                sd: sd, st: st, ed: ed, en: en, startDate: sd, stopDate: ed,
+                startChanged: startChanged, endChanged: endChanged, startMs: startMs, endMs: endMs
+            };
         }
 
         function refreshSummary() {
             var t = times();
+            if (check) { check.refresh(); }
             var raw = $('#siloStopLeft').val();
             var left = parseFloat(raw);
             var ranMs = t.endMs - t.startMs;
@@ -645,33 +851,40 @@ var _siloAllocationGrid = (function () {
         // Returns an error message, or null when the two times are acceptable.
         function timeError() {
             var t = times();
-            if (!t.st || !t.en || !isFinite(t.startMs) || !isFinite(t.endMs)) { return 'Enter both the start and the stop time.'; }
+            if (!t.sd || !t.st || !t.ed || !t.en || !isFinite(t.startMs) || !isFinite(t.endMs)) {
+                return 'Enter the date and time for both the start and the stop.';
+            }
             if (t.endMs <= t.startMs) { return 'The stop time must be after the start time.'; }
             if (t.endMs > Date.now() + 5 * 60000) { return 'Times can’t be in the future.'; }
-            return null;
+            return check ? check.error() : null;
         }
 
         function pick(left) {
             var t = times();
             return {
                 left: left,
-                openedAt: t.st !== startT0 ? toIso(startDate, t.st) : null,
-                closedAt: t.en !== stopT0 ? toIso(stopDate, t.en) : null
+                openedAt: t.startChanged ? toIso(t.sd, t.st) : null,
+                closedAt: t.endChanged ? toIso(t.ed, t.en) : null
             };
         }
 
         Swal.fire({
             title: 'Stop cracking silo ' + no,
-            html: '<p class="text-start mb-3">Silo ' + esc(no) + ' held <strong>' + esc(kg(inSilo)) +
-                ' kg</strong> when this run started. How many kg are still in the silo?</p>' +
+            html: '<p class="text-start mb-3">Silo ' + esc(no) + (who ? ' (' + esc(who) + ')' : '') + ' held <strong>' +
+                esc(kg(inSilo)) + ' kg</strong> when this run started. How many kg are still in the silo?</p>' +
                 '<div class="row g-3 text-start">' +
-                '<div class="col-4"><label for="siloStopStart" class="form-label fw-semibold">Started at</label>' +
+                '<div class="col-6"><label for="siloStopStartD" class="form-label fw-semibold">Started — date</label>' +
+                '<input type="date" id="siloStopStartD" class="form-control" value="' + esc(startD0) + '"></div>' +
+                '<div class="col-6"><label for="siloStopStart" class="form-label fw-semibold">Started — time</label>' +
                 '<input type="time" id="siloStopStart" class="form-control" value="' + esc(startT0) + '"></div>' +
-                '<div class="col-4"><label for="siloStopEnd" class="form-label fw-semibold">Stopped at</label>' +
+                '<div class="col-6"><label for="siloStopEndD" class="form-label fw-semibold">Stopped — date</label>' +
+                '<input type="date" id="siloStopEndD" class="form-control" value="' + esc(stopD0) + '"></div>' +
+                '<div class="col-6"><label for="siloStopEnd" class="form-label fw-semibold">Stopped — time</label>' +
                 '<input type="time" id="siloStopEnd" class="form-control" value="' + esc(stopT0) + '"></div>' +
-                '<div class="col-4"><label for="siloStopLeft" class="form-label fw-semibold">Kg left in silo</label>' +
+                '<div class="col-6"><label for="siloStopLeft" class="form-label fw-semibold">Kg left in silo</label>' +
                 '<input type="number" id="siloStopLeft" class="form-control" min="0" step="0.01" max="' + esc(inSilo) +
                 '" placeholder="Estimate is fine"></div></div>' +
+                '<div id="siloStopLong"></div>' +
                 '<div class="silo-summary-grid mt-3 text-start">' +
                 '<div><span>Ran for</span><strong id="siloSumRan">—</strong></div>' +
                 '<div><span>Cracked</span><strong id="siloSumCracked">—</strong></div>' +
@@ -683,7 +896,13 @@ var _siloAllocationGrid = (function () {
             cancelButtonText: 'Cancel',
             focusConfirm: false,
             didOpen: function () {
-                $('#siloStopStart, #siloStopEnd, #siloStopLeft').on('input change', refreshSummary);
+                check = longRunCheck({
+                    box: '#siloStopLong',
+                    times: times,
+                    setStopDate: function (d) { $('#siloStopEndD').val(d); },
+                    onChange: refreshSummary
+                });
+                $('#siloStopStartD, #siloStopStart, #siloStopEndD, #siloStopEnd, #siloStopLeft').on('input change', refreshSummary);
                 refreshSummary();
                 $('#siloStopLeft').trigger('focus');
             },
@@ -731,6 +950,20 @@ var _siloAllocationGrid = (function () {
     function editTimes(runId) {
         var run = (state.runs || []).filter(function (r) { return String(r.id) === String(runId); })[0];
         if (!run) { return; }
+        var check;
+        function times() {
+            var sd = $('#siloEtStartD').val(), ed = $('#siloEtStopD').val();
+            return {
+                startDate: sd, stopDate: ed,
+                startMs: isoToMs(toIso(sd, $('#siloEtStartT').val())),
+                endMs: isoToMs(toIso(ed, $('#siloEtStopT').val()))
+            };
+        }
+        function refresh() {
+            var t = times(), ms = t.endMs - t.startMs;
+            $('#siloEtRan').text(isFinite(ms) && ms > 0 ? fmtDuration(ms / 60000) : '—');
+            if (check) { check.refresh(); }
+        }
         Swal.fire({
             title: 'Edit times · Silo ' + run.silo_number,
             html: '<div class="row g-3 text-start">' +
@@ -741,11 +974,23 @@ var _siloAllocationGrid = (function () {
                 '<div class="col-6"><label for="siloEtStopD" class="form-label fw-semibold">Stopped — date</label>' +
                 '<input type="date" id="siloEtStopD" class="form-control" value="' + esc(localDate(run.closed_at)) + '"></div>' +
                 '<div class="col-6"><label for="siloEtStopT" class="form-label fw-semibold">Stopped — time</label>' +
-                '<input type="time" id="siloEtStopT" class="form-control" value="' + esc(localTime(run.closed_at)) + '"></div></div>',
+                '<input type="time" id="siloEtStopT" class="form-control" value="' + esc(localTime(run.closed_at)) + '"></div></div>' +
+                '<div id="siloEtLong"></div>' +
+                '<div class="silo-summary-strip mt-3"><span>Ran for</span><strong id="siloEtRan">—</strong></div>',
             showCancelButton: true,
             confirmButtonText: 'Save',
             cancelButtonText: 'Cancel',
             focusConfirm: false,
+            didOpen: function () {
+                check = longRunCheck({
+                    box: '#siloEtLong',
+                    times: times,
+                    setStopDate: function (d) { $('#siloEtStopD').val(d); },
+                    onChange: refresh
+                });
+                $('#siloEtStartD, #siloEtStartT, #siloEtStopD, #siloEtStopT').on('input change', refresh);
+                refresh();
+            },
             preConfirm: function () {
                 var s = toIso($('#siloEtStartD').val(), $('#siloEtStartT').val());
                 var e = toIso($('#siloEtStopD').val(), $('#siloEtStopT').val());
@@ -758,6 +1003,8 @@ var _siloAllocationGrid = (function () {
                     Swal.showValidationMessage('Times can’t be in the future.');
                     return false;
                 }
+                var le = check ? check.error() : null;
+                if (le) { Swal.showValidationMessage(le); return false; }
                 return { s: s, e: e };
             }
         }).then(function (c) {
@@ -791,7 +1038,20 @@ var _siloAllocationGrid = (function () {
             .on('click.siloAlloc', '.silo-open-btn', function () { openSiloNow(Number($(this).data('silo'))); })
             .on('click.siloAlloc', '.silo-close', function () { closeSiloNow(Number($(this).data('silo'))); })
             .on('click.siloAlloc', '.silo-edit-times', function (e) { e.preventDefault(); editTimes($(this).attr('data-run')); })
-            .on('click.siloAlloc', '#siloRefreshBtn', function () { load(); });
+            .on('click.siloAlloc', '#siloRefreshBtn', function () { load(); })
+            .on('click.siloAlloc', '#siloAllocToggle', function () {
+                state.allocOpen = !state.allocOpen;
+                writeAllocOpen(state.allocOpen);
+                applyAllocOpen();
+            })
+            // A chip or a silo's batch picks that batch; picking the shown batch again shows all.
+            .on('click.siloAlloc', '.silo-batch-chip, .silo-batch-btn', function () {
+                var k = String($(this).attr('data-kernel') || '');
+                var fromCard = $(this).hasClass('silo-batch-btn');
+                state.pickedKernel = (!k || (fromCard && state.pickedKernel === k)) ? null : k;
+                renderSilos();
+                startTicker();
+            });
     }
 
     // ------------------------------------------------------------------
@@ -849,7 +1109,10 @@ var _siloAllocationGrid = (function () {
             stopTicker();
             state.batchId = null;
             state.tally = null;
+            state.pickedKernel = null;
+            state.allocOpen = readAllocOpen();
             bindEvents();
+            applyAllocOpen();
             initActivityCalendar();
             load();
         },

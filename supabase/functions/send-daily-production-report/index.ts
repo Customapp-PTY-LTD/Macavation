@@ -1,5 +1,5 @@
 /**
- * Supabase Edge Function: the 17:30 SAST daily production push, sent unprompted to every active
+ * Supabase Edge Function: the 19:00 SAST daily production push, sent unprompted to every active
  * daily subscriber via one of five approved WhatsApp templates, one per weekday, named per
  * Control Room's Daily variation standard (`daily_production_template_<suffix>` where suffix is
  * `m`/`t`/`w`/`th`/`f` — see TEMPLATE_NAME_BY_WEEKDAY below). No template exists for
@@ -7,12 +7,12 @@
  *
  * Content mirrors the on-demand "Production today" menu reply exactly (see MENU_ITEMS' `production`
  * entry in whatsapp-inbound/index.ts) — same get_daily_digest() source, same four figures, so
- * what gets pushed unprompted at 17:30 is what a member would also see by tapping that menu item.
+ * what gets pushed unprompted at 19:00 is what a member would also see by tapping that menu item.
  * That on-demand reply is untouched by this file: it renders fresh from the same RPC on every tap,
  * independent of this push.
  *
  * Deploy: supabase functions deploy send-daily-production-report --project-ref nmdmddugxclpqrwylyfa
- * Schedule: cron `30 15 * * *` UTC == 17:30 SAST (migrations/20261001170000_daily_wa_report_1730.sql). SAST
+ * Schedule: cron `0 17 * * *` UTC == 19:00 SAST (migrations/20261026090000_daily_wa_report_1900.sql). SAST
  * (Africa/Johannesburg) carries no daylight saving, so a fixed UTC offset is safe year-round.
  *
  * Auth gate — what it does and does not prove, and why it compares against WA_CRON_AUTH_SECRET
@@ -263,7 +263,7 @@ Deno.serve(async (req) => {
   const force = body?.force === true;
   const dateInput = typeof body?.date === 'string' ? body.date.trim() : '';
   // test_phone: send today's report to ONE number already on the daily list, and record nothing,
-  // so the real 17:30 send still runs. Skips the already-sent guard; the auth gate above still applies.
+  // so the real 19:00 send still runs. Skips the already-sent guard; the auth gate above still applies.
   const testPhone = typeof body?.test_phone === 'string' ? body.test_phone.replace(/\D/g, '') : '';
 
   if (dateInput && !DATE_RE.test(dateInput)) {

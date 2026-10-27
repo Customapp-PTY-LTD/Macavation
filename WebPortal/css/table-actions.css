@@ -46,9 +46,12 @@
     display: none;
 }
 
-/* Prevent dropdown menus from being clipped by card border-radius */
+/* Keep the table's own horizontal scroll (needed on iPad, where wide grids
+   don't fit). The row-actions menu can't be clipped by it: MacTableActions
+   moves the open menu to document.body with a fixed position. */
 .mac-table-actions-card .table-responsive {
-    overflow: visible;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .mac-table-actions-card .card-body {

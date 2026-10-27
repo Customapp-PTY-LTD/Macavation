@@ -95,6 +95,11 @@ var KanbanHelper = {
             var instance = Sortable.create(el, {
                 group: containerId,
                 animation: 150,
+                // Touch (iPad): a swipe must scroll the board, so a card only
+                // picks up after a short press-and-hold. Mouse drag is unchanged.
+                delay: 250,
+                delayOnTouchOnly: true,
+                touchStartThreshold: 5,
                 ghostClass: 'kanban-card--ghost',
                 chosenClass: 'kanban-card--chosen',
                 dragClass: 'kanban-card--drag',
