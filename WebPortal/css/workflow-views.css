@@ -170,3 +170,14 @@
     box-shadow: 0 0 0 2px var(--mac-bg-secondary);
     pointer-events: none;
 }
+
+/* Task notifications in the sidebar bell: red so they stand out (js/notifications.js adds the classes). */
+.notif-item.notif-task {
+    border-left: 3px solid var(--mac-danger);
+}
+.notif-item.notif-task-unread {
+    background: var(--mac-danger-light);
+}
+.notif-item.notif-task-unread .text-dark {
+    color: var(--mac-danger) !important;
+}

@@ -304,7 +304,7 @@ var _workflowViews = function () {
 
             var openCount = (tasks || []).filter(function (t) { return !t.is_snoozed; }).length;
             var countPill = openCount
-                ? '<span class="badge rounded-pill bg-success ms-2">' + openCount + ' waiting</span>' : '';
+                ? '<span class="badge rounded-pill bg-danger ms-2">' + openCount + ' waiting</span>' : '';
 
             // Tasks first and full width: they are what the person has to act on (Henry, 27 Oct 2026).
             const html = `
@@ -528,8 +528,8 @@ var _workflowViews = function () {
             var link = document.querySelector('.nav-item[data-route="my-day"] > a');
             if (!link) return;
             var n = (tasks || []).filter(function (t) { return !t.is_snoozed; }).length;
-            // The My Day link, and the link of the folding group it sits in (Home), so the bubble
-            // still shows when that group is folded or the sidebar is collapsed to icons.
+            // The My Day link (a top-level item now), plus the folding group's link if it is ever put
+            // back inside one, so the bubble still shows when that group is folded.
             var links = [link];
             var group = link.closest('.collapse');
             var groupLink = group && group.id
