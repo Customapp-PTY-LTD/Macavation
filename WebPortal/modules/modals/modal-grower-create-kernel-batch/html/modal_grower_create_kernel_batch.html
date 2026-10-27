@@ -126,11 +126,12 @@
                         <small class="text-muted">One bag per pallet</small>
                     </div>
                 </div>
-                <!-- The transport rate is entered later by the Palladium Manager role, from a My Day task
-                     the database opens when this delivery is saved (migration 20261027130000). -->
+                <!-- The transport rate is entered later from a My Day task the database opens when this
+                     delivery is saved. Which roles get it is the "Tasks: enter transport rates" switch in
+                     Role Features (migrations 20261027130000, 20261027140000). -->
                 <div class="alert alert-success py-2 small mt-3 mb-0" id="intakeTransportRateNote">
                     <i class="fas fa-circle-info me-1" aria-hidden="true"></i>No transport rate needed here.
-                    When you save, the <strong>Palladium Manager</strong> gets a task in My Day to enter the rate for this delivery.
+                    When you save, a task to enter the rate for this delivery goes to My Day for the roles that handle transport rates.
                 </div>
                 <div id="intakeNewTransporterForm" class="mt-2 p-3 border rounded bg-light" style="display: none;">
                     <label for="intakeNewTransporterName" class="form-label small">Transport company name <span class="text-danger">*</span></label>
