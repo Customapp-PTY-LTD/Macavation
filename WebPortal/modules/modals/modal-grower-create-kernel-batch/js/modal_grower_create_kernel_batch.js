@@ -66,11 +66,6 @@ var _modal_grower_create_kernel_batch = (function () {
         return isFinite(n) ? n.toFixed(2) : '';
     }
 
-    function fmtRand(v) {
-        var t = fmtKg(v);
-        return t === '' ? '-' : 'R ' + t;
-    }
-
     function numOrNull(raw) {
         var t = String(raw == null ? '' : raw).trim();
         if (t === '') return null;
@@ -143,8 +138,6 @@ var _modal_grower_create_kernel_batch = (function () {
             }
             var declEl = byId('intakeBatchWetNis');
             if (declEl) declEl.addEventListener('input', api._updateCalcs);
-            var rateEl = byId('intakeTransportRate');
-            if (rateEl) rateEl.addEventListener('input', api._updateCalcs);
             var addBagBtn = byId('intakeAddBagBtn');
             if (addBagBtn) addBagBtn.addEventListener('click', function (e) { e.preventDefault(); api._addBag(); });
             var bagsBody = byId('intakeBagsBody');
@@ -239,7 +232,7 @@ var _modal_grower_create_kernel_batch = (function () {
             api._renderBags();
         },
 
-        /** Weighed total, bag count, declared-vs-weighed warning and the transport rate maths. */
+        /** Weighed total, bag count and the declared-vs-weighed warning. */
         _updateCalcs: function () {
             var total = bagTotal();
             // One bag per pallet; a blank row the user hasn't filled in yet is not a bag.
@@ -256,10 +249,6 @@ var _modal_grower_create_kernel_batch = (function () {
                     " than the supplier's declared weight. Both figures are kept.";
             }
             showInline('intakeDeclDiffWarning', warn);
-
-            var rate = numOrNull(byId('intakeTransportRate') && byId('intakeTransportRate').value);
-            setText('intakeRatePerPallet', rate != null && count > 0 ? fmtRand(rate / count) : '-');
-            setText('intakeRatePerKg', rate != null && total > 0 ? fmtRand(rate / total) : '-');
         },
 
         // ---------- New Delivery: transport ----------
@@ -580,7 +569,7 @@ var _modal_grower_create_kernel_batch = (function () {
             _uploadsInFlight = 0;
             _collectionAddresses = [];
             _selectedCollection = [];
-            ['intakeDeliveryNoteRef', 'intakeTransportRate'].forEach(function (id) { var e = byId(id); if (e) e.value = ''; });
+            ['intakeDeliveryNoteRef'].forEach(function (id) { var e = byId(id); if (e) e.value = ''; });
             api._toggleTransporterForm(false);
             showInline('intakeDocsError', '');
             api._renderDocs();
@@ -678,7 +667,6 @@ var _modal_grower_create_kernel_batch = (function () {
             var transporterId = byId('intakeTransporter') && byId('intakeTransporter').value || '';
             var transportTypeId = byId('intakeTransportType') && byId('intakeTransportType').value || '';
             var deliveryNoteRef = (byId('intakeDeliveryNoteRef') && byId('intakeDeliveryNoteRef').value || '').trim();
-            var rateZar = numOrNull(byId('intakeTransportRate') && byId('intakeTransportRate').value);
             var weighedBags = _bags.map(function (b) {
                 return { no: b.no, description: b.desc, weight_kg: numOrNull(b.kg) };
             }).filter(function (b) { return b.weight_kg != null && b.weight_kg > 0; });
@@ -693,7 +681,6 @@ var _modal_grower_create_kernel_batch = (function () {
             // When the pipeline config could not be loaded the lists are empty, so these stay optional.
             if (_configLoaded && !transporterId) problems.push('Select a Transporter.');
             if (_configLoaded && !transportTypeId) problems.push('Select a Transport Type.');
-            if (rateZar == null || rateZar < 0) problems.push('Transport Rate (R, whole trip) is required.');
             if (_uploadsInFlight > 0) problems.push('Documents are still uploading. Wait a moment and save again.');
             if (problems.length) {
                 if (typeof Swal !== 'undefined') {
@@ -763,7 +750,8 @@ var _modal_grower_create_kernel_batch = (function () {
                             collection_points: _selectedCollection.slice(),
                             transport_type_id: transportTypeId || null,
                             transport_type_name: typeRow ? typeRow.name : null,
-                            rate_zar: rateZar
+                            // Blank on purpose: the Palladium Manager enters it from a My Day task.
+                            rate_zar: null
                         },
                         documents: _docs.slice()
                     });

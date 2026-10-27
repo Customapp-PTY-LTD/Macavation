@@ -22,6 +22,20 @@ var _workflowViews = function () {
             const userRole = role || this.getUserRole();
             if (!userRole) return [];
 
+            // Role tasks (migration 20261027130000): a role's open tasks; super_user gets every role's.
+            try {
+                if (typeof dataFunctions !== 'undefined' && dataFunctions.callFunction) {
+                    const res = await dataFunctions.callFunction('get_role_tasks', { p_role: userRole }, null, { useCache: false });
+                    const body = res && res.data !== undefined ? res.data : res;
+                    if (body && body.success !== false && Array.isArray(body.tasks)) {
+                        this._lastTasks = body.tasks;
+                        return body.tasks;
+                    }
+                }
+            } catch (e) {
+                console.warn('get_role_tasks unavailable, falling back to get_workflow_tasks:', e);
+            }
+
             try {
                 if (typeof dataFunctions !== 'undefined' && dataFunctions.callFunction) {
                     const tasks = await dataFunctions.callFunction('get_workflow_tasks', {
@@ -164,6 +178,7 @@ var _workflowViews = function () {
                     this.buildClientWorkQueue()
                 ]);
 
+                this.updateTaskBadge(tasks);
                 return {
                     role: role,
                     tasks: tasks,
@@ -301,7 +316,7 @@ var _workflowViews = function () {
                                 <div class="card-header">
                                     <h5 class="mb-0">
                                         <i class="fas fa-list-check me-2"></i>
-                                        Today's Workflow
+                                        Tasks
                                     </h5>
                                 </div>
                                 <div class="card-body">
@@ -367,47 +382,165 @@ var _workflowViews = function () {
         /**
          * Render workflow tasks
          */
+        _esc: function (v) {
+            return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        },
+
+        _fmtNum: function (n, dp) {
+            var x = Number(n);
+            if (!isFinite(x)) return '';
+            // Same style as the rest of the portal: 15,420 and 321.43 (en-ZA would give 321,43).
+            return x.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp });
+        },
+
+        // "27 Oct 12:05"
+        _fmtWhen: function (iso) {
+            var d = new Date(iso);
+            if (isNaN(d.getTime())) return '';
+            var M = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            var p = function (n) { return (n < 10 ? '0' : '') + n; };
+            return p(d.getDate()) + ' ' + M[d.getMonth()] + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+        },
+
+        /**
+         * Render workflow tasks. Every DB string goes through _esc. Transport-rate tasks are closed by
+         * entering the rate (no tick box). super_user sees every role's tasks, labelled with the role.
+         */
         renderWorkflowTasks: function (tasks) {
             if (!tasks || tasks.length === 0) {
-                return '<p class="text-muted text-center py-4">No tasks scheduled for today. Great job!</p>';
+                return '<p class="text-muted text-center py-4">No tasks waiting. Great job!</p>';
             }
+            var self = this, esc = this._esc.bind(this);
+            var isSuper = this.getUserRole() === 'super_user';
 
-            return `
-                <div class="workflow-tasks">
-                    ${tasks.map(task => `
-                        <div class="workflow-task task-${task.status}" data-task-id="${task.id}">
-                            <div class="task-checkbox">
-                                <input type="checkbox" ${task.status === 'completed' ? 'checked' : ''} 
-                                       onchange="workflowViews.toggleTask('${task.id}', this.checked)">
-                            </div>
-                            <div class="task-content">
-                                <div class="task-time">${task.scheduled_time || ''}</div>
-                                <div class="task-description">${task.description || task.title}</div>
-                                ${task.context ? `<div class="task-context text-muted small">${task.context}</div>` : ''}
-                            </div>
-                            <div class="task-actions">
-                                ${task.action_url ? `
-                                    <button class="btn btn-sm btn-primary me-1" onclick="workflowViews.executeTask('${task.id}', '${task.action_url}')">
-                                        ${task.action_label || 'Action'}
-                                    </button>
-                                ` : ''}
-                                <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" 
-                                            onclick="workflowViews.snoozeTask('${task.id}')" 
-                                            title="Snooze for 1 hour">
-                                        <i class="fas fa-clock"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" 
-                                            onclick="workflowViews.dismissTask('${task.id}')" 
-                                            title="Dismiss task">
-                                        <i class="fas fa-xmark"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
+            return '<div class="workflow-tasks">' + tasks.map(function (task) {
+                var id = esc(task.id);
+                var rolePill = isSuper && task.role
+                    ? ' <span class="badge bg-light text-dark border ms-1">For: ' + esc(task.role) + '</span>' : '';
+                var snoozed = task.is_snoozed
+                    ? ' <span class="badge bg-warning-subtle text-dark border ms-1">Snoozed until ' + esc(self._fmtWhen(task.snoozed_until)) + '</span>' : '';
+
+                if (task.kind === 'transport_rate') {
+                    var meta = [task.supplier, task.transporter ? task.transporter + (task.transport_type ? ' (' + task.transport_type + ')' : '') : null,
+                        task.delivery_note ? 'delivery note ' + task.delivery_note : null].filter(Boolean).join(' · ');
+                    var sub = [task.pallets != null ? task.pallets + ' pallets' : null,
+                        task.weighed_kg != null ? self._fmtNum(task.weighed_kg, 0) + ' kg' : null,
+                        task.captured_at ? 'captured ' + self._fmtWhen(task.captured_at) : null].filter(Boolean).join(' · ');
+                    return '<div class="workflow-task task-transport-rate" data-task-id="' + id + '">' +
+                        '<div class="task-content">' +
+                        '<div class="task-description fw-semibold">Enter transport rate · ' + esc(task.batch_number || '') + rolePill + snoozed + '</div>' +
+                        '<div class="task-context small">' + esc(meta) + '</div>' +
+                        '<div class="task-context text-muted small">' + esc(sub) + '</div>' +
+                        '</div><div class="task-actions d-flex gap-2">' +
+                        (task.is_snoozed ? '' : '<button type="button" class="btn btn-outline-secondary" onclick="workflowViews.snoozeTask(\'' + id + '\')" title="Hide until tomorrow 07:00">Snooze</button>') +
+                        '<button type="button" class="btn btn-primary" onclick="workflowViews.enterTransportRate(\'' + id + '\')">Enter rate</button>' +
+                        '</div></div>';
+                }
+
+                return '<div class="workflow-task task-' + esc(task.status) + '" data-task-id="' + id + '">' +
+                    '<div class="task-checkbox"><input type="checkbox" aria-label="Done" ' + (task.status === 'completed' ? 'checked' : '') +
+                    ' onchange="workflowViews.toggleTask(\'' + id + '\', this.checked)"></div>' +
+                    '<div class="task-content">' +
+                    '<div class="task-time">' + esc(task.scheduled_time || '') + '</div>' +
+                    '<div class="task-description">' + esc(task.description || task.title) + rolePill + snoozed + '</div>' +
+                    (task.context ? '<div class="task-context text-muted small">' + esc(task.context) + '</div>' : '') +
+                    '</div><div class="task-actions">' +
+                    (task.action_url ? '<button class="btn btn-sm btn-primary me-1" onclick="workflowViews.executeTask(\'' + id + '\', \'' +
+                        esc(task.action_url) + '\')">' + esc(task.action_label || 'Action') + '</button>' : '') +
+                    '<div class="btn-group" role="group">' +
+                    (task.is_snoozed ? '' : '<button type="button" class="btn btn-sm btn-outline-secondary" onclick="workflowViews.snoozeTask(\'' + id + '\')" title="Hide until tomorrow 07:00"><i class="fas fa-clock"></i></button>') +
+                    '<button type="button" class="btn btn-sm btn-outline-danger" onclick="workflowViews.dismissTask(\'' + id + '\')" title="Dismiss task"><i class="fas fa-xmark"></i></button>' +
+                    '</div></div></div>';
+            }).join('') + '</div>';
+        },
+
+        /**
+         * Enter the transport rate for a delivery task. Saving stores it on the delivery and closes the task.
+         */
+        enterTransportRate: async function (taskId) {
+            var self = this, esc = this._esc.bind(this);
+            var task = (this._lastTasks || []).filter(function (t) { return String(t.id) === String(taskId); })[0];
+            if (!task || typeof Swal === 'undefined') return;
+            var pallets = Number(task.pallets) || 0, kg = Number(task.weighed_kg) || 0;
+            var row = function (k, v) { return '<dt class="col-5 text-muted fw-normal">' + k + '</dt><dd class="col-7 mb-1">' + esc(v || '—') + '</dd>'; };
+            var result = await Swal.fire({
+                title: 'Transport rate · ' + (task.batch_number || ''),
+                html: '<dl class="row small text-start bg-light rounded p-2 mx-0 mb-3">' +
+                    row('Supplier', task.supplier) +
+                    row('Transporter', task.transporter ? task.transporter + (task.transport_type ? ' (' + task.transport_type + ')' : '') : '') +
+                    row('Delivery note', task.delivery_note) +
+                    row('Pallets · weighed', (pallets || '—') + ' · ' + (kg ? self._fmtNum(kg, 0) + ' kg' : '—')) + '</dl>' +
+                    '<div class="text-start"><label for="wvRateZar" class="form-label fw-semibold">Transport Rate (R, whole trip)</label>' +
+                    '<input type="number" id="wvRateZar" class="form-control" min="0" step="0.01" placeholder="e.g. 4500"></div>' +
+                    '<div class="row text-start mt-3 g-2"><div class="col-6"><div class="small text-muted">Rate per pallet</div><strong id="wvRatePallet">—</strong></div>' +
+                    '<div class="col-6"><div class="small text-muted">Rate per kg</div><strong id="wvRateKg">—</strong></div></div>',
+                showCancelButton: true,
+                confirmButtonText: 'Save rate',
+                cancelButtonText: 'Cancel',
+                focusConfirm: false,
+                didOpen: function () {
+                    var input = document.getElementById('wvRateZar');
+                    input.focus();
+                    input.addEventListener('input', function () {
+                        var r = parseFloat(input.value);
+                        var ok = input.value !== '' && isFinite(r) && r >= 0;
+                        document.getElementById('wvRatePallet').textContent = ok && pallets > 0 ? 'R ' + self._fmtNum(r / pallets, 2) : '—';
+                        document.getElementById('wvRateKg').textContent = ok && kg > 0 ? 'R ' + self._fmtNum(r / kg, 2) : '—';
+                    });
+                },
+                preConfirm: async function () {
+                    var raw = document.getElementById('wvRateZar').value;
+                    var r = parseFloat(raw);
+                    if (raw === '' || !isFinite(r) || r < 0) {
+                        Swal.showValidationMessage('Enter the rate for the whole trip. Use 0 only if transport was free.');
+                        return false;
+                    }
+                    try {
+                        var res = await dataFunctions.callFunction('set_transport_rate', { p_kernel_id: task.kernel_id, p_rate_zar: r }, null, { useCache: false });
+                        var body = res && res.data !== undefined ? res.data : res;
+                        if (!body || body.success === false) throw new Error((body && body.error) || 'Could not save the rate.');
+                        return r;
+                    } catch (e) {
+                        Swal.showValidationMessage(e.message || String(e));
+                        return false;
+                    }
+                }
+            });
+            if (!result.isConfirmed) return;
+            if (dataFunctions.clearCachePattern) { dataFunctions.clearCachePattern('kernel_batch'); }
+            Swal.fire({ icon: 'success', title: 'Rate saved', text: 'R ' + this._fmtNum(result.value, 2) + ' saved for ' + (task.batch_number || 'this delivery') + '.',
+                timer: 2500, showConfirmButton: false, toast: true, position: 'top-end' });
+            await this.refreshMyDay();
+        },
+
+        /** Re-render My Day (if open) and the menu badge. */
+        refreshMyDay: async function () {
+            var data = await this.getMyDayData();
+            if (document.getElementById('my-day-container')) this.renderMyDay(data, 'my-day-container');
+        },
+
+        /**
+         * Count badge on the My Day menu link: open, un-snoozed tasks for the user's role
+         * (super_user: all roles).
+         */
+        updateTaskBadge: function (tasks) {
+            var link = document.querySelector('.nav-item[data-route="my-day"] > a');
+            if (!link) return;
+            var n = (tasks || []).filter(function (t) { return !t.is_snoozed; }).length;
+            var badge = link.querySelector('.mac-task-badge');
+            if (!n) { if (badge) badge.remove(); return; }
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'badge rounded-pill bg-success ms-2 mac-task-badge';
+                link.appendChild(badge);
+            }
+            badge.textContent = String(n);
+            badge.setAttribute('aria-label', n + ' open task' + (n === 1 ? '' : 's'));
+        },
+
+        refreshTaskBadge: async function () {
+            try { this.updateTaskBadge(await this.getWorkflowTasks()); } catch (e) { /* badge is a convenience */ }
         },
 
         /**
@@ -644,31 +777,31 @@ var _workflowViews = function () {
         },
 
         /**
-         * Snooze a task for 1 hour
+         * Snooze a task: hidden from its role until tomorrow 07:00, then it comes back by itself.
+         * super_user still sees it, marked "Snoozed until …". (The old version sent a time that
+         * update_workflow_task never accepted, so it always failed.)
          */
         snoozeTask: async function (taskId) {
             try {
                 if (typeof dataFunctions !== 'undefined' && dataFunctions.callFunction) {
-                    // Calculate new scheduled time (1 hour from now)
-                    const now = new Date();
-                    const snoozeTime = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour
-                    const timeString = snoozeTime.toTimeString().slice(0, 5); // HH:MM format
-                    
-                    await dataFunctions.callFunction('update_workflow_task', {
+                    const until = new Date();
+                    until.setDate(until.getDate() + 1);
+                    until.setHours(7, 0, 0, 0);
+
+                    const res = await dataFunctions.callFunction('snooze_workflow_task', {
                         p_task_id: taskId,
-                        p_status: 'pending',
-                        p_scheduled_time: timeString
+                        p_until: until.toISOString()
                     }, null, { useCache: false });
-                    
-                    // Refresh workflow view
-                    const data = await this.getMyDayData();
-                    this.renderMyDay(data, 'my-day-container');
-                    
+                    const body = res && res.data !== undefined ? res.data : res;
+                    if (!body || body.success === false) throw new Error((body && body.error) || 'Could not snooze the task.');
+
+                    await this.refreshMyDay();
+
                     if (typeof Swal !== 'undefined') {
                         Swal.fire({
                             icon: 'success',
                             title: 'Task Snoozed',
-                            text: 'Task will reappear in 1 hour',
+                            text: 'It will come back tomorrow at 07:00.',
                             timer: 2000,
                             showConfirmButton: false,
                             toast: true,

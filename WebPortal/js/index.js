@@ -140,6 +140,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             });
         }
+        // Open-task count on the My Day menu link (role tasks, e.g. transport rates to enter).
+        if (typeof workflowViews !== 'undefined' && workflowViews.refreshTaskBadge && Session.get('user')) {
+            workflowViews.refreshTaskBadge();
+            setInterval(function () { workflowViews.refreshTaskBadge(); }, 300000);
+        }
         var myDayViewFullLink = document.getElementById('myDayViewFullLink');
         if (myDayViewFullLink) {
             myDayViewFullLink.addEventListener('click', function (e) {
