@@ -9,7 +9,7 @@
 
 /* Tasks: the first, full-width card on My Day. */
 .my-day-tasks-card.has-tasks {
-    border: 2px solid var(--mac-green);
+    border: 2px solid var(--mac-danger);
 }
 .my-day-tasks-card > .card-header h4 {
     font-size: var(--mac-text-lg);
