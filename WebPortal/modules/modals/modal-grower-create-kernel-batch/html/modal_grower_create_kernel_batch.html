@@ -121,24 +121,16 @@
                         <select class="form-select" id="intakeTransportType"><option value="">Select transport type</option></select>
                     </div>
                     <div class="col-md-6">
-                        <label for="intakeTransportRate" class="form-label">Transport Rate (R, whole trip) <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="intakeTransportRate" step="0.01" min="0">
-                    </div>
-                    <div class="col-md-4">
                         <span class="form-label d-block">Pallets</span>
                         <div class="form-control-plaintext fw-bold" id="intakePallets">0</div>
                         <small class="text-muted">One bag per pallet</small>
                     </div>
-                    <div class="col-md-4">
-                        <span class="form-label d-block">Rate per pallet</span>
-                        <div class="form-control-plaintext fw-bold" id="intakeRatePerPallet">-</div>
-                        <small class="text-muted">rate ÷ pallets</small>
-                    </div>
-                    <div class="col-md-4">
-                        <span class="form-label d-block">Rate per kg</span>
-                        <div class="form-control-plaintext fw-bold" id="intakeRatePerKg">-</div>
-                        <small class="text-muted">rate ÷ weighed total</small>
-                    </div>
+                </div>
+                <!-- The transport rate is entered later by the Palladium Manager role, from a My Day task
+                     the database opens when this delivery is saved (migration 20261027130000). -->
+                <div class="alert alert-success py-2 small mt-3 mb-0" id="intakeTransportRateNote">
+                    <i class="fas fa-circle-info me-1" aria-hidden="true"></i>No transport rate needed here.
+                    When you save, the <strong>Palladium Manager</strong> gets a task in My Day to enter the rate for this delivery.
                 </div>
                 <div id="intakeNewTransporterForm" class="mt-2 p-3 border rounded bg-light" style="display: none;">
                     <label for="intakeNewTransporterName" class="form-label small">Transport company name <span class="text-danger">*</span></label>
