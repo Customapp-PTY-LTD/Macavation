@@ -94,7 +94,9 @@ var notificationsInbox = (function () {
                 }
                 var self = this;
                 body.innerHTML = list.map(function (n) {
-                    var sev = severityClass(n.severity);
+                    // Task notifications (My Day) are always red so they stand out (Henry, 27 Oct 2026).
+                    var isTask = n.notification_type === 'task';
+                    var sev = isTask ? 'danger' : severityClass(n.severity);
                     var unread = !n.is_read;
                     var linkBadge = '';
                     if (n.link_route) {
@@ -102,7 +104,8 @@ var notificationsInbox = (function () {
                         linkBadge = '<span class="badge bg-light text-dark border ms-1">' + escapeHtml(n.link_route + (ref ? ': ' + ref : '')) + '</span>';
                     }
                     return '<a href="#" class="d-block text-decoration-none p-2 rounded mb-1 notif-item ' +
-                        (unread ? 'bg-light' : '') + '" data-notif-id="' + n.id + '"' +
+                        (isTask ? 'notif-task ' + (unread ? 'notif-task-unread' : '') : (unread ? 'bg-light' : '')) +
+                        '" data-notif-id="' + n.id + '"' +
                         (n.link_route ? ' data-route="' + escapeHtml(n.link_route) + '"' : '') +
                         (n.link_params ? ' data-link-params="' + escapeHtml(JSON.stringify(n.link_params)) + '"' : '') + '>' +
                         '<div class="d-flex align-items-start">' +
