@@ -62,7 +62,8 @@ test.describe('Kernel - Form Operations: New Delivery @kernel', () => {
     // One empty bag row exists on open; give it a weight.
     await authenticatedPage.locator('#intakeBagsBody input[data-bag-field="kg"]').first().fill('100');
     await authenticatedPage.locator('#intakeDeliveryNoteRef').fill('DN-' + Date.now());
-    await authenticatedPage.locator('#intakeTransportRate').fill('1000');
+    // No transport rate on New Delivery any more: the Palladium Manager enters it from a My Day task.
+    await expect(authenticatedPage.locator('#intakeTransportRate')).toHaveCount(0);
     // Transporter and transport type are required once their lists load; pick the first real option if present.
     for (const id of ['#intakeTransporter', '#intakeTransportType']) {
       const sel = authenticatedPage.locator(id);
