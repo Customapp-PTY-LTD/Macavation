@@ -1,5 +1,5 @@
 <!-- Silo Allocation — put received bags into silos, open a silo to start cracking, close it to
-     log the run. Three cards: Allocate bags, Silos, Cracking log. All content is rendered by
+     log the run. Three cards: Allocate bags (folds away), Silos, Cracking log. All content is rendered by
      silo_allocation_grid.js. -->
 <div class="module-content" id="siloAllocationModule">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
@@ -15,12 +15,16 @@
 
     <div id="siloNotice"></div>
 
-    <div class="card mb-3">
-        <div class="card-header d-flex justify-content-between flex-wrap gap-2 align-items-center">
-            <h2 class="h5 mb-0">Allocate bags</h2>
-            <span class="small text-muted" id="siloAllocCount"></span>
-        </div>
-        <div class="card-body" id="siloAllocBody"></div>
+    <!-- Allocate bags folds away to one line (remembered on this device) so the silos get the screen. -->
+    <div class="card mb-3 silo-alloc-card">
+        <button type="button" class="card-header silo-alloc-toggle" id="siloAllocToggle"
+                aria-expanded="false" aria-controls="siloAllocBody">
+            <i class="fas fa-chevron-right silo-alloc-chevron" aria-hidden="true"></i>
+            <span class="h5 mb-0">Allocate bags</span>
+            <span class="small text-muted silo-alloc-summary" id="siloAllocCount"></span>
+            <span class="silo-alloc-toggle-label" id="siloAllocToggleLabel">Show</span>
+        </button>
+        <div class="card-body d-none" id="siloAllocBody"></div>
     </div>
 
     <div class="card mb-3 d-none" id="siloTallyCard">
@@ -42,6 +46,9 @@
             </div>
         </div>
         <div class="card-body">
+            <!-- "Show a batch": highlights every silo a batch is in (rendered by silo_allocation_grid.js). -->
+            <div class="silo-batch-chips" id="siloBatchChips"></div>
+            <div id="siloBatchSpread"></div>
             <div class="silo-grid" id="siloGrid"></div>
         </div>
     </div>
@@ -59,6 +66,7 @@
                             <th class="silo-col">Date</th>
                             <th class="silo-col">Silo</th>
                             <th class="silo-col">Batch</th>
+                            <th class="silo-col">Supplier</th>
                             <th class="silo-col text-end">Volume cracked (kg)</th>
                             <th class="silo-col text-end">Left in silo (kg)</th>
                             <th class="silo-col text-end">Time</th>
