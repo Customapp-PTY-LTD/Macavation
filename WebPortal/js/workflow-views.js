@@ -5,6 +5,28 @@
  */
 
 var _workflowViews = function () {
+    // Red count bubble on a menu link's icon (styles: css/workflow-views.css .mac-task-badge).
+    function setIconBadge(a, n) {
+        var icon = a.querySelector('i.fas, i.far');
+        if (!icon) return;
+        var anchor = icon.parentElement.classList.contains('mac-icon-badge-anchor') ? icon.parentElement : null;
+        if (!anchor) {
+            anchor = document.createElement('span');
+            anchor.className = 'mac-icon-badge-anchor';
+            icon.parentNode.insertBefore(anchor, icon);
+            anchor.appendChild(icon);
+        }
+        var badge = anchor.querySelector('.mac-task-badge');
+        if (!n) { if (badge) badge.remove(); return; }
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'mac-task-badge';
+            anchor.appendChild(badge);
+        }
+        badge.textContent = n > 99 ? '99+' : String(n);
+        badge.setAttribute('aria-label', n + ' task' + (n === 1 ? '' : 's') + ' waiting');
+    }
+
     return {
         /**
          * Get user's role
@@ -506,15 +528,14 @@ var _workflowViews = function () {
             var link = document.querySelector('.nav-item[data-route="my-day"] > a');
             if (!link) return;
             var n = (tasks || []).filter(function (t) { return !t.is_snoozed; }).length;
-            var badge = link.querySelector('.mac-task-badge');
-            if (!n) { if (badge) badge.remove(); return; }
-            if (!badge) {
-                badge = document.createElement('span');
-                badge.className = 'badge rounded-pill bg-success ms-2 mac-task-badge';
-                link.appendChild(badge);
-            }
-            badge.textContent = String(n);
-            badge.setAttribute('aria-label', n + ' open task' + (n === 1 ? '' : 's'));
+            // The My Day link, and the link of the folding group it sits in (Home), so the bubble
+            // still shows when that group is folded or the sidebar is collapsed to icons.
+            var links = [link];
+            var group = link.closest('.collapse');
+            var groupLink = group && group.id
+                ? document.querySelector('#sidebarMenu [data-bs-target="#' + group.id + '"]') : null;
+            if (groupLink) links.push(groupLink);
+            links.forEach(function (a) { setIconBadge(a, n); });
         },
 
         refreshTaskBadge: async function () {
