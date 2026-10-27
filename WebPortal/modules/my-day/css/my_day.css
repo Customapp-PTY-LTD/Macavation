@@ -6,3 +6,23 @@
     padding: 1rem;
 }
 
+
+/* Tasks: the first, full-width card on My Day. */
+.my-day-tasks-card.has-tasks {
+    border: 2px solid var(--mac-green);
+}
+.my-day-tasks-card > .card-header h4 {
+    font-size: var(--mac-text-lg);
+    font-weight: 600;
+}
+.my-day-tasks-card .workflow-task {
+    flex-wrap: wrap;
+    align-items: center;
+}
+.my-day-tasks-card .task-content {
+    flex: 1 1 320px;
+    min-width: 0;
+}
+.my-day-tasks-card .task-actions .btn {
+    min-height: 44px;
+}

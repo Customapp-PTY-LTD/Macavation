@@ -280,8 +280,23 @@ var _workflowViews = function () {
             const { tasks, watching, dueItems, recentActivity, workQueue } = data;
             var wq = workQueue || { intake: [], production: [], stockDispatch: [] };
 
+            var openCount = (tasks || []).filter(function (t) { return !t.is_snoozed; }).length;
+            var countPill = openCount
+                ? '<span class="badge rounded-pill bg-success ms-2">' + openCount + ' waiting</span>' : '';
+
+            // Tasks first and full width: they are what the person has to act on (Henry, 27 Oct 2026).
             const html = `
                 <div class="my-day-dashboard">
+                    <div class="card mb-4 my-day-tasks-card${openCount ? ' has-tasks' : ''}">
+                        <div class="card-header d-flex flex-wrap align-items-center gap-2">
+                            <h4 class="mb-0"><i class="fas fa-list-check me-2"></i>Your tasks</h4>${countPill}
+                            <span class="small text-muted ms-auto">Things waiting for you to do. Each new one also shows in the bell.</span>
+                        </div>
+                        <div class="card-body">
+                            ${this.renderWorkflowTasks(tasks)}
+                        </div>
+                    </div>
+
                     <div class="row g-4 mb-2">
                         <div class="col-lg-4">
                             <div class="card h-100">
@@ -309,66 +324,29 @@ var _workflowViews = function () {
                         </div>
                     </div>
 
-                    <div class="row g-4">
-                        <!-- Today's Workflow -->
-                        <div class="col-lg-8">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5 class="mb-0">
-                                        <i class="fas fa-list-check me-2"></i>
-                                        Tasks
-                                    </h5>
-                                </div>
-                                <div class="card-body">
-                                    ${this.renderWorkflowTasks(tasks)}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Due This Period -->
-                        <div class="col-lg-4">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5 class="mb-0">
-                                        <i class="fas fa-calendar-day me-2"></i>
-                                        Due This Period
-                                    </h5>
-                                </div>
-                                <div class="card-body">
-                                    ${this.renderDueItems(dueItems)}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="row g-4 mt-2">
-                        <!-- Watching (Proactive Intelligence) -->
-                        <div class="col-lg-6">
-                            <div class="card">
+                        <div class="col-lg-4">
+                            <div class="card h-100">
                                 <div class="card-header">
-                                    <h5 class="mb-0">
-                                        <i class="fas fa-eye me-2"></i>
-                                        Watching
-                                    </h5>
+                                    <h5 class="mb-0"><i class="fas fa-calendar-day me-2"></i>Due This Period</h5>
                                 </div>
-                                <div class="card-body">
-                                    ${this.renderWatchingItems(watching)}
-                                </div>
+                                <div class="card-body">${this.renderDueItems(dueItems)}</div>
                             </div>
                         </div>
-
-                        <!-- Recent Activity -->
-                        <div class="col-lg-6">
-                            <div class="card">
+                        <div class="col-lg-4">
+                            <div class="card h-100">
                                 <div class="card-header">
-                                    <h5 class="mb-0">
-                                        <i class="fas fa-clock-rotate-left me-2"></i>
-                                        Recent Activity
-                                    </h5>
+                                    <h5 class="mb-0"><i class="fas fa-eye me-2"></i>Watching</h5>
                                 </div>
-                                <div class="card-body">
-                                    ${this.renderRecentActivity(recentActivity)}
+                                <div class="card-body">${this.renderWatchingItems(watching)}</div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-clock-rotate-left me-2"></i>Recent Activity</h5>
                                 </div>
+                                <div class="card-body">${this.renderRecentActivity(recentActivity)}</div>
                             </div>
                         </div>
                     </div>
