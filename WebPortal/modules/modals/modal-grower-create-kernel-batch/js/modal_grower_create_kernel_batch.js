@@ -35,6 +35,10 @@ var _modal_grower_create_kernel_batch = (function () {
     /** Set when modal is opened from the procurement calendar; cleared on close or save. */
     var _pendingProcurementId = null;
     var _pendingGrowerNameOverride = null;
+    /** The planned truck being booked in (from the plan payload), its storage area choices, and the radio pick. */
+    var _planTruck = null;
+    var _planAreas = [];
+    var _chosenArea = '';
 
     var EDIT_BATCH_NUMBER_KEY = 'grower_intake.edit_batch_number';
     var DOC_FOLDER = 'Macavation/Deliveries';
@@ -115,8 +119,11 @@ var _modal_grower_create_kernel_batch = (function () {
                 modalEl.addEventListener('hidden.bs.modal', function () {
                     _pendingProcurementId = null;
                     _pendingGrowerNameOverride = null;
-                    var banner = document.getElementById('intakeProcurementBanner');
-                    if (banner) banner.style.display = 'none';
+                    api._resetBookInUi();
+                });
+                var areaOpts = document.getElementById('intakeBookInAreaOptions');
+                if (areaOpts) areaOpts.addEventListener('change', function (e) {
+                    if (e.target && e.target.name === 'intakeBookInArea') api._setChosenArea(e.target.value);
                 });
             }
             var addSupplierBtn = document.getElementById('intakeAddSupplierBtn');
@@ -191,6 +198,81 @@ var _modal_grower_create_kernel_batch = (function () {
             });
             var docsInput = byId('intakeDeliveryDocs');
             if (docsInput) docsInput.addEventListener('change', function () { api._uploadDocs(docsInput); });
+        },
+
+        // ---------- Book in a planned truck ----------
+
+        _areaLabel: function (code) {
+            var a = _planAreas.filter(function (x) { return x.code === code; })[0];
+            return a ? a.label : '';
+        },
+
+        _resetBookInUi: function () {
+            _planTruck = null;
+            _planAreas = [];
+            _chosenArea = '';
+            ['intakeBookInSub', 'intakeBookInArea', 'intakeBookInSummary'].forEach(function (id) {
+                var el = byId(id);
+                if (el) el.style.display = 'none';
+            });
+            setText('createKernelBatchModalLabel', 'New Delivery');
+            setText('saveCreateKernelBatchLabel', 'Save delivery');
+        },
+
+        _renderBookIn: function () {
+            if (!_planTruck) return;
+            var t = _planTruck;
+            var todayIso = new Date().toISOString().split('T')[0];
+            var d = String(t.scheduled_date || '').slice(0, 10);
+            var dateTxt = d === todayIso ? 'today' : (function () {
+                var p = d.split('-');
+                var dt = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+                var days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                return isNaN(dt.getTime()) ? d : days[dt.getDay()] + ' ' + dt.getDate() + ' ' + months[dt.getMonth()];
+            })();
+            setText('createKernelBatchModalLabel', 'Book in ' + (t.grower || t.grower_name || 'grower') + (t.truck_label ? ' \u00B7 ' + t.truck_label : ''));
+            setText('intakeBookInSub', 'Planned for ' + dateTxt + ' \u00B7 filled in from the procurement plan');
+            setText('saveCreateKernelBatchLabel', 'Create batch');
+            var html = '';
+            _planAreas.forEach(function (a) {
+                var on = a.code === _chosenArea;
+                html += '<div class="col-12 col-sm-6"><label class="d-flex align-items-center gap-2 border rounded px-3 py-2 w-100' + (on ? ' border-success bg-success-subtle' : '') + '" style="min-height:44px">' +
+                    '<input type="radio" class="form-check-input mt-0" name="intakeBookInArea" value="' + esc(a.code) + '"' + (on ? ' checked' : '') + '>' +
+                    '<span>' + esc(a.label) + '</span></label></div>';
+            });
+            var opts = byId('intakeBookInAreaOptions');
+            if (opts) opts.innerHTML = html;
+            var planned = t.storage_area_code ? api._areaLabel(t.storage_area_code) : '';
+            setText('intakeBookInAreaHint', planned
+                ? 'Mike chose ' + planned + ' on the plan. Change it if the truck went somewhere else.'
+                : 'Choose where it went.');
+            api._updateBookInSummary();
+            ['intakeBookInSub', 'intakeBookInArea', 'intakeBookInSummary'].forEach(function (id) {
+                var el = byId(id);
+                if (el) el.style.display = '';
+            });
+        },
+
+        _setChosenArea: function (code) {
+            _chosenArea = code || '';
+            var opts = byId('intakeBookInAreaOptions');
+            if (opts) {
+                Array.prototype.forEach.call(opts.querySelectorAll('label'), function (lab) {
+                    var inp = lab.querySelector('input');
+                    var on = !!(inp && inp.checked);
+                    lab.classList.toggle('border-success', on);
+                    lab.classList.toggle('bg-success-subtle', on);
+                });
+            }
+            api._updateBookInSummary();
+        },
+
+        _updateBookInSummary: function () {
+            var name = _chosenArea ? api._areaLabel(_chosenArea) : '';
+            setText('intakeBookInSummaryArea', name
+                ? '\u00B7 The nut in shell is added to ' + name + '.'
+                : '\u00B7 The nut in shell is added to a storage area once you choose one.');
         },
 
         // ---------- New Delivery: bags ----------
@@ -580,20 +662,32 @@ var _modal_grower_create_kernel_batch = (function () {
 
             api.populateSupplierDropdown(opts.supplierId);
 
-            // Show procurement banner if opened from calendar
-            var banner = document.getElementById('intakeProcurementBanner');
-            if (banner) banner.style.display = opts.fromProcurement ? '' : 'none';
+            // Planned truck: title, storage area choice and "When you save" box. Plain New Delivery hides them.
+            if (opts.fromProcurement && _planTruck) api._renderBookIn();
+            else api._resetBookInUi();
 
             var modalEl = document.getElementById(CONTAINER_ID);
             if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(modalEl).show();
             else if (typeof $ !== 'undefined' && $.fn.modal) $('#' + CONTAINER_ID).modal('show');
         },
 
-        /** Open from the procurement calendar with pre-filled data. */
-        showFromProcurement: function (procurement) {
+        /** Book in a planned truck (from the Expected trucks list). areas = [{code,label}] from the plan payload. */
+        showFromProcurement: function (procurement, areas) {
             if (!procurement) return;
             if (!canCreateIntakeBatch()) return;
             _pendingProcurementId = procurement.id || null;
+            _planTruck = procurement;
+            _planAreas = Array.isArray(areas) ? areas : [];
+            _chosenArea = procurement.storage_area_code || '';
+            if (!_planAreas.length && typeof dataFunctions !== 'undefined' && dataFunctions.getProcurementPlan) {
+                var t0 = new Date().toISOString().split('T')[0];
+                dataFunctions.getProcurementPlan(t0, t0).then(function (plan) {
+                    if (plan && Array.isArray(plan.areas) && _planTruck === procurement) {
+                        _planAreas = plan.areas;
+                        api._renderBookIn();
+                    }
+                }).catch(function () {});
+            }
             api.show({
                 supplierId:        procurement.supplier_id || null,
                 growerNameOverride: procurement.grower_name || null,
@@ -694,6 +788,17 @@ var _modal_grower_create_kernel_batch = (function () {
             }
 
             try {
+                // Planned truck: if the area was changed, record it on the truck first so the DB
+                // puts the stock into that area when the truck converts below.
+                if (_pendingProcurementId && _planTruck && _chosenArea && _chosenArea !== (_planTruck.storage_area_code || '')) {
+                    var areaRes = (typeof dataFunctions !== 'undefined' && dataFunctions._rpcWrite)
+                        ? await dataFunctions._rpcWrite('set_procurement_storage_area', { p_id: _pendingProcurementId, p_storage_area_code: _chosenArea })
+                        : { success: false, error: 'Storage area could not be saved.' };
+                    if (!areaRes || areaRes.success === false) {
+                        throw new Error((areaRes && areaRes.error) || 'Could not save the storage area.');
+                    }
+                }
+
                 // Step 1: create row in batches (uses form batch number as human-readable id)
                 var batchResult = await dataFunctions.upsertBatch({
                     batch_id:   batchNumber,
@@ -771,19 +876,20 @@ var _modal_grower_create_kernel_batch = (function () {
                     $('#' + CONTAINER_ID).modal('hide');
                 }
 
-                // If opened from procurement calendar, mark the procurement as converted
+                // If booked in from a planned truck, mark the procurement as converted
                 if (_pendingProcurementId) {
                     var pendingId = _pendingProcurementId;
                     _pendingProcurementId = null;
                     _pendingGrowerNameOverride = null;
-                    var banner = document.getElementById('intakeProcurementBanner');
-                    if (banner) banner.style.display = 'none';
                     var dfConvert = (typeof _dataFunctions !== 'undefined' && _dataFunctions) ? _dataFunctions
                         : (typeof dataFunctions !== 'undefined' ? dataFunctions : null);
                     if (dfConvert && typeof dfConvert.convertKernelIntakeProcurement === 'function') {
-                        dfConvert.convertKernelIntakeProcurement(pendingId, batchUuid).catch(function (err) {
+                        // Awaited so the Expected trucks refresh below no longer shows this truck.
+                        try {
+                            await dfConvert.convertKernelIntakeProcurement(pendingId, batchUuid);
+                        } catch (err) {
                             console.warn('[New Delivery] Failed to convert procurement:', err);
-                        });
+                        }
                     }
                 }
 
@@ -812,7 +918,7 @@ var _modal_grower_create_kernel_batch = (function () {
                     : (typeof window.growerIntakeGrid !== 'undefined' && window.growerIntakeGrid.loadIntakeBatches ? window.growerIntakeGrid : null);
                 if (grid) {
                     await grid.loadIntakeBatches(true);
-                    // Refresh procurement calendar to remove converted entry
+                    // Refresh Expected trucks to remove the booked-in truck
                     if (typeof grid.loadProcurements === 'function') grid.loadProcurements(true);
                 } else {
                     console.warn('[New Delivery] Grower Intake grid not found; refresh the page to see the new batch.');

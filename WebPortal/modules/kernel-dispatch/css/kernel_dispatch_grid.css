@@ -1,3 +1,21 @@
 /* Kernel Dispatch module */
 /* Search & filters now use the standard supplier-intake card (see kernel_dispatch_grid.html);
    the old flat .kd-dispatch-filters-toolbar was removed for consistency. */
+
+/* Stage filter chips */
+.kd-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.kd-chip { min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--mac-border); background: var(--mac-bg-secondary); color: var(--mac-text-secondary); font-size: 14px; }
+.kd-chip[aria-pressed="true"] { font-weight: 600; box-shadow: 0 0 0 2px var(--mac-border); }
+.kd-chip-all[aria-pressed="true"] { background: var(--mac-text); color: var(--mac-bg-secondary); border-color: var(--mac-text); }
+.kd-chip-picking { background: var(--mac-warning-light); color: var(--mac-warning-text); border-color: var(--mac-warning); }
+.kd-chip-approval { background: var(--mac-danger-light); color: var(--mac-danger); border-color: var(--mac-danger); }
+.kd-chip-approved { background: var(--mac-green-light); color: var(--mac-green); border-color: var(--mac-green); }
+
+/* Step cards */
+.kd-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.kd-step { background: var(--mac-bg-secondary); border: 1px solid var(--mac-border); border-radius: var(--mac-radius-lg); padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.kd-step-title { font-size: 12px; font-weight: 600; }
+.kd-step-1 .kd-step-title { color: var(--mac-warning-text); }
+.kd-step-2 .kd-step-title { color: var(--mac-danger); }
+.kd-step-3 .kd-step-title { color: var(--mac-green); }
+.kd-step-text { font-size: 13px; color: var(--mac-text-secondary); }

@@ -1,21 +1,4 @@
 <!-- Grower Intake Grid Module -->
-<style>
-    /* Procurement calendar as a compact toolbar dropdown (kept inline; the module
-       .css is browser-cached, so this loads fresh with the module HTML). */
-    .gi-calendar-dropdown-menu { width: 780px; max-width: 94vw; }
-    .gi-calendar-dropdown-menu .gi-procurement-calendar-layout {
-        grid-template-columns: minmax(0, 1.6fr) minmax(190px, 1fr);
-        gap: 0.75rem;
-    }
-    .gi-calendar-dropdown-menu .gi-procurement-calendar-weekdays,
-    .gi-calendar-dropdown-menu .gi-procurement-calendar-grid { gap: 0.3rem; }
-    .gi-calendar-dropdown-menu .gi-procurement-calendar-day { min-height: 52px; padding: 0.3rem; border-radius: 0.4rem; }
-    .gi-calendar-dropdown-menu .gi-procurement-calendar-detail { min-height: 0; padding: 0.75rem; }
-    @media (max-width: 767.98px) {
-        .gi-calendar-dropdown-menu { width: 94vw; }
-        .gi-calendar-dropdown-menu .gi-procurement-calendar-layout { grid-template-columns: 1fr; }
-    }
-</style>
 <div class="module-content">
     <div class="pt-3 pb-2 mb-3 border-bottom">
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
@@ -23,36 +6,7 @@
             <div class="btn-toolbar mb-2 mb-md-0 ms-auto gap-2 align-items-center">
                 <a target="_blank" rel="noopener noreferrer" href="help/index.html#grower-intake-grid" class="btn btn-sm btn-outline-secondary macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
 
-                <!-- Procurement calendar: compact icon dropdown (was a full-width accordion) -->
-                <div class="dropdown">
-                    <button type="button" class="btn btn-outline-secondary" id="giProcurementCalendarDropdownBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" title="Procurement calendar" aria-label="Procurement calendar">
-                        <i class="fas fa-calendar-plus"></i>
-                    </button>
-                    <div class="dropdown-menu dropdown-menu-end p-3 gi-calendar-dropdown-menu" aria-labelledby="giProcurementCalendarDropdownBtn">
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                            <h6 class="mb-0"><i class="fas fa-calendar-plus me-2"></i>Procurement Calendar</h6>
-                            <div class="gi-procurement-calendar-toolbar">
-                                <button type="button" class="btn btn-sm btn-outline-secondary" id="giProcurementCalendarPrevBtn" aria-label="Previous month"><i class="fas fa-chevron-left"></i></button>
-                                <div class="gi-procurement-calendar-month" id="giProcurementCalendarMonthLabel">Loading…</div>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" id="giProcurementCalendarNextBtn" aria-label="Next month"><i class="fas fa-chevron-right"></i></button>
-                            </div>
-                        </div>
-                        <p class="text-muted small mb-3">Schedule expected grower deliveries. Click a day to add procurement entries. Drag a pill to another day to reschedule, or drag it into the <strong>Receiving</strong> lane to start the batch process.</p>
-                        <div class="gi-procurement-calendar-layout">
-                            <div>
-                                <div class="gi-procurement-calendar-weekdays">
-                                    <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-                                </div>
-                                <div class="gi-procurement-calendar-grid" id="giProcurementCalendarGrid">
-                                    <div class="text-muted small">Loading…</div>
-                                </div>
-                            </div>
-                            <div class="gi-procurement-calendar-detail" id="giProcurementCalendarDetail">
-                                <div class="text-muted">Select a day to view or add procurement.</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <button type="button" class="btn btn-outline-secondary" id="giOpenProcurementPlanBtn" title="Open procurement plan"><i class="fas fa-calendar-days me-1"></i>Open procurement plan</button>
 
                 <!-- Intake calendar: what was actually received each day (js/mac-activity-calendar.js) -->
                 <div id="giActivityCalendarMount"></div>
@@ -67,6 +21,20 @@
         </div>
         <p class="text-muted mb-0 mt-2 small macavation-module-journey-subtitle" id="macavationModuleJourneySubtitle">Stage 1: Complete Receiving checklist for each batch (box becomes a tick); then Batch test / Batch sample (enabled after checklist). Release to production is only enabled once both forms are completed.</p>
     </div>
+
+    <div class="alert alert-info py-2 small mb-3" id="giPlanInfoLine">The calendar icon that used to sit here now opens the Procurement plan. Trucks are added and moved there; this screen only books them in.</div>
+
+    <div class="gi-layout">
+        <!-- Expected trucks: from the procurement plan -->
+        <section class="gi-trucks-panel" aria-labelledby="giTrucksHeading">
+            <div class="gi-trucks-head">
+                <h2 id="giTrucksHeading">Expected trucks</h2>
+                <p>From the procurement plan. Book in, or drag onto Receiving.</p>
+            </div>
+            <div id="giExpectedTrucks"><div class="gi-trucks-empty">Loading…</div></div>
+        </section>
+
+        <div class="gi-main">
 
     <!-- Search and Filters -->
     <div class="card mb-3 mac-module-filter-bar">
@@ -143,6 +111,8 @@
                     <tbody id="intakeBatchesTableBody"></tbody>
                 </table>
             </div>
+        </div>
+    </div>
         </div>
     </div>
 </div>

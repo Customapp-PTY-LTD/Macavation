@@ -8,9 +8,8 @@
     padding-top: var(--mac-space-md);
     margin-bottom: var(--mac-space-md);
 }
-.nis-crumb, .nis-sub { font-size: var(--mac-text-sm); color: var(--mac-text-secondary); }
 .nis-title { margin: 4px 0; font-size: var(--mac-text-xl); font-weight: 700; }
-.nis-btn { min-height: 40px; }
+.nis-btn { min-height: 44px; }
 
 .nis-cards {
     display: grid;
@@ -27,14 +26,27 @@
     flex-direction: column;
     gap: var(--mac-space-sm);
 }
-.nis-card-unplaced { border-style: dashed; }
+.nis-card-top { display: flex; justify-content: space-between; gap: 8px; }
+.nis-card-pct { font-size: var(--mac-text-sm); color: var(--mac-text-secondary); }
+.nis-banner {
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;
+    background: var(--mac-danger-light); border: 1px solid var(--mac-danger); border-radius: var(--mac-radius-lg);
+    padding: 14px var(--mac-space-md); margin-bottom: var(--mac-space-md); color: var(--mac-danger);
+}
+.nis-question {
+    border: 1px dashed var(--mac-border); border-radius: var(--mac-radius-lg); padding: 14px var(--mac-space-md);
+    font-size: var(--mac-text-sm); color: var(--mac-text-secondary); margin-top: var(--mac-space-md);
+}
+.nis-question strong { color: var(--mac-text); }
+.nis-place { display: flex; flex-direction: column; gap: 12px; text-align: left; }
+.nis-move-row { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); align-items: end; }
 .nis-card-name { font-size: var(--mac-text-base); font-weight: 600; }
 .nis-card-kg { font-size: 1.5rem; font-weight: 700; }
 .nis-card-meta { font-size: var(--mac-text-xs); color: var(--mac-text-secondary); }
 .nis-card-cap { font-size: var(--mac-text-xs); color: var(--mac-text-tertiary); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .nis-bar { height: 8px; background: var(--mac-bg-tertiary); border-radius: 4px; overflow: hidden; }
 .nis-bar-fill { height: 8px; background: var(--mac-green); border-radius: 4px; }
-.nis-bar-fill.nis-bar-warn { background: var(--mac-warning); }
+.nis-bar-fill.nis-bar-warn { background: var(--mac-danger); }
 .nis-icon-btn {
     min-width: 40px; min-height: 40px; border: 0; background: transparent;
     color: var(--mac-text-secondary); border-radius: var(--mac-radius-sm);
@@ -42,14 +54,13 @@
 .nis-icon-btn:hover { background: var(--mac-bg-tertiary); }
 .nis-link-btn { border: 0; background: transparent; padding: 0; min-height: 40px; color: var(--mac-green-hover); text-decoration: underline; font-size: var(--mac-text-xs); text-align: left; }
 
-.nis-split { display: flex; flex-wrap: wrap; gap: var(--mac-space-md); align-items: flex-start; }
 .nis-panel {
     background: var(--mac-bg-secondary);
     border: 1px solid var(--mac-border);
     border-radius: var(--mac-radius-lg);
 }
-.nis-form { flex: 1 1 380px; min-width: 0; padding: var(--mac-space-md); display: flex; flex-direction: column; gap: 12px; }
-.nis-moves { flex: 2 1 560px; min-width: 0; overflow-x: auto; }
+.nis-form { min-width: 0; padding: var(--mac-space-md); display: flex; flex-direction: column; gap: 12px; margin-bottom: var(--mac-space-md); }
+.nis-moves { min-width: 0; overflow-x: auto; }
 .nis-h2 { margin: 0; font-size: var(--mac-text-md); font-weight: 700; }
 .nis-moves .nis-h2 { padding: var(--mac-space-md) var(--mac-space-md) var(--mac-space-sm); }
 .nis-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
@@ -71,3 +82,12 @@
     .nis-grid { grid-template-columns: minmax(0, 1fr); }
     .nis-span2 { grid-column: auto; }
 }
+
+/* Shared tab strip: "NIS storage & silos" (same block lives in nis_storage.css) */
+.nss-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--mac-border); margin-bottom: var(--mac-space-md); }
+.nss-tab {
+    min-height: 44px; padding: 0 16px; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px;
+    background: transparent; color: var(--mac-text-secondary); font-size: var(--mac-text-base);
+}
+.nss-tab[aria-selected="true"] { border-bottom-color: var(--mac-green); color: var(--mac-text); font-weight: 700; }
+.nss-crumb { font-size: var(--mac-text-sm); color: var(--mac-text-secondary); }

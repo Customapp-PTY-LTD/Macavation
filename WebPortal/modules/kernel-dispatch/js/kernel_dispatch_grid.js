@@ -30,6 +30,9 @@ var _kernelDispatchGrid = function () {
         stages: {},
         _handlersBound: false,
         currentView: 'kanban',
+        /** Stage filter chip: 'all' | 'picking' | 'approval' | 'approved' | 'legacy'. */
+        stageFilter: 'all',
+        _pendingOpenOrderId: null,
         /** Active list filters (applied on server via get_kernel_dispatch_orders). */
         dispatchListFilters: { batch: '', supplierDate: '' },
 
@@ -65,6 +68,13 @@ var _kernelDispatchGrid = function () {
 
         init: async () => {
             const scope = _kernelDispatchGrid;
+            var handoff = (typeof _appRouter !== 'undefined' && _appRouter.takeHandoff) ? _appRouter.takeHandoff('kernel-dispatch-grid') : null;
+            scope.stageFilter = (handoff && ['picking', 'approval', 'approved', 'legacy'].indexOf(handoff.stage) >= 0) ? handoff.stage : 'all';
+            scope._pendingOpenOrderId = (handoff && handoff.openOrderId) || null;
+            $('#kdStageChips').off('click.kdStage').on('click.kdStage', '[data-stage]', function () {
+                scope.stageFilter = String($(this).data('stage'));
+                scope.render();
+            });
             $('#kernelDispatchRefreshBtn').off('click').on('click', function () { scope.loadOrders(true); });
             scope.initActivityCalendar();
 
@@ -148,6 +158,24 @@ var _kernelDispatchGrid = function () {
                 if (typeof _modal_kernel_dispatch_approve !== 'undefined' && _modal_kernel_dispatch_approve.init) _modal_kernel_dispatch_approve.init();
             });
             await scope.loadOrders();
+            // the modal loads above are not awaited here, so wait for the approve modal's markup
+            Promise.all(loadPromises).catch(function () { }).then(function () { scope._openPendingOrder(); });
+        },
+
+        /** Router handoff { openOrderId }: open the order once the orders and the approve modal have loaded. */
+        _openPendingOrder: function () {
+            var id = this._pendingOpenOrderId;
+            if (!id) return;
+            this._pendingOpenOrderId = null;
+            var tries = 0;
+            var go = function () {
+                if (typeof _modal_kernel_dispatch_approve !== 'undefined' && _modal_kernel_dispatch_approve.show && $('#kernelDispatchApproveModal').children().length) {
+                    _modal_kernel_dispatch_approve.show(id);
+                } else if (tries++ < 40) {
+                    setTimeout(go, 250);
+                }
+            };
+            go();
         },
 
         // Dispatch calendar: baskets created and baskets dispatched, by day.
@@ -192,6 +220,48 @@ var _kernelDispatchGrid = function () {
         stageOf: function (o) {
             var st = o && this.stages[o.id];
             return st && st.workflow_stage ? String(st.workflow_stage).toLowerCase() : '';
+        },
+
+        /** Stage key for filtering: picking | approval | approved | legacy (no workflow stage). */
+        stageKey: function (o) {
+            var st = this.stageOf(o);
+            return (st === 'picking' || st === 'approval' || st === 'approved') ? st : 'legacy';
+        },
+
+        /** Orders after the stage chip filter. */
+        visibleOrders: function () {
+            var scope = this;
+            if (scope.stageFilter === 'all') return scope.orders;
+            return scope.orders.filter(function (o) { return scope.stageKey(o) === scope.stageFilter; });
+        },
+
+        /** "Waiting on" cell HTML (static text only). */
+        waitingOn: function (o) {
+            var key = this.stageKey(o);
+            var info = this.stages[o.id] || {};
+            if (key === 'picking') return 'Production Manager';
+            if (key === 'approval') return 'Sales Exec' + (info.has_pick_changes ? ' <span class="text-muted">&middot; lines changed</span>' : '');
+            if (key === 'approved') return '<span class="text-muted">Nobody &middot; sale recorded</span>';
+            return '<span class="text-muted">Before approvals started</span>';
+        },
+
+        renderStageChips: function () {
+            var scope = this;
+            var counts = { all: scope.orders.length, picking: 0, approval: 0, approved: 0, legacy: 0 };
+            scope.orders.forEach(function (o) { counts[scope.stageKey(o)]++; });
+            var defs = [
+                ['all', 'All', 'kd-chip-all'],
+                ['picking', 'Picking', 'kd-chip-picking'],
+                ['approval', 'Waiting for approval', 'kd-chip-approval'],
+                ['approved', 'Approved', 'kd-chip-approved'],
+                ['legacy', 'Older orders', 'kd-chip-legacy']
+            ];
+            var $box = $('#kdStageChips').empty();
+            defs.forEach(function (d) {
+                $box.append($('<button type="button" class="kd-chip ' + d[2] + '"></button>')
+                    .attr({ 'data-stage': d[0], 'aria-pressed': scope.stageFilter === d[0] ? 'true' : 'false' })
+                    .text(d[1] + ' \u00b7 ' + counts[d[0]]));
+            });
         },
 
         /** Extra Status-cell badge for orders in the approval workflow ('' for legacy orders). */
@@ -321,12 +391,14 @@ var _kernelDispatchGrid = function () {
         render: () => {
             const scope = _kernelDispatchGrid;
             scope.updateFilterEmptyBanner();
+            scope.renderStageChips();
             if (scope.currentView === 'kanban') {
                 scope.renderKanban();
                 return;
             }
-            var pending = scope.orders.filter(function (o) { return o.status !== 'dispatched'; });
-            var dispatched = scope.orders.filter(function (o) { return o.status === 'dispatched'; });
+            var shown = scope.visibleOrders();
+            var pending = shown.filter(function (o) { return o.status !== 'dispatched'; });
+            var dispatched = shown.filter(function (o) { return o.status === 'dispatched'; });
 
             var pendingTbody = $('#kernelDispatchTableBody');
             pendingTbody.empty();
@@ -334,7 +406,7 @@ var _kernelDispatchGrid = function () {
                 var pendingMsg = scope.listFiltersActive()
                     ? 'No baskets match your search in <strong>Ready to dispatch</strong>. Try buyer name, batch #, or supplier received date, or clear search.'
                     : 'No orders ready to dispatch. Go to Stock (Kernel), select styles for batches, then Send to Dispatch to create an order.';
-                pendingTbody.html('<tr><td colspan="8" class="text-center text-muted py-4">' + pendingMsg + '</td></tr>');
+                pendingTbody.html('<tr><td colspan="9" class="text-center text-muted py-4">' + pendingMsg + '</td></tr>');
             } else {
                 pending.forEach(function (o) {
                     var buyer = (o.buyer_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') || '—';
@@ -353,7 +425,7 @@ var _kernelDispatchGrid = function () {
                             { label: 'Dispatch', className: 'js-dispatch-order', icon: 'fas fa-truck', dataAttrs: { 'order-id': o.id || '' } }
                         ])
                     });
-                    pendingTbody.append('<tr><td>' + buyer + '</td><td>' + collectionStr + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(2) + ' kg</td><td>' + statusBadge + '</td><td class="mac-table-actions-col">' + actions + '</td></tr>');
+                    pendingTbody.append('<tr><td>' + buyer + '</td><td>' + collectionStr + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(2) + ' kg</td><td>' + statusBadge + '</td><td>' + scope.waitingOn(o) + '</td><td class="mac-table-actions-col">' + actions + '</td></tr>');
                 });
             }
 
@@ -363,7 +435,7 @@ var _kernelDispatchGrid = function () {
                 var dispMsg = scope.listFiltersActive()
                     ? 'No baskets match your search in <strong>Dispatched</strong>. Adjust search or clear it.'
                     : 'No baskets marked as dispatched yet. Use the Dispatch button above to complete an order.';
-                dispatchedTbody.html('<tr><td colspan="8" class="text-center text-muted py-4">' + dispMsg + '</td></tr>');
+                dispatchedTbody.html('<tr><td colspan="9" class="text-center text-muted py-4">' + dispMsg + '</td></tr>');
             } else {
                 dispatched.forEach(function (o) {
                     var buyer = (o.buyer_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') || '—';
@@ -380,7 +452,7 @@ var _kernelDispatchGrid = function () {
                             { label: 'View sheet', className: 'js-view-dispatch-order', icon: 'fas fa-clipboard-list', dataAttrs: { 'order-id': o.id || '' } }
                         ].concat(scope.stageMenuItem(o))
                     });
-                    dispatchedTbody.append('<tr><td>' + buyer + '</td><td>' + collectionStr + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(2) + ' kg</td><td>' + statusBadge + '</td><td class="mac-table-actions-col">' + actions + '</td></tr>');
+                    dispatchedTbody.append('<tr><td>' + buyer + '</td><td>' + collectionStr + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(2) + ' kg</td><td>' + statusBadge + '</td><td>' + scope.waitingOn(o) + '</td><td class="mac-table-actions-col">' + actions + '</td></tr>');
                 });
             }
             MacTableActions.init(document.getElementById('kernelDispatchTable'));
@@ -409,8 +481,9 @@ var _kernelDispatchGrid = function () {
             const scope = _kernelDispatchGrid;
             if (typeof KanbanHelper === 'undefined') return;
             scope.updateFilterEmptyBanner();
+            scope.renderStageChips();
 
-            KanbanHelper.render('kdKanbanBoard', DISPATCH_KANBAN_COLUMNS, scope.orders, function (o) {
+            KanbanHelper.render('kdKanbanBoard', DISPATCH_KANBAN_COLUMNS, scope.visibleOrders(), function (o) {
                 return o.status === 'dispatched' ? 'dispatched' : 'confirmed';
             }, function (o) {
                 var esc = KanbanHelper._esc;
@@ -430,6 +503,7 @@ var _kernelDispatchGrid = function () {
                 if (deliveryStr) html += '<div class="kanban-card-meta-item"><i class="fas fa-calendar"></i> Deliver ' + esc(deliveryStr) + '</div>';
                 html += '<div class="kanban-card-meta-item"><i class="fas fa-list"></i> ' + lineCount + ' lines</div>';
                 html += '<div class="kanban-card-meta-item"><i class="fas fa-weight-hanging"></i> ' + totalKg + ' kg</div>';
+                html += '<div class="kanban-card-meta-item"><i class="fas fa-hourglass-half"></i> Waiting on: ' + scope.waitingOn(o) + '</div>';
                 html += '</div>';
                 html += '<div class="kanban-card-actions">';
                 html += scope.stageButton(o);

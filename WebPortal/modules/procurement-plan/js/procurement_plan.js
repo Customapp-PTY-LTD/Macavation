@@ -19,7 +19,10 @@ var _procurementPlan = (function () {
     var LOW_KG = 100000;
     var DAY_TAGS = { off: 'Off', half: 'Half day', shutdown: 'Shutdown', holiday: 'Holiday', nocrack: 'No cracking' };
 
-    var state = { plan: null, view: 'week', rate: 'planned', area: '', monthKey: null, sim: null };
+    var LATE_DAYS = 14;        // a truck is "late" up to this many days after its date; older ones are clean-up items
+    var RUNWAY_WARN_DAYS = 30; // wording only: the database warns Mike inside this window
+
+    var state = { plan: null, view: 'week', rate: 'planned', area: '', monthKey: null, sim: null, cleanup: null, handoff: null, openLists: {} };
     var panel = { id: null, nameTouched: false, status: 'planned' };
 
     // ------------------------------------------------------------------
@@ -73,6 +76,28 @@ var _procurementPlan = (function () {
     function truckLabel(d) { return d.truck_label || d.grower_name || d.grower || 'Truck'; }
 
     function isReceived(d) { return d.status === 'received'; }
+
+    function canBookIn() {
+        return typeof window !== 'undefined' && typeof window.hasAction === 'function' && !!window.hasAction('grower.intake.create');
+    }
+
+    function dDay(k) { var d = parse(k); return WEEKDAY[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MON[d.getUTCMonth()]; }
+
+    /** Late = planned/confirmed, date before today and within LATE_DAYS. Oldest first. */
+    function lateTrucks(plan) {
+        var from = addDays(plan.today, -LATE_DAYS);
+        return (plan.deliveries || []).filter(function (d) {
+            return !isReceived(d) && d.scheduled_date < plan.today && d.scheduled_date >= from;
+        }).sort(function (a, b) { return a.scheduled_date < b.scheduled_date ? -1 : (a.scheduled_date > b.scheduled_date ? 1 : 0); });
+    }
+
+    function growerLabel(d) { return d.grower || d.grower_name || 'Grower'; }
+
+    function areaLabel(code) {
+        var out = code || '';
+        ((state.plan && state.plan.areas) || []).forEach(function (a) { if (a.code === code) out = a.label; });
+        return out;
+    }
 
     // ------------------------------------------------------------------
     // Forecast.
@@ -237,25 +262,216 @@ var _procurementPlan = (function () {
         if (!sim.runOut) runNote = 'plenty of stock for the whole forecast';
         else if (lastDel && lastDel < sim.runOut) runNote = 'no trucks planned after ' + LONG_MON[parse(lastDel).getUTCMonth()];
 
+        var plannedKg = 0;
+        (plan.deliveries || []).forEach(function (d) { plannedKg += Number(d.predicted_weight_kg) || 0; });
+        var t1 = function (kg) { return Math.round(kg / 1000) + ' t'; };
+        var $run = tile('Stock runs out', sim.runOut ? '~' + dLong(sim.runOut) : 'Not in the next 15 months',
+            "Warns Mike when it's inside " + RUNWAY_WARN_DAYS + ' days' + (runNote ? ' \u00b7 ' + runNote : ''), true).attr('id', 'ppRunway');
+
         $('#ppTiles').empty().append(
-            tile('Nut in shell on hand today', kgText(onHand), onHandNote),
-            tile('Planned to come in', kgText(inKg), n + (n === 1 ? ' truck' : ' trucks') + (last ? ', last one ' + dShort(last) : '')),
-            tile('Cracking uses', fmt(sim.rate) + ' kg/day', rateNote),
-            tile('Stock runs out', sim.runOut ? dLong(sim.runOut) : 'Not in the next 15 months', runNote, true)
+            tile('Nut in shell on hand', t1(onHand), onHandNote),
+            tile('Still to come', n + (n === 1 ? ' truck' : ' trucks'), '~' + t1(inKg) + ' of ' + t1(plannedKg) + ' planned' + (last ? ' \u00b7 last one ' + dShort(last) : '')),
+            $run,
+            tile('Cracking uses', fmt(sim.rate) + ' kg/day', rateNote)
         );
     }
 
-    function renderLate(sim) {
+    function renderLate(plan) {
         var $b = $('#ppLate').empty();
-        if (!sim.late.length) return;
+        var late = lateTrucks(plan);
+        if (!late.length) return;
+        var first = late[0];
         var $box = el('div', 'pp-late').attr('role', 'alert');
-        $box.append(el('strong', '', sim.late.length + (sim.late.length === 1 ? ' truck is late: ' : ' trucks are late: ')));
-        sim.late.forEach(function (d) {
-            var $i = el('span', 'pp-late-item').append(el('span', '', truckLabel(d) + ' (' + dShort(d.scheduled_date) + ')'));
-            if (canEdit()) $i.append(el('button', 'pp-link', 'Edit').attr({ type: 'button', 'data-late': d.id }));
-            $box.append($i);
-        });
+        var $msg = el('div', 'pp-late-msg');
+        $msg.append(el('strong', '', late.length + (late.length === 1 ? ' truck is late.' : ' trucks are late.')));
+        $msg.append(document.createTextNode(' ' + growerLabel(first) + (first.truck_label ? ' \u00b7 ' + first.truck_label : '') + ' was due ' + dDay(first.scheduled_date) +
+            (late.length > 1 ? ' and ' + (late.length - 1) + ' more' : '') + '. Book it in if it arrived, or move it.'));
+        var $acts = el('div', 'pp-late-acts');
+        if (canEdit()) $acts.append(el('button', 'btn btn-outline-secondary pp-act', 'Move date').attr({ type: 'button', 'data-late': first.id }));
+        if (canBookIn()) $acts.append(el('button', 'btn btn-primary pp-act', 'Book in').attr({ type: 'button', 'data-bookin': first.id }));
+        $box.append($msg, $acts);
         $b.append($box);
+    }
+
+    // ------------------------------------------------------------------
+    // Trucks this week and next.
+    // ------------------------------------------------------------------
+
+    function statusChip(d, today) {
+        if (isReceived(d)) return el('span', 'pp-chip pp-chip-received', 'Received');
+        if (d.scheduled_date < today) return el('span', 'pp-chip pp-chip-late', 'Late');
+        if (d.status === 'confirmed') return el('span', 'pp-chip pp-chip-confirmed', 'Confirmed');
+        return el('span', 'pp-chip pp-chip-planned', 'Planned');
+    }
+
+    function truckActions(d, today) {
+        var $a = el('div', 'pp-row-acts');
+        if (isReceived(d)) {
+            if (d.batch_number) $a.append(el('span', 'pp-muted', 'Batch ' + d.batch_number));
+            return $a;
+        }
+        var dueNow = d.scheduled_date <= today;
+        if (dueNow && canBookIn()) $a.append(el('button', 'btn btn-sm btn-primary pp-act', 'Book in').attr({ type: 'button', 'data-bookin': d.id }));
+        if (!dueNow && d.status === 'planned' && canEdit()) $a.append(el('button', 'btn btn-sm btn-outline-secondary pp-act', 'Mark confirmed').attr({ type: 'button', 'data-confirm': d.id }));
+        if (canEdit()) $a.append(el('button', 'btn btn-sm btn-outline-secondary pp-act', 'Edit').attr({ type: 'button', 'data-late': d.id }));
+        return $a;
+    }
+
+    function truckRow(d, today) {
+        var late = !isReceived(d) && d.scheduled_date < today;
+        var $date = el('td', 'pp-td pp-nowrap');
+        if (d.scheduled_date === today) $date.append(el('strong', '', 'Today'), document.createTextNode(' '));
+        $date.append(document.createTextNode(dDay(d.scheduled_date)));
+        var rec = isReceived(d) && d.received_kg != null ? fmt(d.received_kg) : '\u2013';
+        return el('tr', (late ? 'pp-row-late' : '')).attr('data-truck', d.id).append(
+            $date,
+            el('td', 'pp-td').append(el('strong', '', growerLabel(d) + (d.truck_label ? ' \u00b7 ' + d.truck_label : ''))),
+            el('td', 'pp-td pp-num', fmt(Number(d.predicted_weight_kg) || 0)),
+            el('td', 'pp-td pp-num' + (rec === '\u2013' ? ' pp-muted' : ''), rec),
+            el('td', 'pp-td', areaLabel(d.storage_area_code) || '\u2013'),
+            el('td', 'pp-td').append(statusChip(d, today)),
+            el('td', 'pp-td').append(truckActions(d, today))
+        );
+    }
+
+    function truckTable(rows, today) {
+        var $head = el('tr').append(th('Date'), th('Truck'), th('Planned kg', 1), th('Received kg', 1), th('Storage area'), th('Status'), el('th', 'pp-th').append(el('span', 'visually-hidden', 'Actions')));
+        var $body = el('tbody');
+        rows.forEach(function (d) { $body.append(truckRow(d, today)); });
+        return el('div', 'pp-table-wrap').append(el('table', 'pp-table').append(el('thead').append($head), $body));
+    }
+
+    function renderTrucks(plan) {
+        var $box = $('#ppTrucks').empty();
+        var today = plan.today;
+        var start = mondayOf(today), end = addDays(start, 13);
+        var all = (plan.deliveries || []).slice().sort(function (a, b) { return a.scheduled_date < b.scheduled_date ? -1 : (a.scheduled_date > b.scheduled_date ? 1 : 0); });
+        var rows = all.filter(function (d) { return d.scheduled_date >= start && d.scheduled_date <= end; });
+
+        var h = state.handoff;
+        if (h && h.focusProcurementId) {
+            var f = findDelivery(h.focusProcurementId);
+            if (f && !rows.some(function (d) { return String(d.id) === String(f.id); })) {
+                $box.append(el('div', 'pp-card pp-selected').append(el('div', 'pp-card-title', 'Selected truck'), truckTable([f], today)));
+            }
+        }
+
+        var $legend = el('div', 'pp-chips pp-legend-chips').append(
+            el('span', 'pp-chip pp-chip-planned', 'Planned'),
+            el('span', 'pp-chip pp-chip-confirmed', 'Confirmed'),
+            el('span', 'pp-chip pp-chip-received', 'Received'),
+            el('span', 'pp-chip pp-chip-late', 'Late'));
+        var $card = el('div', 'pp-card').append(
+            el('div', 'pp-card-head').append(el('h2', 'pp-card-title h6 mb-0', 'Trucks this week and next'), $legend));
+        if (rows.length) $card.append(truckTable(rows, today));
+        else $card.append(el('div', 'pp-empty', 'No trucks planned for this week or next.'));
+        $card.append(el('div', 'pp-hint', 'Book in is shown to people who can create intake batches (Thando). Editing the plan stays with Mike.'));
+        $box.append($card);
+    }
+
+    // ------------------------------------------------------------------
+    // Clean-up card (get_procurement_cleanup).
+    // ------------------------------------------------------------------
+
+    function renderCleanup() {
+        var $box = $('#ppCleanup').empty();
+        var c = state.cleanup;
+        if (!c || !canEdit()) return;
+        var doubles = c.possible_doubles || [], never = c.never_booked_in || [];
+        if (!doubles.length && !never.length) return;
+
+        var $card = el('div', 'pp-card').append(
+            el('h2', 'pp-card-title h6 mb-0', 'Before the old calendar is switched off'),
+            el('div', 'pp-sub', "Trucks Mike already typed into the old calendar are on this plan too. A few may now show twice, or show as late when they arrived. We'll list them for Mike to tidy up once."));
+        var $chips = el('div', 'pp-chips');
+        if (doubles.length) $chips.append(el('button', 'pp-chip pp-chip-flag pp-chip-toggle', doubles.length + ' possible ' + (doubles.length === 1 ? 'double' : 'doubles')).attr({ type: 'button', 'data-list': 'doubles', 'aria-expanded': state.openLists.doubles ? 'true' : 'false' }));
+        if (never.length) $chips.append(el('button', 'pp-chip pp-chip-flag pp-chip-toggle', never.length + ' old ' + (never.length === 1 ? 'truck' : 'trucks') + ' never booked in').attr({ type: 'button', 'data-list': 'never', 'aria-expanded': state.openLists.never ? 'true' : 'false' }));
+        $card.append($chips);
+
+        var cancelBtn = function (id) { return el('button', 'btn btn-sm btn-outline-danger pp-act', 'Cancel this truck').attr({ type: 'button', 'data-cancel': id }); };
+
+        if (doubles.length && state.openLists.doubles) {
+            var $l = el('div', 'pp-cleanup-list');
+            doubles.forEach(function (g) {
+                var trucks = (g.trucks || []).slice().sort(function (a, b) { return String(a.created_at) < String(b.created_at) ? -1 : 1; });
+                var newest = trucks.length ? trucks[trucks.length - 1].id : null;
+                var $g = el('div', 'pp-cleanup-group').append(el('div', 'pp-cleanup-head', dDay(g.scheduled_date) + ' \u00b7 ' + (g.grower || 'Grower')));
+                trucks.forEach(function (t) {
+                    var $r = el('div', 'pp-cleanup-row').append(
+                        el('span', 'pp-cleanup-name', (t.truck_label || 'Truck') + ' \u00b7 ' + fmt(Number(t.predicted_weight_kg) || 0) + ' kg'));
+                    if (t.id === newest) $r.append(el('span', 'pp-chip pp-chip-confirmed', 'Newest'));
+                    $r.append(cancelBtn(t.id));
+                    $g.append($r);
+                });
+                $l.append($g);
+            });
+            $card.append($l);
+        }
+        if (never.length && state.openLists.never) {
+            var $n = el('div', 'pp-cleanup-list');
+            never.forEach(function (t) {
+                $n.append(el('div', 'pp-cleanup-row').append(
+                    el('span', 'pp-cleanup-name', dDay(t.scheduled_date) + ' \u00b7 ' + (t.grower || 'Grower') + (t.truck_label ? ' \u00b7 ' + t.truck_label : '') + ' \u00b7 ' + fmt(Number(t.predicted_weight_kg) || 0) + ' kg'),
+                    cancelBtn(t.id)));
+            });
+            $card.append($n);
+        }
+        $box.append($card);
+    }
+
+    function loadCleanup() {
+        if (!canEdit() || typeof dataFunctions === 'undefined' || !dataFunctions._rpcRead) { state.cleanup = null; renderCleanup(); return $.Deferred().resolve().promise(); }
+        return dataFunctions._rpcRead('get_procurement_cleanup', {}).then(function (res) {
+            state.cleanup = res || null;
+            renderCleanup();
+        });
+    }
+
+    function confirmTruckCancel() {
+        if (typeof Swal === 'undefined') return $.Deferred().resolve(window.confirm('Cancel this truck? It comes off the plan.')).promise();
+        return Swal.fire({ title: 'Cancel this truck?', text: 'It comes off the plan.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Cancel truck', cancelButtonText: 'Keep it' })
+            .then(function (r) { return !!r.isConfirmed; });
+    }
+
+    function cleanupCancel(id) {
+        $.when(confirmTruckCancel()).then(function (yes) {
+            if (!yes) return null;
+            return dataFunctions.cancelProcurementDelivery(id).then(function (res) {
+                if (!res || res.success === false) { toast(false, (res && res.error) || 'Could not cancel. Please try again.'); return null; }
+                toast(true, 'Truck cancelled.');
+                return load();
+            });
+        });
+    }
+
+    function markConfirmed(id) {
+        dataFunctions._rpcWrite('set_procurement_confirmed', { p_id: id, p_is_confirmed: true }, null).then(function (res) {
+            if (!res || res.success === false) { toast(false, (res && res.error) || 'Could not confirm. Please try again.'); return null; }
+            toast(true, 'Truck confirmed.');
+            return load();
+        });
+    }
+
+    function bookIn(id) {
+        if (typeof _appRouter !== 'undefined' && _appRouter.openWith) _appRouter.openWith('grower-intake-grid', { bookInProcurementId: id });
+    }
+
+    /** Router handoff: scroll to + highlight a truck, or the run-out tile. Runs once after the first render. */
+    function applyHandoff() {
+        var h = state.handoff;
+        if (!h) return;
+        state.handoff = null;
+        setTimeout(function () {
+            var node = null;
+            if (h.focusProcurementId) {
+                node = $('#ppTrucks [data-truck="' + String(h.focusProcurementId).replace(/[^0-9a-zA-Z-]/g, '') + '"]').get(0);
+                if (node) $(node).addClass('pp-row-focus');
+            } else if (h.section === 'runway') {
+                node = document.getElementById('ppRunway');
+                if (node) $(node).addClass('pp-tile-focus');
+            }
+            if (node && node.scrollIntoView) node.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }, 150);
     }
 
     function renderChart(sim, weeks) {
@@ -444,7 +660,9 @@ var _procurementPlan = (function () {
         $('#ppViewSeg [data-view]').each(function () { $(this).attr('aria-pressed', $(this).data('view') === state.view ? 'true' : 'false'); });
 
         renderTiles(plan, sim);
-        renderLate(sim);
+        renderLate(plan);
+        renderTrucks(plan);
+        renderCleanup();
         renderChart(sim, weeks);
         var $v = $('#ppView').empty();
         if (state.view === 'day') $v.append(renderDay(sim, plan.today));
@@ -716,6 +934,8 @@ var _procurementPlan = (function () {
                     $('#ppHeadActions').prop('hidden', !canEdit());
                     fillAreaFilter(plan);
                     render();
+                    loadCleanup();
+                    applyHandoff();
                 }
                 dfd.resolve();
             }, function () {
@@ -754,6 +974,14 @@ var _procurementPlan = (function () {
             var d = findDelivery($(this).data('late'));
             if (d) openPanel('delivery', { delivery: d });
         });
+        $m.on('click' + NS, '[data-bookin]', function () { bookIn($(this).data('bookin')); });
+        $m.on('click' + NS, '[data-confirm]', function () { markConfirmed($(this).data('confirm')); });
+        $m.on('click' + NS, '[data-cancel]', function () { cleanupCancel($(this).data('cancel')); });
+        $m.on('click' + NS, '.pp-chip-toggle', function () {
+            var k = $(this).data('list');
+            state.openLists[k] = !state.openLists[k];
+            renderCleanup();
+        });
         $m.on('click' + NS, '.pp-cell-click', function (e) {
             if ($(e.target).closest('.pp-chip-btn').length) return;
             openPanel('day', { day: $(this).data('day') });
@@ -781,6 +1009,9 @@ var _procurementPlan = (function () {
         $('.offcanvas-backdrop').remove();
         $('body').css({ overflow: '', paddingRight: '' });
         $('#ppHeadActions').prop('hidden', !canEdit());
+        state.handoff = (typeof _appRouter !== 'undefined' && _appRouter.takeHandoff) ? _appRouter.takeHandoff('procurement-plan') : null;
+        state.cleanup = null;
+        state.openLists = {};
         bind();
         $('#ppLoading').prop('hidden', false);
         load();

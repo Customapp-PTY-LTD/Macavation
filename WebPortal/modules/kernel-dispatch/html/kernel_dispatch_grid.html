@@ -46,6 +46,8 @@
             <p class="card-text mb-2">Capture <strong>INV</strong> (inventory) from W/House Finished <strong>KERNEL R YES</strong> → <strong>KERNEL CUSTOMERS</strong> → <strong>DEBTORS</strong>.</p>
         </div>
     </div>
+    <!-- Stage filter (approval workflow) -->
+    <div id="kdStageChips" class="kd-chips mb-3" role="group" aria-label="Filter by stage"></div>
     <!-- Kanban Board (default view) -->
     <div id="kdKanbanBoard" class="kanban-board"></div>
 
@@ -68,6 +70,7 @@
                             <th class="text-end">Lines</th>
                             <th class="text-end">Total</th>
                             <th>Status</th>
+                            <th>Waiting on</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -93,6 +96,7 @@
                             <th class="text-end">Lines</th>
                             <th class="text-end">Total</th>
                             <th>Status</th>
+                            <th>Waiting on</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -103,6 +107,13 @@
     </div>
     <p class="text-muted small mb-4">Orders made before this change show "—" for collection date. The edit screen can set or change it.</p>
     </div><!-- /kdTableCards -->
+
+    <!-- How the approval steps work -->
+    <div class="kd-steps mb-4">
+        <div class="kd-step kd-step-1"><div class="kd-step-title">1 &middot; Pete saves the order</div><div class="kd-step-text">Opens a "Pick a dispatch" task for the Production Manager.</div></div>
+        <div class="kd-step kd-step-2"><div class="kd-step-title">2 &middot; Thando confirms picking</div><div class="kd-step-text">Her task closes; an "Approve a dispatch" task opens for Sales Exec.</div></div>
+        <div class="kd-step kd-step-3"><div class="kd-step-title">3 &middot; Pete approves</div><div class="kd-step-text">The sale is recorded and the task closes. Send back reopens step 2.</div></div>
+    </div>
 </div>
 
 <!-- View basket modal (content loaded by app router from modal-kernel-dispatch) -->

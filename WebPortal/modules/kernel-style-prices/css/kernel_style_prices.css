@@ -66,3 +66,20 @@
 .ksp-chip-current { background: var(--mac-green-light); color: var(--mac-green-hover); }
 .ksp-chip-future { background: var(--mac-info-light); color: var(--mac-info); }
 .ksp-link-btn { border: 0; background: transparent; min-height: 40px; padding: 0 4px; color: var(--mac-green-hover); text-decoration: underline; font-size: var(--mac-text-sm); }
+
+/* Missing / old price flags and the price reminder card. */
+.ksp-flag { display: inline-block; font-size: var(--mac-text-xs); font-weight: 600; border-radius: 6px; padding: 3px 8px; }
+.ksp-flag-bad { background: var(--mac-danger-light); color: var(--mac-danger); }
+.ksp-flag-old { background: var(--mac-warning-light); color: var(--mac-warning-text); }
+.ksp-price .ksp-input.ksp-input-missing { border: 2px solid var(--mac-danger); }
+.ksp-reminder { margin-top: var(--mac-space-md); }
+.ksp-rem-top { display: flex; flex-wrap: wrap; gap: var(--mac-space-md); justify-content: space-between; align-items: center; }
+.ksp-rem-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.ksp-field { display: flex; flex-direction: column; gap: 6px; font-size: var(--mac-text-sm); font-weight: 500; }
+.ksp-field .form-select, .ksp-field .form-control { min-height: 44px; }
+.ksp-field .ksp-days { width: 90px; }
+.ksp-check { display: inline-flex; gap: 10px; align-items: center; min-height: 44px; font-size: var(--mac-text-base); }
+.ksp-check .form-check-input { width: 20px; height: 20px; margin: 0; }
+
+/* Mounted as the Prices tab of Kernel Pipeline Settings (no page header). */
+.ksp-tab-intro { font-size: var(--mac-text-sm); color: var(--mac-text-secondary); margin-bottom: var(--mac-space-md); }

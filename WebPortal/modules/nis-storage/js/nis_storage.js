@@ -1,5 +1,5 @@
 /**
- * NIS storage areas — nut-in-shell stock by storage area, with moves between areas.
+ * NIS storage & silos (Storage areas tab) — nut-in-shell stock by storage area, with moves between areas.
  *
  * Loads from dataFunctions.getNisStorageOverview(). Moving stock and editing capacity need the
  * nis_storage.move action. The server re-validates every move; client checks are courtesy only.
@@ -10,10 +10,24 @@ var _nisStorage = (function () {
     'use strict';
 
     var NS = '.nisStorage';
-    var state = { ov: null };
+    var state = { ov: null, wantPlace: false };
+
+    function isAdminRole() {
+        try {
+            var u = (typeof Session !== 'undefined' && Session.get) ? Session.get('user') : null;
+            var rn = u ? (u.role_name || u.role || '') : '';
+            if (rn && typeof rn === 'object') rn = rn.name || rn.role_name || '';
+            rn = String(rn || '').toLowerCase();
+            return rn === 'super_user' || rn === 'admin';
+        } catch (e) { return false; }
+    }
 
     function canMove() {
         return typeof window.hasAction === 'function' && window.hasAction('nis_storage.move');
+    }
+
+    function fmtT(kg) {
+        return Number((Number(kg) || 0) / 1000).toLocaleString('en-ZA', { maximumFractionDigits: 1 }) + ' t';
     }
 
     function fmtKg(n) {
@@ -64,42 +78,95 @@ var _nisStorage = (function () {
 
     function buildCard(a) {
         var $c = el('div', 'nis-card');
-        $c.append(el('div', 'nis-card-name', a.label));
-        $c.append(el('div', 'nis-card-kg', fmtKg(a.kg) + ' kg'));
+        var cap = Number(a.capacity_kg || 0);
+        var rawPct = cap > 0 ? Math.round((Number(a.kg || 0) / cap) * 100) : 0;
+        var $top = el('div', 'nis-card-top');
+        $top.append(el('strong', 'nis-card-name', a.label));
+        if (cap > 0) $top.append(el('span', 'nis-card-pct', rawPct + '% full'));
+        $c.append($top);
+        $c.append(el('div', 'nis-card-kg', fmtT(a.kg)));
         var meta = (a.batch_count || 0) + ' batch' + (a.batch_count === 1 ? '' : 'es');
         if (a.oldest_in) meta += ' · oldest ' + fmtDate(a.oldest_in);
         $c.append(el('div', 'nis-card-meta', meta));
-        var cap = Number(a.capacity_kg || 0);
         if (cap > 0) {
-            var pct = Math.min(100, Math.round((Number(a.kg || 0) / cap) * 100));
+            var pct = Math.min(100, rawPct);
             var $bar = el('div', 'nis-bar').attr({ role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': pct, 'aria-label': a.label + ' capacity used' });
-            $bar.append(el('div', 'nis-bar-fill' + (Number(a.kg) > cap ? ' nis-bar-warn' : '')).css('width', pct + '%'));
+            $bar.append(el('div', 'nis-bar-fill' + (rawPct > 85 ? ' nis-bar-warn' : '')).css('width', pct + '%'));
             $c.append($bar);
             var $cap = el('div', 'nis-card-cap');
-            $cap.append(el('span', null, 'Capacity ' + fmtKg(cap) + ' kg'));
+            $cap.append(el('span', null, 'of ' + fmtT(cap) + ' capacity'));
             if (canMove()) {
                 $cap.append(el('button', 'nis-icon-btn nis-edit-cap').attr({ type: 'button', 'aria-label': 'Edit capacity for ' + a.label, 'data-code': a.code })
                     .append('<i class="fas fa-pen" aria-hidden="true"></i>'));
             }
             $c.append($cap);
         } else if (canMove()) {
+            $c.append(el('div', 'nis-card-cap', 'No capacity set'));
             $c.append(el('button', 'nis-link-btn nis-edit-cap', 'Set capacity').attr({ type: 'button', 'data-code': a.code, 'aria-label': 'Set capacity for ' + a.label }));
         }
         return $c;
     }
 
-    function buildUnplacedCard(ov) {
-        var $c = el('div', 'nis-card nis-card-unplaced');
-        $c.append(el('div', 'nis-card-name', 'Not placed yet'));
-        $c.append(el('div', 'nis-card-kg', fmtKg(ov.unplaced_kg) + ' kg'));
-        $c.append(el('div', 'nis-card-meta', 'Stock the system holds that is not in any area yet. Move it into an area below.'));
-        return $c;
+    function buildBanner(ov) {
+        var $b = el('div', 'nis-banner').attr('role', 'alert');
+        $b.append($('<div>').append(el('strong', null, fmtT(ov.unplaced_kg) + ' not placed yet.')).append(document.createTextNode(' Booked in without a storage area.')));
+        if (canMove()) $b.append(el('button', 'btn btn-primary nis-btn', 'Place it').attr({ type: 'button', id: 'nisPlaceBtn' }));
+        return $b;
+    }
+
+    function buildQuestion() {
+        var $q = el('div', 'nis-question');
+        $q.append(el('strong', null, 'Question for Mike and Thando:'));
+        $q.append(document.createTextNode(" when nuts go from Silo storage into a silo and get cracked, should that take them out of Silo storage by itself? Today it doesn't, so the Silo storage total only ever goes up."));
+        return $q;
+    }
+
+    function placeDialog() {
+        var batches = (state.ov && state.ov.unplaced_batches) || [];
+        if (!batches.length) { _common.showErrorToast('Nothing is waiting to be placed.'); return; }
+        var $w = el('div', 'nis-place');
+        var $bs = $('<select class="form-select" id="nisPlBatch"></select>');
+        batches.forEach(function (x, i) { $bs.append(option(String(i), (x.batch_number || 'No batch no.') + ' · ' + fmtKg(x.kg) + ' kg')); });
+        var $as = $('<select class="form-select" id="nisPlArea"></select>').append(option('', 'Pick a storage area'));
+        (state.ov.areas || []).forEach(function (x) { $as.append(option(x.code, x.label)); });
+        var $kg = $('<input type="number" class="form-control" id="nisPlKg" min="0" step="any" inputmode="decimal">').val(batches[0].kg);
+        var $note = $('<input type="text" class="form-control" id="nisPlNote" maxlength="200">');
+        $bs.on('change', function () { var x = batches[Number($bs.val())]; if (x) $kg.val(x.kg); });
+        $w.append(el('label', 'nis-field', 'Batch').append($bs));
+        $w.append(el('label', 'nis-field', 'Storage area').append($as));
+        $w.append(el('label', 'nis-field', 'Kg').append($kg));
+        $w.append(el('label', 'nis-field', 'Note').append($note));
+        Swal.fire({
+            title: 'Place stock',
+            html: $w[0],
+            showCancelButton: true,
+            confirmButtonText: 'Place it',
+            preConfirm: function () {
+                var batch = batches[Number($bs.val())];
+                var area = $as.val();
+                var kg = Number($kg.val());
+                if (!batch) { Swal.showValidationMessage('Pick a batch.'); return false; }
+                if (!area) { Swal.showValidationMessage('Pick a storage area.'); return false; }
+                if (!(kg > 0)) { Swal.showValidationMessage('Kg must be more than zero.'); return false; }
+                if (kg > Number(batch.kg) + 0.0001) { Swal.showValidationMessage('That batch only has ' + fmtKg(batch.kg) + ' kg.'); return false; }
+                return dataFunctions.recordNisStorageMovement({
+                    fromArea: null, toArea: area, kg: kg, kernelId: batch.kernel_id, batchNumber: batch.batch_number,
+                    movedAt: todayStr(), note: String($note.val() || '').trim() || null
+                }).then(function (res) {
+                    if (res && res.success) return true;
+                    Swal.showValidationMessage((res && res.error) ? String(res.error) : 'Could not place the stock.');
+                    return false;
+                });
+            }
+        }).then(function (r) {
+            if (r.isConfirmed) { _common.showSuccessToast('Stock placed.'); reload(); }
+        });
     }
 
     function buildForm(ov) {
         var $f = el('div', 'nis-panel nis-form').attr('id', 'nisMoveForm');
-        $f.append(el('h2', 'nis-h2', 'Move stock'));
-        var $g = el('div', 'nis-grid');
+        $f.append(el('h2', 'nis-h2', 'Move nut in shell'));
+        var $g = el('div', 'nis-grid nis-move-row');
 
         var $from = $('<select class="form-select" id="nisFrom"></select>').append(option('', 'Not placed yet'));
         var $to = $('<select class="form-select" id="nisTo"></select>');
@@ -108,13 +175,13 @@ var _nisStorage = (function () {
 
         $g.append(el('label', 'nis-field', 'From').append($from));
         $g.append(el('label', 'nis-field', 'To').append($to));
-        $g.append(el('label', 'nis-field nis-span2', 'Batch').append($('<select class="form-select" id="nisBatch"></select>')));
-        $g.append(el('label', 'nis-field', 'Kg moved').append($('<input type="number" class="form-control" id="nisKg" min="0" step="any" inputmode="decimal" placeholder="All of it">')));
+        $g.append(el('label', 'nis-field', 'Batch').append($('<select class="form-select" id="nisBatch"></select>')));
+        $g.append(el('label', 'nis-field', 'Kg').append($('<input type="number" class="form-control" id="nisKg" min="0" step="any" inputmode="decimal" placeholder="All of it">')));
         $g.append(el('label', 'nis-field', 'Date').append($('<input type="date" class="form-control" id="nisDate">').val(todayStr())));
-        $g.append(el('label', 'nis-field nis-span2', 'Note').append($('<input type="text" class="form-control" id="nisNote" maxlength="200">')));
+        $g.append(el('label', 'nis-field', 'Note').append($('<input type="text" class="form-control" id="nisNote" maxlength="200">')));
+        $g.append(el('button', 'btn btn-primary nis-btn', 'Record move').attr({ type: 'button', id: 'nisSave' }));
         $f.append($g);
         $f.append(el('div', 'nis-hint', 'Logged under the person signed in, so each person needs their own login on their own phone.'));
-        $f.append(el('button', 'btn btn-primary nis-btn', 'Save move').attr({ type: 'button', id: 'nisSave' }));
         return $f;
     }
 
@@ -178,30 +245,28 @@ var _nisStorage = (function () {
         var ov = state.ov;
         var $body = $('#nisBody').empty();
         if (!ov || ov.success === false) {
-            $('#nisSub').text('');
-            $('#nisJumpMove').prop('hidden', true);
             $body.append(el('div', 'nis-panel nis-form', 'Storage areas are not available yet.'));
             return;
         }
-        $('#nisSub').text('Total ' + fmtKg(ov.pool_kg) + ' kg in the system.');
+        if (Number(ov.unplaced_kg) > 0) $body.append(buildBanner(ov));
         var $cards = el('div', 'nis-cards');
-        (ov.areas || []).forEach(function (a) { $cards.append(buildCard(a)); });
-        $cards.append(buildUnplacedCard(ov));
+        (ov.areas || []).forEach(function (x) { $cards.append(buildCard(x)); });
         $body.append($cards);
 
-        var $split = el('div', 'nis-split');
-        var move = canMove();
-        if (move) $split.append(buildForm(ov));
-        $('#nisJumpMove').prop('hidden', !move);
-        $split.append(buildMoves(ov));
-        $body.append($split);
-        if (move) fillBatches();
+        if (canMove()) $body.append(buildForm(ov));
+        $body.append(buildMoves(ov));
+        if (isAdminRole()) $body.append(buildQuestion());
+        if (canMove()) fillBatches();
     }
 
     function reload() {
         return dataFunctions.getNisStorageOverview(200).then(function (ov) {
             state.ov = ov;
             render();
+            if (state.wantPlace) {
+                state.wantPlace = false;
+                if (canMove() && Number(ov && ov.unplaced_kg) > 0) placeDialog();
+            }
         });
     }
 
@@ -267,13 +332,14 @@ var _nisStorage = (function () {
         $m.on('change' + NS, '#nisFrom', fillBatches);
         $m.on('click' + NS, '#nisSave', save);
         $m.on('click' + NS, '.nis-edit-cap', function () { editCapacity($(this).attr('data-code')); });
-        $m.on('click' + NS, '#nisJumpMove', function () {
-            var f = document.getElementById('nisMoveForm');
-            if (f) { f.scrollIntoView({ behavior: 'smooth', block: 'start' }); $('#nisFrom').trigger('focus'); }
-        });
+        $m.on('click' + NS, '#nisPlaceBtn', placeDialog);
+        $m.on('click' + NS, '[data-nss-tab="silos"]', function () { _appRouter.routeTo('silo-allocation-grid', true); });
     }
 
     function init() {
+        var h = (typeof _appRouter !== 'undefined' && _appRouter.takeHandoff) ? _appRouter.takeHandoff('nis-storage') : null;
+        if (h && h.tab === 'silos') { _appRouter.routeTo('silo-allocation-grid', true); return; }
+        state.wantPlace = !!(h && h.place);
         bind();
         reload();
     }

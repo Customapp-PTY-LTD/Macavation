@@ -17,7 +17,36 @@ var _kernelStylePrices = (function () {
         { key: 'per_dispatch', label: 'Set on each dispatch' }
     ];
     var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    var state = { data: null, customerId: null, open: {} };
+    var REM_DEFAULTS = { enabled: true, max_age_days: 30, frequency: 'weekly', scope: 'in_stock', remind_missing: true };
+    var FREQUENCIES = [
+        { key: 'weekly', label: 'Every Monday' },
+        { key: 'daily', label: 'Every day' },
+        { key: 'monthly', label: '1st of the month' }
+    ];
+    var SCOPES = [
+        { key: 'in_stock', label: 'Only styles we have in stock' },
+        { key: 'all', label: 'Every style' }
+    ];
+    // rem = reminder settings from get_price_reminder_settings (null until loaded / when unavailable).
+    var state = { data: null, customerId: null, open: {}, rem: null };
+
+    // Stock series names that differ from the style code in the price list (as kernel_dashboard.js).
+    var STOCK_CODE_OF = { 'Butter High Oil': 'BHO', 'Butter Low Oil': 'BLO' };
+
+    function maxAgeDays() {
+        var n = state.rem ? parseInt(state.rem.max_age_days, 10) : NaN;
+        return isNaN(n) || n < 1 ? REM_DEFAULTS.max_age_days : n;
+    }
+
+    // Whole days between a YYYY-MM-DD date and today (null when unreadable).
+    function daysSince(v) {
+        var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(v || ''));
+        if (!m) return null;
+        var then = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+        var now = new Date();
+        var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        return Math.round((today - then) / 86400000);
+    }
 
     function has(key) {
         return typeof window.hasAction === 'function' && window.hasAction(key);
@@ -109,13 +138,15 @@ var _kernelStylePrices = (function () {
 
         var $t = el('table', 'table ksp-table');
         var $hr = $('<tr>');
-        [['Style'], ['Price per kg (excl. VAT)'], ['Per ' + (d.kg_per_carton || 11.34) + ' kg carton', 'ksp-r'], ['Last changed']].forEach(function (h) {
+        [['Style'], ['Price per kg (excl. VAT)'], ['Per ' + (d.kg_per_carton || 11.34) + ' kg carton', 'ksp-r'], ['In stock', 'ksp-r'], ['Last changed']].forEach(function (h) {
             $hr.append(el('th', 'ksp-th ' + (h[1] || ''), h[0]).attr('scope', 'col'));
         });
         $t.append($('<thead>').append($hr));
         var $tb = $('<tbody>');
         (d.styles || []).forEach(function (s) {
             var cur = currentPrice(s);
+            // No price at all: nothing of its own, and (for a customer view) no list price to fall back on.
+            var missing = (cur == null || cur === '') && (!state.customerId || s.list_price == null);
             var $r = $('<tr>');
             var $name = $('<td>').append(el('strong', null, s.style_code)).append(document.createTextNode(' ')).append(el('span', 'ksp-tiny', s.label || ''));
             $r.append($name);
@@ -126,6 +157,10 @@ var _kernelStylePrices = (function () {
                 .attr('data-orig', cur == null ? '' : String(cur))
                 .prop('readonly', !edit);
             if (state.customerId) $in.attr('placeholder', s.list_price == null ? '' : String(s.list_price));
+            if (missing) {
+                $in.addClass('ksp-input-missing');
+                if (!state.customerId) $in.attr('placeholder', 'Needs a price');
+            }
             var $cell = el('td').append(el('label', 'ksp-price').append(el('span', 'ksp-muted', 'R')).append($in));
             if (state.customerId) {
                 $cell.append(el('div', 'ksp-tiny', 'List price ' + (s.list_price == null ? 'not set' : money(s.list_price))));
@@ -134,11 +169,22 @@ var _kernelStylePrices = (function () {
 
             var shown = cur == null || cur === '' ? (state.customerId ? s.list_price : null) : cur;
             $r.append(el('td', 'ksp-r ksp-muted ksp-carton', shown == null ? '' : carton(shown)));
+            var kg = state.stock ? state.stock[s.style_code] : null;
+            $r.append(el('td', 'ksp-r ksp-muted', state.stock == null ? '' : (kg ? Math.round(kg).toLocaleString('en-ZA') + ' kg' : '–')));
 
             var from = state.customerId ? s.customer_from : s.list_from;
             var by = s.list_changed_by;
             var txt = from ? fmtDate(from) + (by && !state.customerId ? ' · ' + by : '') : 'Not set yet';
-            $r.append(el('td', 'ksp-tiny', txt));
+            var age = from ? daysSince(from) : null;
+            var $last = el('td');
+            if (missing) {
+                $last.append(el('span', 'ksp-flag ksp-flag-bad', 'No price yet'));
+            } else if (age != null && age > maxAgeDays()) {
+                $last.append(el('span', 'ksp-flag ksp-flag-old', 'Older than ' + maxAgeDays() + ' days'));
+            } else {
+                $last.append(el('span', 'ksp-tiny', txt));
+            }
+            $r.append($last);
             $tb.append($r);
         });
         $t.append($tb);
@@ -185,6 +231,85 @@ var _kernelStylePrices = (function () {
         return $c;
     }
 
+    function optionsHtml(list, cur) {
+        return list.map(function (o) {
+            return '<option value="' + o.key + '"' + (o.key === cur ? ' selected' : '') + '>' + o.label + '</option>';
+        }).join('');
+    }
+
+    // The "Price reminder" card. Option labels are fixed copy; no DB text is put into HTML here.
+    function buildReminder() {
+        var edit = has('kernel_prices.edit');
+        var $c = el('section', 'ksp-panel ksp-side-card ksp-reminder').attr('aria-labelledby', 'kspRemTitle');
+        if (!state.rem) {
+            $c.append(el('div', 'ksp-h2', 'Price reminder').attr('id', 'kspRemTitle'));
+            $c.append(el('div', 'ksp-muted', 'The price reminder is not available yet.'));
+            return $c;
+        }
+        var r = $.extend({}, REM_DEFAULTS, state.rem);
+        var $top = el('div', 'ksp-rem-top');
+        var $t = el('div');
+        $t.append(el('h2', 'ksp-h2', 'Price reminder').attr('id', 'kspRemTitle'));
+        $t.append(el('div', 'ksp-muted', 'When the "Style prices need a look" task appears on My Day.'));
+        $top.append($t);
+        $top.append($('<label class="ksp-check"><input type="checkbox" class="form-check-input" id="kspRemEnabled"> Send this reminder</label>'));
+        $c.append($top);
+
+        var $grid = el('div', 'ksp-rem-grid');
+        $grid.append($('<label class="ksp-field">Remind when a price is older than<span class="ksp-inline">' +
+            '<input type="number" min="1" max="365" step="1" class="form-control ksp-days" id="kspRemDays" aria-label="Days">' +
+            '<span class="ksp-muted">days</span></span></label>'));
+        $grid.append($('<label class="ksp-field">Check<select class="form-select" id="kspRemFreq">' +
+            optionsHtml(FREQUENCIES, r.frequency) + '</select></label>'));
+        $grid.append($('<label class="ksp-field">Which styles count<select class="form-select" id="kspRemScope">' +
+            optionsHtml(SCOPES, r.scope) + '</select></label>'));
+        $c.append($grid);
+        $c.append($('<label class="ksp-check"><input type="checkbox" class="form-check-input" id="kspRemMissing"> Also remind when a style in stock has no price at all</label>'));
+        $c.append(el('div', 'ksp-tiny', 'Goes to the Sales Exec role (Pete). Saving prices clears the task once nothing counted is missing or old.'));
+        if (edit) {
+            $c.append($('<div class="ksp-actions">').append(
+                el('button', 'btn btn-primary ksp-btn', 'Save reminder').attr({ type: 'button', id: 'kspRemSave' })));
+        }
+        // Values set via .prop/.val, not markup.
+        $c.find('#kspRemEnabled').prop('checked', !!r.enabled);
+        $c.find('#kspRemMissing').prop('checked', !!r.remind_missing);
+        $c.find('#kspRemDays').val(r.max_age_days);
+        if (!edit) $c.find('input, select').prop('disabled', true);
+        return $c;
+    }
+
+    function loadReminder() {
+        return dataFunctions._rpcRead('get_price_reminder_settings', {}, null).then(function (res) {
+            state.rem = res && res.settings ? res.settings : null;
+        }, function () { state.rem = null; });
+    }
+
+    function saveReminder() {
+        var days = Number($('#kspRemDays').val());
+        if (!Number.isInteger(days) || days < 1 || days > 365) {
+            _common.showErrorToast('Days must be a whole number from 1 to 365.');
+            return;
+        }
+        var settings = {
+            enabled: $('#kspRemEnabled').prop('checked'),
+            max_age_days: days,
+            frequency: $('#kspRemFreq').val(),
+            scope: $('#kspRemScope').val(),
+            remind_missing: $('#kspRemMissing').prop('checked')
+        };
+        $('#kspRemSave').prop('disabled', true);
+        dataFunctions._rpcWrite('set_price_reminder_settings', { p_settings: settings }, null).then(function (res) {
+            if (res && res.success) {
+                if (res.settings) state.rem = res.settings;
+                _common.showSuccessToast('Price reminder saved.');
+                render();
+            } else {
+                _common.showErrorToast((res && res.error) ? String(res.error) : 'Could not save the reminder.');
+                $('#kspRemSave').prop('disabled', false);
+            }
+        });
+    }
+
     function render() {
         var d = state.data;
         var $body = $('#ksp-body').empty();
@@ -192,16 +317,34 @@ var _kernelStylePrices = (function () {
             $body.append(el('div', 'ksp-panel ksp-side-card', 'Style prices are not available yet.'));
             return;
         }
+        $body.append(el('div', 'ksp-muted ksp-note').append(el('i', 'fas fa-lock me-1').attr('aria-hidden', 'true'))
+            .append(document.createTextNode('Only people allowed to see prices get this tab.')));
         $body.append(buildMode(d));
         var $split = el('div', 'ksp-split');
         $split.append(buildTable(d));
         $split.append(el('div', 'ksp-side').append(buildHistory(d)));
         $body.append($split);
+        $body.append(buildReminder());
     }
 
     function reload() {
-        return dataFunctions.getKernelStylePrices(state.customerId || null, null).then(function (d) {
-            state.data = d;
+        // Stock on hand per style: today's row of the same history the Kernel Dashboard values.
+        var stock = dataFunctions.getStockSohHistory
+            ? dataFunctions.getStockSohHistory('kernel', 7).then(function (rows) {
+                if (!Array.isArray(rows) || !rows.length) return {};
+                var last = rows.reduce(function (m, r) { return r.d > m ? r.d : m; }, '');
+                var map = {};
+                rows.forEach(function (r) {
+                    if (r.d !== last) return;
+                    var code = STOCK_CODE_OF[r.series] || r.series;
+                    map[code] = (map[code] || 0) + (Number(r.qty_kg) || 0);
+                });
+                return map;
+            }, function () { return null; })
+            : Promise.resolve(null);
+        return Promise.all([dataFunctions.getKernelStylePrices(state.customerId || null, null), stock]).then(function (r) {
+            state.data = r[0];
+            state.stock = r[1];
             render();
         });
     }
@@ -277,6 +420,7 @@ var _kernelStylePrices = (function () {
         $m.off(NS);
         $m.on('click' + NS, '.ksp-seg-btn', function () { changeMode($(this).attr('data-mode')); });
         $m.on('click' + NS, '#kspSave', save);
+        $m.on('click' + NS, '#kspRemSave', saveReminder);
         $m.on('change' + NS, '#kspCustomer', function () { state.customerId = $(this).val() || null; reload(); });
         $m.on('input' + NS, '.ksp-val', function () {
             var $i = $(this);
@@ -301,7 +445,8 @@ var _kernelStylePrices = (function () {
             $body.empty().append(el('div', 'ksp-panel ksp-side-card', 'Prices are only shown to Pete, Mike and super users.'));
             return;
         }
-        reload();
+        // Reminder settings first so the "older than N days" flags use the saved N.
+        loadReminder().then(reload);
     }
 
     return { init: init };
