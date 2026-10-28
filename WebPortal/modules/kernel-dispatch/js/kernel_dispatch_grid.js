@@ -21,8 +21,13 @@ var _kernelDispatchGrid = function () {
         { key: 'dispatched', label: 'Dispatched' }
     ];
 
+    var can = function (key) { return typeof window.hasAction === 'function' && !!window.hasAction(key); };
+    var escHtml = function (v) { return (typeof _common !== 'undefined' && _common.escapeHtml) ? _common.escapeHtml(v) : String(v == null ? '' : v).replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+
     return {
         orders: [],
+        /** Approval-workflow state by order id: { workflow_stage, picked_by_label, has_pick_changes }. Legacy orders have no entry. */
+        stages: {},
         _handlersBound: false,
         currentView: 'kanban',
         /** Active list filters (applied on server via get_kernel_dispatch_orders). */
@@ -92,11 +97,15 @@ var _kernelDispatchGrid = function () {
                     }
                 });
                 $(document).on('click', '.js-dispatch-order', function () {
+                    scope.openDispatch($(this).data('order-id'));
+                });
+                $(document).on('click', '.js-kd-open-approve', function () {
                     var id = $(this).data('order-id');
-                    if (id && typeof _modal_kernel_dispatch_form !== 'undefined' && _modal_kernel_dispatch_form.show) {
-                        _modal_kernel_dispatch_form.show(id);
+                    if (id && typeof _modal_kernel_dispatch_approve !== 'undefined' && _modal_kernel_dispatch_approve.show) {
+                        _modal_kernel_dispatch_approve.show(id);
                     }
                 });
+                $(document).on('kernelDispatch:changed', function () { scope.loadOrders(true); });
                 $(document).on('click', '.js-edit-dispatch-order', function () {
                     var id = $(this).data('order-id');
                     if (id && typeof _modal_kernel_dispatch_edit !== 'undefined' && _modal_kernel_dispatch_edit.show) {
@@ -130,11 +139,13 @@ var _kernelDispatchGrid = function () {
                 if (typeof _modal_kernel_dispatch !== 'undefined' && _modal_kernel_dispatch.init) _modal_kernel_dispatch.init();
                 if (typeof _modal_kernel_dispatch_form !== 'undefined' && _modal_kernel_dispatch_form.init) _modal_kernel_dispatch_form.init();
                 if (typeof _modal_kernel_dispatch_edit !== 'undefined' && _modal_kernel_dispatch_edit.init) _modal_kernel_dispatch_edit.init();
+                if (typeof _modal_kernel_dispatch_approve !== 'undefined' && _modal_kernel_dispatch_approve.init) _modal_kernel_dispatch_approve.init();
             }).catch(function (err) {
                 console.error('[Kernel Dispatch] Error loading modal:', err);
                 if (typeof _modal_kernel_dispatch !== 'undefined' && _modal_kernel_dispatch.init) _modal_kernel_dispatch.init();
                 if (typeof _modal_kernel_dispatch_form !== 'undefined' && _modal_kernel_dispatch_form.init) _modal_kernel_dispatch_form.init();
                 if (typeof _modal_kernel_dispatch_edit !== 'undefined' && _modal_kernel_dispatch_edit.init) _modal_kernel_dispatch_edit.init();
+                if (typeof _modal_kernel_dispatch_approve !== 'undefined' && _modal_kernel_dispatch_approve.init) _modal_kernel_dispatch_approve.init();
             });
             await scope.loadOrders();
         },
@@ -178,6 +189,69 @@ var _kernelDispatchGrid = function () {
             });
         },
 
+        stageOf: function (o) {
+            var st = o && this.stages[o.id];
+            return st && st.workflow_stage ? String(st.workflow_stage).toLowerCase() : '';
+        },
+
+        /** Extra Status-cell badge for orders in the approval workflow ('' for legacy orders). */
+        stageBadge: function (o) {
+            var stage = this.stageOf(o);
+            if (!stage) return '';
+            var info = this.stages[o.id] || {};
+            var map = {
+                picking: ['Waiting for picking', 'bg-warning text-dark'],
+                approval: ['Waiting for Pete', 'bg-info text-dark'],
+                approved: ['Approved – sale recorded', 'bg-success']
+            };
+            var m = map[stage];
+            if (!m) return '';
+            var html = '<div class="mt-1"><span class="badge ' + m[1] + '">' + escHtml(m[0]) + '</span>';
+            if (stage === 'approval' && info.has_pick_changes) html += ' <span class="badge bg-warning text-dark" title="The picker changed some cartons">changed</span>';
+            return html + '</div>';
+        },
+
+        /** { label, icon } of the workflow button for this row, or null (legacy orders). */
+        stageAction: function (o) {
+            var stage = this.stageOf(o);
+            if (!stage) return null;
+            if (stage === 'picking' && can('kernel_dispatch.pick')) return { label: 'Confirm picking', icon: 'fas fa-clipboard-check' };
+            if ((stage === 'approval' || stage === 'approved') && can('kernel_dispatch.approve')) {
+                return stage === 'approved' ? { label: 'View sale', icon: 'fas fa-receipt' } : { label: 'Price & approve', icon: 'fas fa-tags' };
+            }
+            return { label: 'Progress', icon: 'fas fa-list-check' };
+        },
+
+        stageMenuItem: function (o) {
+            var a = this.stageAction(o);
+            return a ? [{ label: a.label, className: 'js-kd-open-approve', icon: a.icon, dataAttrs: { 'order-id': o.id || '' } }] : [];
+        },
+
+        stageButton: function (o) {
+            var a = this.stageAction(o);
+            if (!a) return '';
+            return '<button type="button" class="btn btn-sm btn-outline-primary js-kd-open-approve me-1" data-order-id="' + escHtml(o.id || '') + '"><i class="' + a.icon + ' me-1"></i>' + escHtml(a.label) + '</button>';
+        },
+
+        /** Dispatch form, after a heads-up when Pete has not approved (and so no sale is recorded). Never blocks. */
+        openDispatch: function (id) {
+            if (!id || typeof _modal_kernel_dispatch_form === 'undefined' || !_modal_kernel_dispatch_form.show) return;
+            var stage = this.stageOf({ id: id });
+            if ((stage === 'picking' || stage === 'approval') && typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Not approved yet',
+                    text: 'Pete has not approved this dispatch yet, so it is not recorded as a sale. Dispatch anyway?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Continue',
+                    cancelButtonText: 'Cancel',
+                    focusCancel: true
+                }).then(function (res) { if (res.isConfirmed) _modal_kernel_dispatch_form.show(id); });
+                return;
+            }
+            _modal_kernel_dispatch_form.show(id);
+        },
+
         loadOrders: async (forceRefresh) => {
             const scope = _kernelDispatchGrid;
             try {
@@ -194,6 +268,11 @@ var _kernelDispatchGrid = function () {
                 // Cancelled orders (their last line sent back to stock) never belong on this board -
                 // the movement is already recorded in stock_soh_history.
                 scope.orders = rows.filter(function (o) { return String(o && o.status || '').toLowerCase() !== 'cancelled'; });
+                scope.stages = {};
+                if (dataFunctions.getKernelDispatchStages && scope.orders.length) {
+                    var stageRows = await dataFunctions.getKernelDispatchStages(scope.orders.map(function (o) { return o.id; })) || [];
+                    stageRows.forEach(function (r) { if (r && r.id && r.workflow_stage) scope.stages[r.id] = r; });
+                }
                 scope.render();
             } catch (e) {
                 console.error('[Kernel Dispatch] loadOrders failed:', e);
@@ -264,14 +343,15 @@ var _kernelDispatchGrid = function () {
                     var createdStr = formatDate(o.created_at);
                     var lineCount = o.line_count != null ? o.line_count : 0;
                     var totalKg = o.total_kg != null ? Number(o.total_kg) : 0;
-                    var statusBadge = KanbanHelper.statusBadge(o.status || 'confirmed', 'first');
+                    var statusBadge = KanbanHelper.statusBadge(o.status || 'confirmed', 'first') + scope.stageBadge(o);
                     var actions = MacTableActions.render({
                         id: 'kdPendingActions' + (o.id || ''),
                         items: [
-                            { label: 'View sheet', className: 'js-view-dispatch-order', icon: 'fas fa-clipboard-list', dataAttrs: { 'order-id': o.id || '' } },
+                            { label: 'View sheet', className: 'js-view-dispatch-order', icon: 'fas fa-clipboard-list', dataAttrs: { 'order-id': o.id || '' } }
+                        ].concat(scope.stageMenuItem(o), [
                             { label: 'Edit', className: 'js-edit-dispatch-order', dataAttrs: { 'order-id': o.id || '' } },
                             { label: 'Dispatch', className: 'js-dispatch-order', icon: 'fas fa-truck', dataAttrs: { 'order-id': o.id || '' } }
-                        ]
+                        ])
                     });
                     pendingTbody.append('<tr><td>' + buyer + '</td><td>' + collectionStr + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(2) + ' kg</td><td>' + statusBadge + '</td><td class="mac-table-actions-col">' + actions + '</td></tr>');
                 });
@@ -292,13 +372,13 @@ var _kernelDispatchGrid = function () {
                     var createdStr = formatDate(o.created_at);
                     var lineCount = o.line_count != null ? o.line_count : 0;
                     var totalKg = o.total_kg != null ? Number(o.total_kg) : 0;
-                    var statusBadge = KanbanHelper.statusBadge('dispatched', 'last');
+                    var statusBadge = KanbanHelper.statusBadge('dispatched', 'last') + scope.stageBadge(o);
                     var actions = MacTableActions.render({
                         id: 'kdDispatchedActions' + (o.id || ''),
                         items: [
                             { label: 'Edit', className: 'js-edit-dispatched-basket', dataAttrs: { 'order-id': o.id || '' } },
                             { label: 'View sheet', className: 'js-view-dispatch-order', icon: 'fas fa-clipboard-list', dataAttrs: { 'order-id': o.id || '' } }
-                        ]
+                        ].concat(scope.stageMenuItem(o))
                     });
                     dispatchedTbody.append('<tr><td>' + buyer + '</td><td>' + collectionStr + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(2) + ' kg</td><td>' + statusBadge + '</td><td class="mac-table-actions-col">' + actions + '</td></tr>');
                 });
@@ -344,6 +424,7 @@ var _kernelDispatchGrid = function () {
 
                 var html = '<div class="kanban-card" data-order-id="' + (o.id || '') + '">';
                 html += '<div class="kanban-card-title">' + buyer + '</div>';
+                html += scope.stageBadge(o);
                 html += '<div class="kanban-card-meta">';
                 if (collectionStr) html += '<div class="kanban-card-meta-item"><i class="fas fa-calendar-plus"></i> Collect ' + esc(collectionStr) + '</div>';
                 if (deliveryStr) html += '<div class="kanban-card-meta-item"><i class="fas fa-calendar"></i> Deliver ' + esc(deliveryStr) + '</div>';
@@ -351,6 +432,7 @@ var _kernelDispatchGrid = function () {
                 html += '<div class="kanban-card-meta-item"><i class="fas fa-weight-hanging"></i> ' + totalKg + ' kg</div>';
                 html += '</div>';
                 html += '<div class="kanban-card-actions">';
+                html += scope.stageButton(o);
                 html += '<button type="button" class="btn btn-sm btn-outline-primary js-view-dispatch-order" data-order-id="' + (o.id || '') + '" title="View dispatch sheet"><i class="fas fa-clipboard-list me-1"></i>View</button>';
                 if (!isDispatched) {
                     html += '<button type="button" class="btn btn-sm btn-outline-secondary js-edit-dispatch-order me-1" data-order-id="' + (o.id || '') + '">Edit</button>';
@@ -366,9 +448,7 @@ var _kernelDispatchGrid = function () {
             // Drag-and-drop: confirmed → dispatched only
             KanbanHelper.enableDragDrop('kdKanbanBoard', function (orderId, fromKey, toKey) {
                 if (fromKey === 'confirmed' && toKey === 'dispatched') {
-                    if (typeof _modal_kernel_dispatch_form !== 'undefined' && _modal_kernel_dispatch_form.show) {
-                        _modal_kernel_dispatch_form.show(orderId);
-                    }
+                    scope.openDispatch(orderId);
                 }
                 // backward (dispatched → confirmed) is silently ignored
             });

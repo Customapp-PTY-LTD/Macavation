@@ -158,6 +158,16 @@
                                                 <i class="fas fa-truck-loading me-2"></i>1. Grower Intake
                                             </a>
                                         </li>
+                                        <li class="nav-item d-none" data-route="procurement-plan">
+                                            <a class="nav-link" href="#" route="procurement-plan" title="Planned grower trucks against cracking, and when stock runs out">
+                                                <i class="fas fa-calendar-alt me-2"></i>Procurement plan
+                                            </a>
+                                        </li>
+                                        <li class="nav-item d-none" data-route="nis-storage">
+                                            <a class="nav-link" href="#" route="nis-storage" title="Nut in shell by storage area, and moves between areas">
+                                                <i class="fas fa-boxes me-2"></i>NIS storage areas
+                                            </a>
+                                        </li>
                                         <li class="nav-item d-none" data-route="silo-allocation-grid">
                                             <a class="nav-link" href="#" route="silo-allocation-grid" title="Allocate delivered bags to silos and time silo cracking">
                                                 <i class="fas fa-database me-2"></i>Silo Allocation
@@ -176,6 +186,11 @@
                                         <li class="nav-item d-none" data-route="kernel-dispatch-grid">
                                             <a class="nav-link" href="#" route="kernel-dispatch-grid" title="Step 4 — Kernel Dispatch">
                                                 <i class="fas fa-box me-2"></i>4. Kernel Dispatch
+                                            </a>
+                                        </li>
+                                        <li class="nav-item d-none" data-route="kernel-style-prices">
+                                            <a class="nav-link" href="#" route="kernel-style-prices" title="Price per kg for each kernel style">
+                                                <i class="fas fa-tags me-2"></i>Style prices
                                             </a>
                                         </li>
                                         <li class="nav-item d-none" data-route="kernel-pipeline-settings">
@@ -578,7 +593,7 @@
     <script src="js/session.js?v=20260716d"></script>
     <script src="js/themes.js"></script>
     <script src="js/super-user-visibility.js?v=20260715a"></script>
-    <script src="js/data-functions.js?v=20261027red"></script>
+    <script src="js/data-functions.js?v=20261028proc"></script>
     <script src="js/auth-service.js?v=20260716c"></script>
     <script src="js/common.js?v=20261013a"></script>
     <script src="js/export-utils.js"></script>
@@ -594,7 +609,7 @@
          data-functions guards all offlineStorage usage with typeof checks.) -->
 
     <!-- Role-Based Menu Scripts -->
-    <script src="js/role-menu-config.js?v=20261027red"></script>
+    <script src="js/role-menu-config.js?v=20261028proc"></script>
     <script src="js/menu-filter.js?v=20260716d"></script>
     <script src="js/action-access.js?v=20260602a"></script>
     <script src="js/notifications.js?v=20261027red"></script>
@@ -616,7 +631,7 @@
          script tag, so bumping it here is all that is needed to make a deployed change to any
          module actually reach a browser that has been in the portal before. Bump it whenever a
          module's html/js/css changes. -->
-    <script src="js/appRouter.js?v=20261027red"></script>
+    <script src="js/appRouter.js?v=20261028proc"></script>
     <script src="js/app.js"></script>
     <script src="js/index.js?v=20261027tasks"></script>
     <script src="js/shell.js"></script>

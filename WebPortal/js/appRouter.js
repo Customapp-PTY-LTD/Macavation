@@ -483,6 +483,21 @@ var _appRouter = function () {
                         _kernelDashboard.init();
                     }
                 },
+                'procurement-plan': () => {
+                    if (typeof _procurementPlan !== 'undefined' && _procurementPlan.init) {
+                        _procurementPlan.init();
+                    }
+                },
+                'nis-storage': () => {
+                    if (typeof _nisStorage !== 'undefined' && _nisStorage.init) {
+                        _nisStorage.init();
+                    }
+                },
+                'kernel-style-prices': () => {
+                    if (typeof _kernelStylePrices !== 'undefined' && _kernelStylePrices.init) {
+                        _kernelStylePrices.init();
+                    }
+                },
                 'oil-dashboard': () => {
                     if (typeof _oilDashboard !== 'undefined' && _oilDashboard.init) {
                         _oilDashboard.init();

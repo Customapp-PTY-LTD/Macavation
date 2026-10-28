@@ -1,0 +1,73 @@
+/* NIS storage areas. Every selector is classed: the table standard owns bare td/th. */
+.nis-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mac-space-md);
+    align-items: flex-end;
+    justify-content: space-between;
+    padding-top: var(--mac-space-md);
+    margin-bottom: var(--mac-space-md);
+}
+.nis-crumb, .nis-sub { font-size: var(--mac-text-sm); color: var(--mac-text-secondary); }
+.nis-title { margin: 4px 0; font-size: var(--mac-text-xl); font-weight: 700; }
+.nis-btn { min-height: 40px; }
+
+.nis-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: var(--mac-space-md);
+}
+.nis-card {
+    background: var(--mac-bg-secondary);
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-lg);
+    padding: var(--mac-space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--mac-space-sm);
+}
+.nis-card-unplaced { border-style: dashed; }
+.nis-card-name { font-size: var(--mac-text-base); font-weight: 600; }
+.nis-card-kg { font-size: 1.5rem; font-weight: 700; }
+.nis-card-meta { font-size: var(--mac-text-xs); color: var(--mac-text-secondary); }
+.nis-card-cap { font-size: var(--mac-text-xs); color: var(--mac-text-tertiary); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.nis-bar { height: 8px; background: var(--mac-bg-tertiary); border-radius: 4px; overflow: hidden; }
+.nis-bar-fill { height: 8px; background: var(--mac-green); border-radius: 4px; }
+.nis-bar-fill.nis-bar-warn { background: var(--mac-warning); }
+.nis-icon-btn {
+    min-width: 40px; min-height: 40px; border: 0; background: transparent;
+    color: var(--mac-text-secondary); border-radius: var(--mac-radius-sm);
+}
+.nis-icon-btn:hover { background: var(--mac-bg-tertiary); }
+.nis-link-btn { border: 0; background: transparent; padding: 0; min-height: 40px; color: var(--mac-green-hover); text-decoration: underline; font-size: var(--mac-text-xs); text-align: left; }
+
+.nis-split { display: flex; flex-wrap: wrap; gap: var(--mac-space-md); align-items: flex-start; }
+.nis-panel {
+    background: var(--mac-bg-secondary);
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-lg);
+}
+.nis-form { flex: 1 1 380px; min-width: 0; padding: var(--mac-space-md); display: flex; flex-direction: column; gap: 12px; }
+.nis-moves { flex: 2 1 560px; min-width: 0; overflow-x: auto; }
+.nis-h2 { margin: 0; font-size: var(--mac-text-md); font-weight: 700; }
+.nis-moves .nis-h2 { padding: var(--mac-space-md) var(--mac-space-md) var(--mac-space-sm); }
+.nis-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.nis-span2 { grid-column: span 2; }
+.nis-field { display: flex; flex-direction: column; gap: 6px; font-size: var(--mac-text-sm); font-weight: 500; }
+.nis-field .form-control, .nis-field .form-select { min-height: 44px; }
+.nis-hint { font-size: var(--mac-text-xs); color: var(--mac-text-tertiary); }
+.nis-foot { padding: 12px var(--mac-space-md); }
+
+.nis-table { width: 100%; min-width: 620px; margin: 0; font-size: var(--mac-text-sm); }
+.nis-table .nis-th { background: var(--mac-bg); color: var(--mac-text-secondary); font-weight: 600; }
+.nis-table .nis-r { text-align: right; }
+.nis-chip { display: inline-block; border-radius: 6px; padding: 2px 8px; }
+.nis-chip-in { background: var(--mac-green-light); color: var(--mac-green-hover); }
+.nis-chip-move { background: var(--mac-info-light); color: var(--mac-info); }
+.nis-chip-out { background: var(--mac-bg-tertiary); color: var(--mac-text-secondary); }
+
+@media (max-width: 575px) {
+    .nis-grid { grid-template-columns: minmax(0, 1fr); }
+    .nis-span2 { grid-column: auto; }
+}

@@ -1,0 +1,246 @@
+/* Kernel dispatch: pick confirmation and price/approve. Colours are --mac-* tokens only. */
+
+#kernelDispatchApproveModal .kda-stepper {
+    list-style: none;
+    margin: 0 0 var(--mac-space-md);
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--mac-space-sm);
+}
+
+#kernelDispatchApproveModal .kda-step {
+    background-color: var(--mac-bg-tertiary);
+    border: 2px solid transparent;
+    border-radius: var(--mac-radius-md);
+    padding: var(--mac-space-sm) var(--mac-space-md);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+#kernelDispatchApproveModal .kda-step-done {
+    background-color: var(--mac-green-light);
+}
+
+#kernelDispatchApproveModal .kda-step-current {
+    background-color: var(--mac-bg-secondary);
+    border-color: var(--mac-green);
+}
+
+#kernelDispatchApproveModal .kda-step-head {
+    font-size: var(--mac-text-xs);
+    font-weight: 600;
+    color: var(--mac-text-secondary);
+}
+
+#kernelDispatchApproveModal .kda-step-done .kda-step-head,
+#kernelDispatchApproveModal .kda-step-current .kda-step-head {
+    color: var(--mac-green-hover);
+}
+
+#kernelDispatchApproveModal .kda-step-current .kda-step-text {
+    font-weight: 600;
+}
+
+#kernelDispatchApproveModal .kda-flag {
+    background-color: var(--mac-warning-light);
+    border: 1px solid var(--mac-warning);
+    border-radius: var(--mac-radius-lg);
+    padding: var(--mac-space-md);
+    margin-bottom: var(--mac-space-md);
+    display: flex;
+    gap: var(--mac-space-md);
+    align-items: flex-start;
+    font-size: var(--mac-text-base);
+}
+
+#kernelDispatchApproveModal .kda-flag > i {
+    color: var(--mac-warning-text);
+    margin-top: 3px;
+}
+
+#kernelDispatchApproveModal .kda-flag-title {
+    color: var(--mac-warning-text);
+    display: block;
+    margin-bottom: var(--mac-space-xs);
+}
+
+#kernelDispatchApproveModal .kda-flag-line {
+    display: block;
+    color: var(--mac-text-secondary);
+}
+
+#kernelDispatchApproveModal .kda-card {
+    background-color: var(--mac-bg-secondary);
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-lg);
+    padding: var(--mac-space-md);
+    margin-bottom: var(--mac-space-md);
+    min-width: 0;
+}
+
+#kernelDispatchApproveModal .kda-table-card {
+    padding: 0;
+    overflow: hidden;
+}
+
+#kernelDispatchApproveModal .kda-table {
+    min-width: 720px;
+}
+
+#kernelDispatchApproveModal .kda-table th,
+#kernelDispatchApproveModal .kda-table td {
+    font-size: var(--mac-text-sm);
+}
+
+#kernelDispatchApproveModal .kda-row-changed {
+    background-color: var(--mac-warning-light);
+}
+
+#kernelDispatchApproveModal .kda-struck {
+    text-decoration: line-through;
+    color: var(--mac-text-tertiary);
+}
+
+#kernelDispatchApproveModal .kda-changed-qty {
+    font-weight: 600;
+    color: var(--mac-warning-text);
+}
+
+#kernelDispatchApproveModal .kda-muted {
+    color: var(--mac-text-tertiary);
+}
+
+#kernelDispatchApproveModal .kda-total-row td {
+    font-weight: 600;
+    border-top: 2px solid var(--mac-border-strong);
+}
+
+#kernelDispatchApproveModal .kda-num-input {
+    width: 6.5rem;
+    min-height: 40px;
+    text-align: end;
+    margin-inline-start: auto;
+}
+
+#kernelDispatchApproveModal .kda-price-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#kernelDispatchApproveModal .kda-help {
+    padding: var(--mac-space-sm) var(--mac-space-md);
+    font-size: var(--mac-text-xs);
+    color: var(--mac-text-tertiary);
+}
+
+#kernelDispatchApproveModal .kda-cards-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mac-space-md);
+    align-items: flex-start;
+}
+
+#kernelDispatchApproveModal .kda-cards-row > .kda-card {
+    flex: 1 1 340px;
+    margin-bottom: 0;
+}
+
+#kernelDispatchApproveModal .kda-card-title {
+    font-size: var(--mac-text-md);
+    font-weight: 700;
+    margin: 0 0 var(--mac-space-sm);
+}
+
+#kernelDispatchApproveModal .kda-radio-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--mac-space-sm);
+    border: 0;
+    padding: 0;
+    margin: 0 0 var(--mac-space-md);
+}
+
+#kernelDispatchApproveModal .kda-radio-grid legend {
+    grid-column: span 2;
+    float: none;
+    width: auto;
+    padding: 0;
+    margin-bottom: 0;
+}
+
+#kernelDispatchApproveModal .kda-radio {
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-md);
+    padding: var(--mac-space-sm) var(--mac-space-md);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    min-height: 44px;
+    cursor: pointer;
+}
+
+#kernelDispatchApproveModal .kda-radio.kda-radio-on {
+    border: 2px solid var(--mac-green);
+    background-color: var(--mac-green-light);
+}
+
+#kernelDispatchApproveModal .kda-sum-row {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--mac-space-md);
+    padding: 4px 0;
+    font-size: var(--mac-text-base);
+}
+
+#kernelDispatchApproveModal .kda-sum-row > span:first-child {
+    color: var(--mac-text-secondary);
+}
+
+#kernelDispatchApproveModal .kda-sum-net {
+    font-size: var(--mac-text-md);
+    font-weight: 700;
+    border-top: 1px solid var(--mac-border);
+    margin-top: var(--mac-space-xs);
+    padding-top: var(--mac-space-sm);
+}
+
+#kernelDispatchApproveModal .kda-sum-net > span:first-child {
+    color: var(--mac-text);
+}
+
+#kernelDispatchApproveModal .kda-sum-tiles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--mac-space-sm);
+    margin-top: var(--mac-space-sm);
+}
+
+#kernelDispatchApproveModal .kda-sum-tile {
+    background-color: var(--mac-bg);
+    border-radius: var(--mac-radius-sm);
+    padding: var(--mac-space-sm) var(--mac-space-md);
+}
+
+#kernelDispatchApproveModal .kda-sum-tile-label {
+    font-size: var(--mac-text-xs);
+    color: var(--mac-text-secondary);
+}
+
+#kernelDispatchApproveModal .kda-sum-tile-value {
+    font-size: var(--mac-text-md);
+    font-weight: 600;
+}
+
+#kernelDispatchApproveModal .kda-footnote {
+    font-size: var(--mac-text-xs);
+    color: var(--mac-text-tertiary);
+    text-align: end;
+    margin-top: var(--mac-space-sm);
+}
+
+#kernelDispatchApproveModal .modal-footer .btn {
+    min-height: 44px;
+}
