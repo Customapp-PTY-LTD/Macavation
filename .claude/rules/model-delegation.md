@@ -189,7 +189,9 @@ You are implementing <X> in repo <path> (branch <b> checked out - work in place,
 - unicode-dash scan on every touched file comes back clean (ASCII hyphens rule). Use this
   repo's own dash-lint script if it defines one - CHECK `package.json` rather than assuming,
   most repos here do not have one. Otherwise run, and expect no output:
-  `perl -ne 'print "$ARGV:$.: $_" if /[\x{2010}-\x{2015}]/' <touched files>
+  `perl -CSD -ne 'print "$ARGV:$.: $_" if /[\x{2010}-\x{2015}]/' <touched files>
+  (-CSD is required: without it perl reads the files as bytes, the pattern can never
+  match, and the scan passes everything - found 2026-10-27, it had been a no-op until then.)
 
 Return: files created, verification output, key decisions, deviations with reasons. Under 30 lines.
 ```
