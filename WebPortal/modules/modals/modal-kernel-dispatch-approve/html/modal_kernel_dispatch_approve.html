@@ -1,0 +1,73 @@
+<div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div>
+                <h5 class="modal-title" id="kernelDispatchApproveModalLabel">Dispatch</h5>
+                <div class="text-muted small" id="kdaSubline"></div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body kda-body">
+            <input type="hidden" id="kdaOrderId" value="">
+            <div id="kdaUnavailable" class="alert alert-info d-none" role="status">This dispatch workflow is not available yet.</div>
+            <div id="kdaContent">
+                <ol class="kda-stepper" id="kdaStepper" aria-label="Dispatch steps"></ol>
+                <div id="kdaFlag" class="kda-flag d-none" role="status"></div>
+                <div id="kdaReview" class="alert alert-info d-none" role="status"></div>
+                <div id="kdaApprovedInfo" class="alert alert-success d-none" role="status"></div>
+                <div class="kda-card kda-table-card">
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0 kda-table" id="kdaTable"></table>
+                    </div>
+                    <div class="kda-help" id="kdaTableHelp"></div>
+                </div>
+                <div id="kdaPickNoteWrap" class="kda-card d-none">
+                    <label class="form-label" for="kdaPickNote">Note for Pete (optional)</label>
+                    <textarea class="form-control" id="kdaPickNote" rows="2" maxlength="1000"></textarea>
+                </div>
+                <div class="kda-cards-row d-none" id="kdaApproveCards">
+                    <div class="kda-card">
+                        <h2 class="kda-card-title">Transport</h2>
+                        <fieldset class="kda-radio-grid">
+                            <legend class="form-label">Who pays for transport?</legend>
+                            <label class="kda-radio" for="kdaPayerMac"><input type="radio" name="kdaPayer" id="kdaPayerMac" value="macavation" checked>Macavation</label>
+                            <label class="kda-radio" for="kdaPayerCust"><input type="radio" name="kdaPayer" id="kdaPayerCust" value="customer">Customer collects</label>
+                        </fieldset>
+                        <div class="row g-3 mt-0">
+                            <div class="col-6">
+                                <label class="form-label" for="kdaTransportCost">Transport cost (R)</label>
+                                <input type="number" class="form-control" id="kdaTransportCost" min="0" step="0.01" inputmode="decimal">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label" for="kdaPallets">Pallets</label>
+                                <input type="number" class="form-control" id="kdaPallets" min="0" step="1" inputmode="numeric">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="kdaTransportCompany">Transport company</label>
+                                <input type="text" class="form-control" id="kdaTransportCompany" maxlength="200" placeholder="From the dispatch form">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="kda-card">
+                        <h2 class="kda-card-title">Sale summary</h2>
+                        <div class="kda-sum-row"><span>Goods (excl. VAT)</span><span id="kdaSumGoods">R 0.00</span></div>
+                        <div class="kda-sum-row d-none" id="kdaSumTransportRow"><span>Transport, paid by Macavation</span><span id="kdaSumTransport">- R 0.00</span></div>
+                        <div class="kda-sum-row kda-sum-net"><span>Net to Macavation</span><span id="kdaSumNet">R 0.00</span></div>
+                        <div class="kda-sum-tiles">
+                            <div class="kda-sum-tile"><div class="kda-sum-tile-label">Per kg</div><div class="kda-sum-tile-value" id="kdaSumPerKg">-</div></div>
+                            <div class="kda-sum-tile d-none" id="kdaSumPerPalletTile"><div class="kda-sum-tile-label">Per pallet</div><div class="kda-sum-tile-value" id="kdaSumPerPallet">-</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer flex-column align-items-stretch">
+            <div class="d-flex flex-wrap justify-content-end gap-2">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-outline-secondary d-none" id="kdaSendBackBtn">Send back to Thando</button>
+                <button type="button" class="btn btn-primary d-none" id="kdaPrimaryBtn">Confirm picked</button>
+            </div>
+            <div class="kda-footnote" id="kdaFootnote">Thando sees steps 1 and 2 without prices. The sale lands on the Kernel Dashboard as soon as it is approved.</div>
+        </div>
+    </div>
+</div>

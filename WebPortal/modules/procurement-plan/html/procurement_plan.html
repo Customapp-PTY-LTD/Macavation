@@ -1,0 +1,196 @@
+<!-- Procurement plan: grower trucks of nut in shell vs. what cracking uses.
+     Rendered by js/procurement_plan.js from getProcurementPlan(). -->
+<div class="module-content pp-module" id="ppModule">
+    <div class="pp-head">
+        <div>
+            <div class="pp-crumb">Grower Intake &rsaquo; Procurement plan</div>
+            <h1 class="h2 mb-1">Procurement plan</h1>
+            <div class="pp-sub">Nut in shell coming in vs. what cracking uses. Planners edit, everyone else can view.</div>
+        </div>
+        <div class="pp-head-actions" id="ppHeadActions">
+            <button type="button" class="btn btn-outline-secondary pp-btn" id="ppBtnDays">Working days</button>
+            <button type="button" class="btn btn-primary pp-btn" id="ppBtnPlan">+ Plan a delivery</button>
+        </div>
+    </div>
+
+    <div id="ppLoading" class="text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading&hellip;</div>
+
+    <div id="ppUnavailable" class="pp-card" hidden>
+        <div class="pp-empty"><i class="fas fa-seedling me-2"></i>The procurement plan is not available yet.</div>
+    </div>
+
+    <div id="ppBody" hidden>
+        <div id="ppLate"></div>
+
+        <div class="pp-tiles" id="ppTiles"></div>
+
+        <div class="pp-card">
+            <div class="pp-card-head">
+                <div class="pp-card-title">Stock on hand through the season</div>
+                <div class="pp-legend">
+                    <span class="pp-legend-item"><span class="pp-key pp-key-line"></span>Planned stock</span>
+                    <span class="pp-legend-item"><span class="pp-key pp-key-dot"></span>Truck in</span>
+                    <span class="pp-legend-item"><span class="pp-key pp-key-low"></span>Low stock line (100 t)</span>
+                </div>
+            </div>
+            <div id="ppChart"></div>
+        </div>
+
+        <div class="pp-controls">
+            <div class="pp-seg" role="group" aria-label="View" id="ppViewSeg">
+                <button type="button" class="pp-seg-btn" data-view="day" aria-pressed="false">Day</button>
+                <button type="button" class="pp-seg-btn" data-view="week" aria-pressed="true">Week</button>
+                <button type="button" class="pp-seg-btn" data-view="month" aria-pressed="false">Month</button>
+            </div>
+            <div class="pp-controls-right">
+                <label class="pp-inline-label" for="ppArea">Storage area
+                    <select class="form-select pp-select" id="ppArea"></select>
+                </label>
+                <div class="pp-seg" role="group" aria-label="Cracking rate used for the forecast" id="ppRateSeg">
+                    <button type="button" class="pp-seg-btn" data-rate="planned" aria-pressed="true">Planned rate</button>
+                    <button type="button" class="pp-seg-btn" data-rate="actual" aria-pressed="false">Actual average</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="ppView"></div>
+
+        <div class="pp-legend pp-status-legend">
+            <span>Truck status:</span>
+            <span class="pp-chip pp-chip-planned">Planned</span>
+            <span class="pp-chip pp-chip-confirmed">Confirmed with grower</span>
+            <span class="pp-chip pp-chip-received">&#10003; Received, real weight used</span>
+        </div>
+    </div>
+
+    <!-- Side panel -->
+    <div class="offcanvas offcanvas-end pp-panel" tabindex="-1" id="ppPanel" aria-labelledby="ppPanelTitle">
+        <div class="offcanvas-header pp-panel-head">
+            <div>
+                <h2 class="h5 mb-0" id="ppPanelTitle">Plan a delivery</h2>
+                <div class="pp-sub">Shows on the calendar straight away</div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body pp-panel-body">
+
+            <section id="ppSecDelivery" class="pp-sec">
+                <div class="pp-grid2">
+                    <label class="pp-field pp-span2" for="ppGrower">Grower
+                        <select class="form-select pp-input" id="ppGrower"></select>
+                    </label>
+                    <label class="pp-field pp-span2" id="ppOtherWrap" for="ppOther" hidden>Grower name
+                        <input type="text" class="form-control pp-input" id="ppOther" maxlength="120" autocomplete="off">
+                    </label>
+                    <label class="pp-field" for="ppTruck">Truck name
+                        <input type="text" class="form-control pp-input" id="ppTruck" maxlength="80" autocomplete="off">
+                        <span class="pp-hint">Numbered for you per grower</span>
+                    </label>
+                    <label class="pp-field" for="ppDate">Planned date
+                        <input type="date" class="form-control pp-input" id="ppDate">
+                    </label>
+                    <label class="pp-field" for="ppWeight">Planned weight (kg)
+                        <input type="number" class="form-control pp-input" id="ppWeight" min="1" step="100" inputmode="numeric">
+                    </label>
+                    <label class="pp-field" for="ppRepeat" id="ppRepeatWrap">Repeat
+                        <select class="form-select pp-input" id="ppRepeat">
+                            <option value="0">Just once</option>
+                            <option value="1">Every week</option>
+                            <option value="2">Every 2 weeks</option>
+                        </select>
+                    </label>
+                    <label class="pp-field" for="ppRepeatCount" id="ppRepeatCountWrap" hidden>How many more
+                        <input type="number" class="form-control pp-input" id="ppRepeatCount" min="1" max="52" value="4" inputmode="numeric">
+                    </label>
+                </div>
+
+                <fieldset class="pp-fieldset">
+                    <legend class="pp-legend-label">Goes into</legend>
+                    <div class="pp-areas" id="ppAreas"></div>
+                </fieldset>
+
+                <fieldset class="pp-fieldset" id="ppStatusSet">
+                    <legend class="pp-legend-label">Status</legend>
+                    <div class="pp-seg" role="group" aria-label="Status" id="ppStatusSeg">
+                        <button type="button" class="pp-seg-btn" data-status="planned" aria-pressed="true">Planned</button>
+                        <button type="button" class="pp-seg-btn" data-status="confirmed" aria-pressed="false">Confirmed</button>
+                    </div>
+                    <div class="pp-hint mt-2">It becomes Received on its own when the truck is booked in at Receiving. Then the real weighed kg replaces the planned weight.</div>
+                </fieldset>
+
+                <label class="pp-field" for="ppNote">Note
+                    <textarea class="form-control" id="ppNote" rows="2" maxlength="500"></textarea>
+                </label>
+
+                <div class="pp-actions">
+                    <button type="button" class="btn btn-outline-danger pp-btn" id="ppCancelTruck" hidden>Cancel this truck</button>
+                    <button type="button" class="btn btn-primary pp-btn" id="ppSaveDelivery">Save</button>
+                </div>
+            </section>
+
+            <hr class="pp-rule">
+
+            <section id="ppSecDay" class="pp-sec">
+                <h3 class="h6 mb-0">Set a day</h3>
+                <div class="pp-grid2">
+                    <label class="pp-field" for="ppDayFrom">From date
+                        <input type="date" class="form-control pp-input" id="ppDayFrom">
+                    </label>
+                    <label class="pp-field" for="ppDayTo">To date (optional)
+                        <input type="date" class="form-control pp-input" id="ppDayTo">
+                    </label>
+                    <label class="pp-field" for="ppDayType">Day type
+                        <select class="form-select pp-input" id="ppDayType">
+                            <option value="work">Cracking day</option>
+                            <option value="half">Half day</option>
+                            <option value="off">Off</option>
+                            <option value="nocrack">No cracking</option>
+                            <option value="shutdown">Shutdown</option>
+                            <option value="holiday">Public holiday</option>
+                            <option value="default">Back to normal</option>
+                        </select>
+                    </label>
+                    <label class="pp-field" for="ppDayKg">Kg cracked (optional)
+                        <input type="number" class="form-control pp-input" id="ppDayKg" min="0" step="100" inputmode="numeric">
+                    </label>
+                    <div class="pp-hint pp-span2">Leave the kg empty to use the daily rate (half of it on a half day). Use a to-date to set a range, like a shutdown.</div>
+                </div>
+                <div class="pp-actions">
+                    <button type="button" class="btn btn-primary pp-btn" id="ppSaveDay">Save day</button>
+                </div>
+            </section>
+
+            <hr class="pp-rule">
+
+            <section id="ppSecSettings" class="pp-sec">
+                <button type="button" class="pp-collapse-btn" data-bs-toggle="collapse" data-bs-target="#ppSettingsBody" aria-expanded="false" aria-controls="ppSettingsBody">
+                    <span>Plan settings</span><i class="fas fa-chevron-down" aria-hidden="true"></i>
+                </button>
+                <div class="collapse" id="ppSettingsBody">
+                    <div class="pp-sec pt-3">
+                        <label class="pp-field" for="ppSetRate">Planned kg per day
+                            <input type="number" class="form-control pp-input" id="ppSetRate" min="1" step="100" inputmode="numeric">
+                        </label>
+                        <fieldset class="pp-fieldset">
+                            <legend class="pp-legend-label">Opening stock</legend>
+                            <label class="pp-radio"><input type="radio" name="ppOpen" value="system"><span id="ppOpenSystemText">Use the system's stock</span></label>
+                            <label class="pp-radio"><input type="radio" name="ppOpen" value="manual"><span>Use my own count</span></label>
+                        </fieldset>
+                        <div class="pp-grid2" id="ppManualWrap">
+                            <label class="pp-field" for="ppSetKg">Kg counted
+                                <input type="number" class="form-control pp-input" id="ppSetKg" min="0" step="100" inputmode="numeric">
+                            </label>
+                            <label class="pp-field" for="ppSetAsOf">Counted on
+                                <input type="date" class="form-control pp-input" id="ppSetAsOf">
+                            </label>
+                        </div>
+                        <div class="pp-actions">
+                            <button type="button" class="btn btn-primary pp-btn" id="ppSaveSettings">Save settings</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+        <div class="pp-panel-foot">Every change is logged with who made it</div>
+    </div>
+</div>

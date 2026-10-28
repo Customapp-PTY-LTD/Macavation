@@ -249,6 +249,24 @@ var _roleMenuConfig = function () {
                 label: 'Kernel Dashboard',
                 category: 'main'
             },
+            'procurement-plan': {
+                route: 'procurement-plan',
+                icon: 'fas fa-calendar-alt',
+                label: 'Procurement plan',
+                category: 'main'
+            },
+            'nis-storage': {
+                route: 'nis-storage',
+                icon: 'fas fa-boxes',
+                label: 'NIS storage areas',
+                category: 'main'
+            },
+            'kernel-style-prices': {
+                route: 'kernel-style-prices',
+                icon: 'fas fa-tags',
+                label: 'Style prices',
+                category: 'main'
+            },
             'oil-dashboard': {
                 route: 'oil-dashboard',
                 icon: 'fas fa-oil-can',
@@ -528,11 +546,14 @@ var _roleMenuConfig = function () {
             'my-day',
             'batch-journey',
             'grower-intake-grid',
+            'procurement-plan',
+            'nis-storage',
             'kernel-production-grid',
             'silo-allocation-grid',
             'kernel-pipeline-settings',
             'stock-management-kernel',
             'kernel-dispatch-grid',
+            'kernel-style-prices',
             'supplier-intake-grid',
             'oil-production-grid',
             'stock-management-oil',

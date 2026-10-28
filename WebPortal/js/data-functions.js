@@ -2295,6 +2295,169 @@ var _dataFunctions = function () {
             return this._dashboardObject('get_kernel_dashboard_sales', params, token, 'total_kg');
         },
 
+        /**
+         * Procurement plan, NIS storage areas, style prices and dispatch approval (26 Oct 2026).
+         * Migrations 20261028090000-090500. Every RPC returns ONE jsonb object with `success`.
+         * Reads resolve to that object, or null when the call fails (e.g. migration not applied
+         * yet) so a screen can show "not available yet". Writes resolve to { success, error?, ... }
+         * and never throw; they pass the signed-in user as p_actor_user_id.
+         */
+        _rpcObject: function (name, raw) {
+            if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'success' in raw) return raw;
+            if (raw && raw[name] && typeof raw[name] === 'object') return raw[name];
+            if (Array.isArray(raw) && raw[0] && typeof raw[0] === 'object') return raw[0][name] || raw[0];
+            return raw || null;
+        },
+
+        _rpcRead: async function (name, params, token) {
+            try {
+                var obj = this._rpcObject(name, await this.callFunction(name, params || {}, token, { useCache: false }));
+                return obj && obj.success !== false ? obj : null;
+            } catch (e) {
+                console.warn('[' + name + '] failed. Apply migrations 20261028090000-090500 if needed.', e.message);
+                return null;
+            }
+        },
+
+        _rpcWrite: async function (name, params, token) {
+            try {
+                var obj = this._rpcObject(name, await this._callWithActor(name, params || {}, token,
+                    { useCache: false, preserveNullParams: true }));
+                return obj && typeof obj === 'object' ? obj : { success: false, error: 'No reply from the server.' };
+            } catch (e) {
+                return { success: false, error: (e && e.message) || 'Something went wrong. Please try again.' };
+            }
+        },
+
+        // --- Procurement plan ---------------------------------------------------------------
+        getProcurementPlan: async function (from, to, token = null) {
+            return this._rpcRead('get_procurement_plan', { p_from: from || null, p_to: to || null }, token);
+        },
+
+        /** d = { id, scheduledDate, predictedWeightKg, supplierId, growerName, truckLabel,
+         *        storageAreaCode, isConfirmed, note, repeatEveryWeeks, repeatCount } */
+        saveProcurementDelivery: async function (d, token = null) {
+            return this._rpcWrite('save_procurement_delivery', {
+                p_id: d.id || null,
+                p_scheduled_date: d.scheduledDate,
+                p_predicted_weight_kg: d.predictedWeightKg,
+                p_supplier_id: d.supplierId || null,
+                p_grower_name: d.growerName || null,
+                p_truck_label: d.truckLabel || null,
+                p_storage_area_code: d.storageAreaCode || null,
+                p_is_confirmed: !!d.isConfirmed,
+                p_note: d.note || null,
+                p_repeat_every_weeks: parseInt(d.repeatEveryWeeks, 10) || 0,
+                p_repeat_count: parseInt(d.repeatCount, 10) || 0
+            }, token);
+        },
+
+        cancelProcurementDelivery: async function (id, token = null) {
+            return this._rpcWrite('cancel_procurement_delivery', { p_id: id }, token);
+        },
+
+        /** dayType: 'default' | 'work' | 'half' | 'off' | 'nocrack' | 'shutdown' | 'holiday' */
+        setProcurementDays: async function (from, to, dayType, kgOverride, note, token = null) {
+            return this._rpcWrite('set_procurement_days', {
+                p_from: from, p_to: to || from, p_day_type: dayType,
+                p_kg_override: (kgOverride === '' || kgOverride == null) ? null : Number(kgOverride),
+                p_note: note || null
+            }, token);
+        },
+
+        /** settings = { planned_kg_per_day?, opening_mode?: 'system'|'manual', opening_kg?, opening_as_of? } */
+        setProcurementPlanSettings: async function (settings, token = null) {
+            return this._rpcWrite('set_procurement_plan_settings', { p_settings: settings }, token);
+        },
+
+        // --- NIS storage areas --------------------------------------------------------------
+        getNisStorageOverview: async function (limit, token = null) {
+            return this._rpcRead('get_nis_storage_overview', { p_limit: limit || 50 }, token);
+        },
+
+        /** m = { fromArea, toArea, kg, kernelId, batchNumber, movedAt, note } (null area = not placed / cracked) */
+        recordNisStorageMovement: async function (m, token = null) {
+            return this._rpcWrite('record_nis_storage_movement', {
+                p_from_area: m.fromArea || null,
+                p_to_area: m.toArea || null,
+                p_kg: Number(m.kg),
+                p_kernel_id: m.kernelId || null,
+                p_batch_number: m.batchNumber || null,
+                p_moved_at: m.movedAt || null,
+                p_note: m.note || null
+            }, token);
+        },
+
+        setNisStorageAreaCapacity: async function (code, capacityKg, token = null) {
+            return this._rpcWrite('set_nis_storage_area_capacity', {
+                p_code: code, p_capacity_kg: (capacityKg === '' || capacityKg == null) ? null : Number(capacityKg)
+            }, token);
+        },
+
+        // --- Kernel style prices --------------------------------------------------------------
+        getKernelStylePrices: async function (customerId, asOf, token = null) {
+            return this._rpcRead('get_kernel_style_prices', { p_customer_id: customerId || null, p_as_of: asOf || null }, token);
+        },
+
+        /** prices = [{ style_code, price_per_kg }] (blank prices are skipped) */
+        saveKernelStylePrices: async function (effectiveFrom, prices, customerId, token = null) {
+            return this._rpcWrite('save_kernel_style_prices', {
+                p_effective_from: effectiveFrom, p_prices: prices || [], p_customer_id: customerId || null
+            }, token);
+        },
+
+        /** mode: 'single' | 'per_customer' | 'per_dispatch' */
+        setKernelPricingMode: async function (mode, token = null) {
+            return this._rpcWrite('set_kernel_pricing_mode', { p_mode: mode }, token);
+        },
+
+        // --- Kernel dispatch approval ---------------------------------------------------------
+        getKernelDispatchWorkflow: async function (orderId, token = null) {
+            return this._rpcRead('get_kernel_dispatch_workflow', { p_order_id: orderId }, token);
+        },
+
+        /** Resolves to [{ id, workflow_stage, picked_by_label, has_pick_changes }] ([] on failure). */
+        getKernelDispatchStages: async function (ids, token = null) {
+            if (!ids || !ids.length) return [];
+            try {
+                var raw = await this.callFunction('get_kernel_dispatch_stages', { p_ids: ids }, token, { useCache: false });
+                if (Array.isArray(raw) && raw.length && raw[0] && raw[0].get_kernel_dispatch_stages) raw = raw[0].get_kernel_dispatch_stages;
+                return Array.isArray(raw) ? raw : [];
+            } catch (e) {
+                console.warn('[get_kernel_dispatch_stages] failed. Apply migration 20261028090300 if needed.', e.message);
+                return [];
+            }
+        },
+
+        /** picked = [{ index, cartons }] */
+        confirmKernelDispatchPick: async function (orderId, picked, note, token = null) {
+            this.clearCachePattern('kernel_dispatch_orders_list');
+            this.clearCachePattern('kernel_batches');
+            return this._rpcWrite('confirm_kernel_dispatch_pick', { p_order_id: orderId, p_picked: picked || [], p_note: note || null }, token);
+        },
+
+        sendBackKernelDispatch: async function (orderId, note, token = null) {
+            return this._rpcWrite('send_back_kernel_dispatch', { p_order_id: orderId, p_note: note || null }, token);
+        },
+
+        /** a = { prices: [{ index, price_per_kg }], transportPayer: 'macavation'|'customer',
+         *        transportCostZar, pallets, transportCompany, saleDate } */
+        approveKernelDispatchSale: async function (orderId, a, token = null) {
+            return this._rpcWrite('approve_kernel_dispatch_sale', {
+                p_order_id: orderId,
+                p_prices: a.prices || [],
+                p_transport_payer: a.transportPayer || null,
+                p_transport_cost_zar: (a.transportCostZar === '' || a.transportCostZar == null) ? null : Number(a.transportCostZar),
+                p_pallets: (a.pallets === '' || a.pallets == null) ? null : parseInt(a.pallets, 10),
+                p_transport_company: a.transportCompany || null,
+                p_sale_date: a.saleDate || null
+            }, token);
+        },
+
+        getKernelDashboardDispatchSales: async function (from, to, token = null) {
+            return this._rpcRead('get_kernel_dashboard_dispatch_sales', { p_from: from, p_to: to }, token);
+        },
+
         getOilDashboard: async function (from, to, token = null) {
             return this._dashboardObject('get_oil_dashboard', { p_from: from, p_to: to }, token, 'intake_total_kg');
         },
