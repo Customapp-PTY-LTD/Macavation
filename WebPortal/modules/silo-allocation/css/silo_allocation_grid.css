@@ -284,3 +284,12 @@
     border: 1px solid rgba(var(--mac-green-rgb), 0.35);
     color: var(--mac-green-hover);
 }
+
+/* Shared tab strip: "NIS storage & silos" (same block lives in nis_storage.css) */
+.nss-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--mac-border); margin-bottom: var(--mac-space-md); }
+.nss-tab {
+    min-height: 44px; padding: 0 16px; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px;
+    background: transparent; color: var(--mac-text-secondary); font-size: var(--mac-text-base);
+}
+.nss-tab[aria-selected="true"] { border-bottom-color: var(--mac-green); color: var(--mac-text); font-weight: 700; }
+.nss-crumb { font-size: var(--mac-text-sm); color: var(--mac-text-secondary); }

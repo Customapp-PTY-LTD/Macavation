@@ -674,10 +674,12 @@
             "path": "kernel-pipeline-settings",
             "html": "html/kernel_pipeline_settings_grid.html",
             "js": [
-                "js/kernel_pipeline_settings_grid.js"
+                "js/kernel_pipeline_settings_grid.js",
+                "../kernel-style-prices/js/kernel_style_prices.js"
             ],
             "css": [
-                "css/kernel_pipeline_settings_grid.css"
+                "css/kernel_pipeline_settings_grid.css",
+                "../kernel-style-prices/css/kernel_style_prices.css"
             ]
         },
         "kernel-dashboard": {
@@ -704,7 +706,7 @@
             ]
         },
         "nis-storage": {
-            "description": "NIS storage areas",
+            "description": "NIS storage & silos",
             "path": "nis-storage",
             "html": "html/nis_storage.html",
             "js": [

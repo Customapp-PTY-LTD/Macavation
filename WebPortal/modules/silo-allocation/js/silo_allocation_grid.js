@@ -1110,6 +1110,9 @@ var _siloAllocationGrid = (function () {
     return {
         init: function () {
             stopTicker();
+            $('#siloAllocationModule').off('click.nssTabs').on('click.nssTabs', '[data-nss-tab="areas"]', function () {
+                _appRouter.routeTo('nis-storage', true);
+            });
             state.batchId = null;
             state.tally = null;
             state.pickedKernel = null;

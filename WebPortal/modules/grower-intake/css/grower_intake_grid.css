@@ -165,214 +165,68 @@
 }
 
 /* ================================================================
-   Procurement Calendar
-   Mirrors .kp-production-calendar-* from kernel_production_grid.css
+   Expected trucks (from the Procurement plan) + Receiving drop highlight
    ================================================================ */
 
-.gi-procurement-calendar-toolbar {
+.gi-layout {
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.gi-procurement-calendar-month {
-    min-width: 140px;
-    text-align: center;
-    font-weight: 600;
-}
-
-.gi-procurement-calendar-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+    flex-wrap: wrap;
     gap: 1rem;
-    align-items: start;
+    align-items: flex-start;
 }
-
-.gi-procurement-calendar-weekdays,
-.gi-procurement-calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 0.5rem;
-}
-
-.gi-procurement-calendar-weekdays {
-    margin-bottom: 0.5rem;
-}
-
-.gi-procurement-calendar-weekdays div {
-    text-align: center;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--mac-text);
-}
-
-.gi-procurement-calendar-day {
-    min-height: 84px;
-    border: 1px solid var(--mac-border);
-    border-radius: 0.5rem;
+.gi-trucks-panel {
+    flex: 1 1 340px;
+    max-width: 420px;
+    min-width: 0;
     background: var(--mac-bg-secondary);
-    padding: 0.5rem;
-    text-align: left;
-    cursor: pointer;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    border: 1px solid var(--mac-border);
+    border-radius: 12px;
+    overflow: hidden;
 }
-
-.gi-procurement-calendar-day:hover {
-    border-color: var(--mac-green-light);
+.gi-main {
+    flex: 999 1 560px;
+    min-width: 0;
 }
-
-.gi-procurement-calendar-day.is-outside-month {
-    opacity: 0.45;
+@media (max-width: 767.98px) {
+    .gi-trucks-panel { max-width: none; flex-basis: 100%; }
 }
-
-.gi-procurement-calendar-day.is-active {
-    border-color: var(--mac-green);
-    box-shadow: 0 0 0 2px rgba(var(--mac-green-rgb), 0.15);
+.gi-trucks-head { padding: 0.9rem 1rem; }
+.gi-trucks-head h2 { margin: 0; font-size: 1rem; font-weight: 700; }
+.gi-trucks-head p { margin: 0.1rem 0 0; font-size: var(--mac-text-sm); color: var(--mac-text-secondary); }
+.gi-trucks-group {
+    padding: 0.5rem 1rem;
+    font-size: var(--mac-text-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
-
-.gi-procurement-calendar-day.has-procurement {
-    background: var(--mac-green-light);
-    border-color: var(--mac-green-light);
-}
-
-.gi-procurement-calendar-day.drag-over {
-    border-color: var(--mac-green);
-    background: var(--mac-green-light);
-    box-shadow: 0 0 0 2px rgba(var(--mac-green-rgb), 0.25);
-}
-
-.gi-procurement-calendar-daynum {
-    font-weight: 600;
-    color: var(--mac-text);
-    font-size: 0.85rem;
-    margin-bottom: 0.25rem;
-}
-
-/* Pills container inside each day cell */
-.gi-procurement-calendar-day-pills {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    min-height: 4px;
-}
-
-/* Individual procurement pill */
-.gi-procurement-pill {
+.gi-trucks-group.is-late { background: var(--mac-danger-light); color: var(--mac-silo-low-text); }
+.gi-trucks-group.is-today { background: var(--mac-green-light); color: var(--mac-green-hover); }
+.gi-trucks-group.is-next { background: var(--mac-bg-tertiary); color: var(--mac-text-secondary); }
+.gi-truck-row {
     display: flex;
     align-items: center;
-    gap: 0.3rem;
-    padding: 0.2rem 0.45rem;
-    border-radius: 999px;
-    background: var(--mac-green);
-    color: #fff;
-    font-size: 0.7rem;
-    font-weight: 600;
+    gap: 0.6rem;
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--mac-bg-tertiary);
+}
+.gi-truck-row.is-upcoming { justify-content: space-between; padding: 0.6rem 1rem; font-size: var(--mac-text-sm); }
+.gi-truck-handle {
     cursor: grab;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
+    color: var(--mac-text-tertiary);
+    padding: 0.5rem 0.25rem;
+    touch-action: none;
     user-select: none;
-    transition: opacity 0.1s ease;
 }
-
-.gi-procurement-pill:active {
-    cursor: grabbing;
-}
-
-.gi-procurement-pill.sortable-ghost {
-    opacity: 0.35;
-}
-
-.gi-procurement-pill.sortable-chosen {
-    box-shadow: 0 2px 8px rgba(var(--mac-green-rgb), 0.45);
-}
-
-.gi-procurement-pill-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 90px;
-}
-
-.gi-procurement-pill-weight {
-    opacity: 0.85;
-    flex-shrink: 0;
-}
-
-/* Detail panel (right side) */
-.gi-procurement-calendar-detail {
-    min-height: 300px;
-    border: 1px solid var(--mac-border);
-    border-radius: 0.75rem;
-    background: var(--mac-bg);
-    padding: 1rem;
-}
-
-.gi-procurement-calendar-detail-title {
-    font-size: 1rem;
-    font-weight: 700;
-    margin-bottom: 0.75rem;
-}
-
-.gi-procurement-calendar-detail-empty {
-    color: var(--mac-text);
-    font-size: 0.9rem;
-}
-
-/* Add procurement form inside detail panel */
-.gi-procurement-add-form {
-    background: var(--mac-bg-secondary);
-    border: 1px solid var(--mac-border);
-    border-radius: 0.6rem;
-    padding: 0.75rem;
-    margin-bottom: 1rem;
-}
-
-.gi-procurement-add-form .form-label {
-    font-size: 0.85rem;
-    font-weight: 600;
-    margin-bottom: 0.25rem;
-}
-
-/* Entry cards in detail panel */
-.gi-procurement-detail-entry {
-    border: 1px solid var(--mac-border);
-    border-radius: 0.6rem;
-    background: var(--mac-bg-secondary);
-    padding: 0.65rem 0.75rem;
-    margin-bottom: 0.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: start;
-    gap: 0.5rem;
-    cursor: grab;
-}
-
-.gi-procurement-detail-entry:last-child {
-    margin-bottom: 0;
-}
-
-.gi-procurement-detail-entry:active {
-    cursor: grabbing;
-}
-
-.gi-procurement-entry-grower {
-    font-weight: 600;
-    font-size: 0.875rem;
-    color: var(--mac-text);
-}
-
-.gi-procurement-entry-weight {
-    color: var(--mac-text);
-    font-size: 0.82rem;
-    margin-top: 0.1rem;
-}
-
-.gi-procurement-entry-actions {
-    display: flex;
-    gap: 0.3rem;
-    flex-shrink: 0;
-}
+.gi-truck-handle:active { cursor: grabbing; }
+.gi-truck-main { flex: 1; min-width: 0; }
+.gi-truck-title { font-size: var(--mac-text-base); font-weight: 600; }
+.gi-truck-sub { font-size: var(--mac-text-xs); color: var(--mac-text-secondary); }
+.gi-truck-sub.is-late { color: var(--mac-danger); }
+.gi-truck-sub.is-unconfirmed { color: var(--mac-warning-text); }
+.gi-truck-row .btn { min-height: 44px; }
+.gi-truck-row.sortable-ghost { opacity: 0.4; }
+.gi-trucks-empty { padding: 1rem; font-size: var(--mac-text-sm); color: var(--mac-text-secondary); }
 
 /* Receiving drop-zone highlight (applied by JS to the Receiving kanban column) */
 .gi-receiving-drop-target {
@@ -380,10 +234,4 @@
     outline-offset: 3px;
     background: rgba(var(--mac-green-rgb), 0.05) !important;
     transition: background 0.15s ease;
-}
-
-@media (max-width: 991.98px) {
-    .gi-procurement-calendar-layout {
-        grid-template-columns: 1fr;
-    }
 }
