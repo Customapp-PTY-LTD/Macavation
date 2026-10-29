@@ -137,3 +137,69 @@
 #siWeeklyTable.si-weekly-stock-table tbody td.si-weekly-td-total {
     font-variant-numeric: tabular-nums;
 }
+
+/* Tabs: Deliveries / Raw material stock / Oil cake (Mike, 29 Oct 2026). */
+.si-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--mac-border); margin-bottom: var(--mac-space-md); }
+.si-tab {
+    min-height: 44px;
+    padding: 0 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--mac-text-secondary);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.si-tab[aria-selected="true"] { border-bottom-color: var(--mac-green); color: var(--mac-text); font-weight: 700; }
+.si-tab-badge {
+    background: var(--mac-danger);
+    color: var(--mac-bg-secondary);
+    border-radius: var(--mac-radius-pill);
+    font-size: var(--mac-text-xs);
+    font-weight: 700;
+    padding: 2px 8px;
+}
+
+/* Raw material stock */
+.si-stock-head { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; }
+.si-stock-head-side { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.si-stock-eyebrow { font-size: var(--mac-text-xs); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mac-danger); }
+.si-stock-first { font-size: var(--mac-text-lg); font-weight: 700; }
+.si-stock-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--mac-space-md); }
+.si-stock-card .card-body { display: flex; flex-direction: column; gap: 10px; }
+.si-stock-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.si-stock-pill { border-radius: var(--mac-radius-pill); font-size: var(--mac-text-xs); font-weight: 700; padding: 3px 10px; white-space: nowrap; }
+.si-stock-pill-low { background: var(--mac-danger-light); color: var(--mac-silo-low-text); }
+.si-stock-pill-amber { background: var(--mac-warning-light); color: var(--mac-warning-text); }
+.si-stock-pill-ok { background: var(--mac-success-light); color: var(--mac-silo-high-text); }
+.si-stock-kg { font-size: var(--mac-text-xl); font-weight: 700; font-variant-numeric: tabular-nums; }
+.si-stock-kg span { font-size: var(--mac-text-base); font-weight: 400; color: var(--mac-text-secondary); }
+.si-stock-sub { font-size: var(--mac-text-sm); color: var(--mac-text-secondary); margin-top: -6px; }
+.si-stock-bar { position: relative; height: 12px; background: var(--mac-bg-tertiary); border-radius: 6px; }
+.si-stock-bar-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px; }
+.si-stock-bar-low { background: var(--mac-danger); }
+.si-stock-bar-amber { background: var(--mac-warning); }
+.si-stock-bar-ok { background: var(--mac-green); }
+.si-stock-bar-min { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--mac-text); }
+.si-stock-bar-scale { position: relative; height: 16px; font-size: var(--mac-text-xs); color: var(--mac-text-tertiary); }
+.si-stock-bar-scale span:first-child { position: absolute; left: 0; }
+.si-stock-bar-min-label { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.si-stock-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; font-size: var(--mac-text-sm); }
+.si-stock-facts span { display: block; color: var(--mac-text-tertiary); }
+
+/* Oil cake */
+.si-cake-month { width: auto; }
+.si-cake-totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--mac-space-md); margin-bottom: var(--mac-space-md); }
+.si-cake-totals span { display: block; font-size: var(--mac-text-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--mac-text-tertiary); }
+.si-cake-totals strong { font-size: var(--mac-text-xl); font-variant-numeric: tabular-nums; }
+.si-cake-kind.active { background: var(--mac-green); border-color: var(--mac-green); color: var(--mac-bg-secondary); }
+.si-cake-pill { border-radius: var(--mac-radius-pill); font-size: var(--mac-text-xs); font-weight: 600; padding: 3px 10px; }
+.si-cake-pill-produced { background: var(--mac-success-light); color: var(--mac-silo-high-text); }
+/* Supplier recon */
+.si-recon-table td, .si-recon-table th { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.si-recon-table td:last-child { white-space: normal; min-width: 180px; }
+.si-recon-total td { font-weight: 700; background: var(--mac-bg-tertiary); }
+.si-recon-flagged td { background: var(--mac-warning-light); }
+.si-cake-pill-sold { background: var(--mac-info-light); color: var(--mac-info); }

@@ -56,6 +56,15 @@ var _supplierIntakeGrid = function () {
         return map[value] || value || '—';
     }
 
+    /** Product label for one bag: oil kernel carries its grade (crude / food grade), when known. */
+    function batchProductLabel(b) {
+        var base = productTypeLabel(b && b.product_type);
+        if (b && b.product_type === 'oil_kernel' && b.grade) {
+            return base + (b.grade === 'food_grade' ? ' (food grade)' : ' (crude grade)');
+        }
+        return base;
+    }
+
     function formatDate(d) {
         if (!d) return '—';
         if (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY) return _common.formatDateDDMMYYYY(d);
@@ -109,6 +118,7 @@ var _supplierIntakeGrid = function () {
 
         init: () => {
             const scope = _supplierIntakeGrid;
+            if (typeof _supplierIntakeStock !== 'undefined' && _supplierIntakeStock.init) _supplierIntakeStock.init();
             if (typeof BatchStatus !== 'undefined') BatchStatus.applyModuleSubtitle('supplier-intake-grid');
             if (typeof HandoffDialog !== 'undefined') HandoffDialog.applyPendingSearchForRoute('supplier-intake-grid');
             scope.bindEvents();
@@ -417,7 +427,7 @@ var _supplierIntakeGrid = function () {
                 var batchNum = (b.batch_number || '—').toString();
                 var dateStr = formatDate(b.date_received) || '—';
                 var qtyStr = (b.quantity_kg != null ? b.quantity_kg + ' kg' : '');
-                var productStr = productTypeLabel(b.product_type) || '—';
+                var productStr = batchProductLabel(b) || '—';
                 var supplierStr = (b.supplier_details || '—').toString();
                 var colKey = getSupplierColumnKey(b);
                 var sampleBtn = '';
@@ -466,6 +476,8 @@ var _supplierIntakeGrid = function () {
                 scope.loadWeeklySnapshot(forceRefresh).catch(function (err) {
                     console.warn('[Supplier Intake] loadWeeklySnapshot:', err);
                 });
+                // A delivery or a release changes raw material stock.
+                if (forceRefresh && typeof _supplierIntakeStock !== 'undefined' && _supplierIntakeStock.refresh) _supplierIntakeStock.refresh();
             } catch (e) {
                 console.error('[Supplier Intake] loadBatches failed:', e);
                 scope.batches = [];
@@ -548,7 +560,7 @@ var _supplierIntakeGrid = function () {
                 }
                 const row = '<tr class="js-supplier-intake-row" data-batch-id="' + batchId + '">' +
                     '<td class="supplier-intake-col-batch">' + batchNumberCell + '</td>' +
-                    '<td class="supplier-intake-col-product d-none d-md-table-cell">' + (productTypeLabel(b.product_type) || '—') + '</td>' +
+                    '<td class="supplier-intake-col-product d-none d-md-table-cell">' + escapeHtml(batchProductLabel(b) || '—') + '</td>' +
                     '<td class="supplier-intake-col-date">' + (formatDate(b.date_received) || '—') + '</td>' +
                     '<td class="supplier-intake-col-note d-none d-lg-table-cell">' + (b.delivery_note_ref || '—') + '</td>' +
                     '<td class="supplier-intake-col-supplier">' + (supplier || '—') + '</td>' +
@@ -748,7 +760,7 @@ var _supplierIntakeGrid = function () {
             };
             var html = '<div class="text-start small">' +
                 '<p><strong>Batch #:</strong> ' + escapeHtml(b.batch_number || '—') + '</p>' +
-                line('Product type', productTypeLabel(b.product_type) || b.product_type) +
+                line('Product type', batchProductLabel(b) || b.product_type) +
                 line('Date received', formatDate(b.date_received)) +
                 line('Delivery note / PO', b.delivery_note_ref) +
                 line('Supplier', b.supplier_details) +
