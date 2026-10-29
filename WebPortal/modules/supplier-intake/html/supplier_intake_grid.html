@@ -1,23 +1,37 @@
 <!-- Supplier Intake: Oil & Protein – mirrored from Grower Intake (Kernel); same layout, Board/Table, card structure. -->
-<div class="module-content">
+<div class="module-content" id="supplierIntakeModule">
     <div class="pt-3 pb-2 mb-3 border-bottom">
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
             <h1 class="h2 mb-0">Supplier Intake Management</h1>
             <div class="btn-toolbar mb-2 mb-md-0 ms-auto gap-2">
                 <a target="_blank" rel="noopener noreferrer" href="help/index.html#supplier-intake-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
-                <button type="button" class="btn btn-outline-primary" id="supplierAdjustStockBtn" title="Add bags without the receiving checklist, or edit an existing batch">
+                <button type="button" class="btn btn-outline-secondary" id="supplierAdjustStockBtn" title="Stock counts and corrections without truck checks, or edit an existing batch">
                     <i class="fas fa-sliders me-1"></i>Quick stock entry
                 </button>
-            <button type="button" class="btn btn-primary" id="supplierReceiverChecklistBtn">
-                    <i class="fas fa-clipboard-check me-1"></i>Receiver checklist
+                <button type="button" class="btn btn-primary" id="supplierReceiverChecklistBtn">
+                    <i class="fas fa-plus me-1"></i>New delivery
                 </button>
                 <button type="button" class="btn btn-outline-secondary" id="exportSupplierIntakeBtn">
                     <i class="fas fa-download me-1"></i>Export
                 </button>
             </div>
         </div>
-        <p class="text-muted mb-0 mt-2 small macavation-module-journey-subtitle" id="macavationModuleJourneySubtitle">Create batches via the Receiver checklist, or use <strong>Quick stock entry</strong> for multi-bag entry (supplier name and batch numbers required; checklist not required). Then complete sample tests before releasing to Oil Production.</p>
+        <p class="text-muted mb-0 mt-2 small macavation-module-journey-subtitle" id="macavationModuleJourneySubtitle">Log every load with <strong>New delivery</strong> (truck checks and one row per bag). Use <strong>Quick stock entry</strong> only for stock counts and corrections. Then complete sample tests before releasing to Oil Production.</p>
     </div>
+
+    <div role="tablist" aria-label="Sections" class="si-tabs">
+        <button type="button" role="tab" class="si-tab" id="siTabDeliveries" aria-selected="true" aria-controls="siPaneDeliveries" data-si-tab="deliveries">Deliveries</button>
+        <button type="button" role="tab" class="si-tab" id="siTabStock" aria-selected="false" aria-controls="siPaneStock" data-si-tab="stock">Raw material stock <span class="si-tab-badge d-none" id="siStockLowBadge"></span></button>
+        <button type="button" role="tab" class="si-tab" id="siTabCake" aria-selected="false" aria-controls="siPaneCake" data-si-tab="cake">Oil cake</button>
+    </div>
+
+    <!-- Raw material stock on hand (rendered by supplier_intake_stock.js) -->
+    <div id="siPaneStock" role="tabpanel" aria-labelledby="siTabStock" class="d-none"></div>
+
+    <!-- Oil cake produced and sold (rendered by supplier_intake_stock.js) -->
+    <div id="siPaneCake" role="tabpanel" aria-labelledby="siTabCake" class="d-none"></div>
+
+    <div id="siPaneDeliveries" role="tabpanel" aria-labelledby="siTabDeliveries">
 
     <!-- Search and Filters -->
     <div class="card mb-3 mac-module-filter-bar">
@@ -82,6 +96,7 @@
                 </table>
             </div>
         </div>
+    </div>
     </div>
 
 </div>
