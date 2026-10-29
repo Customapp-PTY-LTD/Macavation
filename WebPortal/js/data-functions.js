@@ -2077,6 +2077,10 @@ var _dataFunctions = function () {
         getSiloRuns: async function (limit = 50, token = null) {
             return this._kpUnwrap(await this.callFunction('get_silo_runs', { p_limit: limit }, token, { useCache: false }));
         },
+        /** Closed runs whose SA close date is in [fromIso, toIso] ('YYYY-MM-DD', max 62 days). Migration 20261029090000. */
+        getSiloRunsBetween: async function (fromIso, toIso, token = null) {
+            return this._kpUnwrap(await this.callFunction('get_silo_runs_between', { p_date_from: fromIso, p_date_to: toIso }, token, { useCache: false }));
+        },
         /** removedPreSizerKg is required (0 if none). Migration 20261008090000. */
         allocateBagsToSilo: async function (kernelId, bagNos, siloNumber, removedPreSizerKg, token = null) {
             return this._kpUnwrap(await this.callFunction('allocate_bags_to_silo', {

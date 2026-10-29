@@ -293,3 +293,106 @@
 }
 .nss-tab[aria-selected="true"] { border-bottom-color: var(--mac-green); color: var(--mac-text); font-weight: 700; }
 .nss-crumb { font-size: var(--mac-text-sm); color: var(--mac-text-secondary); }
+
+/* Cracking log: day / week picker, period totals and the week's per-day bars. */
+.silo-period-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--mac-border);
+    background: var(--mac-bg);
+}
+.silo-period-bar .btn { min-height: 40px; }
+.silo-period-mode.active {
+    background: var(--mac-green);
+    border-color: var(--mac-green);
+    color: var(--mac-bg-secondary);
+}
+.silo-period-date { width: auto; min-height: 40px; }
+.silo-period-label {
+    margin-left: auto;
+    font-weight: 600;
+}
+.silo-period-totals {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 1px;
+    background: var(--mac-border);
+    border-bottom: 1px solid var(--mac-border);
+}
+.silo-period-total {
+    background: var(--mac-bg-secondary);
+    padding: 14px 16px;
+}
+.silo-period-total span {
+    display: block;
+    font-size: var(--mac-text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--mac-text-tertiary);
+}
+.silo-period-total strong {
+    display: block;
+    font-size: var(--mac-text-xl);
+    font-variant-numeric: tabular-nums;
+}
+.silo-period-total small { color: var(--mac-text-secondary); }
+.silo-period-total-main strong { color: var(--mac-green-hover); }
+.silo-period-days {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 8px;
+    align-items: end;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--mac-border);
+}
+.silo-day-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: transparent;
+    border: none;
+    padding: 4px;
+    border-radius: var(--mac-radius-sm);
+    min-height: 44px;
+}
+.silo-day-bar:hover { background: var(--mac-bg); }
+.silo-day-bar-kg {
+    font-size: var(--mac-text-xs);
+    font-weight: 600;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    min-height: 1em;
+}
+.silo-day-bar-track {
+    height: 80px;
+    display: flex;
+    align-items: flex-end;
+    background: var(--mac-bg-tertiary);
+    border-radius: 6px;
+}
+.silo-day-bar-fill {
+    display: block;
+    width: 100%;
+    background: var(--mac-green);
+    border-radius: 6px;
+}
+.silo-day-bar-label {
+    font-size: var(--mac-text-xs);
+    text-align: center;
+    color: var(--mac-text-secondary);
+}
+.silo-day-bar-today .silo-day-bar-label { font-weight: 700; color: var(--mac-green-hover); }
+.silo-day-bar-future .silo-day-bar-label { color: var(--mac-text-tertiary); }
+.silo-run-subtotal td {
+    background: var(--mac-green-light);
+    font-weight: 600;
+    color: var(--mac-green-hover);
+}
+@media (max-width: 575.98px) {
+    .silo-period-label { margin-left: 0; width: 100%; }
+    .silo-period-days { gap: 4px; padding: 12px 8px; }
+}
