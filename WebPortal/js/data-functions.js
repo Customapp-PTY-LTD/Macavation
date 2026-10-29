@@ -4113,6 +4113,7 @@ var _dataFunctions = function () {
                     id: o.id,
                     batch_number: o.batch_id,
                     product_type: intake.product_type || (o.name_of_product && String(o.name_of_product).toLowerCase().replace(/\s+/g, '_')) || 'oil',
+                    grade: intake.grade || null,
                     date_received: intake.date_received || o.production_date,
                     delivery_note_ref: intake.delivery_note_reference || intake.delivery_note_ref,
                     supplier_id: intake.supplier_id || null,
@@ -4205,6 +4206,36 @@ var _dataFunctions = function () {
         },
 
         /**
+         * Oil plant raw material stock on hand (migration 20261029100000): Mike's count plus bags
+         * received since, minus bags released to Oil Production since. { success, count_date, settings, materials[] }.
+         */
+        getOilRawStock: async function (token = null) {
+            return this._kpUnwrap(await this.callFunction('get_oil_raw_stock', {}, token, { useCache: false }));
+        },
+        /** settings: { count_date?, materials?: { oil_kernel|kernel_dust|cracker_dust: { daily_kg?, count_kg?, count_food_grade_kg? } } }. */
+        setOilRawStockSettings: async function (settings, token = null) {
+            return this._kpUnwrap(await this.callFunction('set_oil_raw_stock_settings', {
+                p_settings: settings, p_actor_user_id: this.getCurrentUserId() || null
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
+        /** Oil cake produced / sold between two 'YYYY-MM-DD' dates (max 400 days). */
+        getOilCakeMovements: async function (fromIso, toIso, token = null) {
+            return this._kpUnwrap(await this.callFunction('get_oil_cake_movements', { p_date_from: fromIso, p_date_to: toIso }, token, { useCache: false }));
+        },
+        /** kind: 'produced' | 'sold'; soldTo is required for a sale. */
+        saveOilCakeMovement: async function (kind, dateIso, kg, soldTo, notes, token = null) {
+            return this._kpUnwrap(await this.callFunction('save_oil_cake_movement', {
+                p_kind: kind, p_movement_date: dateIso, p_kg: Number(kg),
+                p_sold_to: soldTo || null, p_notes: notes || null, p_actor_user_id: this.getCurrentUserId() || null
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
+        voidOilCakeMovement: async function (id, token = null) {
+            return this._kpUnwrap(await this.callFunction('void_oil_cake_movement', {
+                p_id: id, p_actor_user_id: this.getCurrentUserId() || null
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
+
+        /**
          * Release a supplier intake batch to oil production. Updates the oil row status to 'production'.
          * Uses Supabase oil table via upsert_oil_batch.
          * @param {string} batchId - UUID id of the oil row (oil.id from the grid)
@@ -4281,6 +4312,7 @@ var _dataFunctions = function () {
                 supplier: data.supplier_details || null,
                 supplier_details: data.supplier_details || null,
                 product_type: data.product_type || null,
+                grade: data.product_type === 'oil_kernel' && data.grade ? data.grade : null,
                 quantity_kg: data.quantity_kg != null ? data.quantity_kg : data.wet_nis_received_kg,
                 manufactured_date: data.manufactured_date || null,
                 best_before_date: data.best_before_date || null,
@@ -4347,6 +4379,7 @@ var _dataFunctions = function () {
                 supplier: data.supplier_details || null,
                 supplier_details: data.supplier_details || null,
                 product_type: data.product_type || null,
+                grade: data.product_type === 'oil_kernel' && data.grade ? data.grade : null,
                 quantity_kg: data.quantity_kg != null ? data.quantity_kg : data.wet_nis_received_kg,
                 manufactured_date: data.manufactured_date || null,
                 best_before_date: data.best_before_date || null,

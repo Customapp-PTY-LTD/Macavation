@@ -79,7 +79,7 @@ var _modal_supplier_intake_adjust_stock = (function () {
         if (!$row.length) return null;
         return {
             batch: ($row.find('[name="siaBatch"]').val() || '').trim(),
-            productType: ($row.find('[name="siaProductType"]').val() || '').trim() || 'oil_kernel',
+            productType: ($row.find('[name="siaProductType"]').val() || '').trim() || 'oil_kernel:crude',
             weight: ($row.find('[name="siaWeight"]').val() || '').trim(),
             ffa: ($row.find('[name="siaFfa"]').val() || '').trim(),
             manufacturedDate: ($row.find('[name="siaManufacturedDate"]').val() || '').trim()
@@ -134,7 +134,8 @@ var _modal_supplier_intake_adjust_stock = (function () {
             '<tr>' +
             '<td><input type="text" class="form-control form-control-sm" name="siaBatch" maxlength="120" placeholder="e.g. OIL-2026-03-001" value="' + escapeAttr(seed.batch || '') + '"></td>' +
             '<td><select class="form-select form-select-sm" name="siaProductType">' +
-            '<option value="oil_kernel"' + ((seed.productType || 'oil_kernel') === 'oil_kernel' ? ' selected' : '') + '>Oil kernel</option>' +
+            '<option value="oil_kernel:crude"' + ((seed.productType || 'oil_kernel:crude') === 'oil_kernel:crude' ? ' selected' : '') + '>Oil kernel (crude grade)</option>' +
+            '<option value="oil_kernel:food_grade"' + ((seed.productType || '') === 'oil_kernel:food_grade' ? ' selected' : '') + '>Oil kernel (food grade)</option>' +
             '<option value="cracker_dust"' + ((seed.productType || '') === 'cracker_dust' ? ' selected' : '') + '>Cracker dust</option>' +
             '<option value="kernel_dust"' + ((seed.productType || '') === 'kernel_dust' ? ' selected' : '') + '>Kernel dust</option>' +
             '<option value="crush"' + ((seed.productType || '') === 'crush' ? ' selected' : '') + '>Crush</option>' +
@@ -203,7 +204,7 @@ var _modal_supplier_intake_adjust_stock = (function () {
             for (var i = 1; i <= count; i++) {
                 api.addRow({
                     batch: nextSequentialBatch(seed.batch || '', i),
-                    productType: seed.productType || 'oil_kernel',
+                    productType: seed.productType || 'oil_kernel:crude',
                     weight: seed.weight || '',
                     ffa: seed.ffa || '',
                     manufacturedDate: seed.manufacturedDate || ''
@@ -229,7 +230,9 @@ var _modal_supplier_intake_adjust_stock = (function () {
             $('#siaBagsTableBody tr').each(function () {
                 var $r = $(this);
                 var batch = ($r.find('[name="siaBatch"]').val() || '').trim();
-                var productType = ($r.find('[name="siaProductType"]').val() || '').trim() || 'oil_kernel';
+                var productParts = (($r.find('[name="siaProductType"]').val() || '').trim() || 'oil_kernel:crude').split(':');
+                var productType = productParts[0];
+                var grade = productParts[1] || null;
                 var wRaw = ($r.find('[name="siaWeight"]').val() || '').trim();
                 var ffaRaw = ($r.find('[name="siaFfa"]').val() || '').trim();
                 var mfgRaw = ($r.find('[name="siaManufacturedDate"]').val() || '').trim();
@@ -243,6 +246,7 @@ var _modal_supplier_intake_adjust_stock = (function () {
                 rows.push({
                     batch_number: batch,
                     product_type: productType,
+                    grade: grade,
                     quantity_kg: qty,
                     ffa: ffa,
                     manufactured_date: manufacturedIso,
@@ -308,6 +312,7 @@ var _modal_supplier_intake_adjust_stock = (function () {
                         supplier_id: null,
                         supplier_details: supplierName,
                         product_type: br.product_type,
+                        grade: br.grade,
                         quantity_kg: br.quantity_kg,
                         manufactured_date: br.manufactured_date,
                         best_before_date: br.best_before_date,

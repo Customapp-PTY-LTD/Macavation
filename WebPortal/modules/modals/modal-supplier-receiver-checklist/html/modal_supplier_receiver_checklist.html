@@ -1,7 +1,7 @@
 <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
     <div class="modal-content">
         <div class="modal-header">
-            <h5 class="modal-title" id="supplierReceiverChecklistModalLabel">Receiver checklist</h5>
+            <h5 class="modal-title" id="supplierReceiverChecklistModalLabel">New delivery</h5>
             <a target="_blank" rel="noopener noreferrer" href="help/index.html#modal-supplier-receiver-checklist" class="btn btn-sm btn-outline-secondary ms-auto me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
@@ -58,7 +58,7 @@
                 </div>
 
                 <div class="card mb-3">
-                    <div class="card-header"><h6 class="mb-0">Vehicle &amp; receiving checks</h6></div>
+                    <div class="card-header"><h6 class="mb-0">Truck checks <span class="fw-normal text-muted small">(answer every one, every load)</span></h6></div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-6">
@@ -141,7 +141,7 @@
 
                 <div class="card mb-0">
                     <div class="card-header">
-                        <h6 class="mb-0">Bags (these will become batches)</h6>
+                        <h6 class="mb-0">Bags on this delivery</h6>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
@@ -162,7 +162,8 @@
                                         <td>
                                             <select class="form-select form-select-sm" name="productType" required>
                                                 <option value="">Select product…</option>
-                                                <option value="oil_kernel">Oil kernel</option>
+                                                <option value="oil_kernel:crude">Oil kernel (crude grade)</option>
+                                                <option value="oil_kernel:food_grade">Oil kernel (food grade)</option>
                                                 <option value="cracker_dust">Cracker dust</option>
                                                 <option value="kernel_dust">Kernel dust</option>
                                                 <option value="crush">Crush</option>
@@ -180,14 +181,14 @@
                         <div class="d-flex justify-content-end mt-2">
                             <button type="button" class="btn btn-sm btn-primary" id="srcAddItemRow"><i class="fas fa-plus"></i> Add bag</button>
                         </div>
-                        <div class="text-muted small mt-2">All bags in this checklist are grouped under the same supplier and delivery note, but each batch can be edited individually later.</div>
+                        <div class="text-muted small mt-2">Each bag becomes its own batch, grouped under this supplier and delivery note. Food grade and crude oil kernel count as one pool on the Raw material stock tab.</div>
                     </div>
                 </div>
             </form>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="button" class="btn btn-primary" id="srcCreateBatchesBtn"><i class="fas fa-save me-1"></i>Create batches</button>
+            <button type="button" class="btn btn-primary" id="srcCreateBatchesBtn"><i class="fas fa-save me-1"></i>Save delivery</button>
         </div>
     </div>
 </div>
