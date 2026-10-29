@@ -23,6 +23,7 @@
         <button type="button" role="tab" class="si-tab" id="siTabDeliveries" aria-selected="true" aria-controls="siPaneDeliveries" data-si-tab="deliveries">Deliveries</button>
         <button type="button" role="tab" class="si-tab" id="siTabStock" aria-selected="false" aria-controls="siPaneStock" data-si-tab="stock">Raw material stock <span class="si-tab-badge d-none" id="siStockLowBadge"></span></button>
         <button type="button" role="tab" class="si-tab" id="siTabCake" aria-selected="false" aria-controls="siPaneCake" data-si-tab="cake">Oil cake</button>
+        <button type="button" role="tab" class="si-tab" id="siTabRecon" aria-selected="false" aria-controls="siPaneRecon" data-si-tab="recon">Supplier recon</button>
     </div>
 
     <!-- Raw material stock on hand (rendered by supplier_intake_stock.js) -->
@@ -30,6 +31,9 @@
 
     <!-- Oil cake produced and sold (rendered by supplier_intake_stock.js) -->
     <div id="siPaneCake" role="tabpanel" aria-labelledby="siTabCake" class="d-none"></div>
+
+    <!-- Kg received per supplier and month, for invoice checks (rendered by supplier_intake_recon.js) -->
+    <div id="siPaneRecon" role="tabpanel" aria-labelledby="siTabRecon" class="d-none"></div>
 
     <div id="siPaneDeliveries" role="tabpanel" aria-labelledby="siTabDeliveries">
 
