@@ -69,8 +69,10 @@ var _supplierIntakeStock = (function () {
         $('#siPaneDeliveries').toggleClass('d-none', tab !== 'deliveries');
         $('#siPaneStock').toggleClass('d-none', tab !== 'stock');
         $('#siPaneCake').toggleClass('d-none', tab !== 'cake');
+        $('#siPaneRecon').toggleClass('d-none', tab !== 'recon');
         if (tab === 'stock') { loadStock(); }
         if (tab === 'cake') { loadCake(); }
+        if (tab === 'recon' && typeof _supplierIntakeRecon !== 'undefined') { _supplierIntakeRecon.show(); }
     }
 
     // ------------------------------------------------------------------
@@ -186,7 +188,7 @@ var _supplierIntakeStock = (function () {
         });
         h += '</div>';
         h += '<p class="small text-muted mt-3 mb-0">Stock on hand is the stock count of ' + esc(fmtDate(r.count_date)) +
-            ', plus every bag received after that day, minus every bag released to Oil Production after it. A bag used without being released here is still counted as stock. ' +
+            ', plus every load received after that day (from the recon sheet up to ' + esc(fmtDate(r.history_through || r.count_date)) + ', from New delivery after it), minus every bag released to Oil Production after the count. A bag used without being released here is still counted as stock. ' +
             'Food grade and crude oil kernel are received separately but count as one pool. Oil cake is made in the plant and is tracked on the Oil cake tab.</p>';
         $p.html(h);
     }
@@ -362,6 +364,7 @@ var _supplierIntakeStock = (function () {
             state.cakeMonth = null;
             state.cakeKind = 'produced';
             bindEvents();
+            if (typeof _supplierIntakeRecon !== 'undefined') { _supplierIntakeRecon.init(); }
             showTab('deliveries');
             // Load the stock quietly so the tab can show how many materials are below minimum.
             loadStock();

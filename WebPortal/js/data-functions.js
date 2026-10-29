@@ -4062,6 +4062,10 @@ var _dataFunctions = function () {
                 p_sold_to: soldTo || null, p_notes: notes || null, p_actor_user_id: this.getCurrentUserId() || null
             }, token, { useCache: false, preserveNullParams: true }));
         },
+        /** Every raw material load between two 'YYYY-MM-DD' dates (max 800 days): recon sheet history, then portal deliveries. */
+        getOilSupplierRecon: async function (fromIso, toIso, token = null) {
+            return this._kpUnwrap(await this.callFunction('get_oil_supplier_recon', { p_date_from: fromIso, p_date_to: toIso }, token, { useCache: false }));
+        },
         voidOilCakeMovement: async function (id, token = null) {
             return this._kpUnwrap(await this.callFunction('void_oil_cake_movement', {
                 p_id: id, p_actor_user_id: this.getCurrentUserId() || null

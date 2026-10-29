@@ -249,7 +249,8 @@
             "html": "html/supplier_intake_grid.html",
             "js": [
                 "js/supplier_intake_grid.js",
-                "js/supplier_intake_stock.js"
+                "js/supplier_intake_stock.js",
+                "js/supplier_intake_recon.js"
             ],
             "css": [
                 "css/supplier_intake_grid.css"
