@@ -197,4 +197,9 @@
 .si-cake-kind.active { background: var(--mac-green); border-color: var(--mac-green); color: var(--mac-bg-secondary); }
 .si-cake-pill { border-radius: var(--mac-radius-pill); font-size: var(--mac-text-xs); font-weight: 600; padding: 3px 10px; }
 .si-cake-pill-produced { background: var(--mac-success-light); color: var(--mac-silo-high-text); }
+/* Supplier recon */
+.si-recon-table td, .si-recon-table th { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.si-recon-table td:last-child { white-space: normal; min-width: 180px; }
+.si-recon-total td { font-weight: 700; background: var(--mac-bg-tertiary); }
+.si-recon-flagged td { background: var(--mac-warning-light); }
 .si-cake-pill-sold { background: var(--mac-info-light); color: var(--mac-info); }
