@@ -1,6 +1,8 @@
 /**
- * Modal: Supplier Receiver checklist (create supplier intake batches from bags, or edit one batch).
- * Create: each row in the bags table becomes a batch. Edit: one batch's data is pre-filled for changes.
+ * Modal: New delivery (oil plant) - one delivery with its truck checks and its bags; each bag row
+ * becomes a supplier intake batch. Edit: one batch's data is pre-filled for changes.
+ * Oil kernel is picked as 'oil_kernel:crude' / 'oil_kernel:food_grade' and saved as product_type
+ * oil_kernel plus intake_data.grade (Mike, 29 Oct 2026). Truck checks are required on every new load.
  */
 var _modal_supplier_receiver_checklist = (function () {
     'use strict';
@@ -98,10 +100,33 @@ var _modal_supplier_receiver_checklist = (function () {
         inputs.forEach(function (inp) { inp.checked = (inp.value === s); });
     }
 
+    /** 'oil_kernel:food_grade' -> { product_type: 'oil_kernel', grade: 'food_grade' }. */
+    function splitProductValue(v) {
+        var parts = String(v || '').split(':');
+        return { product_type: parts[0] || null, grade: parts[0] === 'oil_kernel' ? (parts[1] || null) : null };
+    }
+
+    /** Select value for a saved batch; ungraded oil kernel has no value, so the grade must be picked. */
+    function productValueOf(batch) {
+        if (!batch || !batch.product_type) return '';
+        if (batch.product_type === 'oil_kernel') return batch.grade ? 'oil_kernel:' + batch.grade : '';
+        return batch.product_type;
+    }
+
+    var TRUCK_CHECKS = [
+        { name: 'srcVehicleClean', label: 'Vehicle clean?' },
+        { name: 'srcVehicleEnclosed', label: 'Vehicle fully enclosed?' },
+        { name: 'srcHazardSubstances', label: 'Any hazard substances noted on truck?' },
+        { name: 'srcPestInfestations', label: 'Any signs of pest infestations?' },
+        { name: 'srcPalletsCondition', label: 'Pallets received are in good condition' },
+        { name: 'srcRawMaterialsCondition', label: 'Are raw materials received in good condition?' }
+    ];
+
     function optionForProductType(selected) {
         var opts = [
             { v: '', l: 'Select product…' },
-            { v: 'oil_kernel', l: 'Oil kernel' },
+            { v: 'oil_kernel:crude', l: 'Oil kernel (crude grade)' },
+            { v: 'oil_kernel:food_grade', l: 'Oil kernel (food grade)' },
             { v: 'cracker_dust', l: 'Cracker dust' },
             { v: 'kernel_dust', l: 'Kernel dust' },
             { v: 'crush', l: 'Crush' },
@@ -195,9 +220,11 @@ var _modal_supplier_receiver_checklist = (function () {
             var hasAny = ref || productType || batch || qtyRaw || mfgRaw;
             if (!hasAny) return;
 
+            var product = splitProductValue(productType);
             items.push({
                 reference: ref || null,
-                product_type: productType || null,
+                product_type: product.product_type,
+                grade: product.grade,
                 batch_number: batch || null,
                 quantity_kg: qtyRaw ? parseFloat(qtyRaw) : null,
                 manufactured_date: manufacturedIso,
@@ -380,7 +407,7 @@ var _modal_supplier_receiver_checklist = (function () {
                     var row = '<tr>' +
                         '<td><input type="text" class="form-control form-control-sm" name="reference" placeholder="Optional" value="' + escapeHtml((editingBatch.reference || '').toString()) + '"></td>' +
                         '<td><select class="form-select form-select-sm" name="productType" required>' +
-                        optionForProductType(editingBatch.product_type || '') +
+                        optionForProductType(productValueOf(editingBatch)) +
                         '</select></td>' +
                         '<td><input type="text" class="form-control form-control-sm" name="batch" required placeholder="Required — e.g. OIL-2026-03-001" value="' + escapeHtml((editingBatch.batch_number || '').toString()) + '"></td>' +
                         '<td><input type="number" class="form-control form-control-sm" name="quantity" step="0.01" min="0.01" required value="' + (editingBatch.quantity_kg != null ? escapeHtml(String(editingBatch.quantity_kg)) : '') + '"></td>' +
@@ -390,9 +417,9 @@ var _modal_supplier_receiver_checklist = (function () {
                     initFlatpickrInModal();
                 }
             } else {
-                if (titleEl) titleEl.textContent = 'Receiver checklist';
+                if (titleEl) titleEl.textContent = 'New delivery';
                 if (addBagBtn) addBagBtn.style.display = '';
-                if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Create batches';
+                if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Save delivery';
 
                 var todayISO = new Date().toISOString().split('T')[0];
                 var dateEl = document.getElementById('srcDateReceived');
@@ -427,9 +454,9 @@ var _modal_supplier_receiver_checklist = (function () {
             var titleEl = document.getElementById('supplierReceiverChecklistModalLabel');
             var addBagBtn = document.getElementById('srcAddItemRow');
             var saveBtn = document.getElementById('srcCreateBatchesBtn');
-            if (titleEl) titleEl.textContent = 'Receiver checklist';
+            if (titleEl) titleEl.textContent = 'New delivery';
             if (addBagBtn) addBagBtn.style.display = '';
-            if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Create batches';
+            if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Save delivery';
             if (resetRows && typeof $ !== 'undefined') ensureAtLeastOneRow();
         },
 
@@ -554,6 +581,13 @@ var _modal_supplier_receiver_checklist = (function () {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Each bag needs a product type and a quantity (kg).', 'error');
                 return;
             }
+            if (!_editingBatchId) {
+                var unanswered = TRUCK_CHECKS.filter(function (c) { return !document.querySelector('input[name="' + c.name + '"]:checked'); });
+                if (unanswered.length) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Truck checks', 'Answer every truck check before saving. Still open: ' + unanswered.map(function (c) { return c.label; }).join('; '), 'warning');
+                    return;
+                }
+            }
             var missingBatch = rows.find(function (r) { return !r.batch_number || !String(r.batch_number).trim(); });
             if (missingBatch) {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Enter a batch number for each bag row (not auto-generated).', 'error');
@@ -582,6 +616,7 @@ var _modal_supplier_receiver_checklist = (function () {
                         supplier_id: supplierId,
                         supplier_details: supplierDetails,
                         product_type: r.product_type,
+                        grade: r.grade,
                         quantity_kg: r.quantity_kg,
                         manufactured_date: r.manufactured_date,
                         best_before_date: r.best_before_date,
@@ -626,6 +661,7 @@ var _modal_supplier_receiver_checklist = (function () {
                             supplier_id: supplierId,
                             supplier_details: supplierDetails,
                             product_type: r.product_type,
+                            grade: r.grade,
                             quantity_kg: r.quantity_kg,
                             manufactured_date: r.manufactured_date,
                             best_before_date: r.best_before_date,
@@ -645,7 +681,7 @@ var _modal_supplier_receiver_checklist = (function () {
                         }
                         created++;
                     }
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Created', text: created + ' batch(es) created and moved to Awaiting tests.', timer: 2500, showConfirmButton: false });
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Created', text: 'Delivery saved: ' + created + ' bag' + (created === 1 ? '' : 's') + ' moved to Awaiting tests.', timer: 2500, showConfirmButton: false });
                 }
 
                 var modalEl = document.getElementById(CONTAINER_ID);
