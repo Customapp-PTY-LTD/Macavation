@@ -185,6 +185,19 @@ var _kernelProductionGrid = function () {
         return date.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
     };
 
+    /**
+     * "Sheet to finish" button for a batch whose silo runs reached the Cracking log but whose cracking sheet
+     * has no shell bags for that day (get_unfinished_cracking_sheets). Opens the batch's production sheet.
+     */
+    const unfinishedSheetFlagHtml = (batch, days) => {
+        if (!batch || !days || !days.length) return '';
+        var title = 'Shell bags still to enter on the cracking sheet for: ' + days.map(function (d) {
+            return formatDisplayDate(String(d.date).slice(0, 10));
+        }).join(', ');
+        return '<button type="button" class="btn btn-sm btn-danger py-0 px-2 js-production-batch kp-sheet-flag" data-batch-id="' + escapeHtml(String(batch.id)) +
+            '" title="' + escapeHtml(title) + '"><i class="fas fa-circle-exclamation me-1"></i>Sheet to finish</button>';
+    };
+
     const buildBatchProductionCalendarEntries = (batch, detail) => {
         const byDate = {};
         Object.keys(PRODUCTION_STAGE_LABELS).forEach((key) => {
@@ -243,6 +256,8 @@ var _kernelProductionGrid = function () {
         productionCalendarMonth: null,
         selectedProductionCalendarDate: null,
         productionCalendarEntriesByDate: {},
+        /** kernel id -> [{ date, kg }] cracking-sheet days still missing shell bags. */
+        unfinishedSheetsByKernel: {},
 
         /** Same derived status as in the grid table (for use by batch history modal etc.). */
         getBatchDisplayStatus: getBatchDisplayStatus,
@@ -502,6 +517,9 @@ var _kernelProductionGrid = function () {
                         (typeof BatchStatus !== 'undefined'
                             ? '<div class="kanban-card-status-row">' + BatchStatus.statusBadgeHtml(displayStatus) + '</div>'
                             : '') +
+                        (scope.unfinishedSheetsByKernel[batch.id]
+                            ? '<div class="kanban-card-status-row">' + unfinishedSheetFlagHtml(batch, scope.unfinishedSheetsByKernel[batch.id]) + '</div>'
+                            : '') +
                         '<div class="kanban-card-meta">' +
                             '<span class="kanban-card-meta-item" title="Supplier"><i class="fas fa-user"></i> ' + KanbanHelper._esc(batch.grower_name || 'N/A') + '</span>' +
                             '<span class="kanban-card-meta-item" title="Wet NIS (kg)"><i class="fas fa-weight-hanging"></i> ' + KanbanHelper._esc(String(batch.display_wet_nis_kg != null ? batch.display_wet_nis_kg : (batch.wet_nis_received_kg || '0'))) + ' kg</span>' +
@@ -576,6 +594,22 @@ var _kernelProductionGrid = function () {
             scope.renderProductionCalendar();
         },
 
+        /** Best-effort: a missing function or a failed call just shows no flags. */
+        loadUnfinishedSheets: async () => {
+            const scope = _kernelProductionGrid;
+            scope.unfinishedSheetsByKernel = {};
+            if (typeof _dataFunctions === 'undefined' || !_dataFunctions || typeof _dataFunctions.getUnfinishedCrackingSheets !== 'function') return;
+            try {
+                var res = await _dataFunctions.getUnfinishedCrackingSheets(null);
+                ((res && Array.isArray(res.days)) ? res.days : []).forEach(function (d) {
+                    if (!d || !d.kernel_id) return;
+                    (scope.unfinishedSheetsByKernel[d.kernel_id] = scope.unfinishedSheetsByKernel[d.kernel_id] || []).push(d);
+                });
+            } catch (e) {
+                console.warn('[Kernel Production] Unfinished cracking sheets unavailable:', e && e.message ? e.message : e);
+            }
+        },
+
         loadBatches: (forceRefresh) => {
             const scope = _kernelProductionGrid;
             forceRefresh = !!forceRefresh;
@@ -607,6 +641,7 @@ var _kernelProductionGrid = function () {
                         }
                     }));
                 }
+                await scope.loadUnfinishedSheets();
                 scope.filteredBatches = scope.batches;
                 if (!scope.productionCalendarMonth) {
                     var today = new Date();
@@ -755,7 +790,7 @@ var _kernelProductionGrid = function () {
                 }
                 var stagePos = displayStatus.filterValue === 'awaiting_production' ? 'first' : displayStatus.filterValue === 'release_ready' ? 'last' : 'mid';
                 const bbTitle = bbDisplay !== '—' ? 'Best Before Date' : 'Best Before Date (set when Job Card is completed)';
-                const row = '<tr class="js-batch-row" data-batch-id="' + batch.id + '"><td>' + (batch.batch_number || 'N/A') + '</td><td>' + (batch.grower_name || 'N/A') + '</td><td title="Received date">' + receivedDate + '</td><td title="' + (bbTitle.replace(/"/g, '&quot;')) + '">' + bbDisplay + '</td><td>' + (batch.display_wet_nis_kg != null ? batch.display_wet_nis_kg : (batch.wet_nis_received_kg || '0')) + '</td><td>' + KanbanHelper.statusBadge(displayStatus.label, stagePos) + '</td>' + actionsCell + '</tr>';
+                const row = '<tr class="js-batch-row" data-batch-id="' + batch.id + '"><td>' + (batch.batch_number || 'N/A') + (scope.unfinishedSheetsByKernel[batch.id] ? ' ' + unfinishedSheetFlagHtml(batch, scope.unfinishedSheetsByKernel[batch.id]) : '') + '</td><td>' + (batch.grower_name || 'N/A') + '</td><td title="Received date">' + receivedDate + '</td><td title="' + (bbTitle.replace(/"/g, '&quot;')) + '">' + bbDisplay + '</td><td>' + (batch.display_wet_nis_kg != null ? batch.display_wet_nis_kg : (batch.wet_nis_received_kg || '0')) + '</td><td>' + KanbanHelper.statusBadge(displayStatus.label, stagePos) + '</td>' + actionsCell + '</tr>';
                 tbody.append(row);
             });
             MacTableActions.init(document.getElementById('batchesTable'));
