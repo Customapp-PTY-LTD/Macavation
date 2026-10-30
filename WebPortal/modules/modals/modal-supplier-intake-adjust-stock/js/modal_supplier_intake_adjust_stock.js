@@ -107,7 +107,7 @@ var _modal_supplier_intake_adjust_stock = (function () {
         var count = 0;
         $('#siaBagsTableBody tr').each(function (i) {
             $(this).find('.siaBagNo').text(String(i + 1));
-            var kg = parseFloat(String($(this).find('[name="siaWeight"]').val() || '').replace(/,/g, ''));
+            var kg = _common.parseKg($(this).find('[name="siaWeight"]').val());
             if (!isNaN(kg) && kg > 0) { total += kg; count += 1; }
         });
         $('#siaBagCount').text(String(count));
@@ -250,7 +250,8 @@ var _modal_supplier_intake_adjust_stock = (function () {
                 var ffaRaw = ($r.find('[name="siaFfa"]').val() || '').trim();
                 var mfgRaw = ($r.find('[name="siaManufacturedDate"]').val() || '').trim();
                 // A row with no weight is not a bag (spare rows from "+ Add"), same as New delivery.
-                var qty = wRaw === '' ? NaN : parseFloat(wRaw.replace(/,/g, ''));
+                var qty = wRaw === '' ? NaN : _common.parseKg(wRaw);
+                if (qty == null) qty = NaN;
                 if (isNaN(qty) || qty <= 0) return;
                 var ffa = ffaRaw === '' ? null : parseFloat(ffaRaw);
                 if (ffa != null && isNaN(ffa)) ffa = null;
