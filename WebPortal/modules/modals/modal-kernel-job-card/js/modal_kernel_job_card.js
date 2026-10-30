@@ -111,6 +111,13 @@ var _modal_kernel_job_card = (function () {
         return $label.length ? String($label.text()).replace(/\s*\*$/, '').trim() : 'A required field';
     }
 
+    // Weight boxes (kg): shown as 1,000.00, read through _common.parseKg.
+    var JOB_CARD_KG_IDS = ['jobCardTotalWeight', 'jobCardRemovedPreSizer', 'jobCardBalance', 'jobCardWasteOilKernel', 'jobCardWasteShellFines', 'jobCardWasteCompost', 'jobCardWasteShell', 'jobCardMassBalanceIn', 'jobCardMassBalanceOut'];
+
+    function jobCardKgVal(sel) {
+        return _common.parseKg($(sel).val()) || 0;
+    }
+
     function jobCardNumericPresent(val) {
         if (val == null || val === '') return false;
         return !isNaN(parseFloat(val));
@@ -336,6 +343,7 @@ var _modal_kernel_job_card = (function () {
                     if (_jobCardBestBeforeISO) str = _jobCardBestBeforeISO;
                 }
                 var displayStr = str;
+                if (JOB_CARD_KG_IDS.indexOf(id) >= 0 && str) displayStr = _common.formatKg(str);
                 if (JOB_CARD_DATE_IDS.indexOf(id) >= 0) {
                     if (str && (/^\d{4}-\d{2}-\d{2}(?:T|$)/.test(str))) displayStr = formatDateForDisplay(str);
                     if (el._flatpickr) {
@@ -393,11 +401,11 @@ var _modal_kernel_job_card = (function () {
                 var $tbody = $('#soundKernelTableBody');
                 $tbody.empty();
                 sk.forEach(function (row) {
-                    var tr = '<tr><td><select class="form-select form-select-sm" name="style"><option value="">Select Style</option><option value="SP">SP</option><option value="0">0</option><option value="1">1</option><option value="1S">1S</option><option value="4L">4L</option><option value="5">5</option><option value="6">6</option></select></td><td><input type="number" class="form-control form-control-sm" name="cartons" value="0"></td><td><input type="number" class="form-control form-control-sm" name="weight_kg" step="0.01" value="0"></td><td><button type="button" class="btn btn-sm btn-danger removeSoundKernelRow"><i class="fas fa-times"></i></button></td></tr>';
+                    var tr = '<tr><td><select class="form-select form-select-sm" name="style"><option value="">Select Style</option><option value="SP">SP</option><option value="0">0</option><option value="1">1</option><option value="1S">1S</option><option value="4L">4L</option><option value="5">5</option><option value="6">6</option></select></td><td><input type="number" class="form-control form-control-sm" name="cartons" value="0"></td><td><input type="text" inputmode="decimal" class="form-control form-control-sm js-kg-input" name="weight_kg" value="0.00"></td><td><button type="button" class="btn btn-sm btn-danger removeSoundKernelRow"><i class="fas fa-times"></i></button></td></tr>';
                     var $row = $(tr);
                     $row.find('select[name="style"]').val(row.style || '');
                     $row.find('input[name="cartons"]').val(row.cartons != null ? row.cartons : 0);
-                    $row.find('input[name="weight_kg"]').val(row.weight_kg != null ? row.weight_kg : 0);
+                    $row.find('input[name="weight_kg"]').val(_common.formatKg(row.weight_kg != null ? row.weight_kg : 0));
                     $tbody.append($row);
                 });
             }
@@ -407,11 +415,11 @@ var _modal_kernel_job_card = (function () {
                 var $tbody = $('#butterGradeTableBody');
                 $tbody.empty();
                 bg.forEach(function (row) {
-                    var tr = '<tr><td><select class="form-select form-select-sm" name="style"><option value="">Select Style</option><option value="7/8">7/8</option><option value="Butter High Oil (Floaters)">Butter High Oil (Floaters)</option><option value="Butter Low Oil (Sinkers)">Butter Low Oil (Sinkers)</option></select></td><td><input type="number" class="form-control form-control-sm" name="cartons" value="0"></td><td><input type="number" class="form-control form-control-sm" name="weight_kg" step="0.01" value="0"></td><td><button type="button" class="btn btn-sm btn-danger removeButterGradeRow"><i class="fas fa-times"></i></button></td></tr>';
+                    var tr = '<tr><td><select class="form-select form-select-sm" name="style"><option value="">Select Style</option><option value="7/8">7/8</option><option value="Butter High Oil (Floaters)">Butter High Oil (Floaters)</option><option value="Butter Low Oil (Sinkers)">Butter Low Oil (Sinkers)</option></select></td><td><input type="number" class="form-control form-control-sm" name="cartons" value="0"></td><td><input type="text" inputmode="decimal" class="form-control form-control-sm js-kg-input" name="weight_kg" value="0.00"></td><td><button type="button" class="btn btn-sm btn-danger removeButterGradeRow"><i class="fas fa-times"></i></button></td></tr>';
                     var $row = $(tr);
                     $row.find('select[name="style"]').val(row.style || '');
                     $row.find('input[name="cartons"]').val(row.cartons != null ? row.cartons : 0);
-                    $row.find('input[name="weight_kg"]').val(row.weight_kg != null ? row.weight_kg : 0);
+                    $row.find('input[name="weight_kg"]').val(_common.formatKg(row.weight_kg != null ? row.weight_kg : 0));
                     $tbody.append($row);
                 });
             }
@@ -656,9 +664,12 @@ var _modal_kernel_job_card = (function () {
                 }
                 return false;
             }
-            if (form.checkValidity()) return true;
-            form.reportValidity();
+            var totalKg = _common.parseKg($('#jobCardTotalWeight').val());
+            var totalKgBad = totalKg == null || totalKg <= 0;
+            if (form.checkValidity() && !totalKgBad) return true;
             var invalid = form.querySelector(':invalid');
+            if (invalid) form.reportValidity();
+            else if (totalKgBad) invalid = document.getElementById('jobCardTotalWeight');
             var fieldName = jobCardInvalidFieldLabel(invalid);
             var message = 'Please complete ' + fieldName + ' before saving.';
             if (invalid && invalid.id === 'jobCardSupplier') {
@@ -737,9 +748,9 @@ var _modal_kernel_job_card = (function () {
 
         calculateBalance: () => {
             const scope = _modal_kernel_job_card;
-            var totalWeight = parseFloat($('#jobCardTotalWeight').val()) || 0;
-            var removedPreSizer = parseFloat($('#jobCardRemovedPreSizer').val()) || 0;
-            $('#jobCardBalance').val((totalWeight - removedPreSizer).toFixed(2));
+            var totalWeight = jobCardKgVal('#jobCardTotalWeight');
+            var removedPreSizer = jobCardKgVal('#jobCardRemovedPreSizer');
+            $('#jobCardBalance').val(_common.formatKg(totalWeight - removedPreSizer));
             scope.calculateMassBalance();
         },
 
@@ -754,41 +765,41 @@ var _modal_kernel_job_card = (function () {
             var soundCartons = 0, soundKg = 0;
             $('#soundKernelTableBody tr').each(function () {
                 soundCartons += parseInt($(this).find('input[name="cartons"]').val(), 10) || 0;
-                soundKg += parseFloat($(this).find('input[name="weight_kg"]').val()) || 0;
+                soundKg += _common.parseKg($(this).find('input[name="weight_kg"]').val()) || 0;
             });
             $('#soundKernelTotalCartons').text(soundCartons);
-            $('#soundKernelTotalKg').text(soundKg.toFixed(2));
+            $('#soundKernelTotalKg').text(_common.formatKg(soundKg));
             var butterCartons = 0, butterKg = 0;
             $('#butterGradeTableBody tr').each(function () {
                 butterCartons += parseInt($(this).find('input[name="cartons"]').val(), 10) || 0;
-                butterKg += parseFloat($(this).find('input[name="weight_kg"]').val()) || 0;
+                butterKg += _common.parseKg($(this).find('input[name="weight_kg"]').val()) || 0;
             });
             $('#butterGradeTotalCartons').text(butterCartons);
-            $('#butterGradeTotalKg').text(butterKg.toFixed(2));
+            $('#butterGradeTotalKg').text(_common.formatKg(butterKg));
             scope.calculateMassBalance();
         },
 
         calculateMassBalance: () => {
-            var balance = parseFloat($('#jobCardBalance').val()) || 0;
-            var soundKg = parseFloat($('#soundKernelTotalKg').text()) || 0;
-            var butterKg = parseFloat($('#butterGradeTotalKg').text()) || 0;
-            var wasteOil = parseFloat($('#jobCardWasteOilKernel').val()) || 0;
-            var wasteShellFines = parseFloat($('#jobCardWasteShellFines').val()) || 0;
-            var wasteCompost = parseFloat($('#jobCardWasteCompost').val()) || 0;
-            var wasteShell = parseFloat($('#jobCardWasteShell').val()) || 0;
+            var balance = jobCardKgVal('#jobCardBalance');
+            var soundKg = _common.parseKg($('#soundKernelTotalKg').text()) || 0;
+            var butterKg = _common.parseKg($('#butterGradeTotalKg').text()) || 0;
+            var wasteOil = jobCardKgVal('#jobCardWasteOilKernel');
+            var wasteShellFines = jobCardKgVal('#jobCardWasteShellFines');
+            var wasteCompost = jobCardKgVal('#jobCardWasteCompost');
+            var wasteShell = jobCardKgVal('#jobCardWasteShell');
             var totalOut = soundKg + butterKg + wasteOil + wasteShellFines + wasteCompost + wasteShell;
-            $('#jobCardMassBalanceIn').val(balance.toFixed(2));
-            $('#jobCardMassBalanceOut').val(totalOut.toFixed(2));
+            $('#jobCardMassBalanceIn').val(_common.formatKg(balance));
+            $('#jobCardMassBalanceOut').val(_common.formatKg(totalOut));
             $('#jobCardMassBalancePercentage').val(balance > 0 ? ((totalOut / balance) * 100).toFixed(2) : '0');
         },
 
         addSoundKernelRow: () => {
-            var row = '<tr><td><select class="form-select form-select-sm" name="style"><option value="">Select Style</option><option value="SP">SP</option><option value="0">0</option><option value="1">1</option><option value="1S">1S</option><option value="4L">4L</option><option value="5">5</option><option value="6">6</option></select></td><td><input type="number" class="form-control form-control-sm" name="cartons" value="0"></td><td><input type="number" class="form-control form-control-sm" name="weight_kg" step="0.01" value="0"></td><td><button type="button" class="btn btn-sm btn-danger removeSoundKernelRow"><i class="fas fa-times"></i></button></td></tr>';
+            var row = '<tr><td><select class="form-select form-select-sm" name="style"><option value="">Select Style</option><option value="SP">SP</option><option value="0">0</option><option value="1">1</option><option value="1S">1S</option><option value="4L">4L</option><option value="5">5</option><option value="6">6</option></select></td><td><input type="number" class="form-control form-control-sm" name="cartons" value="0"></td><td><input type="text" inputmode="decimal" class="form-control form-control-sm js-kg-input" name="weight_kg" value="0.00"></td><td><button type="button" class="btn btn-sm btn-danger removeSoundKernelRow"><i class="fas fa-times"></i></button></td></tr>';
             $('#soundKernelTableBody').append(row);
         },
 
         addButterGradeRow: () => {
-            var row = '<tr><td><select class="form-select form-select-sm" name="style"><option value="">Select Style</option><option value="7/8">7/8</option><option value="Butter High Oil (Floaters)">Butter High Oil (Floaters)</option><option value="Butter Low Oil (Sinkers)">Butter Low Oil (Sinkers)</option></select></td><td><input type="number" class="form-control form-control-sm" name="cartons" value="0"></td><td><input type="number" class="form-control form-control-sm" name="weight_kg" step="0.01" value="0"></td><td><button type="button" class="btn btn-sm btn-danger removeButterGradeRow"><i class="fas fa-times"></i></button></td></tr>';
+            var row = '<tr><td><select class="form-select form-select-sm" name="style"><option value="">Select Style</option><option value="7/8">7/8</option><option value="Butter High Oil (Floaters)">Butter High Oil (Floaters)</option><option value="Butter Low Oil (Sinkers)">Butter Low Oil (Sinkers)</option></select></td><td><input type="number" class="form-control form-control-sm" name="cartons" value="0"></td><td><input type="text" inputmode="decimal" class="form-control form-control-sm js-kg-input" name="weight_kg" value="0.00"></td><td><button type="button" class="btn btn-sm btn-danger removeButterGradeRow"><i class="fas fa-times"></i></button></td></tr>';
             $('#butterGradeTableBody').append(row);
         },
 
@@ -810,13 +821,13 @@ var _modal_kernel_job_card = (function () {
                 $('#soundKernelTableBody tr').each(function () {
                     var style = $(this).find('select[name="style"]').val();
                     var cartons = parseInt($(this).find('input[name="cartons"]').val(), 10) || 0;
-                    var weight = parseNum($(this).find('input[name="weight_kg"]').val());
+                    var weight = _common.parseKg($(this).find('input[name="weight_kg"]').val()) || 0;
                     if (style && (cartons > 0 || weight > 0)) soundKernelStyles.push({ style: style, cartons: cartons, weight_kg: weight });
                 });
                 $('#butterGradeTableBody tr').each(function () {
                     var style = $(this).find('select[name="style"]').val();
                     var cartons = parseInt($(this).find('input[name="cartons"]').val(), 10) || 0;
-                    var weight = parseNum($(this).find('input[name="weight_kg"]').val());
+                    var weight = _common.parseKg($(this).find('input[name="weight_kg"]').val()) || 0;
                     if (style && (cartons > 0 || weight > 0)) butterGradeStyles.push({ style: style, cartons: cartons, weight_kg: weight });
                 });
             }
@@ -825,11 +836,11 @@ var _modal_kernel_job_card = (function () {
             var getFloat = function (id) {
                 var v = $('#' + id).val();
                 if (!v) return null;
-                var n = parseNum(v);
+                var n = JOB_CARD_KG_IDS.indexOf(id) >= 0 ? (_common.parseKg(v) || 0) : parseNum(v);
                 return n || null;
             };
             var getIntText = function (id) { var v = $('#' + id).text(); return v ? parseInt(v, 10) : null; };
-            var getFloatText = function (id) { var v = $('#' + id).text(); return v ? parseFloat(v) : null; };
+            var getFloatText = function (id) { var v = $('#' + id).text(); return v ? _common.parseKg(v) : null; };
             var data = {
                 p_batch_number: getVal('jobCardBatchNumber'),
                 p_received_date: getDateVal('jobCardReceivedDate'),

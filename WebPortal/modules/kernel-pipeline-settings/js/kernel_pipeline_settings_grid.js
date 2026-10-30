@@ -63,6 +63,18 @@ var _kernelPipelineSettingsGrid = (function () {
         return Number(t);
     }
 
+    // Weight box: blank -> null; "1,000.00" / "12,5" -> number; unreadable text -> NaN (caller's invalid check).
+    function kgOrNull(s) {
+        var t = String(s == null ? '' : s).trim();
+        if (t === '') return null;
+        var n = _common.parseKg(t);
+        return n == null ? NaN : n;
+    }
+
+    function kgAttr(v) {
+        return esc(_common.formatKg(v));
+    }
+
     function same(a, b) {
         return (a == null && b == null) || (a != null && b != null && Number(a) === Number(b));
     }
@@ -116,7 +128,7 @@ var _kernelPipelineSettingsGrid = (function () {
             list.filter(function (c) { return c.stage === stage; }).forEach(function (c) {
                 rows += '<tr data-stage="' + esc(c.stage) + '" data-crate="' + esc(c.crate_type) + '">' +
                     '<td>' + esc(STAGE_LABELS[stage] || stage) + ' &middot; ' + esc(c.label || c.crate_type) + '</td>' +
-                    '<td><input type="number" step="any" min="0" class="form-control form-control-sm kps-num kps-kg" value="' + numAttr(c.kg_per_crate) + '" placeholder="Manual"' + dis() + '></td></tr>';
+                    '<td><input type="text" inputmode="decimal" class="form-control form-control-sm kps-num kps-kg js-kg-input" value="' + kgAttr(c.kg_per_crate) + '" placeholder="Manual"' + dis() + '></td></tr>';
             });
         });
         var body = '<div class="table-responsive"><table class="table align-middle mb-2 kps-table"><thead><tr>' +
@@ -203,7 +215,7 @@ var _kernelPipelineSettingsGrid = (function () {
     function targetCard(cfg) {
         var v = dailyTargetValue(cfg);
         var body = '<label class="form-label" for="kpsDailyCrackTarget">Kernel cracked per working day (kg of nuts in shell)</label>' +
-            '<input type="number" step="1" min="1" max="100000" class="form-control kps-num" id="kpsDailyCrackTarget" value="' + numAttr(v) + '" placeholder="No target"' + dis() + '>' +
+            '<input type="text" inputmode="decimal" class="form-control kps-num js-kg-input" id="kpsDailyCrackTarget" value="' + kgAttr(v) + '" placeholder="No target"' + dis() + '>' +
             '<div class="kps-hint">Used by the 17:30 WhatsApp production report to show today against target. Leave blank for no target.</div>';
         return card('Daily production target', body, saveBtn('kpsSaveTarget'));
     }
@@ -240,7 +252,7 @@ var _kernelPipelineSettingsGrid = (function () {
         var cells = '';
         for (var n = 1; n <= SILO_COUNT; n++) {
             cells += '<div class="col-6 col-md-3"><label class="form-label" for="kpsSilo' + n + '">Silo ' + n + ' (kg)</label>' +
-                '<input type="number" step="any" min="0" class="form-control form-control-sm kps-num kps-silo" id="kpsSilo' + n + '" data-silo="' + n + '" value="' + numAttr(cap[n]) + '"' + dis() + '></div>';
+                '<input type="text" inputmode="decimal" class="form-control form-control-sm kps-num kps-silo js-kg-input" id="kpsSilo' + n + '" data-silo="' + n + '" value="' + kgAttr(cap[n]) + '"' + dis() + '></div>';
         }
         return card('Silo capacity', '<div class="row g-3 kps-silo-grid">' + cells + '</div>', saveBtn('kpsSaveSilos'));
     }
@@ -356,7 +368,7 @@ var _kernelPipelineSettingsGrid = (function () {
         var calls = [], bad = false;
         $('#kpsModule tr[data-crate]').each(function () {
             var $r = $(this), stage = $r.attr('data-stage'), type = $r.attr('data-crate');
-            var kg = numOrNull($r.find('.kps-kg').val());
+            var kg = kgOrNull($r.find('.kps-kg').val());
             if (kg != null && (isNaN(kg) || kg <= 0)) { bad = true; return false; }
             var old = (state.cfg.crate_weights || []).filter(function (c) { return c.stage === stage && c.crate_type === type; })[0] || {};
             if (same(old.kg_per_crate, kg)) return;
@@ -391,7 +403,7 @@ var _kernelPipelineSettingsGrid = (function () {
     }
 
     function saveTarget(btn) {
-        var v = numOrNull($('#kpsDailyCrackTarget').val());
+        var v = kgOrNull($('#kpsDailyCrackTarget').val());
         if (v != null && (!Number.isInteger(v) || v < 1 || v > 100000)) {
             toast('Daily cracking target must be a whole number of kg from 1 to 100 000, or blank for no target.', 'error');
             return;
@@ -404,7 +416,7 @@ var _kernelPipelineSettingsGrid = (function () {
     function saveSilos(btn) {
         var calls = [], bad = false;
         $('#kpsModule .kps-silo').each(function () {
-            var n = Number($(this).attr('data-silo')), kg = numOrNull($(this).val());
+            var n = Number($(this).attr('data-silo')), kg = kgOrNull($(this).val());
             var old = (state.cfg.silos || []).filter(function (s) { return Number(s.silo_number) === n; })[0] || {};
             if (kg == null) return;
             if (isNaN(kg) || kg <= 0) { bad = true; return false; }

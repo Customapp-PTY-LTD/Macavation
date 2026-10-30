@@ -222,9 +222,9 @@ var _oilProductionGrid = function () {
         var op = operationalKgFromIntake(intake);
         var recv = receivingKgFromIntake(intake);
         if (op == null && recv == null) return '—';
-        var line = op != null ? (escapeHtml(String(op)) + ' kg') : '—';
+        var line = op != null ? (escapeHtml(_common.formatKg(op)) + ' kg') : '—';
         if (recv != null && op != null && Math.abs(Number(recv) - Number(op)) > 0.0001) {
-            line += '<span class="text-muted small d-block">Receiving: ' + escapeHtml(String(recv)) + ' kg</span>';
+            line += '<span class="text-muted small d-block">Receiving: ' + escapeHtml(_common.formatKg(recv)) + ' kg</span>';
         }
         return line;
     }
@@ -498,9 +498,11 @@ var _oilProductionGrid = function () {
                 type = type || 'text';
                 labelClass = labelClass || '';
                 inputClass = inputClass || '';
-                var cls = type === 'number' ? 'form-control op-ps-num' : 'form-control';
+                var cls = type === 'number' ? 'form-control op-ps-num' : (type === 'kg' ? 'form-control js-kg-input' : 'form-control');
                 if (inputClass) cls = cls + ' ' + inputClass;
-                var inp = '<input type="' + (type === 'number' ? 'number' : 'text') + '" class="' + cls + '" name="' + name + '" step="' + (type === 'number' ? '0.01' : '') + '">';
+                var inp = type === 'kg'
+                    ? '<input type="text" inputmode="decimal" class="' + cls + '" name="' + name + '">'
+                    : '<input type="' + (type === 'number' ? 'number' : 'text') + '" class="' + cls + '" name="' + name + '" step="' + (type === 'number' ? '0.01' : '') + '">';
                 return '<div class="op-ps-field-row"><span class="op-ps-label ' + labelClass + '">' + escapeHtml(label) + '</span>' + inp + '</div>';
             }
             function section(title, content) {
@@ -521,7 +523,7 @@ var _oilProductionGrid = function () {
                 html += section('Main production data',
                     '<div class="op-ps-table-wrap"><table class="table align-middle op-ps-table"><thead><tr><th>Batch number of Raw material used</th><th>Weight of Raw material in (kg)</th><th>Weight of Oil out (kg)</th><th>Weight of Cake out (kg)</th></tr></thead><tbody id="opProdSheetTableFoodGrade"></tbody></table></div><button type="button" class="btn btn-sm btn-outline-secondary op-ps-add-row" data-sheet="food_grade_oil">Add row</button>');
                 html += section('Comments', '<textarea class="form-control" name="op_ps_comments" rows="2" placeholder="Comments"></textarea>');
-                html += section('Waste at end of run', fieldRow('General waste (kg)', 'op_ps_waste_general', 'number') + fieldRow('Floor waste (kg)', 'op_ps_waste_floor', 'number') + fieldRow('Product waste (kg)', 'op_ps_waste_product', 'number'));
+                html += section('Waste at end of run', fieldRow('General waste (kg)', 'op_ps_waste_general', 'kg') + fieldRow('Floor waste (kg)', 'op_ps_waste_floor', 'kg') + fieldRow('Product waste (kg)', 'op_ps_waste_product', 'kg'));
                 html += '<div class="op-ps-doc-ref">MP5.2.3.1 Rev 04 &nbsp; Date issued: 09.12.2025</div>';
                 html += '</div>';
             } else if (sheetType === 'protein_powder') {
@@ -538,7 +540,7 @@ var _oilProductionGrid = function () {
                 html += section('Main production data',
                     '<div class="op-ps-table-wrap"><table class="table align-middle op-ps-table"><thead><tr><th>Batch number of Raw material used</th><th>Weight of Raw material in (kg)</th><th>Weight of cake out (kg)</th><th>Total weight of Protein Powder hammermilled (kg)</th></tr></thead><tbody id="opProdSheetTableProtein"></tbody></table></div><button type="button" class="btn btn-sm btn-outline-secondary op-ps-add-row" data-sheet="protein_powder">Add row</button>');
                 html += section('Comments', '<textarea class="form-control" name="op_ps_comments" rows="2" placeholder="Comments"></textarea>');
-                html += section('Waste at end of run', fieldRow('General waste (kg)', 'op_ps_waste_general', 'number') + fieldRow('Floor waste (kg)', 'op_ps_waste_floor', 'number') + fieldRow('Product waste (kg)', 'op_ps_waste_product', 'number'));
+                html += section('Waste at end of run', fieldRow('General waste (kg)', 'op_ps_waste_general', 'kg') + fieldRow('Floor waste (kg)', 'op_ps_waste_floor', 'kg') + fieldRow('Product waste (kg)', 'op_ps_waste_product', 'kg'));
                 html += '<div class="op-ps-doc-ref">MP5.2.3.5 Rev 01</div>';
                 html += '</div>';
             } else if (sheetType === 'cosmetic_oil') {
@@ -551,9 +553,9 @@ var _oilProductionGrid = function () {
                 html += section('Totals and oil',
                     fieldRow('IBC 1 (Litre)', 'op_ps_ibc1', 'number') + fieldRow('IBC 2 (Litre)', 'op_ps_ibc2', 'number') + fieldRow('IBC 3 (Litre)', 'op_ps_ibc3', 'number') + fieldRow('Oil BN', 'op_ps_oil_bn') + fieldRow('Literage', 'op_ps_literage', 'number'));
                 html += section('Interruptions', fieldRow('1 Start', 'op_ps_int1_start') + fieldRow('1 End', 'op_ps_int1_end') + fieldRow('2 Start', 'op_ps_int2_start') + fieldRow('2 End', 'op_ps_int2_end'));
-                html += section('Recipe &amp; Quantity (kg)', fieldRow('Oil Kernel', 'op_ps_recipe_oil_kernel', 'number') + fieldRow('Cracker Dust', 'op_ps_recipe_cracker_dust', 'number') + fieldRow('Kernel dust', 'op_ps_recipe_kernel_dust', 'number') + fieldRow('Crush', 'op_ps_recipe_crush', 'number') + fieldRow('Cake', 'op_ps_recipe_cake', 'number'));
+                html += section('Recipe &amp; Quantity (kg)', fieldRow('Oil Kernel', 'op_ps_recipe_oil_kernel', 'kg') + fieldRow('Cracker Dust', 'op_ps_recipe_cracker_dust', 'kg') + fieldRow('Kernel dust', 'op_ps_recipe_kernel_dust', 'kg') + fieldRow('Crush', 'op_ps_recipe_crush', 'kg') + fieldRow('Cake', 'op_ps_recipe_cake', 'kg'));
                 html += section('Notes', '<textarea class="form-control" name="op_ps_notes" rows="2" placeholder="Notes"></textarea>');
-                html += section('Waste totals', fieldRow('General waste total (kg)', 'op_ps_waste_general', 'number') + fieldRow('Floor waste total (kg)', 'op_ps_waste_floor', 'number') + fieldRow('Total product waste (kg)', 'op_ps_waste_product', 'number') + fieldRow('Oil from filter (kg)', 'op_ps_oil_from_filter', 'number') + fieldRow('Hydraulic press total (kg)', 'op_ps_hydraulic_press', 'number'));
+                html += section('Waste totals', fieldRow('General waste total (kg)', 'op_ps_waste_general', 'kg') + fieldRow('Floor waste total (kg)', 'op_ps_waste_floor', 'kg') + fieldRow('Total product waste (kg)', 'op_ps_waste_product', 'kg') + fieldRow('Oil from filter (kg)', 'op_ps_oil_from_filter', 'kg') + fieldRow('Hydraulic press total (kg)', 'op_ps_hydraulic_press', 'kg'));
                 html += '<div class="op-ps-doc-ref">MP5.2.3 Rev 06</div>';
                 html += '</div>';
             }
@@ -580,11 +582,11 @@ var _oilProductionGrid = function () {
             var idx = tbl.querySelectorAll('tr').length;
             var html = '';
             if (sheetType === 'food_grade_oil') {
-                html = '<tr><td><input type="text" class="form-control form-control-sm" name="op_ps_raw_batch"></td><td><input type="number" class="form-control form-control-sm op-ps-num" name="op_ps_raw_weight_in" step="0.01"></td><td><input type="number" class="form-control form-control-sm op-ps-num" name="op_ps_oil_out" step="0.01"></td><td><input type="number" class="form-control form-control-sm op-ps-num" name="op_ps_cake_out" step="0.01"></td></tr>';
+                html = '<tr><td><input type="text" class="form-control form-control-sm" name="op_ps_raw_batch"></td><td><input type="text" inputmode="decimal" class="form-control form-control-sm js-kg-input" name="op_ps_raw_weight_in"></td><td><input type="text" inputmode="decimal" class="form-control form-control-sm js-kg-input" name="op_ps_oil_out"></td><td><input type="text" inputmode="decimal" class="form-control form-control-sm js-kg-input" name="op_ps_cake_out"></td></tr>';
             } else if (sheetType === 'protein_powder') {
-                html = '<tr><td><input type="text" class="form-control form-control-sm" name="op_ps_raw_batch"></td><td><input type="number" class="form-control form-control-sm op-ps-num" name="op_ps_raw_weight_in" step="0.01"></td><td><input type="number" class="form-control form-control-sm op-ps-num" name="op_ps_cake_out" step="0.01"></td><td><input type="number" class="form-control form-control-sm op-ps-num" name="op_ps_protein_powder" step="0.01"></td></tr>';
+                html = '<tr><td><input type="text" class="form-control form-control-sm" name="op_ps_raw_batch"></td><td><input type="text" inputmode="decimal" class="form-control form-control-sm js-kg-input" name="op_ps_raw_weight_in"></td><td><input type="text" inputmode="decimal" class="form-control form-control-sm js-kg-input" name="op_ps_cake_out"></td><td><input type="text" inputmode="decimal" class="form-control form-control-sm js-kg-input" name="op_ps_protein_powder"></td></tr>';
             } else {
-                html = '<tr><td>' + (idx + 1) + '</td><td><input type="text" class="form-control form-control-sm" name="op_ps_time" placeholder="Time"></td><td><input type="number" class="form-control form-control-sm op-ps-num" name="op_ps_crude_kernel" step="0.01"></td><td><input type="number" class="form-control form-control-sm op-ps-num" name="op_ps_kernel_dust" step="0.01"></td><td><input type="number" class="form-control form-control-sm op-ps-num" name="op_ps_crush" step="0.01"></td><td><input type="number" class="form-control form-control-sm op-ps-num" name="op_ps_cracker_dust" step="0.01"></td><td><input type="number" class="form-control form-control-sm op-ps-num" name="op_ps_cake" step="0.01"></td><td><input type="text" class="form-control form-control-sm" name="op_ps_desc"></td><td><input type="text" class="form-control form-control-sm" name="op_ps_batch"></td></tr>';
+                html = '<tr><td>' + (idx + 1) + '</td><td><input type="text" class="form-control form-control-sm" name="op_ps_time" placeholder="Time"></td><td><input type="text" inputmode="decimal" class="form-control form-control-sm js-kg-input" name="op_ps_crude_kernel"></td><td><input type="text" inputmode="decimal" class="form-control form-control-sm js-kg-input" name="op_ps_kernel_dust"></td><td><input type="text" inputmode="decimal" class="form-control form-control-sm js-kg-input" name="op_ps_crush"></td><td><input type="text" inputmode="decimal" class="form-control form-control-sm js-kg-input" name="op_ps_cracker_dust"></td><td><input type="text" inputmode="decimal" class="form-control form-control-sm js-kg-input" name="op_ps_cake"></td><td><input type="text" class="form-control form-control-sm" name="op_ps_desc"></td><td><input type="text" class="form-control form-control-sm" name="op_ps_batch"></td></tr>';
             }
             tbl.insertAdjacentHTML('beforeend', html);
         },
@@ -600,7 +602,8 @@ var _oilProductionGrid = function () {
                 var n = inp.getAttribute('name');
                 if (!n || n.startsWith('op_ps_') === false) return;
                 var v = inp.value != null ? inp.value.trim() : '';
-                if (inp.type === 'number') data[n] = v === '' ? null : parseFloat(v);
+                if (inp.classList.contains('js-kg-input')) data[n] = _common.parseKg(v);
+                else if (inp.type === 'number') data[n] = v === '' ? null : parseFloat(v);
                 else data[n] = v || null;
             });
             var tableRows = [];
@@ -609,7 +612,7 @@ var _oilProductionGrid = function () {
                     var row = {};
                     tr.querySelectorAll('input').forEach(function (inp) {
                         var name = inp.getAttribute('name');
-                        if (name) row[name] = inp.type === 'number' ? (inp.value ? parseFloat(inp.value) : null) : (inp.value || '').trim() || null;
+                        if (name) row[name] = inp.classList.contains('js-kg-input') ? _common.parseKg(inp.value) : inp.type === 'number' ? (inp.value ? parseFloat(inp.value) : null) : (inp.value || '').trim() || null;
                     });
                     if (Object.keys(row).length) tableRows.push(row);
                 });
@@ -1228,7 +1231,7 @@ var _oilProductionGrid = function () {
                             items: [{ label: 'Sent', disabled: true }]
                         });
                     }
-                    html += '<tr><td>' + escapeHtml(b.batch_number || '—') + '</td><td>' + ingCell + '</td><td>' + escapeHtml(startDate) + '</td><td>' + (b.batch_weight_kg != null ? escapeHtml(String(b.batch_weight_kg)) : '—') + '</td><td class="mac-table-actions-col">' + actions + '</td></tr>';
+                    html += '<tr><td>' + escapeHtml(b.batch_number || '—') + '</td><td>' + ingCell + '</td><td>' + escapeHtml(startDate) + '</td><td>' + (b.batch_weight_kg != null ? escapeHtml(_common.formatKg(b.batch_weight_kg)) : '—') + '</td><td class="mac-table-actions-col">' + actions + '</td></tr>';
                 });
                 html += '</tbody></table></div>';
                 el.innerHTML = html;
@@ -1654,7 +1657,7 @@ var _oilProductionGrid = function () {
             var scope = _oilProductionGrid;
             var bid = proteinBinBatchId != null ? String(proteinBinBatchId) : '';
             var batch = (scope.proteinBinBatches || []).find(function (b) { return b && String(b.id) === bid; });
-            var defaultKg = batch && batch.batch_weight_kg != null && !isNaN(Number(batch.batch_weight_kg)) ? String(batch.batch_weight_kg) : '';
+            var defaultKg = batch && batch.batch_weight_kg != null && !isNaN(Number(batch.batch_weight_kg)) ? _common.formatKg(batch.batch_weight_kg) : '';
 
             var weightKg = null;
             if (typeof Swal !== 'undefined') {
@@ -1662,16 +1665,17 @@ var _oilProductionGrid = function () {
                     title: 'Send protein batch to stock?',
                     html: 'Enter <strong>batch weight</strong> (kg) for this run. This is stored on the batch and used for the stock lot.',
                     icon: 'question',
-                    input: 'number',
+                    input: 'text',
                     inputLabel: 'Batch weight (kg)',
-                    inputAttributes: { step: 'any', min: '0' },
+                    inputAttributes: { inputmode: 'decimal' },
+                    customClass: { input: 'js-kg-input' },
                     inputValue: defaultKg,
                     showCancelButton: true,
                     confirmButtonText: 'Send to stock',
                     focusConfirm: false,
                     preConfirm: function (value) {
-                        var v = value === '' || value == null ? NaN : parseFloat(String(value).replace(',', '.'));
-                        if (isNaN(v) || v <= 0) {
+                        var v = _common.parseKg(value);
+                        if (v == null || isNaN(v) || v <= 0) {
                             Swal.showValidationMessage('Please enter a positive weight in kg.');
                             return false;
                         }
@@ -1683,8 +1687,8 @@ var _oilProductionGrid = function () {
             } else {
                 var raw = window.prompt('Batch weight (kg) before sending to stock:', defaultKg);
                 if (raw === null) return;
-                weightKg = parseFloat(String(raw).replace(',', '.'));
-                if (isNaN(weightKg) || weightKg <= 0) {
+                weightKg = _common.parseKg(raw);
+                if (weightKg == null || isNaN(weightKg) || weightKg <= 0) {
                     window.alert('Please enter a positive weight in kg.');
                     return;
                 }
@@ -2013,22 +2017,22 @@ var _oilProductionGrid = function () {
                 });
             }
             var waste = pd.waste && typeof pd.waste === 'object' ? pd.waste : {};
-            document.getElementById('opPdWasteGeneral').value = waste.general_waste != null ? waste.general_waste : '';
-            document.getElementById('opPdWasteFloor').value = waste.floor_waste != null ? waste.floor_waste : '';
-            document.getElementById('opPdWasteProduct').value = waste.product_waste != null ? waste.product_waste : '';
+            document.getElementById('opPdWasteGeneral').value = _common.formatKg(waste.general_waste);
+            document.getElementById('opPdWasteFloor').value = _common.formatKg(waste.floor_waste);
+            document.getElementById('opPdWasteProduct').value = _common.formatKg(waste.product_waste);
         },
 
         makeRawMaterialRow: function (batchNumber, weightIn, oilOut, cakeOut) {
             var tr = document.createElement('tr');
             tr.innerHTML = '<td><input type="text" class="form-control form-control-sm op-pd-rm-batch" placeholder="e.g. OIL-2026-03-001"></td>' +
-                '<td><input type="number" class="form-control form-control-sm op-pd-rm-weight-in" step="0.01" placeholder="0"></td>' +
-                '<td><input type="number" class="form-control form-control-sm op-pd-rm-oil-out" step="0.01" placeholder="0"></td>' +
-                '<td><input type="number" class="form-control form-control-sm op-pd-rm-cake-out" step="0.01" placeholder="0"></td>' +
+                '<td><input type="text" inputmode="decimal" class="form-control form-control-sm js-kg-input op-pd-rm-weight-in" placeholder="0"></td>' +
+                '<td><input type="text" inputmode="decimal" class="form-control form-control-sm js-kg-input op-pd-rm-oil-out" placeholder="0"></td>' +
+                '<td><input type="text" inputmode="decimal" class="form-control form-control-sm js-kg-input op-pd-rm-cake-out" placeholder="0"></td>' +
                 '<td><button type="button" class="btn btn-sm btn-danger op-pd-remove-row" title="Remove"><i class="fas fa-times"></i></button></td>';
             tr.querySelector('.op-pd-rm-batch').value = batchNumber;
-            tr.querySelector('.op-pd-rm-weight-in').value = weightIn;
-            tr.querySelector('.op-pd-rm-oil-out').value = oilOut;
-            tr.querySelector('.op-pd-rm-cake-out').value = cakeOut;
+            tr.querySelector('.op-pd-rm-weight-in').value = _common.formatKg(weightIn);
+            tr.querySelector('.op-pd-rm-oil-out').value = _common.formatKg(oilOut);
+            tr.querySelector('.op-pd-rm-cake-out').value = _common.formatKg(cakeOut);
             tr.querySelector('.op-pd-remove-row').addEventListener('click', function () { tr.remove(); });
             return tr;
         },
@@ -2070,7 +2074,7 @@ var _oilProductionGrid = function () {
                 var wIn = tr.querySelector('.op-pd-rm-weight-in') && tr.querySelector('.op-pd-rm-weight-in').value;
                 var oOut = tr.querySelector('.op-pd-rm-oil-out') && tr.querySelector('.op-pd-rm-oil-out').value;
                 var cOut = tr.querySelector('.op-pd-rm-cake-out') && tr.querySelector('.op-pd-rm-cake-out').value;
-                if (batch || wIn || oOut || cOut) rmLines.push({ batch_number: batch, weight_raw_in: wIn ? parseFloat(wIn) : null, weight_oil_out: oOut ? parseFloat(oOut) : null, weight_cake_out: cOut ? parseFloat(cOut) : null });
+                if (batch || wIn || oOut || cOut) rmLines.push({ batch_number: batch, weight_raw_in: wIn ? _common.parseKg(wIn) : null, weight_oil_out: oOut ? _common.parseKg(oOut) : null, weight_cake_out: cOut ? _common.parseKg(cOut) : null });
             });
             pd.raw_materials = rmLines;
             var binLines = [];
@@ -2085,7 +2089,7 @@ var _oilProductionGrid = function () {
             var wg = document.getElementById('opPdWasteGeneral') && document.getElementById('opPdWasteGeneral').value;
             var wf = document.getElementById('opPdWasteFloor') && document.getElementById('opPdWasteFloor').value;
             var wp = document.getElementById('opPdWasteProduct') && document.getElementById('opPdWasteProduct').value;
-            pd.waste = { general_waste: wg ? parseFloat(wg) : null, floor_waste: wf ? parseFloat(wf) : null, product_waste: wp ? parseFloat(wp) : null };
+            pd.waste = { general_waste: wg ? _common.parseKg(wg) : null, floor_waste: wf ? _common.parseKg(wf) : null, product_waste: wp ? _common.parseKg(wp) : null };
             return pd;
         },
 

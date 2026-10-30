@@ -129,7 +129,7 @@ var _oilProductionForecastGrid = function () {
             document.getElementById('oilForecastOrderSummary').value = row && row.order_summary ? row.order_summary : '';
             var sc = row && row.stream_code ? row.stream_code : 'food_grade';
             document.getElementById('oilForecastStream').value = OIL_STREAM_CODES.indexOf(sc) >= 0 ? sc : 'food_grade';
-            document.getElementById('oilForecastQty').value = row && row.quantity_kg != null ? row.quantity_kg : 0;
+            document.getElementById('oilForecastQty').value = _common.formatKg(row && row.quantity_kg != null ? row.quantity_kg : 0);
             document.getElementById('oilForecastStatus').value = row && row.status ? row.status : 'open';
             document.getElementById('oilForecastDue').value = row && row.due_date ? String(row.due_date).slice(0, 10) : '';
             document.getElementById('oilForecastNotes').value = row && row.notes ? row.notes : '';
@@ -147,7 +147,7 @@ var _oilProductionForecastGrid = function () {
                 customer_label: document.getElementById('oilForecastCustomer').value,
                 order_summary: document.getElementById('oilForecastOrderSummary').value,
                 stream_code: document.getElementById('oilForecastStream').value,
-                quantity_kg: parseNum(document.getElementById('oilForecastQty').value),
+                quantity_kg: _common.parseKg(document.getElementById('oilForecastQty').value) || 0,
                 status: document.getElementById('oilForecastStatus').value,
                 due_date: document.getElementById('oilForecastDue').value || null,
                 notes: document.getElementById('oilForecastNotes').value,
@@ -218,9 +218,9 @@ var _oilProductionForecastGrid = function () {
                 var tr = document.createElement('tr');
                 tr.innerHTML =
                     '<td>' + escapeHtml(streamLabel(k)) + '</td>' +
-                    '<td class="text-end">' + escapeHtml(String(d)) + '</td>' +
-                    '<td class="text-end">' + escapeHtml(String(soh)) + '</td>' +
-                    '<td class="text-end ' + gapClass + '">' + escapeHtml(String(gap)) + '</td>';
+                    '<td class="text-end">' + escapeHtml(_common.formatKg(d)) + '</td>' +
+                    '<td class="text-end">' + escapeHtml(_common.formatKg(soh)) + '</td>' +
+                    '<td class="text-end ' + gapClass + '">' + escapeHtml(_common.formatKg(gap)) + '</td>';
                 tbody.appendChild(tr);
             });
             if (!any) {
@@ -246,8 +246,8 @@ var _oilProductionForecastGrid = function () {
                     '<td>' + escapeHtml(f.customer_label) + '</td>' +
                     '<td>' + escapeHtml(f.order_summary || '') + '</td>' +
                     '<td>' + escapeHtml(streamLabel(f.stream_code)) + '</td>' +
-                    '<td class="text-end">' + escapeHtml(String(parseNum(f.quantity_kg))) + '</td>' +
-                    '<td class="text-end" title="Total kg for this stream in on-hand lots (not reserved to this line)">' + escapeHtml(String(soh)) + '</td>' +
+                    '<td class="text-end">' + escapeHtml(_common.formatKg(parseNum(f.quantity_kg))) + '</td>' +
+                    '<td class="text-end" title="Total kg for this stream in on-hand lots (not reserved to this line)">' + escapeHtml(_common.formatKg(soh)) + '</td>' +
                     '<td>' + escapeHtml(due) + '</td>' +
                     '<td><span class="badge ' + statusBadgeClass(f.status) + '">' + escapeHtml(f.status || '') + '</span></td>' +
                     '<td class="small text-muted">' + escapeHtml(f.notes || '') + '</td>' +

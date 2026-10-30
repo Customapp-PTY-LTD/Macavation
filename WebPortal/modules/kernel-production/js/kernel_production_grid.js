@@ -522,7 +522,7 @@ var _kernelProductionGrid = function () {
                             : '') +
                         '<div class="kanban-card-meta">' +
                             '<span class="kanban-card-meta-item" title="Supplier"><i class="fas fa-user"></i> ' + KanbanHelper._esc(batch.grower_name || 'N/A') + '</span>' +
-                            '<span class="kanban-card-meta-item" title="Wet NIS (kg)"><i class="fas fa-weight-hanging"></i> ' + KanbanHelper._esc(String(batch.display_wet_nis_kg != null ? batch.display_wet_nis_kg : (batch.wet_nis_received_kg || '0'))) + ' kg</span>' +
+                            '<span class="kanban-card-meta-item" title="Wet NIS (kg)"><i class="fas fa-weight-hanging"></i> ' + KanbanHelper._esc(_common.formatKg(batch.display_wet_nis_kg != null ? batch.display_wet_nis_kg : (batch.wet_nis_received_kg || 0))) + ' kg</span>' +
                             (receivedDate ? '<span class="kanban-card-meta-item" title="Received date"><i class="fas fa-calendar"></i> ' + KanbanHelper._esc(receivedDate) + '</span>' : '') +
                             (bbDisplay ? '<span class="kanban-card-meta-item" title="Best Before Date (from Job Card)"><i class="fas fa-calendar-check"></i> Best Before Date ' + KanbanHelper._esc(bbDisplay) + '</span>' : '') +
                         '</div>' +
@@ -790,7 +790,7 @@ var _kernelProductionGrid = function () {
                 }
                 var stagePos = displayStatus.filterValue === 'awaiting_production' ? 'first' : displayStatus.filterValue === 'release_ready' ? 'last' : 'mid';
                 const bbTitle = bbDisplay !== '—' ? 'Best Before Date' : 'Best Before Date (set when Job Card is completed)';
-                const row = '<tr class="js-batch-row" data-batch-id="' + batch.id + '"><td>' + (batch.batch_number || 'N/A') + (scope.unfinishedSheetsByKernel[batch.id] ? ' ' + unfinishedSheetFlagHtml(batch, scope.unfinishedSheetsByKernel[batch.id]) : '') + '</td><td>' + (batch.grower_name || 'N/A') + '</td><td title="Received date">' + receivedDate + '</td><td title="' + (bbTitle.replace(/"/g, '&quot;')) + '">' + bbDisplay + '</td><td>' + (batch.display_wet_nis_kg != null ? batch.display_wet_nis_kg : (batch.wet_nis_received_kg || '0')) + '</td><td>' + KanbanHelper.statusBadge(displayStatus.label, stagePos) + '</td>' + actionsCell + '</tr>';
+                const row = '<tr class="js-batch-row" data-batch-id="' + batch.id + '"><td>' + (batch.batch_number || 'N/A') + (scope.unfinishedSheetsByKernel[batch.id] ? ' ' + unfinishedSheetFlagHtml(batch, scope.unfinishedSheetsByKernel[batch.id]) : '') + '</td><td>' + (batch.grower_name || 'N/A') + '</td><td title="Received date">' + receivedDate + '</td><td title="' + (bbTitle.replace(/"/g, '&quot;')) + '">' + bbDisplay + '</td><td>' + _common.formatKg(batch.display_wet_nis_kg != null ? batch.display_wet_nis_kg : (batch.wet_nis_received_kg || 0)) + '</td><td>' + KanbanHelper.statusBadge(displayStatus.label, stagePos) + '</td>' + actionsCell + '</tr>';
                 tbody.append(row);
             });
             MacTableActions.init(document.getElementById('batchesTable'));

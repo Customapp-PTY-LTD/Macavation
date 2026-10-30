@@ -140,7 +140,7 @@ var _oilDispatchGrid = function () {
                             { label: 'Dispatch', className: 'js-dispatch-oil-order', icon: 'fas fa-truck', dataAttrs: { 'order-id': o.id || '' } }
                         ]
                     });
-                    pendingTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td class="mac-table-actions-col">' + statusBadge + ' ' + actions + '</td></tr>');
+                    pendingTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + _common.formatKg(totalKg) + '</td><td class="mac-table-actions-col">' + statusBadge + ' ' + actions + '</td></tr>');
                 });
             }
 
@@ -162,7 +162,7 @@ var _oilDispatchGrid = function () {
                             { label: 'View sheet', className: 'js-view-oil-dispatch-order', icon: 'fas fa-clipboard-list', dataAttrs: { 'order-id': o.id || '' } }
                         ]
                     });
-                    dispatchedTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td class="mac-table-actions-col">' + statusBadge + ' ' + actions + '</td></tr>');
+                    dispatchedTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + _common.formatKg(totalKg) + '</td><td class="mac-table-actions-col">' + statusBadge + ' ' + actions + '</td></tr>');
                 });
             }
             MacTableActions.init(document.getElementById('oilDispatchTable'));
@@ -199,7 +199,7 @@ var _oilDispatchGrid = function () {
                 var deliveryStr = formatDate(o.delivery_date);
                 var createdStr = formatDate(o.created_at);
                 var lineCount = o.line_count != null ? o.line_count : 0;
-                var totalKg = o.total_kg != null ? Number(o.total_kg).toFixed(1) : '0.0';
+                var totalKg = _common.formatKg(o.total_kg != null ? o.total_kg : 0);
                 var isDispatched = o.status === 'dispatched';
 
                 var html = '<div class="kanban-card" data-order-id="' + (o.id || '') + '">';

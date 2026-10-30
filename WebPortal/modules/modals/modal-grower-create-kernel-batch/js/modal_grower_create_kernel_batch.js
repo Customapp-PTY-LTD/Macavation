@@ -661,7 +661,7 @@ var _modal_grower_create_kernel_batch = (function () {
             numberEl && numberEl.setAttribute('placeholder', 'Bn suggestion');
 
             var wetEl = document.getElementById('intakeBatchWetNis');
-            if (wetEl) wetEl.value = opts.wetNisKg != null ? opts.wetNisKg : '';
+            if (wetEl) wetEl.value = opts.wetNisKg != null ? fmtKg(opts.wetNisKg) : '';
 
             _pendingGrowerNameOverride = opts.growerNameOverride || null;
 

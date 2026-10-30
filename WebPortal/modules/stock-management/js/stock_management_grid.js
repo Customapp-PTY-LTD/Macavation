@@ -482,7 +482,7 @@ var _stockManagementGrid = function () {
                                 var type = m.movement_type ?
                                     m.movement_type.charAt(0).toUpperCase() + m.movement_type.slice(1).replace(/_/g, ' ') :
                                     '—';
-                                var qty = m.quantity_kg != null ? Number(m.quantity_kg).toFixed(2) : '0.00';
+                                var qty = m.quantity_kg != null ? _common.formatKg(m.quantity_kg) : '0.00';
                                 var ref = m.reference ? escapeHtml(m.reference) : '—';
                                 var notes = m.notes ? escapeHtml(m.notes) : '—';
 
@@ -864,7 +864,7 @@ var _stockManagementGrid = function () {
             var STREAM_LABEL = { kernel: 'Kernel', oil: 'Oil & protein', shell: 'Shell waste' };
             var signedKg = function (n) {
                 var r = Math.round(n * 10) / 10;
-                return (r > 0 ? '+' : r < 0 ? '−' : '') + Math.abs(r).toLocaleString('en-ZA') + ' kg';
+                return (r > 0 ? '+' : r < 0 ? '−' : '') + _common.formatKg(Math.abs(r), 1) + ' kg';
             };
             MacActivityCalendar.create({
                 mountId: 'stockActivityCalendarMount',
@@ -1018,11 +1018,11 @@ var _stockManagementGrid = function () {
                 lot_deleted: 'Lot deleted'
             };
 
-            var fmtQty = function (v) {
+            var fmtQty = function (v, isKg) {
                 if (v == null || v === '') return '<span class="text-muted">—</span>';
                 var n = parseNum(v);
                 if (!n) return '<span class="text-muted">—</span>';
-                var txt = (n > 0 ? '+' : '') + (Math.round(n * 100) / 100).toLocaleString();
+                var txt = (n > 0 ? '+' : '') + (isKg ? _common.formatKg(n) : (Math.round(n * 100) / 100).toLocaleString());
                 return '<span class="' + (n < 0 ? 'text-danger' : 'text-success') + '">' + escapeHtml(txt) + '</span>';
             };
             var fmtWhen = function (iso) {
@@ -1056,7 +1056,7 @@ var _stockManagementGrid = function () {
                     '<td class="small">' + escapeHtml(r.batch_number || '—') + '</td>' +
                     '<td class="small">' + escapeHtml(r.style || '—') + '</td>' +
                     '<td class="text-end small">' + fmtQty(r.cartons) + '</td>' +
-                    '<td class="text-end small">' + fmtQty(r.qty_kg) + '</td>' +
+                    '<td class="text-end small">' + fmtQty(r.qty_kg, true) + '</td>' +
                     '<td class="small">' + (notes.length ? notes.join('<br>') : '<span class="text-muted">—</span>') + '</td>' +
                     '</tr>';
             });
@@ -1217,7 +1217,7 @@ var _stockManagementGrid = function () {
                     '<label class="form-label">Received date <span class="text-danger">*</span></label>' +
                     '<input id="swalStockBatchReceivedDate" type="date" class="form-control mb-3" value="' + escapeHtml(today) + '">' +
                     '<label class="form-label">Wet NIS received (kg)</label>' +
-                    '<input id="swalStockBatchWetNis" type="number" step="0.01" min="0" class="form-control mb-3">' +
+                    '<input id="swalStockBatchWetNis" type="text" inputmode="decimal" class="form-control mb-3 js-kg-input">' +
                     '<label class="form-label">FFA</label>' +
                     '<input id="swalStockBatchFfa" type="number" step="0.01" min="0" class="form-control mb-3">' +
                     '<label class="form-label">Best Before Date</label>' +
@@ -1227,7 +1227,7 @@ var _stockManagementGrid = function () {
                         styleFieldDefs.map(function (field) {
                             return '<div class="col-md-4">' +
                                 '<label class="form-label small mb-1">' + escapeHtml(field.label) + '</label>' +
-                                '<input id="swalStockBatch_' + escapeHtml(field.key) + '" type="number" step="0.01" min="0" class="form-control form-control-sm">' +
+                                '<input id="swalStockBatch_' + escapeHtml(field.key) + '" type="text" inputmode="decimal" class="form-control form-control-sm js-kg-input">' +
                             '</div>';
                         }).join('') +
                     '</div>' +
@@ -1282,8 +1282,8 @@ var _stockManagementGrid = function () {
                     }
                     styleFieldDefs.forEach(function (field) {
                         var raw = (document.getElementById('swalStockBatch_' + field.key) || {}).value || '';
-                        var num = raw === '' ? 0 : parseFloat(raw);
-                        if (isNaN(num) || num < 0) num = 0;
+                        var num = _common.parseKg(raw);
+                        if (num == null || num < 0) num = 0;
                         styleValues[field.key] = num;
                         totalStyles += num;
                     });
@@ -1296,7 +1296,7 @@ var _stockManagementGrid = function () {
                         supplier_id: supplierId,
                         batch_number: batchNumber || null,
                         received_date: receivedDate,
-                        wet_nis_received_kg: wetNisRaw === '' ? null : parseFloat(wetNisRaw),
+                        wet_nis_received_kg: _common.parseKg(wetNisRaw),
                         production_finished_at: receivedDate,
                         ffa: ffaRaw === '' ? null : parseFloat(ffaRaw),
                         best_before_date: bestBeforeDate || null,
@@ -1635,12 +1635,12 @@ var _stockManagementGrid = function () {
                         var cells = ['<td>' + escapeHtml(key) + '</td>'];
                         styleKeys.forEach(function (sk) {
                             var val = (v.byStyleOut && v.byStyleOut[sk] != null && v.byStyleOut[sk] > 0)
-                                ? Number(v.byStyleOut[sk]).toLocaleString(undefined, { maximumFractionDigits: 2 })
+                                ? _common.formatKg(v.byStyleOut[sk])
                                 : '—';
                             var wkTitle = escapeHtml(kernelStyleWeeklyCellTitle(sk)).replace(/"/g, '&quot;');
                             cells.push('<td class="text-end kernel-style-col" title="' + wkTitle + '">' + escapeHtml(String(val)) + '</td>');
                         });
-                        var totalOut = (v.stockOut != null && !isNaN(v.stockOut)) ? Number(v.stockOut).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—';
+                        var totalOut = (v.stockOut != null && !isNaN(v.stockOut)) ? _common.formatKg(v.stockOut) : '—';
                         cells.push('<td class="text-end fw-bold">' + escapeHtml(String(totalOut)) + '</td>');
                         return '<tr>' + cells.join('') + '</tr>';
                     }).join('');
@@ -1679,12 +1679,12 @@ var _stockManagementGrid = function () {
                     var cells = ['<td>' + escapeHtml(key) + '</td>'];
                     styleKeys.forEach(function (sk) {
                         var val = (v.byStyleIn && v.byStyleIn[sk] != null && v.byStyleIn[sk] > 0)
-                            ? Number(v.byStyleIn[sk]).toLocaleString(undefined, { maximumFractionDigits: 2 })
+                            ? _common.formatKg(v.byStyleIn[sk])
                             : '—';
                         var wkTitle = escapeHtml(kernelStyleWeeklyCellTitle(sk)).replace(/"/g, '&quot;');
                         cells.push('<td class="text-end kernel-style-col" title="' + wkTitle + '">' + escapeHtml(String(val)) + '</td>');
                     });
-                    var totalIn = (v.stockIn != null && !isNaN(v.stockIn)) ? Number(v.stockIn).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—';
+                    var totalIn = (v.stockIn != null && !isNaN(v.stockIn)) ? _common.formatKg(v.stockIn) : '—';
                     cells.push('<td class="text-end fw-bold">' + escapeHtml(String(totalIn)) + '</td>');
                     return '<tr>' + cells.join('') + '</tr>';
                 }).join('');
@@ -1707,7 +1707,7 @@ var _stockManagementGrid = function () {
             });
             var rows = styleKeys.map(function (k) {
                 var total = byStyle[k];
-                var amount = (total != null && !isNaN(total)) ? Number(total).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—';
+                var amount = (total != null && !isNaN(total)) ? _common.formatKg(total) : '—';
                 var ovTitle = escapeHtml((KERNEL_STYLE_DESCRIPTION[k] || k) + '. Total remaining cartons (all batches).').replace(/"/g, '&quot;');
                 return '<tr><td class="kernel-style-col" title="' + ovTitle + '">' + escapeHtml(k) + '</td><td class="text-end">' + escapeHtml(String(amount)) + '</td></tr>';
             }).join('');
@@ -2001,7 +2001,7 @@ var _stockManagementGrid = function () {
             }
             scope.filteredStockItems.forEach(function (item) {
                 var statusClass = item.status === 'available' ? 'bg-success' : item.status === 'reserved' ? 'bg-warning' : 'bg-secondary';
-                var row = '<tr><td>' + (item.stock_number || 'N/A') + '</td><td>' + (item.product_type || 'N/A') + '</td><td>' + (item.style || 'N/A') + '</td><td>' + (item.batch_number || 'N/A') + '</td><td>' + (item.quantity_kg || '0') + '</td><td>' + (item.location || 'N/A') + '</td><td><span class="badge ' + statusClass + '">' + (item.status || 'N/A') + '</span></td><td class="mac-table-actions-col">' + MacTableActions.render({
+                var row = '<tr><td>' + (item.stock_number || 'N/A') + '</td><td>' + (item.product_type || 'N/A') + '</td><td>' + (item.style || 'N/A') + '</td><td>' + (item.batch_number || 'N/A') + '</td><td>' + (_common.formatKg(item.quantity_kg) || '0.00') + '</td><td>' + (item.location || 'N/A') + '</td><td><span class="badge ' + statusClass + '">' + (item.status || 'N/A') + '</span></td><td class="mac-table-actions-col">' + MacTableActions.render({
                     items: [{ label: 'View', className: '', icon: 'fas fa-eye', attrs: { 'data-view-item': item.id || '' } }]
                 }) + '</td></tr>';
                 tbody.append(row);
@@ -2106,7 +2106,7 @@ var _stockManagementGrid = function () {
                 return '<tr data-shell-id="' + escapeHtml(shellId) + '">' +
                     '<td>' + escapeHtml(l.lot_number || '') + '</td>' +
                     '<td>' + escapeHtml(l.source_batch_number || '') + '</td>' +
-                    '<td class="text-end">' + (l.quantity_kg != null ? Number(l.quantity_kg).toFixed(2) : '0') + '</td>' +
+                    '<td class="text-end">' + (l.quantity_kg != null ? _common.formatKg(l.quantity_kg) : '0.00') + '</td>' +
                     '<td>' + escapeHtml(l.status || '') + '</td>' +
                     '<td class="mac-table-actions-col">' + MacTableActions.render({
                         id: 'shellActions' + shellId,
@@ -2154,7 +2154,7 @@ var _stockManagementGrid = function () {
                     '<div class="row2">',
                     '<div>',
                     '<label for="swalShellQty">Quantity (kg)</label>',
-                    '<input id="swalShellQty" type="number" min="0" step="any" class="mac-input" placeholder="0" value="' + (existing && existing.quantity_kg != null ? existing.quantity_kg : '') + '">',
+                    '<input id="swalShellQty" type="text" inputmode="decimal" class="mac-input js-kg-input" placeholder="0" value="' + (existing && existing.quantity_kg != null ? _common.formatKg(existing.quantity_kg) : '') + '">',
                     '</div>',
                     '<div>',
                     '<label for="swalShellStatus">Status</label>',
@@ -2176,7 +2176,7 @@ var _stockManagementGrid = function () {
                         id: existing ? existing.id : null,
                         lot_number: (document.getElementById('swalShellLotNumber').value || '').trim(),
                         source_batch_number: (document.getElementById('swalShellSourceBatch').value || '').trim(),
-                        quantity_kg: parseFloat(document.getElementById('swalShellQty').value) || 0,
+                        quantity_kg: _common.parseKg(document.getElementById('swalShellQty').value) || 0,
                         status: document.getElementById('swalShellStatus').value || 'in_stock'
                     };
                 }
@@ -2278,9 +2278,9 @@ var _stockManagementGrid = function () {
                     : weeks.map(function (key) {
                         var v = byWeek[key];
                         var tot = (v.oil || 0) + (v.protein || 0);
-                        return '<tr><td>' + escapeHtml(key) + '</td><td class="text-end">' + escapeHtml(Number(v.oil || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })) + '</td>' +
-                            '<td class="text-end">' + escapeHtml(Number(v.protein || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })) + '</td>' +
-                            '<td class="text-end fw-bold">' + escapeHtml(Number(tot).toLocaleString(undefined, { maximumFractionDigits: 2 })) + '</td></tr>';
+                        return '<tr><td>' + escapeHtml(key) + '</td><td class="text-end">' + escapeHtml(_common.formatKg(v.oil || 0)) + '</td>' +
+                            '<td class="text-end">' + escapeHtml(_common.formatKg(v.protein || 0)) + '</td>' +
+                            '<td class="text-end fw-bold">' + escapeHtml(_common.formatKg(tot)) + '</td></tr>';
                     }).join('');
                 tbody.innerHTML = rows;
                 return;
@@ -2307,9 +2307,9 @@ var _stockManagementGrid = function () {
                 : weeks.map(function (key) {
                     var v = byWeek[key];
                     var tot = (v.oil || 0) + (v.protein || 0);
-                    return '<tr><td>' + escapeHtml(key) + '</td><td class="text-end">' + escapeHtml(Number(v.oil || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })) + '</td>' +
-                        '<td class="text-end">' + escapeHtml(Number(v.protein || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })) + '</td>' +
-                        '<td class="text-end fw-bold">' + escapeHtml(Number(tot).toLocaleString(undefined, { maximumFractionDigits: 2 })) + '</td></tr>';
+                    return '<tr><td>' + escapeHtml(key) + '</td><td class="text-end">' + escapeHtml(_common.formatKg(v.oil || 0)) + '</td>' +
+                        '<td class="text-end">' + escapeHtml(_common.formatKg(v.protein || 0)) + '</td>' +
+                        '<td class="text-end fw-bold">' + escapeHtml(_common.formatKg(tot)) + '</td></tr>';
                 }).join('');
             tbody.innerHTML = rows;
         },
@@ -2328,9 +2328,9 @@ var _stockManagementGrid = function () {
                 else oilKg += kg;
             });
             tbody.innerHTML =
-                '<tr><td>Oil</td><td class="text-end">' + escapeHtml(Number(oilKg).toLocaleString(undefined, { maximumFractionDigits: 2 })) + '</td></tr>' +
-                '<tr><td>Protein powder</td><td class="text-end">' + escapeHtml(Number(protKg).toLocaleString(undefined, { maximumFractionDigits: 2 })) + '</td></tr>' +
-                '<tr class="table-light fw-bold"><td>Total</td><td class="text-end">' + escapeHtml(Number(oilKg + protKg).toLocaleString(undefined, { maximumFractionDigits: 2 })) + '</td></tr>';
+                '<tr><td>Oil</td><td class="text-end">' + escapeHtml(_common.formatKg(oilKg)) + '</td></tr>' +
+                '<tr><td>Protein powder</td><td class="text-end">' + escapeHtml(_common.formatKg(protKg)) + '</td></tr>' +
+                '<tr class="table-light fw-bold"><td>Total</td><td class="text-end">' + escapeHtml(_common.formatKg(oilKg + protKg)) + '</td></tr>';
         },
 
         /** Lots available in warehouse (excludes dispatched/sold). */
@@ -2375,7 +2375,7 @@ var _stockManagementGrid = function () {
                     '<td>' + (l.batch_number || '') + '</td>' +
                     '<td>' + escapeHtml(displayOilLotGrade(l)) + '</td>' +
                     '<td class="text-end">' + (l.ffa !== null && l.ffa !== undefined ? Number(l.ffa).toFixed(2) : '') + '</td>' +
-                    '<td class="text-end">' + (l.kilograms !== null && l.kilograms !== undefined ? Number(l.kilograms).toFixed(2) : '') + '</td>' +
+                    '<td class="text-end">' + (l.kilograms !== null && l.kilograms !== undefined ? _common.formatKg(l.kilograms) : '') + '</td>' +
                     '<td>' + bbDisplay + '</td>' +
                     '<td class="text-end ' + daysClass + '">' + (days !== '' ? days : '') + '</td>' +
                     '<td>' + (l.status || '') + '</td>' +
@@ -2647,7 +2647,7 @@ var _stockManagementGrid = function () {
                     '<option value="minus">Minus from stock</option>' +
                     '</select>' +
                     '<label class="form-label">Kg</label>' +
-                    '<input id="swalAdjustOilKg" type="number" class="form-control mb-2" step="0.01" min="0" value="0">' +
+                    '<input id="swalAdjustOilKg" type="text" inputmode="decimal" class="form-control mb-2 js-kg-input" value="0.00">' +
                     '<label class="form-label">Reason</label>' +
                     '<input id="swalAdjustOilReason" type="text" class="form-control" maxlength="250" placeholder="Optional note">' +
                     '</div>',
@@ -2655,7 +2655,7 @@ var _stockManagementGrid = function () {
                 showCancelButton: true,
                 confirmButtonText: 'Save adjustment',
                 preConfirm: function () {
-                    var kgAbs = parseNum(document.getElementById('swalAdjustOilKg').value);
+                    var kgAbs = _common.parseKg(document.getElementById('swalAdjustOilKg').value) || 0;
                     var direction = document.getElementById('swalAdjustOilDirection').value;
                     var reason = document.getElementById('swalAdjustOilReason').value || null;
                     if (kgAbs <= 0) {

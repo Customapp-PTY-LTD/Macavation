@@ -639,7 +639,7 @@ var _executiveDashboard = function () {
         },
 
         loadKernelStats: async () => {
-            const fmt = (n) => (typeof n === 'number' ? n.toLocaleString('en-ZA', { maximumFractionDigits: 0 }) : (n || 0));
+            const fmt = (n) => (typeof n === 'number' ? _common.formatKg(n, 0) : (n || 0));
             try {
                 if (typeof dataFunctions === 'undefined' || !dataFunctions.getDashboardKernelStats) return;
                 const stats = await dataFunctions.getDashboardKernelStats();
@@ -686,7 +686,7 @@ var _executiveDashboard = function () {
          */
         execTileNote: (today, yesterday) => {
             if (today == null || yesterday == null) return '';
-            var was = Number(yesterday).toLocaleString('en-ZA', { maximumFractionDigits: 0 });
+            var was = _common.formatKg(Number(yesterday), 0);
             if (today === yesterday) return 'Level with ' + was + ' kg yesterday';
             return (today > yesterday ? 'Up from ' : 'Down from ') + was + ' kg yesterday';
         },
@@ -792,7 +792,7 @@ var _executiveDashboard = function () {
                     if (noteEl) noteEl.textContent = scope.execTileNote(series.today, series.yesterday);
                     if (t.valueEl) {
                         const val = series.today != null ? series.today : null;
-                        $('#' + t.valueEl).text(val != null ? val.toLocaleString('en-ZA', { maximumFractionDigits: 0 }) : '—');
+                        $('#' + t.valueEl).text(val != null ? _common.formatKg(val, 0) : '—');
                     }
                 });
             } catch (e) {
@@ -1292,7 +1292,7 @@ var _executiveDashboard = function () {
                         legend: { display: false },
                         tooltip: {
                             callbacks: {
-                                label: function (item) { return (item.raw || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }) + ' kg'; }
+                                label: function (item) { return _common.formatKg((item.raw || 0), 0) + ' kg'; }
                             }
                         }
                     },
@@ -1300,7 +1300,7 @@ var _executiveDashboard = function () {
                         x: { ticks: { maxRotation: 45, minRotation: 0, maxTicksLimit: 15 } },
                         y: {
                             beginAtZero: true,
-                            ticks: { callback: function (v) { return (v || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }); } }
+                            ticks: { callback: function (v) { return _common.formatKg((v || 0), 0); } }
                         }
                     }
                 }
@@ -1467,7 +1467,7 @@ var _executiveDashboard = function () {
                                 label: function (item) {
                                     var val = item.raw || 0;
                                     return (item.dataset.label || '') + ': ' +
-                                        val.toLocaleString('en-ZA', { maximumFractionDigits: 0 }) + ' kg';
+                                        _common.formatKg(val, 0) + ' kg';
                                 }
                             }
                         }
@@ -1481,7 +1481,7 @@ var _executiveDashboard = function () {
                             beginAtZero: true,
                             ticks: {
                                 callback: function (v) {
-                                    return (v || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 });
+                                    return _common.formatKg((v || 0), 0);
                                 }
                             },
                             grid: { color: 'rgba(0,0,0,0.06)' },
@@ -1650,7 +1650,7 @@ var _executiveDashboard = function () {
         },
 
         runwayKg: function (n) {
-            return (Number(n) || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 });
+            return _common.formatKg((Number(n) || 0), 0);
         },
 
         loadRunwayForecastChart: async () => {
@@ -1982,7 +1982,7 @@ var _executiveDashboard = function () {
             if (!el) return;
             var cartons = (rows || []).reduce(function (a, r) { return a + (Number(r.quantity_cartons) || 0); }, 0);
             el.textContent = cartons > 0
-                ? 'Open kernel demand behind this depletion: ' + scope.runwayKg(cartons) + ' cartons over the next 12 weeks.'
+                ? 'Open kernel demand behind this depletion: ' + (Number(cartons) || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }) + ' cartons over the next 12 weeks.'
                 : 'No open kernel demand booked in the next 12 weeks.';
         },
 
@@ -2137,7 +2137,7 @@ var _executiveDashboard = function () {
 
         renderKPIs: () => {
             const scope = _executiveDashboard;
-            $('#totalProduction').text(Number(scope.kpis.total_production_kg || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
+            $('#totalProduction').text(_common.formatKg(Number(scope.kpis.total_production_kg || 0), 0));
             $('#totalSalesZar').text('R ' + Number(scope.kpis.total_sales || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
             var qEl = $('#qualityPassRate');
             if (qEl.length) qEl.text((scope.kpis.quality_pass_rate || '0') + '%');
@@ -2336,8 +2336,8 @@ var _executiveDashboard = function () {
             }
             if (note) {
                 note.textContent = (soh != null && demand != null && demand > 0)
-                    ? soh.toLocaleString('en-ZA', { maximumFractionDigits: 0 }) + ' kg on hand, '
-                      + demand.toLocaleString('en-ZA', { maximumFractionDigits: 0 }) + ' kg a week'
+                    ? _common.formatKg(soh, 0) + ' kg on hand, '
+                      + _common.formatKg(demand, 0) + ' kg a week'
                     : '';
             }
         },
@@ -2349,10 +2349,10 @@ var _executiveDashboard = function () {
                 var soh = Number(r.soh_kg || 0);
                 var weeks = r.weeks_cover;
                 var months = r.months_cover;
-                $('#execRunwaySohKg').text(soh.toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
+                $('#execRunwaySohKg').text(_common.formatKg(soh, 0));
                 $('#execRunwayWeeks').text(weeks != null ? weeks + ' wks' : '—');
                 $('#execRunwayMonths').text(months != null ? months + ' mo' : '—');
-                $('#execRunwayDemand').text(Number(r.weekly_demand_kg || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }) + ' kg/wk');
+                $('#execRunwayDemand').text(_common.formatKg(Number(r.weekly_demand_kg || 0), 0) + ' kg/wk');
                 _executiveDashboard.renderNisCoverTile(r);
             } catch (e) {
                 $('#execRunwaySohKg, #execRunwayWeeks, #execRunwayMonths, #execRunwayDemand, #execStatNisCover').text('—');
@@ -2408,9 +2408,9 @@ var _executiveDashboard = function () {
                 var target = crackRow ? Number(crackRow.target_value) : 0;
                 var actual = Number(_executiveDashboard.kpis.total_production_kg) || 0;
 
-                $('#execProducedActual').text(actual.toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
+                $('#execProducedActual').text(_common.formatKg(actual, 0));
                 $('#execProducedTarget').text(target > 0
-                    ? target.toLocaleString('en-ZA', { maximumFractionDigits: 0 })
+                    ? _common.formatKg(target, 0)
                     : '—');
                 $('#execProducedProgress').css('width', '0%').attr('aria-valuenow', 0);
                 $('#execProducedPct').text(target > 0
@@ -2454,9 +2454,9 @@ var _executiveDashboard = function () {
                 _executiveDashboard.renderRecoveryTile(rec);
                 $('#execSoundRecoveryPct').text(rec != null ? rec + '%' : '—');
                 $('#execOilYieldPct').text(yieldPct != null ? yieldPct + '%' : '—');
-                $('#execSohKernel').text(Number(k.kernel_soh_kg || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
-                $('#execSohOil').text(Number(k.oil_finished_soh_kg || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
-                $('#execSohRm').text(Number(k.oil_rm_soh_kg || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
+                $('#execSohKernel').text(_common.formatKg(Number(k.kernel_soh_kg || 0), 0));
+                $('#execSohOil').text(_common.formatKg(Number(k.oil_finished_soh_kg || 0), 0));
+                $('#execSohRm').text(_common.formatKg(Number(k.oil_rm_soh_kg || 0), 0));
 
                 // #totalProduction is an ALL-TIME figure (get_executive_kpis().total_production_kg,
                 // no date filter — migrations/20260329000001_active_batches_intake_and_production_only.sql:27-43,
@@ -2466,7 +2466,7 @@ var _executiveDashboard = function () {
                 // this delta does not describe) — migrations/20260708160000_fix_oil_recovery_kpi_calculations.sql:91-114.
                 var prodThisMonthNum = Number(k.production_kg_this_month);
                 var hasThisMonth = k.production_kg_this_month != null && isFinite(prodThisMonthNum);
-                $('#execProductionThisMonth').text(hasThisMonth ? prodThisMonthNum.toLocaleString('en-ZA', { maximumFractionDigits: 0 }) : '—');
+                $('#execProductionThisMonth').text(hasThisMonth ? _common.formatKg(prodThisMonthNum, 0) : '—');
                 var delta = k.production_delta_pct;
                 $('#execProductionDelta').text(hasThisMonth && delta != null ? (delta >= 0 ? '+' : '') + delta + '% vs last month' : '');
 

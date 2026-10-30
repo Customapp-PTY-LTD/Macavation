@@ -82,7 +82,9 @@ var MgmtDashboard = (function () {
     // ------------------------------------------------------------------
 
     function num(v) { return Math.round(Number(v) || 0).toLocaleString('en-ZA').replace(/ /g, ' '); }
-    function kg(v) { return num(v) + ' kg'; }
+    // Weights show as 1,234 (comma thousands, whole kg for dashboard figures); money/counts keep num().
+    function kgNum(v) { return _common.formatKg(Math.round(Number(v) || 0), 0); }
+    function kg(v) { return kgNum(v) + ' kg'; }
     function litres(v) { return num(v) + ' L'; }
     function rand(v) { return 'R ' + num(v); }
     function pct(a, b) { return b ? ((a - b) / b) * 100 : null; }
@@ -438,7 +440,7 @@ var MgmtDashboard = (function () {
         MONTHS: MONTHS, today: today, isoOf: isoOf, fyOf: fyOf, fyRange: fyRange, fyLabel: fyLabel,
         fyMonths: fyMonths, quarterRange: quarterRange, quarterOfMonthKey: quarterOfMonthKey,
         currentMonthKey: currentMonthKey, monthLabel: monthLabel, prettyDate: prettyDate, daysSince: daysSince,
-        num: num, kg: kg, litres: litres, rand: rand, pct: pct, seriesFor: seriesFor,
+        num: num, kgNum: kgNum, kg: kg, litres: litres, rand: rand, pct: pct, seriesFor: seriesFor,
         el: el, clear: clear, tile: tile, setTiles: setTiles, setFreshness: setFreshness,
         emptyBox: emptyBox, colors: colors, drawChart: drawChart, destroyAll: destroyAll,
         monthBarColors: monthBarColors, fitHeight: fitHeight, bindPeriodBar: bindPeriodBar,
