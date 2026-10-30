@@ -314,7 +314,7 @@ var _modal_supplier_receiver_checklist = (function () {
         var count = 0;
         $('#srcItemsTableBody tr').each(function (i) {
             $(this).find('.srcBagNo').text(String(i + 1));
-            var kg = parseFloat($(this).find('[name="quantity"]').val());
+            var kg = parseFloat(String($(this).find('[name="quantity"]').val() || '').replace(/,/g, ''));
             if (!isNaN(kg) && kg > 0) { total += kg; count += 1; }
         });
         $('#srcBagCount').text(String(count));
@@ -335,7 +335,7 @@ var _modal_supplier_receiver_checklist = (function () {
             var bestBeforeIso = manufacturedIso ? calculateBestBeforeIso(manufacturedIso) : null;
 
             // A row with no weight is not a bag (spare rows from "+ Add"), same as the NIS delivery.
-            var qty = qtyRaw ? parseFloat(qtyRaw) : NaN;
+            var qty = qtyRaw ? parseFloat(qtyRaw.replace(/,/g, '')) : NaN;
             if (isNaN(qty) || qty <= 0) return;
 
             var product = splitProductValue(productType);
@@ -556,7 +556,7 @@ var _modal_supplier_receiver_checklist = (function () {
                     api.addItemRow({
                         productType: productValueOf(editingBatch),
                         batch: (editingBatch.batch_number || '').toString(),
-                        quantity: editingBatch.quantity_kg != null ? String(editingBatch.quantity_kg) : '',
+                        quantity: editingBatch.quantity_kg != null ? fmtKg(editingBatch.quantity_kg) : '',
                         manufacturedDate: editManufacturedIso ? fromISO(editManufacturedIso) : ''
                     });
                     initFlatpickrInModal();
@@ -674,7 +674,7 @@ var _modal_supplier_receiver_checklist = (function () {
                 optionForProductType(seed.productType || '') +
                 '</select></td>' +
                 '<td><input type="text" class="form-control form-control-sm" name="batch" required placeholder="e.g. OIL-2026-03-001" value="' + escapeAttr(seed.batch || '') + '"></td>' +
-                '<td><input type="number" class="form-control form-control-sm text-end" name="quantity" step="0.01" min="0.01" required value="' + escapeAttr(seed.quantity || '') + '"></td>' +
+                '<td><input type="text" inputmode="decimal" class="form-control form-control-sm text-end js-kg-input" name="quantity" required value="' + escapeAttr(seed.quantity || '') + '"></td>' +
                 '<td><input type="text" class="form-control form-control-sm flatpickr-date" name="manufacturedDate" placeholder="dd/mm/yyyy" required value="' + escapeAttr(seed.manufacturedDate || '') + '"></td>' +
                 '<td>' + (_editingBatchId ? '' : '<button type="button" class="btn btn-sm btn-outline-secondary srcRemoveItemRow" title="Remove" aria-label="Remove bag">✕</button>') + '</td>' +
                 '</tr>';

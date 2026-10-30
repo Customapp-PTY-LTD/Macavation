@@ -71,7 +71,7 @@ var _modal_grower_create_kernel_batch = (function () {
     }
 
     function numOrNull(raw) {
-        var t = String(raw == null ? '' : raw).trim();
+        var t = String(raw == null ? '' : raw).replace(/,/g, '').trim();
         if (t === '') return null;
         var n = parseFloat(t);
         return isFinite(n) ? n : null;
@@ -293,7 +293,7 @@ var _modal_grower_create_kernel_batch = (function () {
                     '<td><select class="form-select form-select-sm" data-bag-idx="' + i + '" data-bag-field="desc" aria-label="Description bag ' + esc(b.no) + '">' +
                     '<option value="NIS"' + (b.desc === 'NIS' ? ' selected' : '') + '>NIS</option>' +
                     '<option value="Kernel"' + (b.desc === 'Kernel' ? ' selected' : '') + '>Kernel</option></select></td>' +
-                    '<td><input type="number" step="0.01" min="0" class="form-control form-control-sm text-end" data-bag-idx="' + i + '" data-bag-field="kg" value="' + esc(b.kg) + '" aria-label="Weight bag ' + esc(b.no) + '"></td>' +
+                    '<td><input type="text" inputmode="decimal" class="form-control form-control-sm text-end js-kg-input" data-bag-idx="' + i + '" data-bag-field="kg" value="' + esc(numOrNull(b.kg) != null ? fmtKg(b.kg) : b.kg) + '" aria-label="Weight bag ' + esc(b.no) + '"></td>' +
                     '<td><button type="button" class="btn btn-sm btn-outline-secondary" data-bag-del="' + i + '" aria-label="Remove bag ' + esc(b.no) + '">\u2715</button></td>' +
                     '</tr>';
             });

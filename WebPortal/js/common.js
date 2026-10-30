@@ -328,6 +328,14 @@ var _common = {
         return n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
     },
 
+    /** Reads a typed weight that may carry thousands commas ("1,000.00" -> 1000); null when blank or not a number. */
+    parseKg: function (value) {
+        var t = String(value == null ? '' : value).replace(/,/g, '').trim();
+        if (t === '') return null;
+        var n = parseFloat(t);
+        return isFinite(n) ? n : null;
+    },
+
     // Debounce function
     debounce: function (func, wait, immediate) {
         let timeout;
@@ -589,6 +597,20 @@ window.forceCloseAllModals = function () {
         window._common.forceCloseAllModals();
     }
 };
+
+// Weight boxes (class js-kg-input, type="text" inputmode="decimal"): the plain number while typing,
+// "1,000.00" once you leave the box. Readers must use _common.parseKg, since parseFloat("1,000.00") is 1.
+document.addEventListener('focusin', function (e) {
+    var t = e.target;
+    if (!t || !t.classList || !t.classList.contains('js-kg-input')) return;
+    t.value = t.value.replace(/,/g, '');
+});
+document.addEventListener('focusout', function (e) {
+    var t = e.target;
+    if (!t || !t.classList || !t.classList.contains('js-kg-input')) return;
+    var n = _common.parseKg(t.value);
+    if (n != null) t.value = _common.formatKg(n);
+});
 
 // Also add waitForDataFunctions as a standalone global function for convenience
 window.waitForDataFunctions = async function (maxRetries = 50, delay = 100) {

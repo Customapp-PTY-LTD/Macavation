@@ -107,7 +107,7 @@ var _modal_supplier_intake_adjust_stock = (function () {
         var count = 0;
         $('#siaBagsTableBody tr').each(function (i) {
             $(this).find('.siaBagNo').text(String(i + 1));
-            var kg = parseFloat($(this).find('[name="siaWeight"]').val());
+            var kg = parseFloat(String($(this).find('[name="siaWeight"]').val() || '').replace(/,/g, ''));
             if (!isNaN(kg) && kg > 0) { total += kg; count += 1; }
         });
         $('#siaBagCount').text(String(count));
@@ -142,7 +142,7 @@ var _modal_supplier_intake_adjust_stock = (function () {
             '<option value="cake"' + ((seed.productType || '') === 'cake' ? ' selected' : '') + '>Cake</option>' +
             '</select></td>' +
             '<td><input type="text" class="form-control form-control-sm" name="siaBatch" maxlength="120" placeholder="e.g. OIL-2026-03-001" value="' + escapeAttr(seed.batch || '') + '"></td>' +
-            '<td><input type="number" class="form-control form-control-sm" name="siaWeight" step="0.01" min="0" aria-label="Weight kg" style="text-align:right" value="' + escapeAttr(seed.weight || '') + '"></td>' +
+            '<td><input type="text" inputmode="decimal" class="form-control form-control-sm js-kg-input" name="siaWeight" aria-label="Weight kg" style="text-align:right" value="' + escapeAttr(seed.weight || '') + '"></td>' +
             '<td><input type="number" class="form-control form-control-sm" name="siaFfa" step="0.01" min="0" placeholder="Optional" aria-label="FFA percent" style="text-align:right" value="' + escapeAttr(seed.ffa || '') + '"></td>' +
             '<td><input type="text" class="form-control form-control-sm flatpickr-date" name="siaManufacturedDate" placeholder="dd/mm/yyyy" required value="' + escapeAttr(seed.manufacturedDate || '') + '"></td>' +
             '<td><button type="button" class="btn btn-sm btn-outline-secondary siaRemoveRow" title="Remove" aria-label="Remove bag">\u2715</button></td>' +
@@ -250,7 +250,7 @@ var _modal_supplier_intake_adjust_stock = (function () {
                 var ffaRaw = ($r.find('[name="siaFfa"]').val() || '').trim();
                 var mfgRaw = ($r.find('[name="siaManufacturedDate"]').val() || '').trim();
                 // A row with no weight is not a bag (spare rows from "+ Add"), same as New delivery.
-                var qty = wRaw === '' ? NaN : parseFloat(wRaw);
+                var qty = wRaw === '' ? NaN : parseFloat(wRaw.replace(/,/g, ''));
                 if (isNaN(qty) || qty <= 0) return;
                 var ffa = ffaRaw === '' ? null : parseFloat(ffaRaw);
                 if (ffa != null && isNaN(ffa)) ffa = null;
