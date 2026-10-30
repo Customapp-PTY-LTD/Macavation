@@ -1273,7 +1273,7 @@ var _siloAllocationGrid = (function () {
         init: function () {
             stopTicker();
             $('#siloAllocationModule').off('click.nssTabs').on('click.nssTabs', '[data-nss-tab="areas"]', function () {
-                _appRouter.routeTo('nis-storage', true);
+                _appRouter.openWith('nis-storage', { tab: 'areas' });
             });
             state.batchId = null;
             state.tally = null;
