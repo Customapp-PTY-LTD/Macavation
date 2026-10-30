@@ -197,7 +197,21 @@ var _executiveDashboard = function () {
         var actions = document.createElement('div');
         actions.className = 'exec-alert-actions';
 
-        var selector = String(a.alert_type || '') === 'intake_problem' ? null : execMatchAlertGoToSelector(title + ' ' + message);
+        // Cracking sheet alerts (refresh_cracking_sheet_alerts, 20261030160000): open the batch on Production,
+        // where its production sheet takes the shell bags. get_dashboard_alerts has no entity_type, so match the title.
+        var isCrackingSheet = String(a.alert_type || '') === 'delay' && title.indexOf('Cracking sheet to finish') === 0;
+        if (isCrackingSheet && typeof HandoffDialog !== 'undefined' && HandoffDialog.navigateToRoute) {
+            var openBtn = document.createElement('button');
+            openBtn.type = 'button';
+            openBtn.className = 'btn btn-xs btn-sm btn-outline-secondary';
+            openBtn.textContent = 'Open batch';
+            openBtn.addEventListener('click', function () {
+                HandoffDialog.navigateToRoute('kernel-production-grid', a.batch_number || '', 'searchBatchesInput');
+            });
+            actions.appendChild(openBtn);
+        }
+
+        var selector = (String(a.alert_type || '') === 'intake_problem' || isCrackingSheet) ? null : execMatchAlertGoToSelector(title + ' ' + message);
         if (selector) {
             var target = document.querySelector(selector);
             if (_executiveDashboard.execScrollTarget(target) === 'ok') {

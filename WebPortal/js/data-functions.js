@@ -3549,6 +3549,15 @@ var _dataFunctions = function () {
                 p_kernel_id: kernelId, p_date: dateISO
             }, token, { useCache: false }));
         },
+        /**
+         * Batch-days with a silo run in the Cracking log but no shell bags on the cracking sheet (from 26 Oct 2026).
+         * kernelId null = every batch. Returns { success, today, days: [{ kernel_id, batch_number, grower_name, date, kg }] }.
+         */
+        getUnfinishedCrackingSheets: async function (kernelId, token = null) {
+            return this._kpUnwrap(await this.callFunction('get_unfinished_cracking_sheets', {
+                p_kernel_id: kernelId || null
+            }, token, { useCache: false }));
+        },
         /** Record a finished silo run from the production sheet; empties the silo like "Stop cracking". */
         recordSiloRun: async function (siloNumber, openedAt, closedAt, leftKg, token = null) {
             return this._kpUnwrap(await this.callFunction('record_silo_run', {
