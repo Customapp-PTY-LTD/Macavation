@@ -84,14 +84,14 @@ var _kernelJobCardStock = (function () {
         $('#soundKernelTableBody tr').each(function () {
             var style = $(this).find('select[name="style"]').val();
             var cartons = parseInt($(this).find('input[name="cartons"]').val(), 10) || 0;
-            var weight = parseLocaleNumber($(this).find('input[name="weight_kg"]').val());
+            var weight = (_common.parseKg($(this).find('input[name="weight_kg"]').val()) || 0);
             if (style && (cartons > 0 || weight > 0)) sound.push({ style: style, cartons: cartons, weight_kg: weight });
         });
         var butter = [];
         $('#butterGradeTableBody tr').each(function () {
             var style = $(this).find('select[name="style"]').val();
             var cartons = parseInt($(this).find('input[name="cartons"]').val(), 10) || 0;
-            var weight = parseLocaleNumber($(this).find('input[name="weight_kg"]').val());
+            var weight = (_common.parseKg($(this).find('input[name="weight_kg"]').val()) || 0);
             if (style && (cartons > 0 || weight > 0)) butter.push({ style: style, cartons: cartons, weight_kg: weight });
         });
         return { sound_kernel_styles: sound, butter_grade_styles: butter };
@@ -143,7 +143,7 @@ var _kernelJobCardStock = (function () {
         var html = rows.map(function (k) {
             var c = stock.cartons[k] || 0;
             var kg = stock.kg[k] || 0;
-            return '<tr><td>' + k + '</td><td class="text-end">' + c + '</td><td class="text-end">' + kg.toFixed(2) + '</td></tr>';
+            return '<tr><td>' + k + '</td><td class="text-end">' + c + '</td><td class="text-end">' + _common.formatKg(kg) + '</td></tr>';
         }).join('');
         $tbody.html(html);
     }
