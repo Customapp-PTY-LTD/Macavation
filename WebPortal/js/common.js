@@ -328,6 +328,20 @@ var _common = {
         return n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
     },
 
+    /**
+     * Reads a typed weight that may carry thousands commas ("1,000.00" -> 1000); null when blank or not a number.
+     * A South African keypad types the decimal as a comma, so "12,5" / "12,50" (one comma, 1-2 digits after it,
+     * no dot) is read as 12.5, not 125. "1,000" (3 digits after the comma) stays a thousands separator.
+     */
+    parseKg: function (value) {
+        var t = String(value == null ? '' : value).replace(/\s/g, '');
+        if (/^-?\d+,\d{1,2}$/.test(t)) t = t.replace(',', '.');
+        t = t.replace(/,/g, '');
+        if (t === '') return null;
+        var n = parseFloat(t);
+        return isFinite(n) ? n : null;
+    },
+
     // Debounce function
     debounce: function (func, wait, immediate) {
         let timeout;
@@ -589,6 +603,25 @@ window.forceCloseAllModals = function () {
         window._common.forceCloseAllModals();
     }
 };
+
+// Weight boxes (class js-kg-input, type="text" inputmode="decimal"): the plain number while typing,
+// "1,000.00" once you leave the box. Readers must use _common.parseKg, since parseFloat("1,000.00") is 1.
+document.addEventListener('focusin', function (e) {
+    var t = e.target;
+    if (!t || !t.classList || !t.classList.contains('js-kg-input')) return;
+    t.value = t.value.replace(/,/g, '');
+});
+document.addEventListener('focusout', function (e) {
+    var t = e.target;
+    if (!t || !t.classList || !t.classList.contains('js-kg-input')) return;
+    var n = _common.parseKg(t.value);
+    if (n == null) return;
+    var formatted = _common.formatKg(n);
+    if (formatted === t.value) return;
+    t.value = formatted;
+    // Let the screen re-read the rounded value, so what is shown is what gets totalled and saved.
+    t.dispatchEvent(new Event('input', { bubbles: true }));
+});
 
 // Also add waitForDataFunctions as a standalone global function for convenience
 window.waitForDataFunctions = async function (maxRetries = 50, delay = 100) {

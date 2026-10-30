@@ -131,7 +131,7 @@
             '<label class="form-label">Received date</label>' +
             '<input id="swalKBatchRd" type="date" class="form-control mb-2" value="' + escapeHtml(isoDateOnlyForInput(batch.received_date)) + '">' +
             '<label class="form-label">Supplier\'s declared weight (kg)</label>' +
-            '<input id="swalKBatchWet" type="number" step="0.01" min="0" class="form-control mb-2" value="' + escapeHtml(numberForInput(batch.wet_nis_received_kg)) + '">' +
+            '<input id="swalKBatchWet" type="text" inputmode="decimal" class="form-control mb-2 js-kg-input" value="' + escapeHtml(_common.formatKg(batch.wet_nis_received_kg)) + '">' +
             '<label class="form-label">FFA (QA)</label>' +
             '<input id="swalKBatchFfa" type="number" step="0.01" min="0" class="form-control mb-2" value="' + escapeHtml(numberForInput(batch.ffa)) + '" placeholder="Optional">' +
             '<label class="form-label">Best before date</label>' +
@@ -197,8 +197,8 @@
             return false;
         }
         var wetRaw = valueOf('swalKBatchWet').trim();
-        var wet = wetRaw === '' ? null : parseFloat(wetRaw);
-        if (wetRaw !== '' && (!isFinite(wet) || wet < 0)) {
+        var wet = wetRaw === '' ? null : _common.parseKg(wetRaw);
+        if (wetRaw !== '' && (wet == null || !isFinite(wet) || wet < 0)) {
             Swal.showValidationMessage('Supplier\'s declared weight must be a valid non-negative number');
             return false;
         }

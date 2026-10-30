@@ -94,7 +94,7 @@
                         <input type="date" class="form-control pp-input" id="ppDate">
                     </label>
                     <label class="pp-field" for="ppWeight">Planned weight (kg)
-                        <input type="number" class="form-control pp-input" id="ppWeight" min="1" step="100" inputmode="numeric">
+                        <input type="text" class="form-control pp-input js-kg-input" id="ppWeight" inputmode="decimal">
                     </label>
                     <label class="pp-field" for="ppRepeat" id="ppRepeatWrap">Repeat
                         <select class="form-select pp-input" id="ppRepeat">
@@ -155,7 +155,7 @@
                         </select>
                     </label>
                     <label class="pp-field" for="ppDayKg">Kg cracked (optional)
-                        <input type="number" class="form-control pp-input" id="ppDayKg" min="0" step="100" inputmode="numeric">
+                        <input type="text" class="form-control pp-input js-kg-input" id="ppDayKg" inputmode="decimal">
                     </label>
                     <div class="pp-hint pp-span2">Leave the kg empty to use the daily rate (half of it on a half day). Use a to-date to set a range, like a shutdown.</div>
                 </div>
@@ -173,7 +173,7 @@
                 <div class="collapse" id="ppSettingsBody">
                     <div class="pp-sec pt-3">
                         <label class="pp-field" for="ppSetRate">Planned kg per day
-                            <input type="number" class="form-control pp-input" id="ppSetRate" min="1" step="100" inputmode="numeric">
+                            <input type="text" class="form-control pp-input js-kg-input" id="ppSetRate" inputmode="decimal">
                         </label>
                         <fieldset class="pp-fieldset">
                             <legend class="pp-legend-label">Opening stock</legend>
@@ -182,7 +182,7 @@
                         </fieldset>
                         <div class="pp-grid2" id="ppManualWrap">
                             <label class="pp-field" for="ppSetKg">Kg counted
-                                <input type="number" class="form-control pp-input" id="ppSetKg" min="0" step="100" inputmode="numeric">
+                                <input type="text" class="form-control pp-input js-kg-input" id="ppSetKg" inputmode="decimal">
                             </label>
                             <label class="pp-field" for="ppSetAsOf">Counted on
                                 <input type="date" class="form-control pp-input" id="ppSetAsOf">

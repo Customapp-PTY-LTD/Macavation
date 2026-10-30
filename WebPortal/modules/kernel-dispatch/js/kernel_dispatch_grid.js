@@ -425,7 +425,7 @@ var _kernelDispatchGrid = function () {
                             { label: 'Dispatch', className: 'js-dispatch-order', icon: 'fas fa-truck', dataAttrs: { 'order-id': o.id || '' } }
                         ])
                     });
-                    pendingTbody.append('<tr><td>' + buyer + '</td><td>' + collectionStr + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(2) + ' kg</td><td>' + statusBadge + '</td><td>' + scope.waitingOn(o) + '</td><td class="mac-table-actions-col">' + actions + '</td></tr>');
+                    pendingTbody.append('<tr><td>' + buyer + '</td><td>' + collectionStr + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + _common.formatKg(totalKg) + ' kg</td><td>' + statusBadge + '</td><td>' + scope.waitingOn(o) + '</td><td class="mac-table-actions-col">' + actions + '</td></tr>');
                 });
             }
 
@@ -452,7 +452,7 @@ var _kernelDispatchGrid = function () {
                             { label: 'View sheet', className: 'js-view-dispatch-order', icon: 'fas fa-clipboard-list', dataAttrs: { 'order-id': o.id || '' } }
                         ].concat(scope.stageMenuItem(o))
                     });
-                    dispatchedTbody.append('<tr><td>' + buyer + '</td><td>' + collectionStr + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(2) + ' kg</td><td>' + statusBadge + '</td><td>' + scope.waitingOn(o) + '</td><td class="mac-table-actions-col">' + actions + '</td></tr>');
+                    dispatchedTbody.append('<tr><td>' + buyer + '</td><td>' + collectionStr + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + _common.formatKg(totalKg) + ' kg</td><td>' + statusBadge + '</td><td>' + scope.waitingOn(o) + '</td><td class="mac-table-actions-col">' + actions + '</td></tr>');
                 });
             }
             MacTableActions.init(document.getElementById('kernelDispatchTable'));
@@ -492,7 +492,7 @@ var _kernelDispatchGrid = function () {
                 var collectionStr = formatDate(o.planned_collection_date);
                 var createdStr = formatDate(o.created_at);
                 var lineCount = o.line_count != null ? o.line_count : 0;
-                var totalKg = o.total_kg != null ? Number(o.total_kg).toFixed(1) : '0.0';
+                var totalKg = o.total_kg != null ? _common.formatKg(o.total_kg) : '0.00';
                 var isDispatched = o.status === 'dispatched';
 
                 var html = '<div class="kanban-card" data-order-id="' + (o.id || '') + '">';

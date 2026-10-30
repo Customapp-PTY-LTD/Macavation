@@ -425,7 +425,7 @@ var _workflowViews = function () {
                     var meta = [task.supplier, task.transporter ? task.transporter + (task.transport_type ? ' (' + task.transport_type + ')' : '') : null,
                         task.delivery_note ? 'delivery note ' + task.delivery_note : null].filter(Boolean).join(' · ');
                     var sub = [task.pallets != null ? task.pallets + ' pallets' : null,
-                        task.weighed_kg != null ? self._fmtNum(task.weighed_kg, 0) + ' kg' : null,
+                        task.weighed_kg != null ? _common.formatKg(task.weighed_kg) + ' kg' : null,
                         task.captured_at ? 'captured ' + self._fmtWhen(task.captured_at) : null].filter(Boolean).join(' · ');
                     return '<div class="workflow-task task-transport-rate" data-task-id="' + id + '">' +
                         '<div class="task-content">' +
@@ -683,7 +683,7 @@ var _workflowViews = function () {
                     row('Supplier', task.supplier) +
                     row('Transporter', task.transporter ? task.transporter + (task.transport_type ? ' (' + task.transport_type + ')' : '') : '') +
                     row('Delivery note', task.delivery_note) +
-                    row('Pallets · weighed', (pallets || '—') + ' · ' + (kg ? self._fmtNum(kg, 0) + ' kg' : '—')) + '</dl>' +
+                    row('Pallets · weighed', (pallets || '—') + ' · ' + (kg ? _common.formatKg(kg) + ' kg' : '—')) + '</dl>' +
                     '<div class="text-start"><label for="wvRateZar" class="form-label fw-semibold">Transport Rate (R, whole trip)</label>' +
                     '<input type="number" id="wvRateZar" class="form-control" min="0" step="0.01" placeholder="e.g. 4500"></div>' +
                     '<div class="row text-start mt-3 g-2"><div class="col-6"><div class="small text-muted">Rate per pallet</div><strong id="wvRatePallet">—</strong></div>' +
