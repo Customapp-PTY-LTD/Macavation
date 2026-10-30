@@ -6,13 +6,13 @@
             <div class="btn-toolbar mb-2 mb-md-0 ms-auto gap-2 align-items-center">
                 <a target="_blank" rel="noopener noreferrer" href="help/index.html#grower-intake-grid" class="btn btn-sm btn-outline-secondary macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
 
-                <button type="button" class="btn btn-outline-secondary" id="giOpenProcurementPlanBtn" title="Open procurement plan"><i class="fas fa-calendar-days me-1"></i>Open procurement plan</button>
+                <button type="button" class="btn btn-outline-secondary gi-proc-btn" id="giOpenProcurementPlanBtn" title="Open the procurement plan"><i class="fas fa-calendar-days me-1"></i>Procurement plan</button>
 
                 <!-- Intake calendar: what was actually received each day (js/mac-activity-calendar.js) -->
                 <div id="giActivityCalendarMount"></div>
 
                 <button type="button" class="btn btn-primary" id="createKernelBatchBtn" data-action-perm="grower.intake.create">
-                    + New Delivery
+                    + Book in a truck
                 </button>
                 <button type="button" class="btn btn-outline-secondary" id="exportIntakeBatchesBtn">
                     <i class="fas fa-download me-1"></i>Export
@@ -21,8 +21,6 @@
         </div>
         <p class="text-muted mb-0 mt-2 small macavation-module-journey-subtitle" id="macavationModuleJourneySubtitle">Stage 1: Complete Receiving checklist for each batch (box becomes a tick); then Batch test / Batch sample (enabled after checklist). Release to production is only enabled once both forms are completed.</p>
     </div>
-
-    <div class="alert alert-info py-2 small mb-3" id="giPlanInfoLine">The calendar icon that used to sit here now opens the Procurement plan. Trucks are added and moved there; this screen only books them in.</div>
 
     <div class="gi-layout">
         <!-- Expected trucks: from the procurement plan -->
@@ -52,6 +50,7 @@
                         <option value="intake_received">Intake received</option>
                         <option value="quality_pending">Quality pending</option>
                         <option value="quality_approved">Quality approved</option>
+                        <option value="released">Released &ndash; cracking</option>
                     </select>
                 </div>
                 <div class="col-6 col-lg-2">
@@ -83,6 +82,7 @@
                 <table class="table align-middle table-hover" id="intakeBatchesTable">
                     <thead>
                         <tr>
+                            <th class="intake-col-expand"><span class="visually-hidden">Show bags</span></th>
                             <th class="intake-col-batch">Batch number</th>
                             <th class="intake-col-grower d-none d-md-table-cell">Grower / supplier</th>
                             <th class="intake-col-date" title="Date the batch was received">Received date</th>
@@ -103,6 +103,7 @@
                                     <span class="intake-wet-subhead intake-wet-supplied">Supplier's declared (kg)</span>
                                 </div>
                             </th>
+                            <th class="intake-col-bags">Bags</th>
                             <th class="intake-col-stage1">Stage 1 steps</th>
                             <th class="intake-col-status">Status</th>
                             <th class="intake-col-actions">Actions</th>
@@ -113,6 +114,17 @@
             </div>
         </div>
     </div>
+
+    <!-- Storage areas: how full each area is, worked out from the bag tags (js/grower_intake_bags.js) -->
+    <section class="gi-storage" aria-labelledby="giStorageHeading">
+        <div class="gi-storage-head">
+            <h2 id="giStorageHeading" class="h5 mb-0">Storage areas</h2>
+            <span class="text-muted small">How full each area is, worked out from the bags. Tap a card to see the bags in it.</span>
+        </div>
+        <div class="gib-cards" id="giStorageCards"><div class="text-muted small">Loading&hellip;</div></div>
+        <div class="text-muted small mt-2" id="giStorageNote"></div>
+        <div class="gib-detail" id="giStorageDetail" hidden></div>
+    </section>
         </div>
     </div>
 </div>

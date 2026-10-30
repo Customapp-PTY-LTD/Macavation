@@ -3,13 +3,16 @@
 <div class="module-content pp-module" id="ppModule">
     <div class="pp-head">
         <div>
-            <div class="pp-crumb">Grower Intake &rsaquo; Procurement plan</div>
+            <div class="pp-crumb"><button type="button" class="pp-crumb-link" id="ppCrumbIntake">Grower Intake</button> &rsaquo; Procurement plan</div>
             <h1 class="h2 mb-1">Procurement plan</h1>
             <div class="pp-sub">Nut in shell coming in vs. what cracking uses. Planners edit, everyone else can view.</div>
         </div>
+        <div class="pp-head-right">
+        <button type="button" class="btn btn-outline-secondary pp-btn" id="ppBackToIntake"><i class="fas fa-arrow-left me-1"></i>Back to Grower Intake</button>
         <div class="pp-head-actions" id="ppHeadActions">
             <button type="button" class="btn btn-outline-secondary pp-btn" id="ppBtnDays">Working days</button>
             <button type="button" class="btn btn-primary pp-btn" id="ppBtnPlan">+ Plan a delivery</button>
+        </div>
         </div>
     </div>
 
@@ -31,6 +34,12 @@
         <div class="pp-card">
             <div class="pp-card-head">
                 <div class="pp-card-title">Stock on hand through the season</div>
+                <div class="pp-seg pp-seg-sm" role="group" aria-label="How far ahead the chart shows" id="ppRangeSeg">
+                    <button type="button" class="pp-seg-btn" data-range="q" aria-pressed="false">3 months</button>
+                    <button type="button" class="pp-seg-btn" data-range="h" aria-pressed="false">6 months</button>
+                    <button type="button" class="pp-seg-btn" data-range="year" aria-pressed="true">Year</button>
+                    <button type="button" class="pp-seg-btn" data-range="all" aria-pressed="false">All</button>
+                </div>
                 <div class="pp-legend">
                     <span class="pp-legend-item"><span class="pp-key pp-key-line"></span>Planned stock</span>
                     <span class="pp-legend-item"><span class="pp-key pp-key-dot"></span>Truck in</span>
@@ -45,6 +54,7 @@
                 <button type="button" class="pp-seg-btn" data-view="day" aria-pressed="false">Day</button>
                 <button type="button" class="pp-seg-btn" data-view="week" aria-pressed="true">Week</button>
                 <button type="button" class="pp-seg-btn" data-view="month" aria-pressed="false">Month</button>
+                <button type="button" class="pp-seg-btn" data-view="year" aria-pressed="false">Year</button>
             </div>
             <div class="pp-controls-right">
                 <label class="pp-inline-label" for="ppArea">Storage area

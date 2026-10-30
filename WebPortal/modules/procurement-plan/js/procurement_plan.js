@@ -22,7 +22,8 @@ var _procurementPlan = (function () {
     var LATE_DAYS = 14;        // a truck is "late" up to this many days after its date; older ones are clean-up items
     var RUNWAY_WARN_DAYS = 30; // wording only: the database warns Mike inside this window
 
-    var state = { plan: null, view: 'week', rate: 'planned', area: '', monthKey: null, sim: null, cleanup: null, handoff: null, openLists: {} };
+    var state = { plan: null, view: 'week', rate: 'planned', area: '', monthKey: null, sim: null, cleanup: null, handoff: null, openLists: {}, range: 'year' };
+    var RANGE_WEEKS = { q: 13, h: 26, year: 53, all: 0 };
     var panel = { id: null, nameTouched: false, status: 'planned' };
 
     // ------------------------------------------------------------------
@@ -153,7 +154,7 @@ var _procurementPlan = (function () {
             else if (type === 'half') use = ov != null ? ov : rate / 2;
             stock -= use;
             days.push({ k: k, wd: wd, type: type, note: row ? row.note : null, open: open, dels: dels, inKg: inKg, use: use, close: stock });
-            if (stock <= 0) { runOut = k; break; }
+            if (stock <= 0) { if (!runOut) runOut = k; stock = 0; }
             k = addDays(k, 1);
         }
         return { days: days, runOut: runOut, rate: rate, startK: startK, manual: manual, late: late };
@@ -590,6 +591,28 @@ var _procurementPlan = (function () {
         return el('div', 'pp-table-wrap').append(el('table', 'pp-table pp-table-month').append(el('thead').append($head), $body));
     }
 
+    function renderYear(sim, today) {
+        var t1 = function (kg) { return fmt(kg / 1000) + ' t'; };
+        var $grid = el('div', 'pp-year');
+        monthRows(sim).filter(function (m) { return m.key >= today.slice(0, 7); }).slice(0, 13).forEach(function (m) {
+            var short = m.inKg < m.used;
+            var pct = m.used > 0 ? Math.min(100, m.inKg / m.used * 100) : 100;
+            var $b = el('button', 'pp-ymon' + (short ? ' pp-ymon-short' : '')).attr({ type: 'button', 'data-month': m.key, 'aria-label': 'Open ' + LONG_MON[m.m] + ' ' + m.y });
+            $b.append(
+                el('span', 'pp-ymon-name', LONG_MON[m.m] + ' ' + m.y + (m.key === today.slice(0, 7) ? ' (from today)' : '')),
+                el('span', 'pp-ymon-line', m.n + (m.n === 1 ? ' truck' : ' trucks') + ' \u00b7 ' + t1(m.inKg) + ' in'),
+                el('span', 'pp-ymon-bar').append(el('span', '').css('width', pct.toFixed(0) + '%')),
+                el('span', 'pp-ymon-note', short ? 'Short by ' + t1(m.used - m.inKg) : 'Covers the ' + t1(m.used) + ' cracking needs'),
+                el('span', 'pp-ymon-close', 'Ends with ' + (m.close > 0 ? t1(m.close) : 'no stock'))
+            );
+            $grid.append($b);
+        });
+        return el('div', 'pp-card').append(
+            el('div', 'pp-card-head').append(el('div', 'pp-card-title', 'The next 12 months')),
+            $grid,
+            el('div', 'pp-hint', 'Short means the trucks planned for that month bring in less than cracking uses. Tap a month to see its calendar.'));
+    }
+
     function renderDay(sim, today) {
         var months = monthRows(sim);
         var keys = months.map(function (m) { return m.key; });
@@ -663,9 +686,14 @@ var _procurementPlan = (function () {
         renderLate(plan);
         renderTrucks(plan);
         renderCleanup();
-        renderChart(sim, weeks);
+        var nWeeks = RANGE_WEEKS[state.range] || weeks.length;
+        var chartWeeks = weeks.slice(0, nWeeks);
+        var lastK = chartWeeks.length ? chartWeeks[chartWeeks.length - 1].end : null;
+        $('#ppRangeSeg [data-range]').each(function () { $(this).attr('aria-pressed', $(this).data('range') === state.range ? 'true' : 'false'); });
+        renderChart({ days: sim.days.filter(function (x) { return !lastK || x.k <= lastK; }), runOut: sim.runOut }, chartWeeks);
         var $v = $('#ppView').empty();
         if (state.view === 'day') $v.append(renderDay(sim, plan.today));
+        else if (state.view === 'year') $v.append(renderYear(sim, plan.today));
         else if (state.view === 'month') $v.append(renderMonth(sim));
         else $v.append(renderWeek(sim, weeks, plan.today));
     }
@@ -959,6 +987,11 @@ var _procurementPlan = (function () {
         $m.on('click' + NS, '#ppBtnPlan', function () { openPanel('delivery'); });
         $m.on('click' + NS, '#ppBtnDays', function () { openPanel('day'); });
         $m.on('click' + NS, '#ppViewSeg [data-view]', function () { state.view = $(this).data('view'); render(); });
+        $m.on('click' + NS, '#ppRangeSeg [data-range]', function () { state.range = $(this).data('range'); render(); });
+        $m.on('click' + NS, '.pp-ymon', function () { state.view = 'day'; state.monthKey = $(this).data('month'); render(); });
+        $m.on('click' + NS, '#ppBackToIntake, #ppCrumbIntake', function () {
+            if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) _appRouter.routeTo('grower-intake-grid', true);
+        });
         $m.on('click' + NS, '#ppRateSeg [data-rate]', function () { if (!this.disabled) { state.rate = $(this).data('rate'); render(); } });
         $m.on('change' + NS, '#ppArea', function () { state.area = $(this).val() || ''; render(); });
         $m.on('click' + NS, '#ppPrevMonth, #ppNextMonth', function () {

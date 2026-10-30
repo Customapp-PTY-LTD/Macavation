@@ -163,9 +163,22 @@
 
                 <!-- Book in from the Expected trucks list (planned truck): where it went + what happens on save -->
                 <fieldset class="mt-4" id="intakeBookInArea" style="display:none">
-                    <legend class="form-label fs-6">Where is it going?</legend>
+                    <legend class="form-label fs-6">Where did the bags go?</legend>
                     <div class="row g-2" id="intakeBookInAreaOptions"></div>
                     <div class="small text-muted mt-2" id="intakeBookInAreaHint"></div>
+                    <!-- Split: the last N bags went to a second area (bags are tagged on Grower Intake) -->
+                    <div class="row g-2 align-items-end mt-1" id="intakeSplitWrap" hidden>
+                        <div class="col-8">
+                            <label class="form-label small mb-1" for="intakeSplitArea">The last bags went to</label>
+                            <select class="form-select form-select-sm" id="intakeSplitArea"></select>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small mb-1" for="intakeSplitBags">How many bags</label>
+                            <input type="text" inputmode="numeric" class="form-control form-control-sm" id="intakeSplitBags" value="0">
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-link btn-sm px-0" id="intakeSplitAddBtn">+ Some bags went somewhere else</button>
+                    <div class="small fw-semibold" id="intakePlacedLine"></div>
                 </fieldset>
                 <div class="rounded p-3 mt-3 small" id="intakeBookInSummary" style="display:none; background: var(--mac-bg);">
                     <strong class="d-block mb-1">When you save</strong>
