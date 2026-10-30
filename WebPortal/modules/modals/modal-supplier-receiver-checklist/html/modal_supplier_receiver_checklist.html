@@ -6,7 +6,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-            <form id="supplierReceiverChecklistForm">
+            <form id="supplierReceiverChecklistForm" novalidate>
                 <div class="card mb-3">
                     <div class="card-header"><h6 class="mb-0">Delivery &amp; supplier</h6></div>
                     <div class="card-body">
@@ -58,90 +58,98 @@
                 </div>
 
                 <div class="card mb-3">
-                    <div class="card-header"><h6 class="mb-0">Truck checks <span class="fw-normal text-muted small">(answer every one, every load)</span></h6></div>
                     <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
-                                    <label class="form-label mb-0">Vehicle clean?</label>
-                                    <div class="text-nowrap flex-shrink-0">
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="srcVehicleClean" id="srcVehicleCleanYes" value="Yes">
-                                            <label class="form-check-label" for="srcVehicleCleanYes">Yes</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="srcVehicleClean" id="srcVehicleCleanNo" value="No">
-                                            <label class="form-check-label" for="srcVehicleCleanNo">No</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
-                                    <label class="form-label mb-0">Vehicle fully enclosed?</label>
-                                    <div class="text-nowrap flex-shrink-0">
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="srcVehicleEnclosed" id="srcVehicleEnclosedYes" value="Yes">
-                                            <label class="form-check-label" for="srcVehicleEnclosedYes">Yes</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="srcVehicleEnclosed" id="srcVehicleEnclosedNo" value="No">
-                                            <label class="form-check-label" for="srcVehicleEnclosedNo">No</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
-                                    <label class="form-label mb-0">Any hazard substances noted on truck?</label>
-                                    <div class="text-nowrap flex-shrink-0">
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="srcHazardSubstances" id="srcHazardSubstancesYes" value="Yes">
-                                            <label class="form-check-label" for="srcHazardSubstancesYes">Yes</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="srcHazardSubstances" id="srcHazardSubstancesNo" value="No">
-                                            <label class="form-check-label" for="srcHazardSubstancesNo">No</label>
-                                        </div>
-                                    </div>
-                                </div>
+                        <label class="form-label fw-semibold">Vehicle &amp; Receiving Checks <span class="text-danger">(all required)</span></label>
+                        <div class="mb-3 src-check-item">
+                            <label class="form-label">Is the vehicle clean?</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="srcVehicleClean" id="srcVehicleCleanYes" value="Yes"><label class="form-check-label" for="srcVehicleCleanYes">Yes</label></div>
+                                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="srcVehicleClean" id="srcVehicleCleanNo" value="No"><label class="form-check-label" for="srcVehicleCleanNo">No</label></div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
-                                    <label class="form-label mb-0">Any signs of pest infestations?</label>
-                                    <div class="text-nowrap flex-shrink-0">
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="srcPestInfestations" id="srcPestInfestationsYes" value="Yes">
-                                            <label class="form-check-label" for="srcPestInfestationsYes">Yes</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="srcPestInfestations" id="srcPestInfestationsNo" value="No">
-                                            <label class="form-check-label" for="srcPestInfestationsNo">No</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
-                                    <label class="form-label mb-0">Pallets received are in good condition</label>
-                                    <div class="text-nowrap flex-shrink-0">
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="srcPalletsCondition" id="srcPalletsConditionYes" value="Yes">
-                                            <label class="form-check-label" for="srcPalletsConditionYes">Yes</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="srcPalletsCondition" id="srcPalletsConditionNo" value="No">
-                                            <label class="form-check-label" for="srcPalletsConditionNo">No</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
-                                    <label class="form-label mb-0">Are raw materials received in good condition?</label>
-                                    <div class="text-nowrap flex-shrink-0">
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="srcRawMaterialsCondition" id="srcRawMaterialsConditionYes" value="Yes">
-                                            <label class="form-check-label" for="srcRawMaterialsConditionYes">Yes</label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="srcRawMaterialsCondition" id="srcRawMaterialsConditionNo" value="No">
-                                            <label class="form-check-label" for="srcRawMaterialsConditionNo">No</label>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div class="src-check-extra src-check-extra--alert border rounded p-3 mt-2 d-none" id="srcVehicleCleanExtra">
+                                <span class="src-alert-pill"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>Raises an alert</span>
+                                <label for="srcVehicleCleanComment" class="form-label required">What was wrong and what action was taken?</label>
+                                <textarea class="form-control mb-2" id="srcVehicleCleanComment" rows="2"></textarea>
+                                <label for="srcVehicleCleanPhotos" class="form-label">Photos</label>
+                                <input type="file" class="form-control form-control-sm src-check-photo-input" id="srcVehicleCleanPhotos" accept="image/*" multiple>
+                                <div class="text-danger small mt-1 d-none" id="srcVehicleCleanPhotoError"></div>
+                                <div class="d-flex flex-wrap gap-2 mt-2" id="srcVehicleCleanThumbs"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3 src-check-item">
+                            <label class="form-label">Vehicle fully enclosed?</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="srcVehicleEnclosed" id="srcVehicleEnclosedYes" value="Yes"><label class="form-check-label" for="srcVehicleEnclosedYes">Yes</label></div>
+                                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="srcVehicleEnclosed" id="srcVehicleEnclosedNo" value="No"><label class="form-check-label" for="srcVehicleEnclosedNo">No</label></div>
+                            </div>
+                            <div class="src-check-extra border rounded p-3 mt-2 d-none" id="srcVehicleEnclosedExtra">
+                                <label for="srcVehicleEnclosedComment" class="form-label required">What was wrong and what action was taken?</label>
+                                <textarea class="form-control mb-2" id="srcVehicleEnclosedComment" rows="2"></textarea>
+                                <label for="srcVehicleEnclosedPhotos" class="form-label">Photos</label>
+                                <input type="file" class="form-control form-control-sm src-check-photo-input" id="srcVehicleEnclosedPhotos" accept="image/*" multiple>
+                                <div class="text-danger small mt-1 d-none" id="srcVehicleEnclosedPhotoError"></div>
+                                <div class="d-flex flex-wrap gap-2 mt-2" id="srcVehicleEnclosedThumbs"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3 src-check-item">
+                            <label class="form-label">Any hazard substances noted on truck?</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="srcHazardSubstances" id="srcHazardSubstancesYes" value="Yes"><label class="form-check-label" for="srcHazardSubstancesYes">Yes</label></div>
+                                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="srcHazardSubstances" id="srcHazardSubstancesNo" value="No"><label class="form-check-label" for="srcHazardSubstancesNo">No</label></div>
+                            </div>
+                            <div class="src-check-extra border rounded p-3 mt-2 d-none" id="srcHazardSubstancesExtra">
+                                <label for="srcHazardSubstancesComment" class="form-label required">What was wrong and what action was taken?</label>
+                                <textarea class="form-control mb-2" id="srcHazardSubstancesComment" rows="2"></textarea>
+                                <label for="srcHazardSubstancesPhotos" class="form-label">Photos</label>
+                                <input type="file" class="form-control form-control-sm src-check-photo-input" id="srcHazardSubstancesPhotos" accept="image/*" multiple>
+                                <div class="text-danger small mt-1 d-none" id="srcHazardSubstancesPhotoError"></div>
+                                <div class="d-flex flex-wrap gap-2 mt-2" id="srcHazardSubstancesThumbs"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3 src-check-item">
+                            <label class="form-label">Any signs of pest infestations?</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="srcPestInfestations" id="srcPestInfestationsYes" value="Yes"><label class="form-check-label" for="srcPestInfestationsYes">Yes</label></div>
+                                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="srcPestInfestations" id="srcPestInfestationsNo" value="No"><label class="form-check-label" for="srcPestInfestationsNo">No</label></div>
+                            </div>
+                            <div class="src-check-extra src-check-extra--alert border rounded p-3 mt-2 d-none" id="srcPestInfestationsExtra">
+                                <span class="src-alert-pill"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>Raises an alert</span>
+                                <label for="srcPestInfestationsComment" class="form-label required">What was wrong and what action was taken?</label>
+                                <textarea class="form-control mb-2" id="srcPestInfestationsComment" rows="2"></textarea>
+                                <label for="srcPestInfestationsPhotos" class="form-label">Photos</label>
+                                <input type="file" class="form-control form-control-sm src-check-photo-input" id="srcPestInfestationsPhotos" accept="image/*" multiple>
+                                <div class="text-danger small mt-1 d-none" id="srcPestInfestationsPhotoError"></div>
+                                <div class="d-flex flex-wrap gap-2 mt-2" id="srcPestInfestationsThumbs"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3 src-check-item">
+                            <label class="form-label">Pallets received are in good condition</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="srcPalletsCondition" id="srcPalletsConditionYes" value="Yes"><label class="form-check-label" for="srcPalletsConditionYes">Yes</label></div>
+                                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="srcPalletsCondition" id="srcPalletsConditionNo" value="No"><label class="form-check-label" for="srcPalletsConditionNo">No</label></div>
+                            </div>
+                            <div class="src-check-extra border rounded p-3 mt-2 d-none" id="srcPalletsConditionExtra">
+                                <label for="srcPalletsConditionComment" class="form-label required">What was wrong and what action was taken?</label>
+                                <textarea class="form-control mb-2" id="srcPalletsConditionComment" rows="2"></textarea>
+                                <label for="srcPalletsConditionPhotos" class="form-label">Photos</label>
+                                <input type="file" class="form-control form-control-sm src-check-photo-input" id="srcPalletsConditionPhotos" accept="image/*" multiple>
+                                <div class="text-danger small mt-1 d-none" id="srcPalletsConditionPhotoError"></div>
+                                <div class="d-flex flex-wrap gap-2 mt-2" id="srcPalletsConditionThumbs"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3 src-check-item">
+                            <label class="form-label">Are raw materials received in good condition?</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="srcRawMaterialsCondition" id="srcRawMaterialsConditionYes" value="Yes"><label class="form-check-label" for="srcRawMaterialsConditionYes">Yes</label></div>
+                                <div class="form-check mb-0"><input class="form-check-input" type="radio" name="srcRawMaterialsCondition" id="srcRawMaterialsConditionNo" value="No"><label class="form-check-label" for="srcRawMaterialsConditionNo">No</label></div>
+                            </div>
+                            <div class="src-check-extra border rounded p-3 mt-2 d-none" id="srcRawMaterialsConditionExtra">
+                                <label for="srcRawMaterialsConditionComment" class="form-label required">What was wrong and what action was taken?</label>
+                                <textarea class="form-control mb-2" id="srcRawMaterialsConditionComment" rows="2"></textarea>
+                                <label for="srcRawMaterialsConditionPhotos" class="form-label">Photos</label>
+                                <input type="file" class="form-control form-control-sm src-check-photo-input" id="srcRawMaterialsConditionPhotos" accept="image/*" multiple>
+                                <div class="text-danger small mt-1 d-none" id="srcRawMaterialsConditionPhotoError"></div>
+                                <div class="d-flex flex-wrap gap-2 mt-2" id="srcRawMaterialsConditionThumbs"></div>
                             </div>
                         </div>
                         <div class="mb-0">
@@ -162,9 +170,9 @@
                                     <tr>
                                         <th style="width:70px">No.</th>
                                         <th style="min-width: 190px;">Description</th>
-                                        <th style="min-width: 150px;">Batch #</th>
+                                        <th style="min-width: 150px;">Batch # <span class="text-danger">*</span></th>
                                         <th class="text-end" style="min-width: 130px;">Weight (kg)</th>
-                                        <th style="min-width: 140px;">Manufactured date</th>
+                                        <th style="min-width: 140px;">Manufactured date <span class="text-danger">*</span></th>
                                         <th style="width:50px"></th>
                                     </tr>
                                 </thead>
@@ -182,11 +190,12 @@
                             <button type="button" class="btn btn-sm btn-outline-primary" id="srcAddItemRow">+ Add</button>
                             <input type="number" class="form-control form-control-sm" id="srcAddBagCount" value="1" min="1" max="500" step="1" style="width: 80px;" aria-label="How many bags to add">
                             <span class="small">bag(s)</span>
-                            <small class="text-muted">New rows copy the last row and number the batch on (OIL-001, OIL-002&hellip;).</small>
+                            <small class="text-muted">New rows copy the description, batch (numbered on) and date from the last row. Weight starts blank.</small>
                         </div>
-                        <div class="text-muted small">Each bag becomes its own batch, grouped under this supplier and delivery note. Food grade and crude oil kernel count as one pool on the Raw material stock tab.</div>
+                        <div class="text-muted small">Rows with no weight are left out when you save. Each bag becomes its own batch, grouped under this supplier and delivery note. Food grade and crude oil kernel count as one pool on the Raw material stock tab.</div>
                     </div>
                 </div>
+                <div class="alert alert-danger mt-3 mb-0 d-none" id="srcChecklistMessage" role="alert"></div>
             </form>
         </div>
         <div class="modal-footer">

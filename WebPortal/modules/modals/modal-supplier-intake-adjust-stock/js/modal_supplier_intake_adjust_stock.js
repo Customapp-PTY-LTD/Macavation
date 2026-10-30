@@ -73,45 +73,45 @@ var _modal_supplier_intake_adjust_stock = (function () {
         return raw + '.' + String(step + 1);
     }
 
-    function readFirstRowSeed() {
+    /** New rows copy the LAST row's description, batch and date (never weight or FFA), so adding twice keeps numbering batches on. */
+    function readLastRowSeed() {
         if (typeof $ === 'undefined') return null;
-        var $row = $('#siaBagsTableBody tr:first');
+        var $row = $('#siaBagsTableBody tr:last');
         if (!$row.length) return null;
         return {
             batch: ($row.find('[name="siaBatch"]').val() || '').trim(),
             productType: ($row.find('[name="siaProductType"]').val() || '').trim() || 'oil_kernel:crude',
-            weight: ($row.find('[name="siaWeight"]').val() || '').trim(),
-            ffa: ($row.find('[name="siaFfa"]').val() || '').trim(),
             manufacturedDate: ($row.find('[name="siaManufacturedDate"]').val() || '').trim()
         };
     }
 
-    async function promptBagCount() {
-        if (typeof Swal !== 'undefined') {
-            var res = await Swal.fire({
-                title: 'How many bags to add?',
-                input: 'number',
-                inputLabel: 'Number of additional bag rows',
-                inputValue: 1,
-                inputAttributes: { min: 1, step: 1 },
-                showCancelButton: true,
-                confirmButtonText: 'Add bags',
-                inputValidator: function (value) {
-                    var n = parseInt(value, 10);
-                    if (isNaN(n) || n <= 0) return 'Enter a number greater than 0.';
-                    if (n > 500) return 'Please enter 500 or less.';
-                    return null;
-                }
-            });
-            if (!res.isConfirmed) return null;
-            return parseInt(res.value, 10);
-        }
-        var raw = window.prompt('How many bags do you want to add?', '1');
-        if (raw == null) return null;
-        var n = parseInt(raw, 10);
-        if (isNaN(n) || n <= 0) return null;
+    /** Typed "Add [n] bag(s)" count; anything odd falls back to 1, capped at 500. */
+    function readAddCount() {
+        var el = document.getElementById('siaAddBagCount');
+        var n = parseInt(el && el.value, 10);
+        if (isNaN(n) || n <= 0) n = 1;
         if (n > 500) n = 500;
+        if (el) el.value = '1';
         return n;
+    }
+
+    function fmtKg(v) {
+        if (typeof _common !== 'undefined' && _common.formatKg) return _common.formatKg(v);
+        return Number(v || 0).toFixed(2);
+    }
+
+    /** No. column and the weighed total / bag count footer, same as the NIS delivery. */
+    function refreshBagTotals() {
+        if (typeof $ === 'undefined') return;
+        var total = 0;
+        var count = 0;
+        $('#siaBagsTableBody tr').each(function (i) {
+            $(this).find('.siaBagNo').text(String(i + 1));
+            var kg = parseFloat($(this).find('[name="siaWeight"]').val());
+            if (!isNaN(kg) && kg > 0) { total += kg; count += 1; }
+        });
+        $('#siaBagCount').text(String(count));
+        $('#siaBagTotal').text(fmtKg(total) || '0.00');
     }
 
     function initFlatpickrInModal() {
@@ -132,8 +132,8 @@ var _modal_supplier_intake_adjust_stock = (function () {
         seed = seed || {};
         return (
             '<tr>' +
-            '<td><input type="text" class="form-control form-control-sm" name="siaBatch" maxlength="120" placeholder="e.g. OIL-2026-03-001" value="' + escapeAttr(seed.batch || '') + '"></td>' +
-            '<td><select class="form-select form-select-sm" name="siaProductType">' +
+            '<td><strong class="siaBagNo"></strong></td>' +
+            '<td><select class="form-select form-select-sm" name="siaProductType" aria-label="Description">' +
             '<option value="oil_kernel:crude"' + ((seed.productType || 'oil_kernel:crude') === 'oil_kernel:crude' ? ' selected' : '') + '>Oil kernel (crude grade)</option>' +
             '<option value="oil_kernel:food_grade"' + ((seed.productType || '') === 'oil_kernel:food_grade' ? ' selected' : '') + '>Oil kernel (food grade)</option>' +
             '<option value="cracker_dust"' + ((seed.productType || '') === 'cracker_dust' ? ' selected' : '') + '>Cracker dust</option>' +
@@ -141,10 +141,11 @@ var _modal_supplier_intake_adjust_stock = (function () {
             '<option value="crush"' + ((seed.productType || '') === 'crush' ? ' selected' : '') + '>Crush</option>' +
             '<option value="cake"' + ((seed.productType || '') === 'cake' ? ' selected' : '') + '>Cake</option>' +
             '</select></td>' +
-            '<td><input type="number" class="form-control form-control-sm" name="siaWeight" step="0.01" min="0" placeholder="Optional" value="' + escapeAttr(seed.weight || '') + '"></td>' +
-            '<td><input type="number" class="form-control form-control-sm" name="siaFfa" step="0.01" min="0" placeholder="Optional" value="' + escapeAttr(seed.ffa || '') + '"></td>' +
+            '<td><input type="text" class="form-control form-control-sm" name="siaBatch" maxlength="120" placeholder="e.g. OIL-2026-03-001" value="' + escapeAttr(seed.batch || '') + '"></td>' +
+            '<td><input type="number" class="form-control form-control-sm" name="siaWeight" step="0.01" min="0" aria-label="Weight kg" style="text-align:right" value="' + escapeAttr(seed.weight || '') + '"></td>' +
+            '<td><input type="number" class="form-control form-control-sm" name="siaFfa" step="0.01" min="0" placeholder="Optional" aria-label="FFA percent" style="text-align:right" value="' + escapeAttr(seed.ffa || '') + '"></td>' +
             '<td><input type="text" class="form-control form-control-sm flatpickr-date" name="siaManufacturedDate" placeholder="dd/mm/yyyy" required value="' + escapeAttr(seed.manufacturedDate || '') + '"></td>' +
-            '<td><button type="button" class="btn btn-sm btn-danger siaRemoveRow" title="Remove"><i class="fas fa-times"></i></button></td>' +
+            '<td><button type="button" class="btn btn-sm btn-outline-secondary siaRemoveRow" title="Remove" aria-label="Remove bag">\u2715</button></td>' +
             '</tr>'
         );
     }
@@ -154,11 +155,15 @@ var _modal_supplier_intake_adjust_stock = (function () {
             if (_inited) return;
             _inited = true;
             var addBtn = document.getElementById('siaAddRowBtn');
-            if (addBtn) addBtn.addEventListener('click', async function (e) {
+            if (addBtn) addBtn.addEventListener('click', function (e) {
                 e.preventDefault();
-                var count = await promptBagCount();
-                if (!count) return;
-                api.addRows(count);
+                api.addRows(readAddCount());
+            });
+            var addCountEl = document.getElementById('siaAddBagCount');
+            if (addCountEl) addCountEl.addEventListener('keydown', function (e) {
+                if (e.key !== 'Enter') return;
+                e.preventDefault();
+                api.addRows(readAddCount());
             });
             var saveBtn = document.getElementById('siaSaveBtn');
             if (saveBtn) saveBtn.addEventListener('click', function (e) { e.preventDefault(); api.save(); });
@@ -169,6 +174,10 @@ var _modal_supplier_intake_adjust_stock = (function () {
                     var $tbody = $('#siaBagsTableBody');
                     if ($tbody.find('tr').length <= 1) return;
                     $(this).closest('tr').remove();
+                    refreshBagTotals();
+                });
+                $(document).off('input.siaBagWeight', '#siaBagsTableBody [name="siaWeight"]').on('input.siaBagWeight', '#siaBagsTableBody [name="siaWeight"]', function () {
+                    refreshBagTotals();
                 });
                 $('#' + CONTAINER_ID).on('shown.bs.modal', function () { initFlatpickrInModal(); });
                 $('#' + CONTAINER_ID).on('hidden.bs.modal', function () { api.resetForm(); });
@@ -183,6 +192,7 @@ var _modal_supplier_intake_adjust_stock = (function () {
             if (typeof $ !== 'undefined') {
                 $('#siaBagsTableBody').empty().append(rowTemplate());
             }
+            refreshBagTotals();
             var todayISO = new Date().toISOString().split('T')[0];
             var dateEl = document.getElementById('siaDateReceived');
             if (dateEl) dateEl.value = fromISO(todayISO);
@@ -196,20 +206,23 @@ var _modal_supplier_intake_adjust_stock = (function () {
             $row.find('.flatpickr-date').each(function () {
                 if (typeof flatpickr !== 'undefined' && !this._flatpickr) flatpickr(this, FLATPICKR_DDMMYYYY);
             });
+            refreshBagTotals();
+            return $row;
         },
 
         addRows: function (count) {
             if (typeof $ === 'undefined' || !count || count <= 0) return;
-            var seed = readFirstRowSeed() || {};
+            var seed = readLastRowSeed() || {};
+            var $first = null;
             for (var i = 1; i <= count; i++) {
-                api.addRow({
+                var $row = api.addRow({
                     batch: nextSequentialBatch(seed.batch || '', i),
                     productType: seed.productType || 'oil_kernel:crude',
-                    weight: seed.weight || '',
-                    ffa: seed.ffa || '',
                     manufacturedDate: seed.manufacturedDate || ''
                 });
+                if (!$first) $first = $row;
             }
+            if ($first) $first.find('[name="siaWeight"]').trigger('focus');
         },
 
         show: function () {
@@ -227,7 +240,7 @@ var _modal_supplier_intake_adjust_stock = (function () {
         readRows: function () {
             var rows = [];
             if (typeof $ === 'undefined') return rows;
-            $('#siaBagsTableBody tr').each(function () {
+            $('#siaBagsTableBody tr').each(function (i) {
                 var $r = $(this);
                 var batch = ($r.find('[name="siaBatch"]').val() || '').trim();
                 var productParts = (($r.find('[name="siaProductType"]').val() || '').trim() || 'oil_kernel:crude').split(':');
@@ -236,15 +249,16 @@ var _modal_supplier_intake_adjust_stock = (function () {
                 var wRaw = ($r.find('[name="siaWeight"]').val() || '').trim();
                 var ffaRaw = ($r.find('[name="siaFfa"]').val() || '').trim();
                 var mfgRaw = ($r.find('[name="siaManufacturedDate"]').val() || '').trim();
-                if (!batch) return;
-                var qty = wRaw === '' ? null : parseFloat(wRaw);
-                if (qty != null && isNaN(qty)) qty = null;
+                // A row with no weight is not a bag (spare rows from "+ Add"), same as New delivery.
+                var qty = wRaw === '' ? NaN : parseFloat(wRaw);
+                if (isNaN(qty) || qty <= 0) return;
                 var ffa = ffaRaw === '' ? null : parseFloat(ffaRaw);
                 if (ffa != null && isNaN(ffa)) ffa = null;
                 var manufacturedIso = mfgRaw ? (toISO(mfgRaw) || mfgRaw) : null;
                 var bestBeforeIso = manufacturedIso ? calculateBestBeforeIso(manufacturedIso) : null;
                 rows.push({
-                    batch_number: batch,
+                    no: i + 1,
+                    batch_number: batch || null,
                     product_type: productType,
                     grade: grade,
                     quantity_kg: qty,
@@ -269,12 +283,17 @@ var _modal_supplier_intake_adjust_stock = (function () {
 
             var bagRows = api.readRows();
             if (!bagRows.length) {
-                if (typeof Swal !== 'undefined') Swal.fire('Required', 'Add at least one row with a batch number.', 'warning');
+                if (typeof Swal !== 'undefined') Swal.fire('Required', 'Enter the weight of at least one bag.', 'warning');
+                return;
+            }
+            var missingBatch = bagRows.find(function (r) { return !r.batch_number; });
+            if (missingBatch) {
+                if (typeof Swal !== 'undefined') Swal.fire('Required', 'Bag ' + missingBatch.no + ': enter a batch number.', 'warning');
                 return;
             }
             var missingManufactured = bagRows.find(function (r) { return !r.manufactured_date; });
             if (missingManufactured) {
-                if (typeof Swal !== 'undefined') Swal.fire('Required', 'Enter manufactured date for each bag row. Best before is calculated automatically (+18 months).', 'warning');
+                if (typeof Swal !== 'undefined') Swal.fire('Required', 'Bag ' + missingManufactured.no + ': enter a manufactured date. Best before is worked out automatically (+18 months).', 'warning');
                 return;
             }
 

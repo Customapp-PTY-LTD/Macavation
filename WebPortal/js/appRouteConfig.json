@@ -272,7 +272,9 @@
             "js": [
                 "js/modal_supplier_receiver_checklist.js"
             ],
-            "css": []
+            "css": [
+                "css/modal_supplier_receiver_checklist.css"
+            ]
         },
         "supplier-intake-adjust-stock-modal": {
             "description": "Supplier Intake - Adjust stock (quick bags, no checklist)",
