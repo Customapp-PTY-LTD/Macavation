@@ -14,51 +14,41 @@
                 <button type="button" class="btn btn-primary" id="createKernelBatchBtn" data-action-perm="grower.intake.create">
                     + Book in a truck
                 </button>
-                <button type="button" class="btn btn-outline-secondary" id="exportIntakeBatchesBtn">
-                    <i class="fas fa-download me-1"></i>Export
+                <button type="button" class="btn btn-outline-secondary" id="exportIntakeBatchesBtn" title="Export the batches" aria-label="Export the batches">
+                    <i class="fas fa-download"></i>
                 </button>
             </div>
         </div>
         <p class="text-muted mb-0 mt-2 small macavation-module-journey-subtitle" id="macavationModuleJourneySubtitle">Stage 1: Complete Receiving checklist for each batch (box becomes a tick); then Batch test / Batch sample (enabled after checklist). Release to production is only enabled once both forms are completed.</p>
     </div>
 
-    <div class="gi-layout">
-        <!-- Expected trucks: from the procurement plan -->
-        <section class="gi-trucks-panel" aria-labelledby="giTrucksHeading">
-            <div class="gi-trucks-head">
-                <h2 id="giTrucksHeading">Expected trucks</h2>
-                <p>From the procurement plan. Book in, or drag onto Receiving.</p>
-            </div>
-            <div id="giExpectedTrucks"><div class="gi-trucks-empty">Loading…</div></div>
-        </section>
-
+    <div class="gi-layout gi-layout-full">
         <div class="gi-main">
 
     <!-- Search and Filters -->
     <div class="card mb-3 mac-module-filter-bar">
         <div class="card-body">
             <div class="row g-3 align-items-end">
-                <div class="col-12 col-sm-6 col-lg-4">
+                <div class="col-12 col-sm-6 col-xl">
                     <label for="searchIntakeBatchesInput" class="form-label">Search</label>
                     <input type="text" class="form-control" id="searchIntakeBatchesInput" placeholder="Search by batch number or grower...">
                 </div>
-                <div class="col-6 col-lg-3">
+                <div class="col-6 col-sm-6 col-xl-3">
                     <label for="filterIntakeBatchStatus" class="form-label">Status</label>
                     <select class="form-select" id="filterIntakeBatchStatus">
                         <option value="">All Statuses</option>
                         <option value="receiving">Receiving</option>
-                        <option value="intake_received">Intake received</option>
-                        <option value="quality_pending">Quality pending</option>
-                        <option value="quality_approved">Quality approved</option>
+                        <option value="intake_received">Quality checks</option>
+                        <option value="quality_approved">Ready to release</option>
                         <option value="released">Released &ndash; cracking</option>
                     </select>
                 </div>
-                <div class="col-6 col-lg-2">
+                <div class="col-6 col-sm-auto">
                     <button type="button" class="btn btn-outline-secondary w-100" id="clearIntakeBatchFiltersBtn">
                         <i class="fas fa-times me-1"></i>Clear
                     </button>
                 </div>
-                <div class="col-12 col-lg-3 mac-filter-bar-view d-flex justify-content-lg-end">
+                <div class="col-12 col-sm mac-filter-bar-view d-flex justify-content-sm-end">
                     <div class="view-toggle">
                         <button class="view-toggle-btn active" data-view="kanban" id="giViewKanban">
                             <i class="fas fa-columns me-1"></i>Board
@@ -71,6 +61,11 @@
             </div>
         </div>
     </div>
+
+    <!-- Expected trucks (from the procurement plan): one line, opens to a row of trucks to book in -->
+    <section class="gi-trucks-strip" aria-label="Expected trucks">
+        <div id="giExpectedTrucks"><div class="gi-trucks-line"><strong>Expected trucks</strong><span class="text-muted">Loading&hellip;</span></div></div>
+    </section>
 
     <!-- Kanban Board (default view) -->
     <div id="giKanbanBoard" class="kanban-board"></div>
@@ -119,11 +114,11 @@
     <section class="gi-storage" aria-labelledby="giStorageHeading">
         <div class="gi-storage-head">
             <h2 id="giStorageHeading" class="h5 mb-0">Storage areas</h2>
-            <span class="text-muted small">How full each area is, worked out from the bags. Tap a card to see the bags in it.</span>
+            <span class="text-muted small">Worked out from the bags. Tap an area to see the bags in it.</span>
         </div>
-        <div class="gib-cards" id="giStorageCards"><div class="text-muted small">Loading&hellip;</div></div>
-        <div class="text-muted small mt-2" id="giStorageNote"></div>
+        <div class="gib-slist" id="giStorageCards"><div class="text-muted small p-2">Loading&hellip;</div></div>
         <div class="gib-detail" id="giStorageDetail" hidden></div>
+        <div class="gib-snote" id="giStorageNote"></div>
     </section>
         </div>
     </div>
