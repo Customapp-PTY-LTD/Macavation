@@ -40,7 +40,7 @@
     <!-- Metric UI Styles -->
     <link href="css/metric-ui.css" rel="stylesheet">
     <!-- Workflow Views Styles -->
-    <link href="css/workflow-views.css?v=20261027red" rel="stylesheet">
+    <link href="css/workflow-views.css?v=20261028tasks2" rel="stylesheet">
     <!-- Connected Workflows Styles -->
     <link href="css/connected-workflows.css" rel="stylesheet">
     <!-- Kanban Board Styles -->
@@ -60,7 +60,7 @@
     <!-- Metric UI -->
     <script src="js/metric-ui.js"></script>
     <!-- Workflow Views -->
-    <script src="js/workflow-views.js?v=20261027red"></script>
+    <script src="js/workflow-views.js?v=20261028tasks2"></script>
     <!-- Connected Workflows -->
     <script src="js/connected-workflows.js"></script>
     <!-- Proactive Intelligence -->
@@ -158,9 +158,14 @@
                                                 <i class="fas fa-truck-loading me-2"></i>1. Grower Intake
                                             </a>
                                         </li>
-                                        <li class="nav-item d-none" data-route="silo-allocation-grid">
-                                            <a class="nav-link" href="#" route="silo-allocation-grid" title="Allocate delivered bags to silos and time silo cracking">
-                                                <i class="fas fa-database me-2"></i>Silo Allocation
+                                        <li class="nav-item d-none" data-route="procurement-plan">
+                                            <a class="nav-link" href="#" route="procurement-plan" title="Planned grower trucks against cracking, and when stock runs out">
+                                                <i class="fas fa-calendar-alt me-2"></i>Procurement plan
+                                            </a>
+                                        </li>
+                                        <li class="nav-item d-none" data-route="nis-storage">
+                                            <a class="nav-link" href="#" route="nis-storage" title="Nut in shell by storage area, moves between areas, and silo allocation">
+                                                <i class="fas fa-boxes me-2"></i>NIS storage &amp; silos
                                             </a>
                                         </li>
                                         <li class="nav-item d-none" data-route="kernel-production-grid">
@@ -179,7 +184,7 @@
                                             </a>
                                         </li>
                                         <li class="nav-item d-none" data-route="kernel-pipeline-settings">
-                                            <a class="nav-link" href="#" route="kernel-pipeline-settings" title="Spec limits, kg per crate, transporters, silos and bag numbering">
+                                            <a class="nav-link" href="#" route="kernel-pipeline-settings" title="Intake and quality, plant settings, and kernel style prices">
                                                 <i class="fas fa-sliders-h me-2"></i>Kernel Pipeline Settings
                                             </a>
                                         </li>
@@ -578,9 +583,9 @@
     <script src="js/session.js?v=20260716d"></script>
     <script src="js/themes.js"></script>
     <script src="js/super-user-visibility.js?v=20260715a"></script>
-    <script src="js/data-functions.js?v=20261029recon1"></script>
+    <script src="js/data-functions.js?v=20261030bags2"></script>
     <script src="js/auth-service.js?v=20260716c"></script>
-    <script src="js/common.js?v=20261026p"></script>
+    <script src="js/common.js?v=20261013a"></script>
     <script src="js/export-utils.js"></script>
     <!-- Display-only role label formatter: super_user -> "Super User" (never renames the key) -->
     <script src="js/role-label.js?v=20260708a"></script>
@@ -594,7 +599,7 @@
          data-functions guards all offlineStorage usage with typeof checks.) -->
 
     <!-- Role-Based Menu Scripts -->
-    <script src="js/role-menu-config.js?v=20261029recon1"></script>
+    <script src="js/role-menu-config.js?v=20261030bags2"></script>
     <script src="js/menu-filter.js?v=20260716d"></script>
     <script src="js/action-access.js?v=20260602a"></script>
     <script src="js/notifications.js?v=20261027red"></script>
@@ -616,7 +621,7 @@
          script tag, so bumping it here is all that is needed to make a deployed change to any
          module actually reach a browser that has been in the portal before. Bump it whenever a
          module's html/js/css changes. -->
-    <script src="js/appRouter.js?v=20261029recon1"></script>
+    <script src="js/appRouter.js?v=20261030bags2"></script>
     <script src="js/app.js"></script>
     <script src="js/index.js?v=20261027tasks"></script>
     <script src="js/shell.js"></script>

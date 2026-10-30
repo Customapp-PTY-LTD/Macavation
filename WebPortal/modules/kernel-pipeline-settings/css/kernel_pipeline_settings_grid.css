@@ -43,3 +43,7 @@
         width: 100%;
     }
 }
+
+#kpsTabs .nav-link {
+    min-height: 44px;
+}

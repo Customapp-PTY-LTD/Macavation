@@ -181,3 +181,36 @@
 .notif-item.notif-task-unread .text-dark {
     color: var(--mac-danger) !important;
 }
+
+/* Kinded task cards (procurement / dispatch / price / NIS tasks) */
+.workflow-task.wv-task-card { flex-wrap: wrap; align-items: center; }
+.wv-task-kind {
+    color: var(--mac-danger);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 0.2rem;
+}
+.wv-task-kind .badge { text-transform: none; letter-spacing: 0; }
+.wv-task-title { font-weight: 700; margin-bottom: 0.15rem; }
+.workflow-task.wv-task-card .task-actions .btn { min-height: 44px; }
+.wv-approve-panel {
+    flex: 1 0 100%;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--mac-border);
+}
+.wv-approve-panel .btn { min-height: 44px; }
+.wv-approve-flag {
+    display: flex;
+    align-items: flex-start;
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.75rem;
+    border-left: 3px solid var(--mac-warning);
+    background: var(--mac-warning-light);
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+.wv-price-wrap { display: inline-flex; align-items: center; gap: 0.35rem; }
+.wv-price-wrap .wv-price { width: 8rem; min-height: 44px; }
+.wv-approve-net { font-size: 1rem; }

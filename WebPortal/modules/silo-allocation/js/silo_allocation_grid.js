@@ -26,6 +26,8 @@ var _siloAllocationGrid = (function () {
         overview: null,   // array of silos, or null when the RPC failed
         batches: null,    // array of batches, or null when the RPC failed
         runs: null,       // array of runs, or null when the RPC failed
+        period: { mode: 'week', anchor: null }, // Cracking log pick: 'day' | 'week', any date in it
+        periodRuns: null, // closed runs in the picked day / week, or null when unavailable
         tally: null,      // pre-sizer tally of the selected batch, or null when unavailable
         batchId: null,
         pickedKernel: null, // "Show a batch" on the Silos card: kernel_id, or null for all silos
@@ -120,6 +122,28 @@ var _siloAllocationGrid = (function () {
         var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
         if (isNaN(d.getTime())) { return String(dateStr); }
         return DAYS[d.getDay()] + ' ' + pad2(d.getDate()) + ' ' + MONTHS[d.getMonth()];
+    }
+
+    // 'YYYY-MM-DD' plus n days, in local calendar days.
+    function addDaysStr(dateStr, n) {
+        var p = String(dateStr || '').split('-');
+        var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]) + n);
+        return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+    }
+
+    // Monday of the week holding dateStr (weeks run Monday to Sunday).
+    function mondayOf(dateStr) {
+        var p = String(dateStr || '').split('-');
+        var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+        return addDaysStr(dateStr, -((d.getDay() + 6) % 7));
+    }
+
+    // The picked day or week as { from, to } ('YYYY-MM-DD', inclusive).
+    function periodRange() {
+        var a = state.period.anchor || todayStr();
+        if (state.period.mode === 'day') { return { from: a, to: a }; }
+        var from = mondayOf(a);
+        return { from: from, to: addDaysStr(from, 6) };
     }
 
     // Supplier of a batch in a silo: from the overview (migration 20261027090000), else from the
@@ -230,7 +254,8 @@ var _siloAllocationGrid = (function () {
         return Promise.all([
             safe(dataFunctions.getSiloOverview()),
             safe(dataFunctions.getSiloAllocationBatches()),
-            safe(dataFunctions.getSiloRuns(50))
+            safe(dataFunctions.getSiloRuns(50)),
+            loadPeriodRuns()
         ]).then(function (res) {
             state.overview = (isOk(res[0]) && Array.isArray(res[0].silos)) ? res[0].silos : null;
             state.batches = (isOk(res[1]) && Array.isArray(res[1].batches)) ? res[1].batches : null;
@@ -243,6 +268,35 @@ var _siloAllocationGrid = (function () {
             pickBatch();
             return loadTally();
         }).then(render);
+    }
+
+    // Runs in the picked day / week. Database without migration 20261029090000: the last 500 runs,
+    // filtered here, so recent weeks still work.
+    function loadPeriodRuns() {
+        var range = periodRange();
+        var key = state.period.mode + ':' + range.from;
+        function keep(runs) {
+            // Ignore a late answer for a period that is no longer picked.
+            var now = periodRange();
+            if (state.period.mode + ':' + now.from !== key) { return; }
+            state.periodRuns = runs;
+        }
+        return safe(dataFunctions.getSiloRunsBetween(range.from, range.to)).then(function (r) {
+            if (isOk(r) && Array.isArray(r.runs)) { keep(r.runs); return; }
+            console.warn('[Silo Allocation] get_silo_runs_between unavailable, filtering recent runs:', errText(r, ''));
+            return safe(dataFunctions.getSiloRuns(500)).then(function (r2) {
+                if (!isOk(r2) || !Array.isArray(r2.runs)) { keep(null); return; }
+                keep(r2.runs.filter(function (run) {
+                    var d = run.closed_at ? localDate(run.closed_at) : '';
+                    return d && d >= range.from && d <= range.to;
+                }));
+            });
+        });
+    }
+
+    function reloadPeriod() {
+        syncPeriodControls();
+        return loadPeriodRuns().then(renderRuns);
     }
 
     function loadTally() {
@@ -528,28 +582,117 @@ var _siloAllocationGrid = (function () {
         $grid.html(h || '<div class="text-muted">No silos configured.</div>');
     }
 
+    // Reflect state.period in the picker controls.
+    function syncPeriodControls() {
+        var week = state.period.mode === 'week';
+        var range = periodRange(), today = todayStr();
+        $('.silo-period-mode').each(function () {
+            var on = $(this).attr('data-mode') === state.period.mode;
+            $(this).toggleClass('active', on).attr('aria-pressed', on ? 'true' : 'false');
+        });
+        $('#siloPeriodDate').attr('max', today).val(state.period.anchor || today);
+        $('#siloPeriodToday').text(week ? 'This week' : 'Today');
+        $('#siloPeriodNext').prop('disabled', range.to >= today);
+        $('#siloPeriodLabel').text(week
+            ? 'Week of ' + fmtDay(range.from) + ' – ' + fmtDay(range.to)
+            : fmtDay(range.from) + (range.from === today ? ' (today)' : ''));
+    }
+
+    function runTotals(runs) {
+        var t = { kg: 0, min: 0, runs: 0, emptied: 0 };
+        (runs || []).forEach(function (r) {
+            t.kg += Number(r.volume_kg) || 0;
+            t.min += Number(r.minutes) || 0;
+            t.runs += 1;
+            if (r.left_kg == null || Number(r.left_kg) === 0) { t.emptied += 1; }
+        });
+        t.kgh = t.min > 0 ? t.kg / (t.min / 60) : null;
+        return t;
+    }
+
+    function renderPeriodTotals() {
+        var $tot = $('#siloPeriodTotals'), $days = $('#siloPeriodDays');
+        if (state.periodRuns === null) {
+            $tot.html('');
+            $days.addClass('d-none').html('');
+            return;
+        }
+        var t = runTotals(state.periodRuns);
+        $tot.html(
+            '<div class="silo-period-total silo-period-total-main"><span>Total cracked</span><strong>' + esc(kg(t.kg)) + ' kg</strong></div>' +
+            '<div class="silo-period-total"><span>Cracking time</span><strong>' + esc(fmtDuration(t.min)) + '</strong></div>' +
+            '<div class="silo-period-total"><span>Average kg / hour</span><strong>' + (t.kgh == null ? '&mdash;' : esc(kg(t.kgh))) + '</strong></div>' +
+            '<div class="silo-period-total"><span>Silo runs</span><strong>' + esc(t.runs) + '</strong><small>' + esc(t.emptied) + ' emptied</small></div>');
+        if (state.period.mode !== 'week') { $days.addClass('d-none').html(''); return; }
+        var range = periodRange(), today = todayStr(), days = [], max = 1, i;
+        for (i = 0; i < 7; i++) {
+            var d = addDaysStr(range.from, i);
+            var dayKg = runTotals(state.periodRuns.filter(function (r) { return localDate(r.closed_at) === d; })).kg;
+            days.push({ date: d, kg: dayKg });
+            if (dayKg > max) { max = dayKg; }
+        }
+        var h = '';
+        days.forEach(function (x) {
+            var future = x.date > today;
+            var pct = Math.round(x.kg / max * 1000) / 10;
+            var label = fmtDay(x.date).split(' ').slice(0, 2).join(' ');
+            h += '<button type="button" class="silo-day-bar' + (x.date === today ? ' silo-day-bar-today' : '') +
+                (future ? ' silo-day-bar-future' : '') + '" data-day="' + esc(x.date) + '" aria-label="Show ' + esc(fmtDay(x.date)) + '">' +
+                '<span class="silo-day-bar-kg">' + (x.kg > 0 ? esc(kg(x.kg, 0)) : (future ? '' : '0')) + '</span>' +
+                '<span class="silo-day-bar-track"><span class="silo-day-bar-fill" style="height:' + pct + '%"></span></span>' +
+                '<span class="silo-day-bar-label">' + esc(label) + (x.date === today ? ' · today' : '') + '</span></button>';
+        });
+        $days.removeClass('d-none').html(h);
+    }
+
     function renderRuns() {
         var $body = $('#siloRunsBody');
         var $sum = $('#siloTodaySummary').text('');
+        syncPeriodControls();
+        renderPeriodTotals();
         if (state.runs === null) {
             $body.html('<tr><td colspan="9" class="text-muted">Unavailable until Silo Allocation is set up.</td></tr>');
             return;
         }
         var today = todayStr(), totalKg = 0, totalMin = 0, any = false;
+        state.runs.forEach(function (r) {
+            if (r.closed_at && localDate(r.closed_at) === today) {
+                any = true;
+                totalKg += Number(r.volume_kg) || 0;
+                totalMin += Number(r.minutes) || 0;
+            }
+        });
+        if (any) {
+            var avg = totalMin > 0 ? totalKg / (totalMin / 60) : null;
+            $sum.text('Today: ' + kg(totalKg) + ' kg cracked' + (avg == null ? '' : ' · average ' + kg(avg) + ' kg/hour'));
+        } else {
+            $sum.text('Today: nothing cracked yet');
+        }
+        if (state.periodRuns === null) {
+            $body.html('<tr><td colspan="9" class="text-muted">Could not load the cracking log for this period.</td></tr>');
+            return;
+        }
         // grower_names comes with migration 20261027090000; until then, match on batch number.
         var growerByBatch = {};
         (state.batches || []).forEach(function (b) { if (b.grower_name) { growerByBatch[String(b.batch_number)] = String(b.grower_name); } });
         (state.overview || []).forEach(function (s) {
             (s.contents || []).forEach(function (c) { var g = supplierOf(c); if (g) { growerByBatch[String(c.batch_number)] = g; } });
         });
-        var h = '';
-        state.runs.forEach(function (r) {
+        var week = state.period.mode === 'week';
+        var h = '', lastDay = null, dayRuns = [];
+        function subtotal() {
+            if (!week || !dayRuns.length) { return ''; }
+            var t = runTotals(dayRuns);
+            return '<tr class="silo-run-subtotal"><td colspan="4">' + esc(fmtDay(lastDay)) + ' total</td><td class="text-end">' +
+                esc(kg(t.kg)) + '</td><td></td><td class="text-end silo-col">' + esc(fmtDuration(t.min)) + '</td><td class="text-end">' +
+                (t.kgh == null ? '&mdash;' : esc(kg(t.kgh))) + '</td><td></td></tr>';
+        }
+        state.periodRuns.forEach(function (r) {
             var when = r.closed_at || r.opened_at;
-            if (r.closed_at && localDate(r.closed_at) === today) {
-                any = true;
-                totalKg += Number(r.volume_kg) || 0;
-                totalMin += Number(r.minutes) || 0;
-            }
+            var day = localDate(when);
+            if (lastDay !== null && day !== lastDay) { h += subtotal(); dayRuns = []; }
+            lastDay = day;
+            dayRuns.push(r);
             var batches = Array.isArray(r.batch_numbers) ? r.batch_numbers.join(', ') : (r.batch_numbers || '');
             var growers = r.grower_names;
             if (growers == null) {
@@ -568,13 +711,8 @@ var _siloAllocationGrid = (function () {
                 (r.kg_per_hour == null ? '&mdash;' : esc(kg(r.kg_per_hour))) + '</td><td class="silo-col">' +
                 '<a href="#" class="silo-edit-times" data-run="' + esc(r.id) + '">Edit times</a></td></tr>';
         });
-        $body.html(h || '<tr><td colspan="9" class="text-muted">No silos have been cracked yet.</td></tr>');
-        if (any) {
-            var avg = totalMin > 0 ? totalKg / (totalMin / 60) : null;
-            $sum.text('Today: ' + kg(totalKg) + ' kg cracked' + (avg == null ? '' : ' · average ' + kg(avg) + ' kg/hour'));
-        } else {
-            $sum.text('Today: nothing cracked yet');
-        }
+        h += subtotal();
+        $body.html(h || '<tr><td colspan="9" class="text-muted">Nothing cracked ' + (week ? 'this week' : 'on this day') + '.</td></tr>');
     }
 
     // ------------------------------------------------------------------
@@ -951,7 +1089,7 @@ var _siloAllocationGrid = (function () {
 
     // Correct the start / stop time of a finished run.
     function editTimes(runId) {
-        var run = (state.runs || []).filter(function (r) { return String(r.id) === String(runId); })[0];
+        var run = (state.periodRuns || []).concat(state.runs || []).filter(function (r) { return String(r.id) === String(runId); })[0];
         if (!run) { return; }
         var check;
         function times() {
@@ -1042,6 +1180,30 @@ var _siloAllocationGrid = (function () {
             .on('click.siloAlloc', '.silo-close', function () { closeSiloNow(Number($(this).data('silo'))); })
             .on('click.siloAlloc', '.silo-edit-times', function (e) { e.preventDefault(); editTimes($(this).attr('data-run')); })
             .on('click.siloAlloc', '#siloRefreshBtn', function () { load(); })
+            .on('click.siloAlloc', '.silo-period-mode', function () {
+                state.period.mode = $(this).attr('data-mode') === 'day' ? 'day' : 'week';
+                reloadPeriod();
+            })
+            .on('click.siloAlloc', '#siloPeriodPrev, #siloPeriodNext', function () {
+                var step = state.period.mode === 'week' ? 7 : 1;
+                var next = addDaysStr(state.period.anchor || todayStr(), this.id === 'siloPeriodPrev' ? -step : step);
+                state.period.anchor = next > todayStr() ? todayStr() : next;
+                reloadPeriod();
+            })
+            .on('change.siloAlloc', '#siloPeriodDate', function () {
+                var v = String($(this).val() || '');
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) { return; }
+                state.period.anchor = v;
+                reloadPeriod();
+            })
+            .on('click.siloAlloc', '#siloPeriodToday', function () {
+                state.period.anchor = todayStr();
+                reloadPeriod();
+            })
+            .on('click.siloAlloc', '.silo-day-bar', function () {
+                state.period = { mode: 'day', anchor: String($(this).attr('data-day') || todayStr()) };
+                reloadPeriod();
+            })
             .on('click.siloAlloc', '#siloAllocToggle', function () {
                 state.allocOpen = !state.allocOpen;
                 writeAllocOpen(state.allocOpen);
@@ -1110,9 +1272,14 @@ var _siloAllocationGrid = (function () {
     return {
         init: function () {
             stopTicker();
+            $('#siloAllocationModule').off('click.nssTabs').on('click.nssTabs', '[data-nss-tab="areas"]', function () {
+                _appRouter.routeTo('nis-storage', true);
+            });
             state.batchId = null;
             state.tally = null;
             state.pickedKernel = null;
+            state.period = { mode: 'week', anchor: todayStr() };
+            state.periodRuns = null;
             state.allocOpen = readAllocOpen();
             bindEvents();
             applyAllocOpen();

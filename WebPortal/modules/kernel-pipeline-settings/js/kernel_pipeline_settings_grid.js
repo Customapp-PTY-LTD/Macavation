@@ -17,7 +17,10 @@ var _kernelPipelineSettingsGrid = (function () {
     var SILO_COUNT = 12;
     var STAGE_LABELS = { washing: 'Washing', sorting: 'Sorting' };
 
-    var state = { cfg: null, roles: null, actions: null, roleActions: null, roleAccessOk: false };
+    var TAB_LABELS = { intake: 'Intake & quality', plant: 'Plant', prices: 'Prices' };
+    var PANES = { intake: '#kpsPaneIntake', plant: '#kpsPanePlant', prices: '#kpsPanePrices' };
+
+    var state = { cfg: null, roles: null, actions: null, roleActions: null, roleAccessOk: false, tab: null, tabs: [], pricesInit: false };
 
     function esc(v) {
         return (typeof _common !== 'undefined' && _common.escapeHtml)
@@ -27,6 +30,20 @@ var _kernelPipelineSettingsGrid = (function () {
 
     function canEdit() {
         return typeof window.hasAction === 'function' && window.hasAction('kernel_settings.edit');
+    }
+
+    // Intake & quality and Plant: only people who can edit settings (hasAction passes for super_user/admin).
+    function canSettings() { return canEdit(); }
+
+    function canPrices() {
+        return typeof window.hasAction === 'function' && window.hasAction('kernel_prices.view');
+    }
+
+    function visibleTabs() {
+        var t = [];
+        if (canSettings()) { t.push('intake'); t.push('plant'); }
+        if (canPrices()) t.push('prices');
+        return t;
     }
 
     function toast(msg, type) {
@@ -230,9 +247,36 @@ var _kernelPipelineSettingsGrid = (function () {
 
     function render() {
         var cfg = state.cfg;
-        $('#kpsNotice').html(canEdit() ? '' :
-            '<div class="alert alert-info">You can view these settings. Ask an admin for \'Edit Kernel Pipeline Settings\' to change them.</div>');
-        $('#kpsBody').html(specCard(cfg) + crateCard(cfg) + batchCard(cfg) + shelfCard(cfg) + targetCard(cfg) + transportCard(cfg) + siloCard(cfg));
+        $('#kpsNotice').html('');
+        $('#kpsPaneIntake').html(specCard(cfg) + crateCard(cfg) + batchCard(cfg) + shelfCard(cfg));
+        $('#kpsPanePlant').html(targetCard(cfg) + transportCard(cfg) + siloCard(cfg));
+    }
+
+    function renderTabs() {
+        var $ul = $('#kpsTabs').empty();
+        state.tabs.forEach(function (k) {
+            var on = k === state.tab;
+            $ul.append($('<li class="nav-item" role="presentation">').append(
+                $('<button type="button" class="nav-link kps-tab" role="tab">')
+                    .toggleClass('active', on)
+                    .attr({ 'data-tab': k, 'aria-selected': on ? 'true' : 'false' })
+                    .text(TAB_LABELS[k])));
+        });
+        Object.keys(PANES).forEach(function (k) { $(PANES[k]).toggleClass('d-none', k !== state.tab); });
+    }
+
+    function showTab(k) {
+        if (state.tabs.indexOf(k) < 0) return;
+        state.tab = k;
+        renderTabs();
+        if (k === 'prices' && !state.pricesInit) {
+            state.pricesInit = true;
+            if (typeof _kernelStylePrices !== 'undefined' && _kernelStylePrices.init) {
+                _kernelStylePrices.init();
+            } else {
+                $('#ksp-body').html('<div class="alert alert-warning">Prices could not be loaded. Please refresh the page.</div>');
+            }
+        }
     }
 
     // ------------------------------------------------------------------
@@ -256,8 +300,7 @@ var _kernelPipelineSettingsGrid = (function () {
         var res;
         try { res = await dataFunctions.getKernelPipelineConfig(); } catch (e) { res = { success: false, error: e && e.message }; }
         if (!res || res.success === false) {
-            $('#kpsNotice').html('');
-            $('#kpsBody').html('<div class="alert alert-warning">Kernel Pipeline Settings aren\'t set up on this database yet.</div>');
+            $('#kpsPaneIntake, #kpsPanePlant').html('<div class="alert alert-warning">Kernel Pipeline Settings are not set up on this database yet.</div>');
             return;
         }
         state.cfg = res;
@@ -296,7 +339,7 @@ var _kernelPipelineSettingsGrid = (function () {
 
     function saveSpec(btn) {
         var calls = [], bad = false;
-        $('#kpsBody tr[data-test]').each(function () {
+        $('#kpsModule tr[data-test]').each(function () {
             var $r = $(this), key = $r.attr('data-test');
             var g = numOrNull($r.find('.kps-green').val()), y = numOrNull($r.find('.kps-yellow').val());
             var dir = $r.find('.kps-dir').val() === 'min' ? 'min' : 'max';
@@ -311,7 +354,7 @@ var _kernelPipelineSettingsGrid = (function () {
 
     function saveCrates(btn) {
         var calls = [], bad = false;
-        $('#kpsBody tr[data-crate]').each(function () {
+        $('#kpsModule tr[data-crate]').each(function () {
             var $r = $(this), stage = $r.attr('data-stage'), type = $r.attr('data-crate');
             var kg = numOrNull($r.find('.kps-kg').val());
             if (kg != null && (isNaN(kg) || kg <= 0)) { bad = true; return false; }
@@ -360,7 +403,7 @@ var _kernelPipelineSettingsGrid = (function () {
 
     function saveSilos(btn) {
         var calls = [], bad = false;
-        $('#kpsBody .kps-silo').each(function () {
+        $('#kpsModule .kps-silo').each(function () {
             var n = Number($(this).attr('data-silo')), kg = numOrNull($(this).val());
             var old = (state.cfg.silos || []).filter(function (s) { return Number(s.silo_number) === n; })[0] || {};
             if (kg == null) return;
@@ -410,6 +453,7 @@ var _kernelPipelineSettingsGrid = (function () {
 
     function bind() {
         var $d = $(document);
+        $d.on('click' + NS, '#kpsModule .kps-tab', function () { showTab($(this).attr('data-tab')); });
         $d.on('click' + NS, '#kpsSaveSpec', function () { saveSpec(this); });
         $d.on('click' + NS, '#kpsSaveCrates', function () { saveCrates(this); });
         $d.on('click' + NS, '#kpsSaveBatch', function () { saveBatch(this); });
@@ -451,7 +495,20 @@ var _kernelPipelineSettingsGrid = (function () {
         init: function () {
             _kernelPipelineSettingsGrid.destroy();
             bind();
-            load();
+            state.pricesInit = false;
+            state.tabs = visibleTabs();
+            if (!state.tabs.length) {
+                $('#kpsTabs').empty();
+                $('#kpsNone').removeClass('d-none');
+                $('.kps-pane').addClass('d-none');
+                return;
+            }
+            // Handoff { tab }: open that tab when this person can see it; otherwise the first visible one.
+            var h = (typeof _appRouter !== 'undefined' && _appRouter.takeHandoff) ? _appRouter.takeHandoff('kernel-pipeline-settings') : null;
+            var want = h && h.tab;
+            state.tab = state.tabs.indexOf(want) >= 0 ? want : state.tabs[0];
+            showTab(state.tab);
+            if (canSettings()) load();
         },
         destroy: function () {
             $(document).off(NS);

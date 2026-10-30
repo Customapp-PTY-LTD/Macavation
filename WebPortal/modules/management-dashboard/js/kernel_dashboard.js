@@ -15,7 +15,13 @@ var _kernelDashboard = (function () {
     var supplierMin = 0;
     var salesUnit = 'kg';
     var salesStyle = '';
-    var last = { proc: null, sales: null };
+    var last = { proc: null, sales: null, stock: null, prices: null, dispatch: null };
+    // Stock series names that differ from the style code in the price list.
+    var STYLE_CODE_OF = { 'Butter High Oil': 'BHO', 'Butter Low Oil': 'BLO' };
+
+    function canSeePrices() { return typeof window.hasAction === 'function' && !!window.hasAction('kernel_prices.view'); }
+
+    function rand2(v) { return 'R ' + (Number(v) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
     function dataFns() { return (typeof dataFunctions !== 'undefined') ? dataFunctions : null; }
 
@@ -147,11 +153,28 @@ var _kernelDashboard = (function () {
     // Stock - last 12 months, independent of the period filter.
     // ------------------------------------------------------------------
 
+    // Dispatch workflow counts: shown to everyone, omitted until the dispatch migration is applied.
+    function waitingTiles() {
+        var d = last.dispatch && last.dispatch.data;
+        if (!d) return [];
+        return [
+            D.tile('Waiting on Pete', D.num(d.awaiting_approval) + (Number(d.awaiting_approval) === 1 ? ' dispatch' : ' dispatches'), 'picked, not yet approved'),
+            D.tile('Waiting for picking', D.num(d.awaiting_pick) + (Number(d.awaiting_pick) === 1 ? ' dispatch' : ' dispatches'), 'sent to dispatch, not yet picked')
+        ];
+    }
+
+    function stylePrice(series) {
+        if (!last.prices) return null;
+        var v = last.prices[STYLE_CODE_OF[series] || series];
+        return v == null ? null : Number(v);
+    }
+
     function renderStock(rows) {
+        last.stock = rows;
         var c = D.colors();
         var s = D.summariseStock(rows);
         if (!s.dates.length) {
-            D.setTiles('kdStockTiles', []);
+            D.setTiles('kdStockTiles', waitingTiles());
             D.setFreshness('kdStockFresh', null);
             D.emptyBox('kdSohChart', 'No stock history', 'Nothing has been booked into kernel stock in the last 12 months.');
             D.fillTable('kdStyleTable', [], []);
@@ -160,18 +183,47 @@ var _kernelDashboard = (function () {
         var now = s.totals[s.totals.length - 1];
         var weekAgo = s.totals.length > 7 ? s.totals[s.totals.length - 8] : null;
         D.setFreshness('kdStockFresh', s.lastDate);
-        D.setTiles('kdStockTiles', [
+        var priced = !!last.prices;
+        var stockTiles = [];
+        var valueNow = 0, pricedKg = 0, unpriced = 0;
+        s.latest.forEach(function (r) {
+            var p = stylePrice(r.series);
+            if (p == null) { unpriced++; return; }
+            valueNow += r.qty_kg * p;
+            pricedKg += r.qty_kg;
+        });
+        if (priced) {
+            stockTiles.push(D.tile('Value of kernel on hand', D.rand(valueNow),
+                unpriced ? unpriced + (unpriced === 1 ? ' style has' : ' styles have') + ' no price yet' : 'at today\'s style prices'));
+        }
+        stockTiles.push(
             D.tile('Kernel on hand', D.kg(now), D.prettyDate(s.lastDate)),
             weekAgo != null ? D.tile('Against a week ago', D.kg(weekAgo) + ' then', null, D.pct(now, weekAgo))
                             : D.tile('Against a week ago', '–', ''),
             D.tile('Styles in stock', String(s.latest.length), 'with stock on hand today')
-        ]);
+        );
+        if (priced) {
+            stockTiles.push(D.tile('Average value', pricedKg ? rand2(valueNow / pricedKg) + ' /kg' : '–',
+                unpriced ? 'priced styles only' : 'across all styles'));
+        }
+        D.setTiles('kdStockTiles', stockTiles.concat(waitingTiles()));
         var w = D.weeklyPoints(s);
         D.drawChart('kdSohChart', 'line', w.labels, [{ label: '', data: w.values, color: c.green }], 'kg');
         var total = s.latest.reduce(function (t, r) { return t + r.qty_kg; }, 0);
-        D.fillTable('kdStyleTable', [{ text: 'Style' }, { text: 'kg', num: true }, { text: 'Share', num: true }],
-            s.latest.map(function (r) { return [r.series, D.num(r.qty_kg), total ? Math.round(r.qty_kg / total * 100) + '%' : '']; }),
-            s.latest.length ? ['Total', D.num(total), '100%'] : null);
+        var share = function (r) { return total ? Math.round(r.qty_kg / total * 100) + '%' : ''; };
+        if (priced) {
+            D.fillTable('kdStyleTable', [{ text: 'Style' }, { text: 'kg', num: true }, { text: 'Price per kg', num: true },
+                { text: 'Value', num: true }, { text: 'Share', num: true }],
+                s.latest.map(function (r) {
+                    var p = stylePrice(r.series);
+                    return [r.series, D.num(r.qty_kg), p == null ? '–' : rand2(p), p == null ? '–' : D.rand(r.qty_kg * p), share(r)];
+                }),
+                s.latest.length ? ['Total', D.num(total), '', D.rand(valueNow), '100%'] : null);
+        } else {
+            D.fillTable('kdStyleTable', [{ text: 'Style' }, { text: 'kg', num: true }, { text: 'Share', num: true }],
+                s.latest.map(function (r) { return [r.series, D.num(r.qty_kg), share(r)]; }),
+                s.latest.length ? ['Total', D.num(total), '100%'] : null);
+        }
     }
 
     // ------------------------------------------------------------------
@@ -198,13 +250,20 @@ var _kernelDashboard = (function () {
         var monthVals = D.seriesFor(p.by_month, period.months, field);
         var curIdx = period.months.indexOf(curKey);
         D.setFreshness('kdSalesFresh', p.last_date, 'Kernel Sales has not been updated since this date');
-        D.setTiles('kdSalesTiles', [
+        var salesTiles = [
             D.tile('Sold, ' + period.label + (salesStyle ? ' · ' + salesStyle : ''), fmt(unit === 'R' ? totalZar : totalKg),
                 unit === 'R' ? D.kg(totalKg) : D.rand(totalZar) + ' excl. VAT'),
             D.tile('Average price', totalKg ? 'R ' + (totalZar / totalKg).toFixed(2) + ' /kg' : '–', 'excl. VAT'),
             curIdx !== -1 ? D.tile(D.MONTHS[+curKey.slice(5) - 1] + ', to date', fmt(monthVals[curIdx]), 'this month so far')
                           : D.tile('Customers', String((p.by_customer || []).length), 'bought in this period')
-        ]);
+        ];
+        var dsp = last.dispatch && last.dispatch.data;
+        if (dsp && canSeePrices()) {
+            var tz = Number(dsp.transport_paid_zar) || 0, dz = Number(dsp.dispatch_sales_zar) || 0;
+            salesTiles.push(D.tile('Transport we paid', D.rand(tz),
+                dz ? (tz / dz * 100).toFixed(1) + '% of dispatch sales' : 'on approved dispatches'));
+        }
+        D.setTiles('kdSalesTiles', salesTiles);
         document.getElementById('kdSalesMonthTitle').textContent =
             'Kernel sold per month' + (unit === 'R' ? ' (R, excl. VAT)' : ' (kg)') + (salesStyle ? ' · ' + salesStyle : '');
 
@@ -239,6 +298,34 @@ var _kernelDashboard = (function () {
         }
     }
 
+    // Sales by style against the style price list (dispatch sales data; price viewers only).
+    function renderStyleVsList(d) {
+        var wrap = document.getElementById('kdStyleVsListWrap');
+        if (!wrap) return;
+        wrap.classList.toggle('d-none', !canSeePrices());
+        if (!canSeePrices()) return;
+        var note = document.getElementById('kdStyleVsListNote');
+        var headers = [{ text: 'Style' }, { text: 'Kg sold', num: true }, { text: 'Sales', num: true },
+            { text: 'Average R/kg', num: true }, { text: 'vs price list', num: true }];
+        if (!d) {
+            D.fillTable('kdStyleVsList', [], []);
+            if (note) note.textContent = 'Not available yet';
+            return;
+        }
+        var rows = (d.by_style || []).map(function (r) {
+            var avg = r.avg_price != null ? Number(r.avg_price) : null;
+            var list = r.list_price != null ? Number(r.list_price) : null;
+            var diff = avg != null && list ? (avg - list) / list * 100 : null;
+            return [r.label ? r.style_code + ' – ' + r.label : r.style_code, D.num(r.kg), D.rand(r.zar),
+                avg != null ? rand2(avg) : '–',
+                diff == null ? '—' : (diff >= 0 ? '+' : '−') + Math.abs(diff).toFixed(1) + '%'];
+        });
+        D.fillTable('kdStyleVsList', headers, rows);
+        if (note) note.textContent = rows.length
+            ? '"vs price list" shows where Pete sold above or below the list price.'
+            : 'No sales for this period';
+    }
+
     function fillStyleSelect(styles) {
         var sel = document.getElementById('kdSalesStyle');
         if (!sel) return;
@@ -268,18 +355,32 @@ var _kernelDashboard = (function () {
             call('getKernelDashboardProcurement', period.from, period.to),
             call('getKernelDashboardProduction', curRange.from, curRange.to),
             call('getKernelDashboardProduction', prevRange.from, prevRange.to),
-            call('getKernelDashboardSales', period.from, period.to, salesStyle || null)
+            call('getKernelDashboardSales', period.from, period.to, salesStyle || null),
+            call('getKernelDashboardDispatchSales', period.from, period.to)
         ]).then(function (r) {
             if (seq !== loadSeq) return; // a newer filter change won
             var v = r.map(function (x) { return x.status === 'fulfilled' ? x.value : null; });
             renderProcurement(v[0], period);
             renderProduction(v[1], v[2], period);
+            last.dispatch = { data: v[4], period: period };
             renderSales(v[3], period);
+            renderStyleVsList(v[4]);
+            if (last.stock) renderStock(last.stock);
         });
     }
 
     function loadStock() {
-        call('getStockSohHistory', 'kernel', 365).then(function (rows) { renderStock(Array.isArray(rows) ? rows : []); });
+        var prices = canSeePrices() ? call('getKernelStylePrices', null, null) : Promise.resolve(null);
+        Promise.all([call('getStockSohHistory', 'kernel', 365), prices]).then(function (r) {
+            last.prices = null;
+            if (r[1] && Array.isArray(r[1].styles)) {
+                last.prices = {};
+                r[1].styles.forEach(function (st) {
+                    if (st && st.style_code && st.list_price != null) last.prices[st.style_code] = Number(st.list_price);
+                });
+            }
+            renderStock(Array.isArray(r[0]) ? r[0] : []);
+        });
     }
 
     function reloadSales() {
@@ -318,7 +419,7 @@ var _kernelDashboard = (function () {
         destroy: function () {
             loadSeq++;
             if (D) D.destroyAll();
-            last = { proc: null, sales: null };
+            last = { proc: null, sales: null, stock: null, prices: null, dispatch: null };
         }
     };
 }());
