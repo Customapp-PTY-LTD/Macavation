@@ -773,7 +773,7 @@ var _siloAllocationGrid = (function () {
                 ' (' + kg(totalKg) + ' kg)') + '</strong> of ' + esc(batch.batch_number) + ' into <strong>Silo ' + esc(silo) +
                 '</strong>. How many kg were taken out at the pre-sizer for these bags?</p>' +
                 '<div class="text-start"><label for="siloPresizerKg" class="form-label fw-semibold">Removed pre-sizer (kg)</label>' +
-                '<input type="number" id="siloPresizerKg" class="form-control" min="0" step="0.01" style="max-width:180px">' +
+                '<input type="text" inputmode="decimal" id="siloPresizerKg" class="form-control js-kg-input" style="max-width:180px">' +
                 '<div class="form-text">Enter 0 if none.</div></div>' +
                 '<div class="silo-summary-strip mt-3"><span>Going into Silo ' + esc(silo) + '</span>' +
                 '<strong id="siloPresizerInto">' + esc(kg(totalKg)) + ' kg</strong></div>',
@@ -785,15 +785,14 @@ var _siloAllocationGrid = (function () {
                 $in = $('#siloPresizerKg');
                 $in.trigger('focus');
                 $in.on('input', function () {
-                    var v = parseFloat($in.val());
-                    var into = isFinite(v) && v >= 0 ? totalKg - v : totalKg;
+                    var v = _common.parseKg($in.val());
+                    var into = v !== null && v >= 0 ? totalKg - v : totalKg;
                     $('#siloPresizerInto').text(kg(into) + ' kg');
                 });
             },
             preConfirm: function () {
-                var raw = $in.val();
-                var v = parseFloat(raw);
-                if (raw === '' || !isFinite(v) || v < 0) {
+                var v = _common.parseKg($in.val());
+                if (v === null || v < 0) {
                     Swal.showValidationMessage('Enter the kg removed at the pre-sizer. Use 0 if none.');
                     return false;
                 }
@@ -978,12 +977,11 @@ var _siloAllocationGrid = (function () {
         function refreshSummary() {
             var t = times();
             if (check) { check.refresh(); }
-            var raw = $('#siloStopLeft').val();
-            var left = parseFloat(raw);
+            var left = _common.parseKg($('#siloStopLeft').val());
             var ranMs = t.endMs - t.startMs;
             var okRan = isFinite(ranMs) && ranMs > 0;
             $('#siloSumRan').text(okRan ? fmtDuration(ranMs / 60000) : '—');
-            var okLeft = raw !== '' && isFinite(left) && left >= 0 && left <= inSilo + 0.005;
+            var okLeft = left !== null && left >= 0 && left <= inSilo + 0.005;
             var cracked = okLeft ? inSilo - left : NaN;
             $('#siloSumCracked').text(okLeft ? kg(cracked) + ' kg' : '—');
             $('#siloSumRate').text(okRan && okLeft ? kg(cracked / (ranMs / 3600000)) + ' kg/hour' : '—');
@@ -1023,8 +1021,8 @@ var _siloAllocationGrid = (function () {
                 '<div class="col-6"><label for="siloStopEnd" class="form-label fw-semibold">Stopped — time</label>' +
                 '<input type="time" id="siloStopEnd" class="form-control" value="' + esc(stopT0) + '"></div>' +
                 '<div class="col-6"><label for="siloStopLeft" class="form-label fw-semibold">Kg left in silo</label>' +
-                '<input type="number" id="siloStopLeft" class="form-control" min="0" step="0.01" max="' + esc(inSilo) +
-                '" placeholder="Estimate is fine"></div></div>' +
+                '<input type="text" inputmode="decimal" id="siloStopLeft" class="form-control js-kg-input"' +
+                ' placeholder="Estimate is fine"></div></div>' +
                 '<div id="siloStopLong"></div>' +
                 '<div class="silo-summary-grid mt-3 text-start">' +
                 '<div><span>Ran for</span><strong id="siloSumRan">—</strong></div>' +
@@ -1048,13 +1046,12 @@ var _siloAllocationGrid = (function () {
                 $('#siloStopLeft').trigger('focus');
             },
             preConfirm: function () {
-                var raw = $('#siloStopLeft').val();
-                if (raw === '') {
+                var n = _common.parseKg($('#siloStopLeft').val());
+                if (n === null) {
                     Swal.showValidationMessage('Enter the kg left in the silo, or press "Silo is empty".');
                     return false;
                 }
-                var n = Number(raw);
-                if (!isFinite(n) || n < 0) { Swal.showValidationMessage('Enter 0 or more.'); return false; }
+                if (n < 0) { Swal.showValidationMessage('Enter 0 or more.'); return false; }
                 if (n > inSilo + 0.005) {
                     Swal.showValidationMessage('That is more than the silo held (' + kg(inSilo) + ' kg).');
                     return false;

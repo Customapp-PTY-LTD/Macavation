@@ -27,11 +27,11 @@ var _nisStorage = (function () {
     }
 
     function fmtT(kg) {
-        return Number((Number(kg) || 0) / 1000).toLocaleString('en-ZA', { maximumFractionDigits: 1 }) + ' t';
+        return _common.formatKg((Number(kg) || 0) / 1000) + ' t';
     }
 
     function fmtKg(n) {
-        return Number(n || 0).toLocaleString('en-ZA', { maximumFractionDigits: 2 }).replace(/ /g, ' ');
+        return _common.formatKg(Number(n || 0));
     }
 
     var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -129,9 +129,9 @@ var _nisStorage = (function () {
         batches.forEach(function (x, i) { $bs.append(option(String(i), (x.batch_number || 'No batch no.') + ' · ' + fmtKg(x.kg) + ' kg')); });
         var $as = $('<select class="form-select" id="nisPlArea"></select>').append(option('', 'Pick a storage area'));
         (state.ov.areas || []).forEach(function (x) { $as.append(option(x.code, x.label)); });
-        var $kg = $('<input type="number" class="form-control" id="nisPlKg" min="0" step="any" inputmode="decimal">').val(batches[0].kg);
+        var $kg = $('<input type="text" class="form-control js-kg-input" id="nisPlKg" inputmode="decimal">').val(_common.formatKg(batches[0].kg));
         var $note = $('<input type="text" class="form-control" id="nisPlNote" maxlength="200">');
-        $bs.on('change', function () { var x = batches[Number($bs.val())]; if (x) $kg.val(x.kg); });
+        $bs.on('change', function () { var x = batches[Number($bs.val())]; if (x) $kg.val(_common.formatKg(x.kg)); });
         $w.append(el('label', 'nis-field', 'Batch').append($bs));
         $w.append(el('label', 'nis-field', 'Storage area').append($as));
         $w.append(el('label', 'nis-field', 'Kg').append($kg));
@@ -144,7 +144,7 @@ var _nisStorage = (function () {
             preConfirm: function () {
                 var batch = batches[Number($bs.val())];
                 var area = $as.val();
-                var kg = Number($kg.val());
+                var kg = _common.parseKg($kg.val());
                 if (!batch) { Swal.showValidationMessage('Pick a batch.'); return false; }
                 if (!area) { Swal.showValidationMessage('Pick a storage area.'); return false; }
                 if (!(kg > 0)) { Swal.showValidationMessage('Kg must be more than zero.'); return false; }
@@ -176,7 +176,7 @@ var _nisStorage = (function () {
         $g.append(el('label', 'nis-field', 'From').append($from));
         $g.append(el('label', 'nis-field', 'To').append($to));
         $g.append(el('label', 'nis-field', 'Batch').append($('<select class="form-select" id="nisBatch"></select>')));
-        $g.append(el('label', 'nis-field', 'Kg').append($('<input type="number" class="form-control" id="nisKg" min="0" step="any" inputmode="decimal" placeholder="All of it">')));
+        $g.append(el('label', 'nis-field', 'Kg').append($('<input type="text" class="form-control js-kg-input" id="nisKg" inputmode="decimal" placeholder="All of it">')));
         $g.append(el('label', 'nis-field', 'Date').append($('<input type="date" class="form-control" id="nisDate">').val(todayStr())));
         $g.append(el('label', 'nis-field', 'Note').append($('<input type="text" class="form-control" id="nisNote" maxlength="200">')));
         $g.append(el('button', 'btn btn-primary nis-btn', 'Record move').attr({ type: 'button', id: 'nisSave' }));
@@ -280,7 +280,7 @@ var _nisStorage = (function () {
         if (from && from === to) { _common.showErrorToast('From and To must be different.'); return; }
         if (!from && to === null) { _common.showErrorToast('Stock that is not placed yet must go into an area first.'); return; }
         var kgRaw = String($('#nisKg').val() || '').trim();
-        var kg = kgRaw === '' ? Number(batch.kg) : Number(kgRaw);
+        var kg = kgRaw === '' ? Number(batch.kg) : _common.parseKg(kgRaw);
         if (!(kg > 0)) { _common.showErrorToast('Kg must be more than zero.'); return; }
         if (kg > Number(batch.kg) + 0.0001) { _common.showErrorToast('That batch only has ' + fmtKg(batch.kg) + ' kg.'); return; }
 
@@ -308,16 +308,18 @@ var _nisStorage = (function () {
         if (!a) return;
         Swal.fire({
             title: 'Capacity for ' + a.label,
-            input: 'number',
+            input: 'text',
             inputLabel: 'Kg (leave blank to hide the capacity bar)',
-            inputValue: a.capacity_kg || '',
-            inputAttributes: { min: 0, step: 'any' },
+            inputValue: a.capacity_kg ? _common.formatKg(a.capacity_kg) : '',
+            inputAttributes: { inputmode: 'decimal' },
+            customClass: { input: 'js-kg-input' },
             showCancelButton: true,
             confirmButtonText: 'Save'
         }).then(function (r) {
             if (!r.isConfirmed) return;
             var v = String(r.value == null ? '' : r.value).trim();
-            var kg = v === '' ? null : Number(v);
+            var kg = v === '' ? null : _common.parseKg(v);
+            if (v !== '' && kg === null) { _common.showErrorToast('Enter a number of kg.'); return; }
             if (kg !== null && !(kg >= 0)) { _common.showErrorToast('Enter a number of kg.'); return; }
             dataFunctions.setNisStorageAreaCapacity(code, kg).then(function (res) {
                 if (res && res.success) { _common.showSuccessToast('Capacity saved.'); reload(); }

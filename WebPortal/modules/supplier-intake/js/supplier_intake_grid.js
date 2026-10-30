@@ -426,7 +426,7 @@ var _supplierIntakeGrid = function () {
                 var batchId = (b.id != null ? b.id : b.batch_number || '').toString();
                 var batchNum = (b.batch_number || '—').toString();
                 var dateStr = formatDate(b.date_received) || '—';
-                var qtyStr = (b.quantity_kg != null ? b.quantity_kg + ' kg' : '');
+                var qtyStr = (b.quantity_kg != null ? _common.formatKg(b.quantity_kg) + ' kg' : '');
                 var productStr = batchProductLabel(b) || '—';
                 var supplierStr = (b.supplier_details || '—').toString();
                 var colKey = getSupplierColumnKey(b);
@@ -564,7 +564,7 @@ var _supplierIntakeGrid = function () {
                     '<td class="supplier-intake-col-date">' + (formatDate(b.date_received) || '—') + '</td>' +
                     '<td class="supplier-intake-col-note d-none d-lg-table-cell">' + (b.delivery_note_ref || '—') + '</td>' +
                     '<td class="supplier-intake-col-supplier">' + (supplier || '—') + '</td>' +
-                    '<td class="supplier-intake-col-qty d-none d-sm-table-cell">' + (b.quantity_kg != null ? b.quantity_kg : '—') + '</td>' +
+                    '<td class="supplier-intake-col-qty d-none d-sm-table-cell">' + (b.quantity_kg != null ? _common.formatKg(b.quantity_kg) : '—') + '</td>' +
                     '<td class="supplier-intake-col-mfg d-none d-lg-table-cell">' + mfgBb + '</td>' +
                     '<td class="supplier-intake-col-receiving">' + receivingCell + '</td>' +
                     '<td class="supplier-intake-col-status">' + statusBadgeHtml + '</td>' +
@@ -666,7 +666,7 @@ var _supplierIntakeGrid = function () {
             var numCols = 1 + colKeys.length + 1;
             function fmtKg(n) {
                 if (n == null || isNaN(n) || n <= 0.0001) return '—';
-                return Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
+                return _common.formatKg(n);
             }
             if (thead) {
                 var headCells = '<tr><th class="si-weekly-th-week">Week</th>';
@@ -718,7 +718,7 @@ var _supplierIntakeGrid = function () {
                 : keys.map(function (key) {
                     var total = byIngredient[key];
                     var label = productTypeLabel(key);
-                    var amount = (total != null && !isNaN(total)) ? Number(total).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—';
+                    var amount = (total != null && !isNaN(total)) ? _common.formatKg(total) : '—';
                     return '<tr><td>' + escapeHtml(label) + '</td><td class="text-end">' + escapeHtml(String(amount)) + '</td></tr>';
                 }).join('');
             tbody.innerHTML = rows;
@@ -764,7 +764,7 @@ var _supplierIntakeGrid = function () {
                 line('Date received', formatDate(b.date_received)) +
                 line('Delivery note / PO', b.delivery_note_ref) +
                 line('Supplier', b.supplier_details) +
-                line('Receiving weight (kg)', b.quantity_kg != null ? b.quantity_kg : '') +
+                line('Receiving weight (kg)', b.quantity_kg != null ? _common.formatKg(b.quantity_kg) : '') +
                 line('Carton / bulk bags', b.carton_bulk_bags) +
                 line('Manufactured date', formatDate(b.manufactured_date)) +
                 line('Best before date', formatDate(b.best_before_date)) +
@@ -819,7 +819,7 @@ var _supplierIntakeGrid = function () {
             var first = batch.quantity_kg != null && batch.quantity_kg !== '' ? Number(batch.quantity_kg) : NaN;
             var elFirst = document.getElementById('siFirstWeightDisplay');
             var elInput = document.getElementById('siWeightBeforeProductionInput');
-            if (elFirst) elFirst.textContent = !isNaN(first) ? (first + ' kg') : '— (not recorded — still enter weight before production)';
+            if (elFirst) elFirst.textContent = !isNaN(first) ? (_common.formatKg(first) + ' kg') : '— (not recorded — still enter weight before production)';
             if (elInput) elInput.value = '';
             var modalEl = document.getElementById('supplierIntakeWeightBeforeProductionModal');
             if (modalEl && typeof bootstrap !== 'undefined') {
@@ -828,13 +828,13 @@ var _supplierIntakeGrid = function () {
             } else if (typeof Swal !== 'undefined') {
                 Swal.fire({
                     title: 'Weight before production (kg)',
-                    html: '<p class="text-start small text-muted mb-2">Intake reference: ' + (!isNaN(first) ? first + ' kg' : '—') + '</p><input type="number" id="swalSiWeightBeforeProd" class="form-control" step="0.01" min="0" placeholder="kg">',
+                    html: '<p class="text-start small text-muted mb-2">Intake reference: ' + (!isNaN(first) ? _common.formatKg(first) + ' kg' : '—') + '</p><input type="text" inputmode="decimal" id="swalSiWeightBeforeProd" class="form-control js-kg-input" placeholder="kg">',
                     showCancelButton: true,
                     confirmButtonText: 'Release to Oil Production',
                     preConfirm: function () {
                         var v = document.getElementById('swalSiWeightBeforeProd');
-                        var n = v && v.value !== '' ? parseFloat(v.value, 10) : NaN;
-                        if (isNaN(n) || n < 0) {
+                        var n = v ? _common.parseKg(v.value) : null;
+                        if (n == null || isNaN(n) || n < 0) {
                             Swal.showValidationMessage('Enter a valid weight (kg)');
                             return false;
                         }
@@ -854,8 +854,8 @@ var _supplierIntakeGrid = function () {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Enter weight before production (kg).', 'error');
                 return;
             }
-            var w2 = parseFloat(raw, 10);
-            if (isNaN(w2) || w2 < 0) {
+            var w2 = _common.parseKg(raw);
+            if (w2 == null || isNaN(w2) || w2 < 0) {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Enter a valid weight in kg.', 'error');
                 return;
             }

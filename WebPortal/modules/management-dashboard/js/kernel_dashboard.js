@@ -80,10 +80,10 @@ var _kernelDashboard = (function () {
             q[n].kg += Number(r.nis_kg) || 0;
         });
         var names = { 1: 'Apr – Jun', 2: 'Jul – Sep', 3: 'Oct – Dec', 4: 'Jan – Mar' };
-        var rows = Object.keys(q).sort().map(function (k) { return ['Q' + k, names[k], D.num(q[k].kg)]; });
+        var rows = Object.keys(q).sort().map(function (k) { return ['Q' + k, names[k], D.kgNum(q[k].kg)]; });
         D.fillTable('kdQuarterTable',
             [{ text: 'Quarter' }, { text: 'Months' }, { text: 'kg', num: true }],
-            rows, rows.length ? ['Total', '', D.num(total)] : null);
+            rows, rows.length ? ['Total', '', D.kgNum(total)] : null);
     }
 
     function renderSupplierChart() {
@@ -216,13 +216,13 @@ var _kernelDashboard = (function () {
                 { text: 'Value', num: true }, { text: 'Share', num: true }],
                 s.latest.map(function (r) {
                     var p = stylePrice(r.series);
-                    return [r.series, D.num(r.qty_kg), p == null ? '–' : rand2(p), p == null ? '–' : D.rand(r.qty_kg * p), share(r)];
+                    return [r.series, D.kgNum(r.qty_kg), p == null ? '–' : rand2(p), p == null ? '–' : D.rand(r.qty_kg * p), share(r)];
                 }),
-                s.latest.length ? ['Total', D.num(total), '', D.rand(valueNow), '100%'] : null);
+                s.latest.length ? ['Total', D.kgNum(total), '', D.rand(valueNow), '100%'] : null);
         } else {
             D.fillTable('kdStyleTable', [{ text: 'Style' }, { text: 'kg', num: true }, { text: 'Share', num: true }],
-                s.latest.map(function (r) { return [r.series, D.num(r.qty_kg), share(r)]; }),
-                s.latest.length ? ['Total', D.num(total), '100%'] : null);
+                s.latest.map(function (r) { return [r.series, D.kgNum(r.qty_kg), share(r)]; }),
+                s.latest.length ? ['Total', D.kgNum(total), '100%'] : null);
         }
     }
 
@@ -316,7 +316,7 @@ var _kernelDashboard = (function () {
             var avg = r.avg_price != null ? Number(r.avg_price) : null;
             var list = r.list_price != null ? Number(r.list_price) : null;
             var diff = avg != null && list ? (avg - list) / list * 100 : null;
-            return [r.label ? r.style_code + ' – ' + r.label : r.style_code, D.num(r.kg), D.rand(r.zar),
+            return [r.label ? r.style_code + ' – ' + r.label : r.style_code, D.kgNum(r.kg), D.rand(r.zar),
                 avg != null ? rand2(avg) : '–',
                 diff == null ? '—' : (diff >= 0 ? '+' : '−') + Math.abs(diff).toFixed(1) + '%'];
         });

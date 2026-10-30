@@ -764,7 +764,7 @@ var _procurementPlan = (function () {
             else { $('#ppGrower').val('__other'); $('#ppOther').val(d.grower_name || d.grower || ''); }
             $('#ppTruck').val(d.truck_label || '');
             $('#ppDate').val(d.scheduled_date);
-            $('#ppWeight').val(d.predicted_weight_kg != null ? Number(d.predicted_weight_kg) : 30000);
+            $('#ppWeight').val(_common.formatKg(d.predicted_weight_kg != null ? Number(d.predicted_weight_kg) : 30000));
             $('#ppNote').val(d.note || '');
             setStatus(d.status === 'confirmed' ? 'confirmed' : 'planned');
             panel.nameTouched = true;
@@ -772,7 +772,7 @@ var _procurementPlan = (function () {
             $('#ppGrower').val('');
             $('#ppTruck').val('');
             $('#ppDate').val(defaultDate || plan.today);
-            $('#ppWeight').val(30000);
+            $('#ppWeight').val(_common.formatKg(30000));
             $('#ppNote').val('');
             setStatus('planned');
             panel.nameTouched = false;
@@ -795,11 +795,11 @@ var _procurementPlan = (function () {
     function openSettingsFields() {
         var st = state.plan.settings || {};
         var pool = state.plan.system_pool_kg;
-        $('#ppSetRate').val(st.planned_kg_per_day != null ? Number(st.planned_kg_per_day) : '');
+        $('#ppSetRate').val(st.planned_kg_per_day != null ? _common.formatKg(st.planned_kg_per_day) : '');
         $('#ppOpenSystemText').text("Use the system's stock" + (pool != null ? ' (currently ' + kgText(pool) + ')' : ''));
         var manual = st.opening_mode === 'manual';
         $('input[name="ppOpen"][value="' + (manual ? 'manual' : 'system') + '"]').prop('checked', true);
-        $('#ppSetKg').val(st.opening_kg != null ? Number(st.opening_kg) : '');
+        $('#ppSetKg').val(st.opening_kg != null ? _common.formatKg(st.opening_kg) : '');
         $('#ppSetAsOf').val(st.opening_as_of || state.plan.today);
         toggleManual();
     }
@@ -840,7 +840,7 @@ var _procurementPlan = (function () {
 
     function saveDelivery() {
         var date = $('#ppDate').val();
-        var weight = Number($('#ppWeight').val());
+        var weight = _common.parseKg($('#ppWeight').val());
         var gv = $('#ppGrower').val();
         var other = gv === '__other';
         if (!gv) { toast(false, 'Choose a grower.'); return; }
@@ -887,8 +887,9 @@ var _procurementPlan = (function () {
         var to = $('#ppDayTo').val() || from;
         if (!from) { toast(false, 'Choose a date.'); return; }
         if (to < from) { toast(false, 'The to date must not be before the from date.'); return; }
-        var kg = $('#ppDayKg').val();
-        if (kg !== '' && !(Number(kg) >= 0)) { toast(false, 'Kg cracked must be a number.'); return; }
+        var kgNum = _common.parseKg($('#ppDayKg').val());
+        if ($('#ppDayKg').val().trim() !== '' && !(kgNum >= 0)) { toast(false, 'Kg cracked must be a number.'); return; }
+        var kg = kgNum === null ? '' : String(kgNum);
         var $btn = $('#ppSaveDay').prop('disabled', true);
         dataFunctions.setProcurementDays(from, to, $('#ppDayType').val(), kg, null)
             .then(function (res) { return afterSave(res, 'Day saved.'); })
@@ -896,16 +897,16 @@ var _procurementPlan = (function () {
     }
 
     function saveSettings() {
-        var rate = Number($('#ppSetRate').val());
+        var rate = _common.parseKg($('#ppSetRate').val());
         if (!(rate > 0)) { toast(false, 'Enter the planned kg per day.'); return; }
         var settings = { planned_kg_per_day: rate };
         var mode = $('input[name="ppOpen"]:checked').val() || 'system';
         settings.opening_mode = mode;
         if (mode === 'manual') {
-            var kg = $('#ppSetKg').val(), asOf = $('#ppSetAsOf').val();
-            if (kg === '' || !(Number(kg) >= 0)) { toast(false, 'Enter the kg you counted.'); return; }
+            var kg = _common.parseKg($('#ppSetKg').val()), asOf = $('#ppSetAsOf').val();
+            if (kg === null || !(kg >= 0)) { toast(false, 'Enter the kg you counted.'); return; }
             if (!asOf) { toast(false, 'Choose the date you counted on.'); return; }
-            settings.opening_kg = Number(kg);
+            settings.opening_kg = kg;
             settings.opening_as_of = asOf;
         }
         var $btn = $('#ppSaveSettings').prop('disabled', true);
