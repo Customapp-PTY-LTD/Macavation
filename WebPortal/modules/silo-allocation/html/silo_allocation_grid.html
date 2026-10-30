@@ -2,8 +2,14 @@
      log the run. Three cards: Allocate bags (folds away), Silos, Cracking log. All content is rendered by
      silo_allocation_grid.js. -->
 <div class="module-content" id="siloAllocationModule">
+    <div class="nss-crumb">Kernel pipeline &rsaquo; NIS storage &amp; silos</div>
+    <h1 class="h2 mb-2">NIS storage &amp; silos</h1>
+    <div role="tablist" aria-label="Sections" class="nss-tabs">
+        <button type="button" role="tab" class="nss-tab" id="nssTabAreas" aria-selected="false" data-nss-tab="areas">Storage areas</button>
+        <button type="button" role="tab" class="nss-tab" id="nssTabSilos" aria-selected="true" data-nss-tab="silos">Silos</button>
+    </div>
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">Silo Allocation</h1>
+        <h2 class="h4 mb-0">Silo allocation</h2>
         <div class="d-flex gap-2 align-items-center">
             <!-- Silo calendar: bags allocated and silos cracked each day (js/mac-activity-calendar.js) -->
             <div id="siloActivityCalendarMount"></div>
@@ -58,6 +64,23 @@
             <h2 class="h5 mb-0">Cracking log</h2>
             <span class="small text-muted" id="siloTodaySummary"></span>
         </div>
+        <!-- Pick a day or a week; totals, the per-day bars and the table follow the pick. -->
+        <div class="silo-period-bar">
+            <div class="btn-group" role="group" aria-label="Show by">
+                <button type="button" class="btn btn-outline-secondary silo-period-mode" data-mode="day">Day</button>
+                <button type="button" class="btn btn-outline-secondary silo-period-mode" data-mode="week">Week</button>
+            </div>
+            <div class="d-flex gap-1 align-items-center">
+                <button type="button" class="btn btn-outline-secondary" id="siloPeriodPrev" aria-label="Previous"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+                <label for="siloPeriodDate" class="visually-hidden">Pick a date</label>
+                <input type="date" class="form-control silo-period-date" id="siloPeriodDate">
+                <button type="button" class="btn btn-outline-secondary" id="siloPeriodNext" aria-label="Next"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+            </div>
+            <button type="button" class="btn btn-outline-secondary" id="siloPeriodToday">Today</button>
+            <span class="silo-period-label" id="siloPeriodLabel"></span>
+        </div>
+        <div class="silo-period-totals" id="siloPeriodTotals"></div>
+        <div class="silo-period-days d-none" id="siloPeriodDays"></div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table align-middle mb-0" id="siloRunsTable">

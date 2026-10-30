@@ -25,11 +25,33 @@ var _roleMenuConfig = function () {
                     'grower-intake-grid',
                     'kernel-production-grid',
                     'silo-allocation-grid',
+                    'kernel-pipeline-settings',
                     'kernel-production-forecast-grid',
                     'stock-management-kernel',
                     'kernel-dispatch-grid',
                     'document-management-grid',
                     'admin-grid'
+                ]
+            },
+
+            // Mike (28 Oct 2026): Sales Exec's screens, with the truck and run-out tasks.
+            'Procurement Lead': {
+                access: 'specific',
+                menus: [
+                    'dashboard',
+                    'batch-journey',
+                    'grower-intake-grid',
+                    'procurement-plan',
+                    'nis-storage',
+                    'kernel-production-grid',
+                    'silo-allocation-grid',
+                    'kernel-pipeline-settings',
+                    'kernel-production-forecast-grid',
+                    'stock-management-kernel',
+                    'kernel-dispatch-grid',
+                    'document-management-grid',
+                    'admin-grid',
+                    'my-day'
                 ]
             },
 
@@ -248,6 +270,20 @@ var _roleMenuConfig = function () {
                 icon: 'fas fa-chart-line',
                 label: 'Kernel Dashboard',
                 category: 'main'
+            },
+            'procurement-plan': {
+                route: 'procurement-plan',
+                icon: 'fas fa-calendar-alt',
+                label: 'Procurement plan',
+                category: 'kernel',
+                parent: 'kernelCollapse'
+            },
+            'nis-storage': {
+                route: 'nis-storage',
+                icon: 'fas fa-boxes',
+                label: 'NIS storage & silos',
+                category: 'kernel',
+                parent: 'kernelCollapse'
             },
             'oil-dashboard': {
                 route: 'oil-dashboard',
@@ -528,6 +564,8 @@ var _roleMenuConfig = function () {
             'my-day',
             'batch-journey',
             'grower-intake-grid',
+            'procurement-plan',
+            'nis-storage',
             'kernel-production-grid',
             'silo-allocation-grid',
             'kernel-pipeline-settings',

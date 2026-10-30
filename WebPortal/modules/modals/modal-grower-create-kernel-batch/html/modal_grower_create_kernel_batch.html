@@ -1,16 +1,14 @@
 <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
     <div class="modal-content">
         <div class="modal-header">
-            <h5 class="modal-title" id="createKernelBatchModalLabel">New Delivery</h5>
+            <div>
+                <h5 class="modal-title" id="createKernelBatchModalLabel">New Delivery</h5>
+                <div class="small text-muted" id="intakeBookInSub" style="display:none"></div>
+            </div>
             <a target="_blank" rel="noopener noreferrer" href="help/index.html#modal-grower-create-kernel-batch" class="btn btn-sm btn-outline-secondary ms-auto me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-            <!-- Shown when modal is opened from the procurement calendar -->
-            <div id="intakeProcurementBanner" class="alert alert-info d-flex align-items-center gap-2 py-2 mb-3" style="display:none!important">
-                <i class="fas fa-calendar-check"></i>
-                <span>Converting scheduled delivery from the procurement calendar. Confirm or adjust details before saving.</span>
-            </div>
             <form id="createKernelBatchForm" novalidate>
                 <h6 class="border-bottom pb-1">Batch Details</h6>
                 <div class="mb-3">
@@ -99,7 +97,9 @@
                     </table>
                 </div>
                 <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
-                    <button type="button" class="btn btn-sm btn-outline-primary" id="intakeAddBagBtn">+ Add bag</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="intakeAddBagBtn">+ Add</button>
+                    <input type="number" class="form-control form-control-sm" id="intakeAddBagCount" value="1" min="1" max="500" step="1" style="width: 80px;" aria-label="How many bags to add">
+                    <span class="small">bag(s)</span>
                     <small class="text-muted">Weights show with a thousands comma and 2 decimals. There's no Date column; the bags use Date Received.</small>
                 </div>
                 <div class="alert alert-warning py-2 small" id="intakeDeclDiffWarning" style="display:none"></div>
@@ -160,11 +160,25 @@
                         <ul class="list-unstyled small mt-2 mb-0" id="intakeDocsList"></ul>
                     </div>
                 </div>
+
+                <!-- Book in from the Expected trucks list (planned truck): where it went + what happens on save -->
+                <fieldset class="mt-4" id="intakeBookInArea" style="display:none">
+                    <legend class="form-label fs-6">Where is it going?</legend>
+                    <div class="row g-2" id="intakeBookInAreaOptions"></div>
+                    <div class="small text-muted mt-2" id="intakeBookInAreaHint"></div>
+                </fieldset>
+                <div class="rounded p-3 mt-3 small" id="intakeBookInSummary" style="display:none; background: var(--mac-bg);">
+                    <strong class="d-block mb-1">When you save</strong>
+                    <div class="text-muted">&middot; The batch is created as usual, with its sample and quality steps.</div>
+                    <div class="text-muted">&middot; The truck shows as Received on the plan, with the real kg.</div>
+                    <div class="text-muted" id="intakeBookInSummaryArea"></div>
+                    <div class="text-muted">&middot; Thando's "Truck due today" task closes.</div>
+                </div>
             </form>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="button" class="btn btn-primary" id="saveCreateKernelBatchBtn" data-action-perm="grower.intake.create"><i class="fas fa-save me-1"></i>Save delivery</button>
+            <button type="button" class="btn btn-primary" id="saveCreateKernelBatchBtn" data-action-perm="grower.intake.create"><i class="fas fa-save me-1"></i><span id="saveCreateKernelBatchLabel">Save delivery</span></button>
         </div>
     </div>
 </div>

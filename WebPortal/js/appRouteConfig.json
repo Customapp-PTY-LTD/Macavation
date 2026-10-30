@@ -272,7 +272,9 @@
             "js": [
                 "js/modal_supplier_receiver_checklist.js"
             ],
-            "css": []
+            "css": [
+                "css/modal_supplier_receiver_checklist.css"
+            ]
         },
         "supplier-intake-adjust-stock-modal": {
             "description": "Supplier Intake - Adjust stock (quick bags, no checklist)",
@@ -430,6 +432,17 @@
                 "js/modal_kernel_dispatch_edit.js"
             ],
             "css": []
+        },
+        "kernel-dispatch-approve-modal": {
+            "description": "Kernel Dispatch pick confirmation and price/approve (records the sale)",
+            "path": "modals/modal-kernel-dispatch-approve",
+            "html": "html/modal_kernel_dispatch_approve.html",
+            "js": [
+                "js/modal_kernel_dispatch_approve.js"
+            ],
+            "css": [
+                "css/modal_kernel_dispatch_approve.css"
+            ]
         },
         "oil-dispatch-grid": {
             "description": "Oil & Protein Dispatch",
@@ -665,10 +678,12 @@
             "path": "kernel-pipeline-settings",
             "html": "html/kernel_pipeline_settings_grid.html",
             "js": [
-                "js/kernel_pipeline_settings_grid.js"
+                "js/kernel_pipeline_settings_grid.js",
+                "../kernel-style-prices/js/kernel_style_prices.js"
             ],
             "css": [
-                "css/kernel_pipeline_settings_grid.css"
+                "css/kernel_pipeline_settings_grid.css",
+                "../kernel-style-prices/css/kernel_style_prices.css"
             ]
         },
         "kernel-dashboard": {
@@ -681,6 +696,39 @@
             ],
             "css": [
                 "css/mgmt_dashboard.css"
+            ]
+        },
+        "procurement-plan": {
+            "description": "Procurement plan (planned trucks vs cracking)",
+            "path": "procurement-plan",
+            "html": "html/procurement_plan.html",
+            "js": [
+                "js/procurement_plan.js"
+            ],
+            "css": [
+                "css/procurement_plan.css"
+            ]
+        },
+        "nis-storage": {
+            "description": "NIS storage & silos",
+            "path": "nis-storage",
+            "html": "html/nis_storage.html",
+            "js": [
+                "js/nis_storage.js"
+            ],
+            "css": [
+                "css/nis_storage.css"
+            ]
+        },
+        "kernel-style-prices": {
+            "description": "Kernel style prices",
+            "path": "kernel-style-prices",
+            "html": "html/kernel_style_prices.html",
+            "js": [
+                "js/kernel_style_prices.js"
+            ],
+            "css": [
+                "css/kernel_style_prices.css"
             ]
         },
         "oil-dashboard": {

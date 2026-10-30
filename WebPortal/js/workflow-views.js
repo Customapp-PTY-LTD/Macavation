@@ -312,7 +312,7 @@ var _workflowViews = function () {
                     <div class="card mb-4 my-day-tasks-card${openCount ? ' has-tasks' : ''}">
                         <div class="card-header d-flex flex-wrap align-items-center gap-2">
                             <h4 class="mb-0"><i class="fas fa-list-check me-2"></i>Your tasks</h4>${countPill}
-                            <span class="small text-muted ms-auto">Things waiting for you to do. Each new one also shows in the bell.</span>
+                            <span class="small text-muted ms-auto">${this.getUserRole() && this.getUserRole() !== 'super_user' ? 'For the ' + this._esc(this.getUserRole()) + ' role. ' : ''}Things waiting for you to do. Each new one also shows in the bell.</span>
                         </div>
                         <div class="card-body">
                             ${this.renderWorkflowTasks(tasks)}
@@ -438,6 +438,8 @@ var _workflowViews = function () {
                         '</div></div>';
                 }
 
+                if (task.kind) return self._renderKindedTask(task, rolePill, snoozed);
+
                 return '<div class="workflow-task task-' + esc(task.status) + '" data-task-id="' + id + '">' +
                     '<div class="task-checkbox"><input type="checkbox" aria-label="Done" ' + (task.status === 'completed' ? 'checked' : '') +
                     ' onchange="workflowViews.toggleTask(\'' + id + '\', this.checked)"></div>' +
@@ -453,6 +455,217 @@ var _workflowViews = function () {
                     '<button type="button" class="btn btn-sm btn-outline-danger" onclick="workflowViews.dismissTask(\'' + id + '\')" title="Dismiss task"><i class="fas fa-xmark"></i></button>' +
                     '</div></div></div>';
             }).join('') + '</div>';
+        },
+
+        // ---- Kinded tasks (procurement / dispatch / price / NIS), migration 20261028120000 ----
+        _KIND_LABELS: {
+            dispatch_pick: 'Pick a dispatch', dispatch_approve: 'Approve a dispatch', truck_due: 'Truck due today',
+            truck_late: 'Truck is late', truck_unconfirmed: 'Truck not confirmed', style_prices_stale: 'Style prices need a look',
+            nis_runway_low: 'Nut in shell runs out soon', nis_unplaced: 'Nut in shell not placed'
+        },
+
+        _kindAction: function (task) {
+            var sid = task.subject_id;
+            switch (task.kind) {
+                case 'dispatch_pick': return { label: 'Confirm picking', route: 'kernel-dispatch-grid', params: { openOrderId: sid } };
+                case 'truck_due': return { label: 'Book in', route: 'grower-intake-grid', params: { bookInProcurementId: sid } };
+                case 'nis_unplaced': return { label: 'Place it', route: 'nis-storage', params: { tab: 'areas', place: true } };
+                case 'truck_late':
+                case 'truck_unconfirmed': return { label: 'Open in plan', route: 'procurement-plan', params: { focusProcurementId: sid } };
+                case 'nis_runway_low': return { label: 'Open the plan', route: 'procurement-plan', params: { section: 'runway' } };
+                case 'style_prices_stale': return { label: 'Update prices', route: 'kernel-pipeline-settings', params: { tab: 'prices' } };
+                case 'dispatch_approve': return { label: 'Price and approve', panel: true, route: 'kernel-dispatch-grid', params: { openOrderId: sid } };
+            }
+            return null;
+        },
+
+        _canPricePanel: function () {
+            return typeof window.hasAction === 'function' && !!window.hasAction('kernel_prices.view') && !!window.hasAction('kernel_dispatch.approve');
+        },
+
+        _findTask: function (taskId) {
+            return (this._lastTasks || []).filter(function (t) { return String(t.id) === String(taskId); })[0];
+        },
+
+        _renderKindedTask: function (task, rolePill, snoozed) {
+            var esc = this._esc.bind(this);
+            var id = esc(task.id);
+            var label = this._KIND_LABELS[task.kind];
+            var act = this._kindAction(task);
+            var usePanel = !!(act && act.panel && this._canPricePanel());
+            var link = task.kind === 'style_prices_stale'
+                ? ' <a href="#" class="ms-1" onclick="workflowViews.runTaskAction(\'' + id + '\'); return false;">Change when this reminder comes</a>' : '';
+            var btns = task.is_snoozed ? '' : '<button type="button" class="btn btn-outline-secondary" onclick="workflowViews.snoozeTask(\'' + id + '\')" title="Hide until tomorrow 07:00">Snooze to tomorrow</button>';
+            if (act) {
+                btns += '<button type="button" class="btn btn-primary" id="wvActBtn-' + id + '" onclick="workflowViews.' +
+                    (usePanel ? 'toggleApprovePanel' : 'runTaskAction') + '(\'' + id + '\')"' + (usePanel ? ' aria-expanded="false"' : '') + '>' + esc(act.label) + '</button>';
+            }
+            return '<div class="workflow-task wv-task-card" data-task-id="' + id + '">' +
+                '<div class="task-content">' +
+                '<div class="wv-task-kind">' + esc(label || task.kind) + rolePill + snoozed + '</div>' +
+                '<div class="wv-task-title">' + esc(task.title) + '</div>' +
+                (task.description || link ? '<div class="task-context text-muted small">' + esc(task.description || '') + link + '</div>' : '') +
+                '</div><div class="task-actions">' + btns + '</div>' +
+                (usePanel ? '<div class="wv-approve-panel d-none" id="wvPanel-' + id + '"></div>' : '') +
+                '</div>';
+        },
+
+        runTaskAction: function (taskId) {
+            var task = this._findTask(taskId);
+            var act = task && this._kindAction(task);
+            if (!act || typeof _appRouter === 'undefined' || !_appRouter.openWith) return;
+            _appRouter.openWith(act.route, act.params);
+        },
+
+        _wvToast: function (title) {
+            if (typeof Swal !== 'undefined') Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: title, showConfirmButton: false, timer: 2800 });
+        },
+
+        toggleApprovePanel: async function (taskId) {
+            var self = this, esc = this._esc.bind(this);
+            var panel = document.getElementById('wvPanel-' + taskId);
+            var btn = document.getElementById('wvActBtn-' + taskId);
+            var task = this._findTask(taskId);
+            if (!panel || !task) return;
+            if (!panel.classList.contains('d-none')) {
+                panel.classList.add('d-none');
+                if (btn) { btn.textContent = 'Price and approve'; btn.setAttribute('aria-expanded', 'false'); }
+                return;
+            }
+            panel.classList.remove('d-none');
+            if (btn) { btn.textContent = 'Hide'; btn.setAttribute('aria-expanded', 'true'); }
+            panel.innerHTML = '<div class="text-muted small">Loading the dispatch...</div>';
+            var wf = null;
+            try {
+                var res = await dataFunctions.callFunction('get_kernel_dispatch_workflow', { p_order_id: task.subject_id }, null, { useCache: false });
+                wf = res && res.data !== undefined ? res.data : res;
+            } catch (e) { wf = null; }
+            var tid = esc(taskId);
+            if (!wf || !wf.order || !Array.isArray(wf.lines)) {
+                panel.innerHTML = '<div class="text-danger small">Could not load this dispatch.</div>' +
+                    '<div class="mt-2"><button type="button" class="btn btn-outline-secondary" onclick="workflowViews.runTaskAction(\'' + tid + '\')">Open full dispatch</button></div>';
+                return;
+            }
+            this._panels = this._panels || {};
+            this._panels[taskId] = wf;
+            var o = wf.order;
+            var asked = function (l) { return l.requested_cartons != null ? Number(l.requested_cartons) : Number(l.cartons) || 0; };
+            var changed = wf.lines.filter(function (l) { return l.requested_cartons != null && Number(l.requested_cartons) !== Number(l.cartons); });
+            var who = o.picked_by_label || 'The picker';
+            var h = '';
+            if (changed.length || o.pick_note) {
+                h += '<div class="wv-approve-flag"><i class="fas fa-triangle-exclamation me-2 mt-1" aria-hidden="true"></i><div>';
+                if (changed.length) {
+                    h += '<strong>' + esc(who) + ' changed ' + changed.length + (changed.length === 1 ? ' line' : ' lines') + ':</strong> ' +
+                        changed.map(function (l) { return 'Style ' + esc(l.style_code || l.style || '') + ' asked ' + asked(l) + ', picked ' + esc(l.cartons); }).join('; ') + '.';
+                }
+                if (o.pick_note) h += ' Note: "' + esc(o.pick_note) + '".';
+                h += '</div></div>';
+            }
+            h += '<div class="table-responsive"><table class="table table-sm align-middle mb-2"><thead><tr><th scope="col">Style</th><th scope="col" class="text-end">Picked</th>' +
+                '<th scope="col" class="text-end">Kg</th><th scope="col">Price per kg</th><th scope="col" class="text-end">Line value</th></tr></thead><tbody>';
+            wf.lines.forEach(function (l, i) {
+                var pre = l.price_per_kg != null ? l.price_per_kg : l.list_price;
+                h += '<tr data-i="' + i + '"><td><strong>' + esc(l.style_code || l.style || '-') + '</strong></td>' +
+                    '<td class="text-end">' + esc(l.cartons) + ' ctn</td>' +
+                    '<td class="text-end">' + self._fmtNum((Number(l.cartons) || 0) * 11.34, 2) + '</td>' +
+                    '<td><span class="wv-price-wrap">R <input type="number" min="0" step="0.01" inputmode="decimal" class="form-control wv-price" placeholder="No list price" ' +
+                    'aria-label="Price per kg, style ' + esc(l.style_code || l.style || '') + '" value="' + (pre != null ? esc(Number(pre)) : '') + '" ' +
+                    'oninput="workflowViews.recalcApprovePanel(\'' + tid + '\')"></span></td>' +
+                    '<td class="text-end wv-line-value">-</td></tr>';
+            });
+            h += '</tbody></table></div>' +
+                '<div class="wv-approve-net mb-3">Net to Macavation <strong class="wv-net">R 0.00</strong> <span class="text-muted">&middot; transport <span class="wv-transport">R 0.00</span></span></div>' +
+                '<div class="d-flex flex-wrap gap-2">' +
+                '<button type="button" class="btn btn-outline-secondary" onclick="workflowViews.runTaskAction(\'' + tid + '\')">Open full dispatch</button>' +
+                '<button type="button" class="btn btn-outline-danger" onclick="workflowViews.sendBackFromPanel(\'' + tid + '\')">Send back to Thando</button>' +
+                '<button type="button" class="btn btn-primary" onclick="workflowViews.approveFromPanel(\'' + tid + '\')">Approve and record sale</button></div>' +
+                '<div class="small text-muted mt-2">Send back reopens Thando\'s "Pick a dispatch" task. Approving closes this task for Mike too.</div>';
+            panel.innerHTML = h;
+            this.recalcApprovePanel(taskId);
+        },
+
+        // Same arithmetic as modal_kernel_dispatch_approve: kg = cartons x 11.34, goods = sum(kg x price).
+        _panelSale: function (taskId) {
+            var wf = (this._panels || {})[taskId];
+            var panel = document.getElementById('wvPanel-' + taskId);
+            if (!wf || !panel) return null;
+            var o = wf.order, goods = 0, prices = [], missing = false;
+            var rows = panel.querySelectorAll('tbody tr[data-i]');
+            for (var i = 0; i < rows.length; i++) {
+                var line = wf.lines[i];
+                var kg = (Number(line.cartons) || 0) * 11.34;
+                var p = parseFloat(rows[i].querySelector('.wv-price').value);
+                if (isNaN(p) || p < 0) { missing = true; rows[i].querySelector('.wv-line-value').textContent = '-'; continue; }
+                prices.push({ index: line.index, price_per_kg: p });
+                goods += kg * p;
+                rows[i].querySelector('.wv-line-value').textContent = 'R ' + this._fmtNum(kg * p, 2);
+            }
+            var payer = o.transport_payer === 'customer' ? 'customer' : 'macavation';
+            var transport = payer === 'macavation' && o.transport_cost_zar != null ? Number(o.transport_cost_zar) : 0;
+            return { wf: wf, goods: goods, transport: transport, net: goods - transport, prices: prices, missing: missing, payer: payer };
+        },
+
+        recalcApprovePanel: function (taskId) {
+            var sale = this._panelSale(taskId);
+            var panel = document.getElementById('wvPanel-' + taskId);
+            if (!sale || !panel) return;
+            panel.querySelector('.wv-net').textContent = 'R ' + this._fmtNum(sale.net, 2);
+            panel.querySelector('.wv-transport').textContent = 'R ' + this._fmtNum(sale.transport, 2);
+        },
+
+        approveFromPanel: async function (taskId) {
+            var sale = this._panelSale(taskId);
+            if (!sale || typeof Swal === 'undefined') return;
+            if (sale.missing) { Swal.fire('Check the sale', 'Enter a price per kg for every line.', 'warning'); return; }
+            var o = sale.wf.order;
+            // Who pays for transport is chosen in the full dispatch; never assume it here.
+            if (o.transport_payer !== 'macavation' && o.transport_payer !== 'customer') {
+                var go = await Swal.fire({ title: 'Transport not set yet', text: 'Open the full dispatch to choose who pays for transport, then approve there.',
+                    icon: 'info', showCancelButton: true, confirmButtonText: 'Open full dispatch', cancelButtonText: 'Cancel' });
+                if (go.isConfirmed) _appRouter.openWith('kernel-dispatch-grid', { openOrderId: o.id });
+                return;
+            }
+            var r = await Swal.fire({
+                title: 'Record a sale of R ' + this._fmtNum(sale.goods, 2) + ' to ' + (o.buyer_name || 'the buyer') + '?',
+                text: 'The sale shows on the Kernel Dashboard straight away.',
+                icon: 'question', showCancelButton: true, confirmButtonText: 'Record sale', cancelButtonText: 'Cancel'
+            });
+            if (!r.isConfirmed) return;
+            var res = await dataFunctions.approveKernelDispatchSale(o.id, {
+                prices: sale.prices,
+                transportPayer: sale.payer,
+                transportCostZar: sale.payer === 'macavation' ? o.transport_cost_zar : null,
+                pallets: o.pallets,
+                transportCompany: o.transport_company || ''
+            });
+            if (res && res.success !== false) {
+                this._wvToast('Approved. The sale is recorded.');
+                if (window.$) $(document).trigger('kernelDispatch:changed');
+                await this.refreshMyDay();
+            } else {
+                Swal.fire('Could not save', (res && res.error) || 'Could not record the sale.', 'error');
+            }
+        },
+
+        sendBackFromPanel: async function (taskId) {
+            var wf = (this._panels || {})[taskId];
+            if (!wf || typeof Swal === 'undefined') return;
+            var r = await Swal.fire({
+                title: 'Send back to Thando?', input: 'textarea', inputLabel: 'What needs another look?',
+                inputAttributes: { maxlength: 1000, 'aria-label': 'Reason for sending back' },
+                showCancelButton: true, confirmButtonText: 'Send back', cancelButtonText: 'Cancel',
+                inputValidator: function (v) { return (v && v.trim()) ? undefined : 'Please say why, so Thando knows what to fix.'; }
+            });
+            if (!r.isConfirmed) return;
+            var res = await dataFunctions.sendBackKernelDispatch(wf.order.id, (r.value || '').trim());
+            if (res && res.success !== false) {
+                this._wvToast('Sent back for picking.');
+                if (window.$) $(document).trigger('kernelDispatch:changed');
+                await this.refreshMyDay();
+            } else {
+                Swal.fire('Could not save', (res && res.error) || 'Could not send it back.', 'error');
+            }
         },
 
         /**

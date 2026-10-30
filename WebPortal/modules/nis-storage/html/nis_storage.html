@@ -1,0 +1,17 @@
+<!-- NIS storage & silos: two tabs. "Storage areas" is rendered here by js/nis_storage.js from
+     getNisStorageOverview(); "Silos" is the Silo Allocation route (silo-allocation-grid). -->
+<div class="module-content" id="nisModule">
+    <div class="nis-head">
+        <div>
+            <div class="nss-crumb">Kernel pipeline &rsaquo; NIS storage &amp; silos</div>
+            <h1 class="nis-title">NIS storage &amp; silos</h1>
+        </div>
+    </div>
+    <div role="tablist" aria-label="Sections" class="nss-tabs">
+        <button type="button" role="tab" class="nss-tab" id="nssTabAreas" aria-selected="true" data-nss-tab="areas">Storage areas</button>
+        <button type="button" role="tab" class="nss-tab" id="nssTabSilos" aria-selected="false" data-nss-tab="silos">Silos</button>
+    </div>
+    <div id="nisBody">
+        <div class="text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading&hellip;</div>
+    </div>
+</div>

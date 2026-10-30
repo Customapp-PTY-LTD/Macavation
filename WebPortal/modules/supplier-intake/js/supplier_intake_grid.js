@@ -760,7 +760,7 @@ var _supplierIntakeGrid = function () {
             };
             var html = '<div class="text-start small">' +
                 '<p><strong>Batch #:</strong> ' + escapeHtml(b.batch_number || '—') + '</p>' +
-                line('Product type', batchProductLabel(b) || b.product_type) +
+                line('Description', batchProductLabel(b) || b.product_type) +
                 line('Date received', formatDate(b.date_received)) +
                 line('Delivery note / PO', b.delivery_note_ref) +
                 line('Supplier', b.supplier_details) +
@@ -769,8 +769,9 @@ var _supplierIntakeGrid = function () {
                 line('Manufactured date', formatDate(b.manufactured_date)) +
                 line('Best before date', formatDate(b.best_before_date)) +
                 line('Official FFA (bag) %', b.official_ffa != null && b.official_ffa !== '' ? b.official_ffa : '') +
-                line('Reference / PO', b.reference) +
-                line('Description', b.description) +
+                // Older batches only: New delivery no longer asks for a per-bag reference.
+                (b.reference ? line('Reference / PO', b.reference) : '') +
+                (b.description ? line('Notes', b.description) : '') +
                 line('Status', (function () {
                     var s = (b.status || '').toLowerCase();
                     if (s === 'intake' || s === 'awaiting_test') return 'Awaiting tests';
@@ -788,6 +789,18 @@ var _supplierIntakeGrid = function () {
                     line('Pest infestations', b.pest_infestations) +
                     line('Pallets condition', b.pallets_condition) +
                     line('Raw materials condition', b.raw_materials_condition);
+                var checkNames = { vehicle_clean: 'Vehicle clean', vehicle_enclosed: 'Vehicle enclosed', hazard_substances: 'Hazard substances', pest_infestations: 'Pest infestations', pallets_condition: 'Pallets condition', raw_materials_condition: 'Raw materials condition' };
+                var itemComments = b.item_comments || {};
+                var itemPhotos = b.item_photos || {};
+                Object.keys(checkNames).forEach(function (k) {
+                    if (itemComments[k]) html += line(checkNames[k] + ' — what was wrong / action', itemComments[k]);
+                    var photos = Array.isArray(itemPhotos[k]) ? itemPhotos[k].filter(function (p) { return p && p.file_link; }) : [];
+                    if (photos.length) {
+                        html += '<p>' + photos.map(function (p, i) {
+                            return '<a target="_blank" rel="noopener noreferrer" href="' + escapeHtml(p.file_link) + '">' + escapeHtml(checkNames[k] + ' photo ' + (i + 1)) + '</a>';
+                        }).join(' · ') + '</p>';
+                    }
+                });
             }
             if (b.receiving_comments != null && String(b.receiving_comments).trim() !== '') {
                 html += line('Receiving comments', b.receiving_comments);
@@ -964,11 +977,11 @@ var _supplierIntakeGrid = function () {
             }
             const columns = [
                 { key: 'batch_number', label: 'Batch #' },
-                { key: 'product_type', label: 'Product type' },
+                { key: 'product_type', label: 'Description' },
                 { key: 'date_received', label: 'Date received' },
                 { key: 'delivery_note_ref', label: 'Delivery note / PO' },
                 { key: 'supplier_details', label: 'Supplier' },
-                { key: 'quantity_kg', label: 'Quantity (kg)' },
+                { key: 'quantity_kg', label: 'Weight (kg)' },
                 { key: 'adjust_stock_ffa', label: 'Recorded FFA (adjust stock) %' },
                 { key: 'official_ffa', label: 'Official FFA (bag) %' },
                 { key: 'status', label: 'Status' }
