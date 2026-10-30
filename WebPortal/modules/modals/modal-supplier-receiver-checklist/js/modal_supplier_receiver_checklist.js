@@ -162,12 +162,12 @@ var _modal_supplier_receiver_checklist = (function () {
         return raw + '.' + String(step + 1);
     }
 
-    function readFirstRowSeed() {
+    /** New rows copy the LAST row, so adding twice keeps numbering batches on instead of repeating them. */
+    function readLastRowSeed() {
         if (typeof $ === 'undefined') return null;
-        var $row = $('#srcItemsTableBody tr:first');
+        var $row = $('#srcItemsTableBody tr:last');
         if (!$row.length) return null;
         return {
-            reference: ($row.find('[name="reference"]').val() || '').trim(),
             productType: ($row.find('[name="productType"]').val() || '').trim(),
             batch: ($row.find('[name="batch"]').val() || '').trim(),
             quantity: ($row.find('[name="quantity"]').val() || '').trim(),
@@ -175,32 +175,33 @@ var _modal_supplier_receiver_checklist = (function () {
         };
     }
 
-    async function promptBagCount() {
-        if (typeof Swal !== 'undefined') {
-            var res = await Swal.fire({
-                title: 'How many bags to add?',
-                input: 'number',
-                inputLabel: 'Number of additional bag rows',
-                inputValue: 1,
-                inputAttributes: { min: 1, step: 1 },
-                showCancelButton: true,
-                confirmButtonText: 'Add bags',
-                inputValidator: function (value) {
-                    var n = parseInt(value, 10);
-                    if (isNaN(n) || n <= 0) return 'Enter a number greater than 0.';
-                    if (n > 500) return 'Please enter 500 or less.';
-                    return null;
-                }
-            });
-            if (!res.isConfirmed) return null;
-            return parseInt(res.value, 10);
-        }
-        var raw = window.prompt('How many bags do you want to add?', '1');
-        if (raw == null) return null;
-        var n = parseInt(raw, 10);
-        if (isNaN(n) || n <= 0) return null;
+    /** Typed "Add [n] bag(s)" count; anything odd falls back to 1, capped at 500. */
+    function readAddCount() {
+        var el = document.getElementById('srcAddBagCount');
+        var n = parseInt(el && el.value, 10);
+        if (isNaN(n) || n <= 0) n = 1;
         if (n > 500) n = 500;
+        if (el) el.value = '1';
         return n;
+    }
+
+    function fmtKg(v) {
+        if (typeof _common !== 'undefined' && _common.formatKg) return _common.formatKg(v);
+        return Number(v || 0).toFixed(2);
+    }
+
+    /** No. column and the weighed total / bag count footer, same as the NIS delivery. */
+    function refreshBagTotals() {
+        if (typeof $ === 'undefined') return;
+        var total = 0;
+        var count = 0;
+        $('#srcItemsTableBody tr').each(function (i) {
+            $(this).find('.srcBagNo').text(String(i + 1));
+            var kg = parseFloat($(this).find('[name="quantity"]').val());
+            if (!isNaN(kg) && kg > 0) { total += kg; count += 1; }
+        });
+        $('#srcBagCount').text(String(count));
+        $('#srcBagTotal').text(fmtKg(total) || '0.00');
     }
 
     function readRows() {
@@ -209,7 +210,6 @@ var _modal_supplier_receiver_checklist = (function () {
 
         $('#srcItemsTableBody tr').each(function () {
             var $row = $(this);
-            var ref = ($row.find('[name="reference"]').val() || '').trim();
             var productType = ($row.find('[name="productType"]').val() || '').trim();
             var batch = ($row.find('[name="batch"]').val() || '').trim();
             var qtyRaw = ($row.find('[name="quantity"]').val() || '').trim();
@@ -217,12 +217,11 @@ var _modal_supplier_receiver_checklist = (function () {
             var manufacturedIso = mfgRaw ? (toISO(mfgRaw) || mfgRaw) : null;
             var bestBeforeIso = manufacturedIso ? calculateBestBeforeIso(manufacturedIso) : null;
 
-            var hasAny = ref || productType || batch || qtyRaw || mfgRaw;
+            var hasAny = productType || batch || qtyRaw || mfgRaw;
             if (!hasAny) return;
 
             var product = splitProductValue(productType);
             items.push({
-                reference: ref || null,
                 product_type: product.product_type,
                 grade: product.grade,
                 batch_number: batch || null,
@@ -325,11 +324,17 @@ var _modal_supplier_receiver_checklist = (function () {
             if (_inited) return;
             _inited = true;
             if (typeof $ !== 'undefined') {
-                $(document).off('click.srcAddItemRow', '#srcAddItemRow').on('click.srcAddItemRow', '#srcAddItemRow', async function (e) {
+                $(document).off('click.srcAddItemRow', '#srcAddItemRow').on('click.srcAddItemRow', '#srcAddItemRow', function (e) {
                     e.preventDefault();
-                    var count = await promptBagCount();
-                    if (!count) return;
-                    api.addItemRows(count);
+                    api.addItemRows(readAddCount());
+                });
+                $(document).off('keydown.srcAddBagCount', '#srcAddBagCount').on('keydown.srcAddBagCount', '#srcAddBagCount', function (e) {
+                    if (e.key !== 'Enter') return;
+                    e.preventDefault();
+                    api.addItemRows(readAddCount());
+                });
+                $(document).off('input.srcBagQty', '#srcItemsTableBody [name="quantity"]').on('input.srcBagQty', '#srcItemsTableBody [name="quantity"]', function () {
+                    refreshBagTotals();
                 });
                 $(document).off('click.srcCreateBatchesBtn', '#srcCreateBatchesBtn').on('click.srcCreateBatchesBtn', '#srcCreateBatchesBtn', function (e) {
                     e.preventDefault();
@@ -353,6 +358,7 @@ var _modal_supplier_receiver_checklist = (function () {
                     e.preventDefault();
                     $(this).closest('tr').remove();
                     ensureAtLeastOneRow();
+                    refreshBagTotals();
                 });
                 $(document).off('shown.bs.modal.srcSupplierReceiver', '#' + CONTAINER_ID).on('shown.bs.modal.srcSupplierReceiver', '#' + CONTAINER_ID, function () {
                     initFlatpickrInModal();
@@ -377,7 +383,7 @@ var _modal_supplier_receiver_checklist = (function () {
             hideNewSupplierPanel();
 
             var titleEl = document.getElementById('supplierReceiverChecklistModalLabel');
-            var addBagBtn = document.getElementById('srcAddItemRow');
+            var addBagBtn = document.getElementById('srcAddBagsWrap');
             var saveBtn = document.getElementById('srcCreateBatchesBtn');
 
             if (_editingBatchId && editingBatch) {
@@ -404,16 +410,12 @@ var _modal_supplier_receiver_checklist = (function () {
                 if (typeof $ !== 'undefined') {
                     var editManufacturedIso = getEditManufacturedIso(editingBatch);
                     $('#srcItemsTableBody tr').remove();
-                    var row = '<tr>' +
-                        '<td><input type="text" class="form-control form-control-sm" name="reference" placeholder="Optional" value="' + escapeHtml((editingBatch.reference || '').toString()) + '"></td>' +
-                        '<td><select class="form-select form-select-sm" name="productType" required>' +
-                        optionForProductType(productValueOf(editingBatch)) +
-                        '</select></td>' +
-                        '<td><input type="text" class="form-control form-control-sm" name="batch" required placeholder="Required — e.g. OIL-2026-03-001" value="' + escapeHtml((editingBatch.batch_number || '').toString()) + '"></td>' +
-                        '<td><input type="number" class="form-control form-control-sm" name="quantity" step="0.01" min="0.01" required value="' + (editingBatch.quantity_kg != null ? escapeHtml(String(editingBatch.quantity_kg)) : '') + '"></td>' +
-                        '<td><input type="text" class="form-control form-control-sm flatpickr-date" name="manufacturedDate" placeholder="dd/mm/yyyy" required value="' + (editManufacturedIso ? escapeHtml(fromISO(editManufacturedIso)) : '') + '"></td>' +
-                        '<td><button type="button" class="btn btn-sm btn-danger srcRemoveItemRow" title="Remove"><i class="fas fa-times"></i></button></td></tr>';
-                    $('#srcItemsTableBody').append(row);
+                    api.addItemRow({
+                        productType: productValueOf(editingBatch),
+                        batch: (editingBatch.batch_number || '').toString(),
+                        quantity: editingBatch.quantity_kg != null ? String(editingBatch.quantity_kg) : '',
+                        manufacturedDate: editManufacturedIso ? fromISO(editManufacturedIso) : ''
+                    });
                     initFlatpickrInModal();
                 }
             } else {
@@ -444,20 +446,16 @@ var _modal_supplier_receiver_checklist = (function () {
             var form = document.getElementById('supplierReceiverChecklistForm');
             if (form) form.reset();
             if (typeof $ !== 'undefined' && resetRows) {
-                $('#srcItemsTableBody tr:not(:first)').remove();
-                var $first = $('#srcItemsTableBody tr:first');
-                if ($first.length) {
-                    $first.find('input').val('');
-                    $first.find('select').val('');
-                }
+                $('#srcItemsTableBody tr').remove();
             }
             var titleEl = document.getElementById('supplierReceiverChecklistModalLabel');
-            var addBagBtn = document.getElementById('srcAddItemRow');
+            var addBagBtn = document.getElementById('srcAddBagsWrap');
             var saveBtn = document.getElementById('srcCreateBatchesBtn');
             if (titleEl) titleEl.textContent = 'New delivery';
             if (addBagBtn) addBagBtn.style.display = '';
             if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Save delivery';
             if (resetRows && typeof $ !== 'undefined') ensureAtLeastOneRow();
+            refreshBagTotals();
         },
 
         saveNewSupplier: async function () {
@@ -519,34 +517,38 @@ var _modal_supplier_receiver_checklist = (function () {
             if (typeof $ === 'undefined') return;
             seed = seed || {};
             var row = '<tr>' +
-                '<td><input type="text" class="form-control form-control-sm" name="reference" placeholder="Optional" value="' + escapeAttr(seed.reference || '') + '"></td>' +
-                '<td><select class="form-select form-select-sm" name="productType" required>' +
+                '<td><strong class="srcBagNo"></strong></td>' +
+                '<td><select class="form-select form-select-sm" name="productType" required aria-label="Description">' +
                 optionForProductType(seed.productType || '') +
                 '</select></td>' +
-                '<td><input type="text" class="form-control form-control-sm" name="batch" required placeholder="Required — e.g. OIL-2026-03-001" value="' + escapeAttr(seed.batch || '') + '"></td>' +
-                '<td><input type="number" class="form-control form-control-sm" name="quantity" step="0.01" min="0.01" required value="' + escapeAttr(seed.quantity || '') + '"></td>' +
+                '<td><input type="text" class="form-control form-control-sm" name="batch" required placeholder="e.g. OIL-2026-03-001" value="' + escapeAttr(seed.batch || '') + '"></td>' +
+                '<td><input type="number" class="form-control form-control-sm text-end" name="quantity" step="0.01" min="0.01" required value="' + escapeAttr(seed.quantity || '') + '"></td>' +
                 '<td><input type="text" class="form-control form-control-sm flatpickr-date" name="manufacturedDate" placeholder="dd/mm/yyyy" required value="' + escapeAttr(seed.manufacturedDate || '') + '"></td>' +
-                '<td><button type="button" class="btn btn-sm btn-danger srcRemoveItemRow" title="Remove"><i class="fas fa-times"></i></button></td>' +
+                '<td><button type="button" class="btn btn-sm btn-outline-secondary srcRemoveItemRow" title="Remove" aria-label="Remove bag">✕</button></td>' +
                 '</tr>';
             var $row = $(row);
             $('#srcItemsTableBody').append($row);
             $row.find('.flatpickr-date').each(function () {
                 if (typeof flatpickr !== 'undefined' && !this._flatpickr) flatpickr(this, FLATPICKR_DDMMYYYY);
             });
+            refreshBagTotals();
+            return $row;
         },
 
         addItemRows: function (count) {
             if (typeof $ === 'undefined' || !count || count <= 0) return;
-            var seed = readFirstRowSeed() || {};
+            var seed = readLastRowSeed() || {};
+            var $first = null;
             for (var i = 1; i <= count; i++) {
-                api.addItemRow({
-                    reference: seed.reference || '',
+                var $row = api.addItemRow({
                     productType: seed.productType || '',
                     batch: nextSequentialBatch(seed.batch || '', i),
                     quantity: seed.quantity || '',
                     manufacturedDate: seed.manufacturedDate || ''
                 });
+                if (!$first) $first = $row;
             }
+            if ($first) $first.find('[name="quantity"]').trigger('focus');
         },
 
         createBatches: async function () {
@@ -620,7 +622,8 @@ var _modal_supplier_receiver_checklist = (function () {
                         quantity_kg: r.quantity_kg,
                         manufactured_date: r.manufactured_date,
                         best_before_date: r.best_before_date,
-                        reference: r.reference,
+                        // Reference is no longer on the form; keep whatever an older batch already had.
+                        reference: (_editingBatchSnapshot && _editingBatchSnapshot.reference) || null,
                         description: null,
                         vehicle_clean: vehicle_clean,
                         vehicle_enclosed: vehicle_enclosed,
@@ -665,7 +668,7 @@ var _modal_supplier_receiver_checklist = (function () {
                             quantity_kg: r.quantity_kg,
                             manufactured_date: r.manufactured_date,
                             best_before_date: r.best_before_date,
-                            reference: r.reference,
+                            reference: null,
                             description: null,
                             vehicle_clean: vehicle_clean,
                             vehicle_enclosed: vehicle_enclosed,
