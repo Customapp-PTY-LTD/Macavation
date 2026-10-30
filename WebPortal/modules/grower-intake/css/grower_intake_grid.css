@@ -235,3 +235,106 @@
     background: rgba(var(--mac-green-rgb), 0.05) !important;
     transition: background 0.15s ease;
 }
+
+/* ===== Bags (js/grower_intake_bags.js, 31 Oct 2026) ===== */
+/* Tag colours: every bag also shows a letter, so colour is never the only clue. */
+.gib-c-silo { background: var(--mac-bag-silo-floor); color: var(--mac-bag-on-dark); }
+.gib-c-drying { background: var(--mac-bag-drying); color: var(--mac-bag-on-light); }
+.gib-c-shelter { background: var(--mac-bag-shelter); color: var(--mac-bag-on-dark); }
+.gib-c-fuels_depot { background: var(--mac-bag-fuels-depot); color: var(--mac-bag-on-dark); }
+.gib-c-other { background: var(--mac-bag-other-area); color: var(--mac-bag-on-dark); }
+.gib-c-insilo { background: var(--mac-bag-in-silo); color: var(--mac-bag-on-dark); }
+.gib-c-cracked { background: var(--mac-bag-cracked); color: var(--mac-bag-on-light); }
+.gib-c-none { background: var(--mac-bg-secondary); color: var(--mac-text-tertiary); border: 1.5px dashed var(--mac-text-tertiary); }
+
+.gi-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
+.gi-card-t { font-size: var(--mac-text-sm); font-weight: 600; color: var(--mac-text-secondary); white-space: nowrap; }
+.gi-card-released { border-color: var(--mac-green); }
+.kanban-column[data-column-key="released"] .kanban-column-header { color: var(--mac-green); }
+
+.gi-proc-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--mac-warning); margin-left: 0.5rem; vertical-align: middle; }
+
+.gib-strip { display: flex; height: 8px; border-radius: 5px; overflow: hidden; background: var(--mac-bg-tertiary); border: 1px solid var(--mac-border); margin: 0.35rem 0; }
+.gib-strip > span { height: 100%; border: 0; }
+.gib-sum { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; font-size: var(--mac-text-xs); color: var(--mac-text-secondary); margin: 0.35rem 0; }
+.gib-sum-none { color: var(--mac-text-tertiary); }
+.gib-toggle { border: 1px solid var(--mac-border-strong); background: var(--mac-bg-secondary); color: var(--mac-green); border-radius: var(--mac-radius-sm); font-size: var(--mac-text-xs); font-weight: 600; white-space: nowrap; }
+.gib-toggle[aria-expanded="true"] { background: var(--mac-green-light); border-color: var(--mac-green); }
+.gib-meta { font-size: var(--mac-text-xs); color: var(--mac-text-tertiary); margin-bottom: 0.35rem; }
+
+.gib-panel { border-top: 1px dashed var(--mac-border-strong); margin-top: 0.35rem; padding-top: 0.5rem; display: grid; gap: 0.5rem; cursor: default; }
+.gib-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.gib-chip { display: inline-flex; align-items: center; gap: 0.35rem; border: 1px solid var(--mac-border-strong); background: var(--mac-bg-secondary); border-radius: var(--mac-radius-pill); padding: 0.1rem 0.55rem 0.1rem 0.25rem; font-size: var(--mac-text-xs); font-weight: 600; color: var(--mac-text-secondary); }
+button.gib-chip:hover { border-color: var(--mac-text-tertiary); }
+.gib-chip.is-ro { opacity: 0.8; cursor: help; }
+.gib-ic { width: 16px; height: 16px; border-radius: 4px; display: inline-grid; place-items: center; font-style: normal; font-size: 10px; font-weight: 700; flex: none; }
+
+.gib-range, .gib-pickbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; font-size: var(--mac-text-sm); border-radius: var(--mac-radius-sm); padding: 0.4rem 0.5rem; }
+.gib-range { background: var(--mac-green-light); }
+.gib-range-plain { background: none; padding: 0; }
+.gib-pickbar { background: var(--mac-info-light); }
+.gib-num { width: 3.75rem; text-align: center; }
+.gib-select { width: auto; }
+.gib-cnt { font-weight: 600; color: var(--mac-info); }
+.gib-hint, .gib-note { font-size: var(--mac-text-xs); color: var(--mac-text-tertiary); }
+
+.gib-bags { display: grid; grid-template-columns: repeat(auto-fill, minmax(32px, 1fr)); gap: 4px; }
+.gib-bag { position: relative; height: 34px; border-radius: 5px; border: 1px solid rgba(0, 0, 0, 0.12); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; line-height: 1; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+.gib-bag .gib-no { font-size: 10.5px; font-weight: 700; }
+.gib-bag .gib-lt { font-size: 9px; font-weight: 700; opacity: 0.9; }
+.gib-bag.is-ro { opacity: 0.75; cursor: help; }
+.gib-bag.is-sel { outline: 3px solid var(--mac-info); outline-offset: 1px; }
+.gib-bag.is-sel::after { content: "\2713"; position: absolute; top: -6px; right: -6px; width: 15px; height: 15px; border-radius: 50%; background: var(--mac-info); color: var(--mac-bag-on-dark); font-size: 10px; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--mac-bg-secondary); }
+
+.intake-col-expand { width: 2rem; }
+.intake-col-bags { min-width: 11rem; }
+.gib-cell { display: grid; gap: 0.2rem; font-size: var(--mac-text-xs); color: var(--mac-text-secondary); white-space: normal; }
+.gib-cell .gib-strip { margin: 0; }
+.gib-chev { border: 0; background: none; color: var(--mac-text-tertiary); font-size: var(--mac-text-sm); transition: transform var(--mac-transition); }
+.gib-chev[aria-expanded="true"] { transform: rotate(90deg); color: var(--mac-green); }
+.gib-exp-row > td { background: var(--mac-bg-tertiary); }
+/* The table scrolls sideways; keep the bag panel the width of what is on screen and pinned to the left. */
+.intake-table-responsive { container-type: inline-size; }
+.gib-exp-row .gib-panel { border-top: 0; margin: 0; padding-top: 0; position: sticky; left: 0; width: min(60rem, calc(100cqw - 2rem)); }
+
+/* Storage areas */
+.gi-storage { margin-top: 1.5rem; margin-bottom: 1.5rem; }
+.gi-storage-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.75rem; margin-bottom: 0.75rem; }
+.gib-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 0.75rem; }
+.gib-scard { background: var(--mac-bg-secondary); border: 1px solid var(--mac-border); border-radius: var(--mac-radius-md); padding: 0.75rem 0.9rem; display: grid; gap: 0.5rem; align-content: start; }
+.gib-scard.is-on { border-color: var(--mac-green); box-shadow: 0 0 0 3px var(--mac-green-light); }
+.gib-scard.is-none { border-style: dashed; border-color: var(--mac-warning); background: var(--mac-warning-light); }
+.gib-scard-main { all: unset; box-sizing: border-box; cursor: pointer; display: grid; gap: 0.35rem; }
+.gib-scard-main:focus-visible { outline: 2px solid var(--mac-green); outline-offset: 3px; border-radius: 6px; }
+.gib-scard-main:hover .gib-sn { color: var(--mac-green); }
+.gib-sn { display: flex; align-items: center; gap: 0.45rem; font-weight: 700; }
+.gib-sn .gib-ic { width: 18px; height: 18px; font-size: 11px; }
+.gib-sv { font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.gib-sv small { font-size: 0.78rem; font-weight: 500; color: var(--mac-text-tertiary); margin-left: 0.2rem; }
+.gib-ss { font-size: var(--mac-text-xs); color: var(--mac-text-secondary); }
+.gib-bar { display: block; height: 7px; border-radius: 9px; background: var(--mac-bg-tertiary); overflow: hidden; }
+.gib-bar > span { display: block; height: 100%; border-radius: 9px; border: 0; }
+.gib-bar.is-full > span { background: var(--mac-danger); }
+.gib-full { color: var(--mac-danger); }
+.gib-scard-acts { display: flex; gap: 0.35rem; min-height: 1.75rem; align-items: center; }
+.gib-detail { margin-top: 0.75rem; background: var(--mac-bg-secondary); border: 1px solid var(--mac-border); border-radius: var(--mac-radius-md); padding: 0.75rem 0.9rem; }
+.gib-dhead { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+.gib-drow { display: grid; grid-template-columns: auto 1fr auto auto; gap: 0.35rem 0.75rem; align-items: center; padding: 0.5rem 0; border-top: 1px solid var(--mac-border); font-size: var(--mac-text-sm); }
+.gib-dn { font-weight: 700; }
+.gib-dr { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 600px) {
+    .gib-drow { grid-template-columns: 1fr auto; }
+}
+
+/* Undo toast */
+.gib-toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px)); z-index: 2000; background: var(--mac-text); color: var(--mac-bg-secondary); padding: 0.6rem 1rem; border-radius: var(--mac-radius-sm); box-shadow: var(--mac-shadow-lg); font-weight: 500; max-width: calc(100% - 2rem); }
+.gib-undo { margin-left: 0.75rem; border: 0; background: none; color: var(--mac-bag-on-dark); font-weight: 700; text-decoration: underline; }
+
+/* iPad / touch: finger-sized bags and controls */
+@media (pointer: coarse) {
+    .gib-bags { grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; }
+    .gib-bag { height: 44px; }
+    .gib-bag .gib-no { font-size: 13px; }
+    .gib-bag .gib-lt { font-size: 10px; }
+    .gib-toggle, .gib-chip, .gib-panel .btn, .gib-num, .gib-select, .gib-scard-acts .btn { min-height: 44px; }
+}

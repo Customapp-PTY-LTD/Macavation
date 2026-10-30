@@ -2392,6 +2392,20 @@ var _dataFunctions = function () {
             }, token);
         },
 
+        /** Grower Intake: every active intake/production batch with its bags and where each bag is
+         *  (loc = area code | 'silo:<n>' | 'cracked' | '' not placed), plus the storage areas. */
+        getIntakeBagOverview: async function (limit, token = null) {
+            return this._rpcRead('get_intake_bag_overview', { p_limit: limit || 300 }, token);
+        },
+
+        /** Tag bags of one batch with a storage area (areaCode null = take the tag off, used by Undo).
+         *  Bags in a silo or cracked are left alone by the database. */
+        moveNisBags: async function (kernelId, bagNos, areaCode, token = null) {
+            return this._rpcWrite('move_nis_bags', {
+                p_kernel_id: kernelId, p_bag_nos: bagNos, p_area_code: areaCode || null
+            }, token);
+        },
+
         setNisStorageAreaCapacity: async function (code, capacityKg, token = null) {
             return this._rpcWrite('set_nis_storage_area_capacity', {
                 p_code: code, p_capacity_kg: (capacityKg === '' || capacityKg == null) ? null : Number(capacityKg)

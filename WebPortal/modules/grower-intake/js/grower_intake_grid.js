@@ -10,10 +10,13 @@ var _growerIntakeGrid = function () {
         { key: 'receiving', label: 'Receiving' },
         { key: 'intake_received', label: 'Intake Received' },
         { key: 'quality_pending', label: 'Quality Pending' },
-        { key: 'quality_approved', label: 'Quality Approved' }
+        { key: 'quality_approved', label: 'Quality Approved' },
+        // Released to production but with bags still waiting in storage or a silo (grower_intake_bags.js).
+        { key: 'released', label: 'Released – cracking' }
     ];
 
     function getIntakeColumnKey(b) {
+        if (b._released) return 'released';
         if (['receiving', 'intake_received', 'quality_pending', 'quality_approved'].indexOf(b.status) >= 0) {
             return b.status;
         }
@@ -47,6 +50,7 @@ var _growerIntakeGrid = function () {
             if (typeof BatchStatus !== 'undefined') BatchStatus.applyModuleSubtitle('grower-intake-grid');
             if (typeof HandoffDialog !== 'undefined') HandoffDialog.applyPendingSearchForRoute('grower-intake-grid');
             scope.bindEvents();
+            if (typeof _giBags !== 'undefined') _giBags.init();
             if (typeof initMacSectionCollapses === 'function') {
                 initMacSectionCollapses(document.querySelector('.module-content'));
             }
@@ -274,13 +278,18 @@ var _growerIntakeGrid = function () {
             const scope = _growerIntakeGrid;
             const searchTerm = ($('#searchIntakeBatchesInput').val() || '').toLowerCase();
             const statusFilter = $('#filterIntakeBatchStatus').val();
-            scope.filteredIntakeBatches = scope.intakeBatches.filter((b) => {
+            const released = (typeof _giBags !== 'undefined') ? _giBags.releasedBatches() : [];
+            scope.filteredIntakeBatches = scope.intakeBatches.concat(released).filter((b) => {
                 const matchesSearch = !searchTerm ||
                     (b.batch_number && b.batch_number.toLowerCase().indexOf(searchTerm) >= 0) ||
                     (b.grower_name && b.grower_name.toLowerCase().indexOf(searchTerm) >= 0);
                 var matchesStatus = !statusFilter;
-                if (statusFilter) {
-                    if (b.status === statusFilter) {
+                if (statusFilter === 'released') {
+                    matchesStatus = !!b._released;
+                } else if (statusFilter) {
+                    if (b._released) {
+                        matchesStatus = false;
+                    } else if (b.status === statusFilter) {
                         matchesStatus = true;
                     } else {
                         matchesStatus = getIntakeColumnKey(b) === statusFilter;
@@ -320,6 +329,7 @@ var _growerIntakeGrid = function () {
                 const all = await df.getKernelBatches(null, forceRefresh, { status: 'intake,receiving', limit: 500 });
                 scope.intakeBatches = all || [];
                 scope.filterIntakeBatches();
+                if (typeof _giBags !== 'undefined') _giBags.load();
             } catch (e) {
                 console.error('Error loading intake batches:', e);
                 scope.intakeBatches = [];
@@ -364,9 +374,9 @@ var _growerIntakeGrid = function () {
             tbody.empty();
             if (scope.filteredIntakeBatches.length === 0) {
                 if (scope.intakeBatches.length === 0) {
-                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No kernel batches in intake. Create one to start the journey.</td></tr>');
+                    tbody.html('<tr><td colspan="9" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No kernel batches in intake. Create one to start the journey.</td></tr>');
                 } else {
-                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-filter me-2"></i>No batches match your search.</td></tr>');
+                    tbody.html('<tr><td colspan="9" class="text-center text-muted py-4"><i class="fas fa-filter me-2"></i>No batches match your search.</td></tr>');
                 }
                 return;
             }
@@ -398,7 +408,7 @@ var _growerIntakeGrid = function () {
                     items: [releaseItem, editItem, deleteItem]
                 });
 
-                const stage1Cell = '<div class="intake-stage1-buttons">' + stage1Btn + '</div>';
+                var stage1Cell = '<div class="intake-stage1-buttons">' + stage1Btn + '</div>';
 
                 var batchNumberCell = '<a href="#" class="intake-batch-number-link js-intake-batch-number-link" role="button"' +
                     ' data-batch-id="' + b.id + '"' +
@@ -420,15 +430,24 @@ var _growerIntakeGrid = function () {
                     wetCellContent = suppliedVal;
                 }
 
+                var gib = (typeof _giBags !== 'undefined') ? _giBags : null;
+                if (b._released) {
+                    // Released to production with bags still waiting: read-only here, no stage steps.
+                    stage1Cell = '<span class="text-muted small">In production</span>';
+                    actionsCell = '';
+                    batchNumberCell = batchNumEscaped;
+                }
                 const row = '<tr class="js-intake-batch-row" data-batch-id="' + b.id + '">' +
+                    '<td class="intake-col-expand">' + (gib ? gib.tableToggle(b.id) : '') + '</td>' +
                     '<td class="intake-col-batch">' + batchNumberCell + '</td>' +
                     '<td class="intake-col-grower d-none d-md-table-cell">' + (b.grower_name || '') + '</td>' +
                     '<td class="intake-col-date" title="Received date">' + receivedDate + '</td>' +
                     '<td class="intake-col-wet d-none d-sm-table-cell">' + wetCellContent + '</td>' +
+                    '<td class="intake-col-bags">' + (gib ? gib.tableCell(b.id) : '') + '</td>' +
                     '<td class="intake-col-stage1">' + stage1Cell + '</td>' +
-                    '<td class="intake-col-status">' + (function() { var ik = getIntakeColumnKey(b); var sp = ik === 'receiving' ? 'first' : ik === 'quality_approved' ? 'last' : 'mid'; return KanbanHelper.statusBadge(b.status || '', sp); })() + '</td>' +
+                    '<td class="intake-col-status">' + (b._released ? KanbanHelper.statusBadge('Released – cracking', 'last') : (function() { var ik = getIntakeColumnKey(b); var sp = ik === 'receiving' ? 'first' : ik === 'quality_approved' ? 'last' : 'mid'; return KanbanHelper.statusBadge(b.status || '', sp); })()) + '</td>' +
                     '<td class="intake-col-actions mac-table-actions-col">' + actionsCell + '</td></tr>';
-                tbody.append(row);
+                tbody.append(row + (gib ? gib.tableRow(b.id, 9) : ''));
             });
             MacTableActions.init(document.getElementById('intakeBatchesTable'));
         },
@@ -477,19 +496,17 @@ var _growerIntakeGrid = function () {
                     : '';
                 var deleteHtml = '<button type="button" class="btn btn-sm btn-outline-secondary js-intake-archive-btn" data-batch-id="' + b.id + '" title="Archive batch"><i class="fas fa-archive"></i></button>';
 
-                var weightLabel = b.wet_nis_received_kg != null ? _common.formatKg(b.wet_nis_received_kg) + ' kg' : '';
+                var kgForCard = b.actual_wet_nis_kg != null ? b.actual_wet_nis_kg : b.wet_nis_received_kg;
+                var tonnesLabel = kgForCard != null ? _common.formatKg(Number(kgForCard) / 1000, 1) + ' t' : '';
+                var bagsHtml = (typeof _giBags !== 'undefined') ? _giBags.cardBlock(b.id, !!b._released) : '';
 
-                var html = '<div class="kanban-card js-intake-batch-row" data-batch-id="' + b.id + '">';
-                html += '<div class="kanban-card-title">' + esc(batchNum) + '</div>';
-                if (typeof BatchStatus !== 'undefined') {
-                    html += '<div class="kanban-card-status-row">' + BatchStatus.statusBadgeHtml(BatchStatus.getDisplayStatus(b)) + '</div>';
-                }
-                html += '<div class="kanban-card-meta">';
-                if (b.grower_name) html += '<div class="kanban-card-meta-item" title="Grower / supplier"><i class="fas fa-user"></i> ' + esc(b.grower_name) + '</div>';
-                if (receivedDate) html += '<div class="kanban-card-meta-item" title="Received date"><i class="fas fa-calendar"></i> ' + esc(receivedDate) + '</div>';
-                if (weightLabel) html += '<div class="kanban-card-meta-item" title="Wet NIS (kg)"><i class="fas fa-weight-hanging"></i> ' + esc(weightLabel) + '</div>';
-                html += '</div>';
-                html += '<div class="kanban-card-actions">' + stage1Html + releaseHtml + deleteHtml + '</div>';
+                // Collapsed card: number and tonnes, grower, one bag line, the next step. The column is the status.
+                var html = '<div class="kanban-card js-intake-batch-row gi-card' + (b._released ? ' gi-card-released' : '') + '" data-batch-id="' + b.id + '">';
+                html += '<div class="gi-card-head"><span class="kanban-card-title">' + esc(batchNum) + '</span>' +
+                    (tonnesLabel ? '<span class="gi-card-t" title="' + (b.actual_wet_nis_kg != null ? 'Weighed total' : "Supplier's declared") + (receivedDate ? ' · received ' + esc(receivedDate) : '') + '">' + esc(tonnesLabel) + '</span>' : '') + '</div>';
+                if (b.grower_name) html += '<div class="kanban-card-meta"><div class="kanban-card-meta-item" title="Grower / supplier"><i class="fas fa-user"></i> ' + esc(b.grower_name) + '</div></div>';
+                html += bagsHtml;
+                if (!b._released) html += '<div class="kanban-card-actions">' + stage1Html + releaseHtml + deleteHtml + '</div>';
                 html += '</div>';
                 return html;
             });
@@ -501,6 +518,7 @@ var _growerIntakeGrid = function () {
                 _growerIntakeGrid._bindProcurementReceivingDrop();
             }
             KanbanHelper.enableDragDrop('giKanbanBoard', function (batchId, fromKey, toKey) {
+                if (fromKey === 'released' || toKey === 'released') return;
                 var fromIdx = colOrder.indexOf(fromKey);
                 var toIdx = colOrder.indexOf(toKey);
                 if (toIdx <= fromIdx) return; // block backward moves
@@ -514,7 +532,7 @@ var _growerIntakeGrid = function () {
                         _modal_grower_link_sample_to_batch.show(batchId);
                     }
                 }
-            });
+            }, { noDrag: (typeof _giBags !== 'undefined') ? _giBags.noDragSelector : '' });
         },
 
         moveBatchToRawStock: async (batchId) => {
@@ -759,6 +777,11 @@ var _growerIntakeGrid = function () {
                 scope.procurementToday = plan.today ? String(plan.today).slice(0, 10) : scope._procIsoFromDate(now);
                 scope.procurementAreas = Array.isArray(plan.areas) ? plan.areas : [];
                 scope.procurementItems = (plan.deliveries || []).filter(function (p) { return p && p.status !== 'received'; });
+                scope.procurementMeta = {
+                    poolKg: Number(plan.system_pool_kg) || 0,
+                    ratePerDay: Number(plan.settings && plan.settings.planned_kg_per_day) || 0,
+                    dayTypes: Array.isArray(plan.day_types) ? plan.day_types : []
+                };
             } catch (e) {
                 console.error('[Expected trucks] Failed to load:', e);
                 scope.procurementItems = [];
@@ -831,6 +854,44 @@ var _growerIntakeGrid = function () {
             }
             host.innerHTML = html;
             scope._bindTruckDrag();
+            scope._renderProcurementButton();
+        },
+
+        /** Header button: "Procurement plan · N trucks this week", with an amber dot when the next 7 days
+         *  of the plan take stock under 100 t (same day rules as the plan: weekends off unless set). */
+        _renderProcurementButton: () => {
+            const scope = _growerIntakeGrid;
+            var btn = document.getElementById('giOpenProcurementPlanBtn');
+            if (!btn) return;
+            var today = scope.procurementToday || scope._procIsoFromDate(new Date());
+            var p = today.split('-');
+            var day0 = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+            var keys = [];
+            for (var i = 0; i < 7; i++) keys.push(scope._procIsoFromDate(new Date(day0.getFullYear(), day0.getMonth(), day0.getDate() + i)));
+            var week = (scope.procurementItems || []).filter(function (x) {
+                var d = String(x.scheduled_date || '').slice(0, 10);
+                return d >= keys[0] && d <= keys[6];
+            });
+            var low = null, meta = scope.procurementMeta;
+            if (meta && meta.ratePerDay > 0) {
+                var types = {};
+                meta.dayTypes.forEach(function (r) { types[String(r.day).slice(0, 10)] = r; });
+                var stock = meta.poolKg;
+                keys.forEach(function (k) {
+                    if (low) return;
+                    week.forEach(function (x) { if (String(x.scheduled_date).slice(0, 10) === k) stock += Number(x.predicted_weight_kg) || 0; });
+                    var wd = new Date(parseInt(k.slice(0, 4), 10), parseInt(k.slice(5, 7), 10) - 1, parseInt(k.slice(8, 10), 10)).getDay();
+                    var row = types[k];
+                    var type = row ? row.day_type : ((wd === 0 || wd === 6) ? 'off' : 'work');
+                    var ov = row && row.kg_override != null ? Number(row.kg_override) : null;
+                    if (type === 'work') stock -= ov != null ? ov : meta.ratePerDay;
+                    else if (type === 'half') stock -= ov != null ? ov : meta.ratePerDay / 2;
+                    if (stock < 100000) low = k;
+                });
+            }
+            btn.innerHTML = '<i class="fas fa-calendar-days me-1"></i>Procurement plan · ' + week.length + (week.length === 1 ? ' truck' : ' trucks') + ' this week' +
+                (low ? '<span class="gi-proc-dot" aria-hidden="true"></span>' : '');
+            btn.title = low ? 'Stock drops below 100 t around ' + scope._procFmtDate(low) + '. Open the procurement plan.' : 'Open the procurement plan';
         },
 
         /** Late and Today rows can be dragged into the Receiving column (copy; the drop handler opens Book in). */
