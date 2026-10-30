@@ -710,7 +710,7 @@
             ]
         },
         "nis-storage": {
-            "description": "NIS storage & silos",
+            "description": "Silos & storage",
             "path": "nis-storage",
             "html": "html/nis_storage.html",
             "js": [
