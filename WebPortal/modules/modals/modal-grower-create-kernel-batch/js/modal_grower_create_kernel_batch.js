@@ -71,6 +71,7 @@ var _modal_grower_create_kernel_batch = (function () {
     }
 
     function numOrNull(raw) {
+        if (typeof _common !== 'undefined' && _common.parseKg) return _common.parseKg(raw);
         var t = String(raw == null ? '' : raw).replace(/,/g, '').trim();
         if (t === '') return null;
         var n = parseFloat(t);

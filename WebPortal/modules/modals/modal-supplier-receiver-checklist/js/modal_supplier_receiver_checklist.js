@@ -314,7 +314,7 @@ var _modal_supplier_receiver_checklist = (function () {
         var count = 0;
         $('#srcItemsTableBody tr').each(function (i) {
             $(this).find('.srcBagNo').text(String(i + 1));
-            var kg = parseFloat(String($(this).find('[name="quantity"]').val() || '').replace(/,/g, ''));
+            var kg = _common.parseKg($(this).find('[name="quantity"]').val());
             if (!isNaN(kg) && kg > 0) { total += kg; count += 1; }
         });
         $('#srcBagCount').text(String(count));
@@ -335,8 +335,8 @@ var _modal_supplier_receiver_checklist = (function () {
             var bestBeforeIso = manufacturedIso ? calculateBestBeforeIso(manufacturedIso) : null;
 
             // A row with no weight is not a bag (spare rows from "+ Add"), same as the NIS delivery.
-            var qty = qtyRaw ? parseFloat(qtyRaw.replace(/,/g, '')) : NaN;
-            if (isNaN(qty) || qty <= 0) return;
+            var qty = _common.parseKg(qtyRaw);
+            if (qty == null || qty <= 0) return;
 
             var product = splitProductValue(productType);
             items.push({
