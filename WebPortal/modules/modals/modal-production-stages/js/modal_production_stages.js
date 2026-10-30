@@ -1423,6 +1423,7 @@ var _modal_production_stages = (function () {
                     : label;
                 $container.append($('<button type="button" class="btn btn-sm btn-outline-secondary" data-day-id="' + dayId + '" data-day-saved="' + (isSaved ? '1' : '0') + '">').html(html));
             });
+            _modal_production_stages.renderUnfinishedSheetMarks();
         },
 
         setProductionDayActive: (dayId) => {
@@ -1435,6 +1436,52 @@ var _modal_production_stages = (function () {
                 else if (isSaved) $btn.addClass('btn-outline-success');
                 else $btn.addClass('btn-outline-secondary');
             });
+            _modal_production_stages.renderUnfinishedSheetMarks();
+        },
+
+        /** ISO date -> kg cracked in silo runs, for this batch's days that still have no shell bags on the sheet. */
+        _unfinishedSheetDays: {},
+
+        /** Ask which of this batch's days still need shell bags (get_unfinished_cracking_sheets). Best-effort. */
+        loadUnfinishedSheetDays: (kernelId) => {
+            const scope = _modal_production_stages;
+            scope._unfinishedSheetDays = {};
+            scope.renderUnfinishedSheetMarks();
+            if (!kernelId || typeof dataFunctions === 'undefined' || typeof dataFunctions.getUnfinishedCrackingSheets !== 'function') {
+                return Promise.resolve();
+            }
+            return Promise.resolve().then(function () { return dataFunctions.getUnfinishedCrackingSheets(kernelId); }).then(function (res) {
+                if (String($('#productionStagesBatchId').val() || '') !== String(kernelId)) return; // another batch opened meanwhile
+                ((res && Array.isArray(res.days)) ? res.days : []).forEach(function (d) {
+                    if (d && d.date) scope._unfinishedSheetDays[String(d.date).slice(0, 10)] = parseFloat(d.kg) || 0;
+                });
+                scope.renderUnfinishedSheetMarks();
+            }).catch(function (err) {
+                console.warn('[Production] Unfinished cracking sheets unavailable:', err && err.message ? err.message : err);
+            });
+        },
+
+        /** Red mark on each day still missing shell bags, and a note on the Cracking tab for the day being shown. */
+        renderUnfinishedSheetMarks: () => {
+            const scope = _modal_production_stages;
+            var open = scope._unfinishedSheetDays || {};
+            var activeDay = '';
+            $('#productionStagesDayList [data-day-id]').each(function () {
+                var $btn = $(this);
+                var day = String($btn.attr('data-day-id') || '').slice(0, 10);
+                $btn.find('.ps-day-flag').remove();
+                if ($btn.hasClass('btn-primary')) activeDay = day;
+                if (Object.prototype.hasOwnProperty.call(open, day)) {
+                    $btn.append($('<span class="ps-day-flag text-danger ms-1" title="Shell bags still to enter">').html('<i class="fas fa-circle-exclamation"></i>'));
+                }
+            });
+            var $note = $('#crackShellMissingNote');
+            if (activeDay && Object.prototype.hasOwnProperty.call(open, activeDay)) {
+                $note.text('Silo runs cracked ' + scope._crackKg(open[activeDay], 2) + ' kg from this batch on this day, but no shell bags are entered yet. Add the shell bags below and save.')
+                    .removeClass('d-none');
+            } else {
+                $note.text('').addClass('d-none');
+            }
         },
 
         /** When a section date picker changes, look up existing data for that date and populate the section. */
@@ -2355,6 +2402,14 @@ var _modal_production_stages = (function () {
                 scope.refreshProductionDatePickers();
                 scope.updateProductionActionButtonTicks();
                 scope.clearProductionStagesDraft(batchId);
+                scope.loadUnfinishedSheetDays(batchId);
+                if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadUnfinishedSheets) {
+                    // Board flags follow the save (re-render only; the batches themselves are unchanged).
+                    Promise.resolve(_kernelProductionGrid.loadUnfinishedSheets()).then(function () {
+                        if (_kernelProductionGrid.currentView === 'kanban') _kernelProductionGrid.renderKanban();
+                        else _kernelProductionGrid.renderBatches();
+                    }).catch(function () { /* non-blocking */ });
+                }
                 // Shell stock: call whenever a Total Shell Waste value exists (0 included; the DB adjusts by difference per batch + production day).
                 var shellKg = (cracking_data && cracking_data.shell_total != null && String(cracking_data.shell_total).trim() !== '') ? parseFloat(cracking_data.shell_total) : NaN;
                 var shellDate = cracking_data && cracking_data.date ? String(cracking_data.date).split('T')[0] : null;
@@ -2418,6 +2473,7 @@ var _modal_production_stages = (function () {
             scope.clearProductionStagesForm();
             scope.refreshShellRows();
             scope._loadedKernelDetail = null;
+            scope._unfinishedSheetDays = {};
 
             // Load full kernel detail (stage arrays) via getKernelBatchDetail
             dataFunctions.getKernelBatchDetail(batchId).then(function (detail) {
@@ -2473,6 +2529,7 @@ var _modal_production_stages = (function () {
                     scope.renderProductionDaysList(list);
                     scope.setProductionDayActive(first.id);
                     scope.updateProductionActionButtonTicks();
+                    scope.loadUnfinishedSheetDays(batchId);
                 });
             }).then(function () {
                 scope.restoreProductionStagesDraft(batchId);
