@@ -4132,6 +4132,9 @@ var _dataFunctions = function () {
                     pallets_condition: vc.pallets_condition != null ? vc.pallets_condition : intake.pallets_condition,
                     raw_materials_condition: vc.raw_materials_condition != null ? vc.raw_materials_condition : intake.raw_materials_condition,
                     receiving_comments: intake.receiving_comments,
+                    delivery_group_id: intake.delivery_group_id || null,
+                    item_comments: intake.item_comments || {},
+                    item_photos: intake.item_photos || {},
                     official_ffa: displayOfficialFfa,
                     adjust_stock_ffa: adjFfa != null ? adjFfa : null,
                     supplier_intake_official_ffa_at: intake.supplier_intake_official_ffa_at || null,
@@ -4338,7 +4341,9 @@ var _dataFunctions = function () {
                     pallets_condition: data.pallets_condition,
                     raw_materials_condition: data.raw_materials_condition
                 },
-                delivery_group_id: data.delivery_group_id || null
+                delivery_group_id: data.delivery_group_id || null,
+                item_comments: data.item_comments || {},
+                item_photos: data.item_photos || {}
             };
             if (data.adjust_stock_ffa != null && String(data.adjust_stock_ffa).trim() !== '') {
                 var adjF = parseFloat(data.adjust_stock_ffa);
@@ -4404,7 +4409,11 @@ var _dataFunctions = function () {
                     pest_infestations: data.pest_infestations,
                     pallets_condition: data.pallets_condition,
                     raw_materials_condition: data.raw_materials_condition
-                }
+                },
+                // upsert_oil_batch replaces intake_data whole, so anything not resent here is lost.
+                delivery_group_id: data.delivery_group_id || null,
+                item_comments: data.item_comments || {},
+                item_photos: data.item_photos || {}
             };
             if (data.official_ffa != null && data.official_ffa !== '') intakeData.official_ffa = Number(data.official_ffa);
             if (data.supplier_intake_official_ffa_at) intakeData.supplier_intake_official_ffa_at = data.supplier_intake_official_ffa_at;
