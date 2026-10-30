@@ -146,7 +146,13 @@ var _modal_grower_create_kernel_batch = (function () {
             var declEl = byId('intakeBatchWetNis');
             if (declEl) declEl.addEventListener('input', api._updateCalcs);
             var addBagBtn = byId('intakeAddBagBtn');
-            if (addBagBtn) addBagBtn.addEventListener('click', function (e) { e.preventDefault(); api._addBag(); });
+            if (addBagBtn) addBagBtn.addEventListener('click', function (e) { e.preventDefault(); api._addBag(api._readAddCount()); });
+            var addCountEl = byId('intakeAddBagCount');
+            if (addCountEl) addCountEl.addEventListener('keydown', function (e) {
+                if (e.key !== 'Enter') return;
+                e.preventDefault();
+                api._addBag(api._readAddCount());
+            });
             var bagsBody = byId('intakeBagsBody');
             if (bagsBody) {
                 bagsBody.addEventListener('input', function (e) {
@@ -295,13 +301,27 @@ var _modal_grower_create_kernel_batch = (function () {
             api._updateCalcs();
         },
 
-        _addBag: function () {
+        /** Typed "Add [n] bag(s)" count; anything odd falls back to 1, capped at 500. */
+        _readAddCount: function () {
+            var el = byId('intakeAddBagCount');
+            var n = parseInt(el && el.value, 10);
+            if (isNaN(n) || n <= 0) n = 1;
+            if (n > 500) n = 500;
+            if (el) el.value = '1';
+            return n;
+        },
+
+        _addBag: function (count) {
+            count = count > 0 ? count : 1;
+            var firstNew = _bags.length;
             var prev = _bags.length ? _bags[_bags.length - 1].desc : 'NIS';
-            _bags.push({ no: _nextBagNo, desc: prev, kg: '' });
-            _nextBagNo += 1;
+            for (var i = 0; i < count; i++) {
+                _bags.push({ no: _nextBagNo, desc: prev, kg: '' });
+                _nextBagNo += 1;
+            }
             api._renderBags();
             var inputs = document.querySelectorAll('#intakeBagsBody input[data-bag-field="kg"]');
-            if (inputs.length) inputs[inputs.length - 1].focus();
+            if (inputs[firstNew]) inputs[firstNew].focus();
         },
 
         _deleteBag: function (idx) {
