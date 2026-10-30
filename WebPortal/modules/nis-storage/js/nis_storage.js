@@ -1,5 +1,5 @@
 /**
- * NIS storage & silos (Storage areas tab) — nut-in-shell stock by storage area, with moves between areas.
+ * Silos & storage (Storage areas tab) — nut-in-shell stock by storage area, with moves between areas.
  *
  * Loads from dataFunctions.getNisStorageOverview(). Moving stock and editing capacity need the
  * nis_storage.move action. The server re-validates every move; client checks are courtesy only.
@@ -338,7 +338,8 @@ var _nisStorage = (function () {
 
     function init() {
         var h = (typeof _appRouter !== 'undefined' && _appRouter.takeHandoff) ? _appRouter.takeHandoff('nis-storage') : null;
-        if (h && h.tab === 'silos') { _appRouter.routeTo('silo-allocation-grid', true); return; }
+        // The menu opens Silos first; Storage areas shows only when asked for (its tab, or "Place it" on My Day).
+        if (!h || (h.tab !== 'areas' && !h.place)) { _appRouter.routeTo('silo-allocation-grid', true); return; }
         state.wantPlace = !!(h && h.place);
         bind();
         reload();
