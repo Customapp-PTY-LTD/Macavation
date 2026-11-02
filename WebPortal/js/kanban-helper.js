@@ -103,7 +103,10 @@ var KanbanHelper = {
                 ghostClass: 'kanban-card--ghost',
                 chosenClass: 'kanban-card--chosen',
                 dragClass: 'kanban-card--drag',
-                filter: '.kanban-column-empty',
+                // options.noDrag: extra selector for parts of a card that are clicked or typed in
+                // (e.g. an expanded panel); they must not start a drag or lose their clicks.
+                filter: '.kanban-column-empty' + (options && options.noDrag ? ', ' + options.noDrag : ''),
+                preventOnFilter: !(options && options.noDrag),
                 onEnd: function (evt) {
                     var item = evt.item;
                     var fromEl = evt.from;

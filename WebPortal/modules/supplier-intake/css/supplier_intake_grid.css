@@ -50,6 +50,24 @@
 }
 .supplier-intake-col-receiving { width: 1%; white-space: nowrap; }
 
+/* Not in spec: waits for an exec decision (migration 20261102090000) */
+.badge-stage-alert { background: rgba(var(--mac-danger-rgb), 0.1); color: var(--mac-danger); font-weight: 500; }
+[data-theme-mode="dark"] .badge-stage-alert { background: rgba(var(--mac-danger-rgb), 0.2); color: var(--mac-danger); }
+.supplier-intake-col-ffa { width: 1%; white-space: nowrap; }
+.supplier-intake-ffa-off { color: var(--mac-danger); font-weight: 600; }
+.supplier-intake-group-cell .si-delivery-ffa-btn { float: right; }
+@media (max-width: 575.98px) {
+    .supplier-intake-group-cell .si-delivery-ffa-btn { float: none; display: block; margin-top: 0.5rem; }
+}
+.si-ffa-result { font-size: 0.8125rem; font-weight: 500; white-space: nowrap; }
+.si-ffa-result.is-ready { color: var(--mac-green); }
+.si-ffa-result.is-decision { color: var(--mac-danger); }
+.si-ffa-result.is-waiting { color: var(--mac-text-secondary); }
+.si-ffa-fillall { background: var(--mac-bg-secondary); border-radius: var(--mac-radius-md); padding: 0.625rem 0.75rem; }
+.si-weight-note { border-radius: var(--mac-radius-md); padding: 0.625rem 0.75rem; font-size: 0.875rem; }
+.si-weight-note.is-ok { background: rgba(var(--mac-green-rgb), 0.1); color: var(--mac-green); }
+.si-weight-note.is-warn { background: rgba(141, 116, 52, 0.14); color: var(--mac-warning-text); }
+
 /* Group header rows (supplier + delivery note + date) */
 .supplier-intake-group-row td.supplier-intake-group-cell {
     background: rgba(var(--mac-green-rgb), 0.06);

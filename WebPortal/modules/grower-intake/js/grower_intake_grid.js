@@ -8,12 +8,16 @@ var _growerIntakeGrid = function () {
 
     var INTAKE_KANBAN_COLUMNS = [
         { key: 'receiving', label: 'Receiving' },
-        { key: 'intake_received', label: 'Intake Received' },
-        { key: 'quality_pending', label: 'Quality Pending' },
-        { key: 'quality_approved', label: 'Quality Approved' }
+        // Checklist done, sample still to take (Quality Pending folded in: nothing ever sat there).
+        { key: 'intake_received', label: 'Quality checks' },
+        { key: 'quality_approved', label: 'Ready to release' },
+        // Released to production but with bags still waiting in storage or a silo (grower_intake_bags.js).
+        { key: 'released', label: 'Released – cracking' }
     ];
 
     function getIntakeColumnKey(b) {
+        if (b._released) return 'released';
+        if (b.status === 'quality_pending') return 'intake_received';
         if (['receiving', 'intake_received', 'quality_pending', 'quality_approved'].indexOf(b.status) >= 0) {
             return b.status;
         }
@@ -40,6 +44,7 @@ var _growerIntakeGrid = function () {
         procurementToday: null,
         procurementLoadFailed: false,
         _truckSortables: [],
+        trucksOpen: false,
         _procurementReceivingSortable: null,
 
         init: () => {
@@ -47,6 +52,7 @@ var _growerIntakeGrid = function () {
             if (typeof BatchStatus !== 'undefined') BatchStatus.applyModuleSubtitle('grower-intake-grid');
             if (typeof HandoffDialog !== 'undefined') HandoffDialog.applyPendingSearchForRoute('grower-intake-grid');
             scope.bindEvents();
+            if (typeof _giBags !== 'undefined') _giBags.init();
             if (typeof initMacSectionCollapses === 'function') {
                 initMacSectionCollapses(document.querySelector('.module-content'));
             }
@@ -94,6 +100,14 @@ var _growerIntakeGrid = function () {
                     return;
                 }
                 scope.bookIn($(this).data('procurement-id'));
+            });
+            $(document).off('click.giTrucksStrip').on('click.giTrucksStrip', '#giTrucksToggle', function (e) {
+                e.preventDefault();
+                scope.trucksOpen = !scope.trucksOpen;
+                scope.renderExpectedTrucks();
+            }).on('click.giTrucksStrip', '#giTrucksOld', function (e) {
+                e.preventDefault();
+                if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) _appRouter.routeTo('procurement-plan', true);
             });
             $('#giOpenProcurementPlanBtn').off('click').on('click', () => {
                 if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) _appRouter.routeTo('procurement-plan', true);
@@ -274,13 +288,18 @@ var _growerIntakeGrid = function () {
             const scope = _growerIntakeGrid;
             const searchTerm = ($('#searchIntakeBatchesInput').val() || '').toLowerCase();
             const statusFilter = $('#filterIntakeBatchStatus').val();
-            scope.filteredIntakeBatches = scope.intakeBatches.filter((b) => {
+            const released = (typeof _giBags !== 'undefined') ? _giBags.releasedBatches() : [];
+            scope.filteredIntakeBatches = scope.intakeBatches.concat(released).filter((b) => {
                 const matchesSearch = !searchTerm ||
                     (b.batch_number && b.batch_number.toLowerCase().indexOf(searchTerm) >= 0) ||
                     (b.grower_name && b.grower_name.toLowerCase().indexOf(searchTerm) >= 0);
                 var matchesStatus = !statusFilter;
-                if (statusFilter) {
-                    if (b.status === statusFilter) {
+                if (statusFilter === 'released') {
+                    matchesStatus = !!b._released;
+                } else if (statusFilter) {
+                    if (b._released) {
+                        matchesStatus = false;
+                    } else if (b.status === statusFilter) {
                         matchesStatus = true;
                     } else {
                         matchesStatus = getIntakeColumnKey(b) === statusFilter;
@@ -320,6 +339,7 @@ var _growerIntakeGrid = function () {
                 const all = await df.getKernelBatches(null, forceRefresh, { status: 'intake,receiving', limit: 500 });
                 scope.intakeBatches = all || [];
                 scope.filterIntakeBatches();
+                if (typeof _giBags !== 'undefined') _giBags.load();
             } catch (e) {
                 console.error('Error loading intake batches:', e);
                 scope.intakeBatches = [];
@@ -364,9 +384,9 @@ var _growerIntakeGrid = function () {
             tbody.empty();
             if (scope.filteredIntakeBatches.length === 0) {
                 if (scope.intakeBatches.length === 0) {
-                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No kernel batches in intake. Create one to start the journey.</td></tr>');
+                    tbody.html('<tr><td colspan="9" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No kernel batches in intake. Create one to start the journey.</td></tr>');
                 } else {
-                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-filter me-2"></i>No batches match your search.</td></tr>');
+                    tbody.html('<tr><td colspan="9" class="text-center text-muted py-4"><i class="fas fa-filter me-2"></i>No batches match your search.</td></tr>');
                 }
                 return;
             }
@@ -383,7 +403,7 @@ var _growerIntakeGrid = function () {
                 if (!checklistDone) {
                     stage1Btn = '<button type="button" class="btn btn-sm btn-primary intake-step-btn js-intake-checklist-btn" data-batch-id="' + b.id + '" title="Receiving checklist"><i class="fas fa-clipboard-check me-1"></i><span class="intake-btn-text">Receiving checklist</span></button>';
                 } else if (!sampleDone) {
-                    stage1Btn = '<button type="button" class="btn btn-sm btn-primary intake-step-btn js-intake-sample-btn" data-batch-id="' + b.id + '" data-batch-number="' + batchNumEscaped + '" title="New batch sample"><i class="fas fa-vial me-1"></i><span class="intake-btn-text">New batch sample</span></button>';
+                    stage1Btn = '<button type="button" class="btn btn-sm btn-primary intake-step-btn js-intake-sample-btn" data-batch-id="' + b.id + '" data-batch-number="' + batchNumEscaped + '" title="Take the batch sample"><i class="fas fa-vial me-1"></i><span class="intake-btn-text">Take sample</span></button>';
                 } else {
                     stage1Btn = '<button type="button" class="btn btn-sm btn-primary intake-step-btn js-intake-sample-btn" data-batch-id="' + b.id + '" data-batch-number="' + batchNumEscaped + '" title="View batch sample"><i class="fas fa-check me-1"></i><span class="intake-btn-text">Batch sample</span></button>';
                 }
@@ -398,7 +418,7 @@ var _growerIntakeGrid = function () {
                     items: [releaseItem, editItem, deleteItem]
                 });
 
-                const stage1Cell = '<div class="intake-stage1-buttons">' + stage1Btn + '</div>';
+                var stage1Cell = '<div class="intake-stage1-buttons">' + stage1Btn + '</div>';
 
                 var batchNumberCell = '<a href="#" class="intake-batch-number-link js-intake-batch-number-link" role="button"' +
                     ' data-batch-id="' + b.id + '"' +
@@ -420,15 +440,24 @@ var _growerIntakeGrid = function () {
                     wetCellContent = suppliedVal;
                 }
 
+                var gib = (typeof _giBags !== 'undefined') ? _giBags : null;
+                if (b._released) {
+                    // Released to production with bags still waiting: read-only here, no stage steps.
+                    stage1Cell = '<span class="text-muted small">In production</span>';
+                    actionsCell = '';
+                    batchNumberCell = batchNumEscaped;
+                }
                 const row = '<tr class="js-intake-batch-row" data-batch-id="' + b.id + '">' +
+                    '<td class="intake-col-expand">' + (gib ? gib.tableToggle(b.id) : '') + '</td>' +
                     '<td class="intake-col-batch">' + batchNumberCell + '</td>' +
                     '<td class="intake-col-grower d-none d-md-table-cell">' + (b.grower_name || '') + '</td>' +
                     '<td class="intake-col-date" title="Received date">' + receivedDate + '</td>' +
                     '<td class="intake-col-wet d-none d-sm-table-cell">' + wetCellContent + '</td>' +
+                    '<td class="intake-col-bags">' + (gib ? gib.tableCell(b.id) : '') + '</td>' +
                     '<td class="intake-col-stage1">' + stage1Cell + '</td>' +
-                    '<td class="intake-col-status">' + (function() { var ik = getIntakeColumnKey(b); var sp = ik === 'receiving' ? 'first' : ik === 'quality_approved' ? 'last' : 'mid'; return KanbanHelper.statusBadge(b.status || '', sp); })() + '</td>' +
+                    '<td class="intake-col-status">' + (b._released ? KanbanHelper.statusBadge('Released – cracking', 'last') : (function() { var ik = getIntakeColumnKey(b); var sp = ik === 'receiving' ? 'first' : ik === 'quality_approved' ? 'last' : 'mid'; return KanbanHelper.statusBadge((INTAKE_KANBAN_COLUMNS.filter(function (c) { return c.key === ik; })[0] || { label: b.status || '' }).label, sp); })()) + '</td>' +
                     '<td class="intake-col-actions mac-table-actions-col">' + actionsCell + '</td></tr>';
-                tbody.append(row);
+                tbody.append(row + (gib ? gib.tableRow(b.id, 9) : ''));
             });
             MacTableActions.init(document.getElementById('intakeBatchesTable'));
         },
@@ -467,40 +496,42 @@ var _growerIntakeGrid = function () {
                 if (!checklistDone) {
                     stage1Html = '<button type="button" class="btn btn-sm btn-primary js-intake-checklist-btn" data-batch-id="' + b.id + '" title="Receiving checklist"><i class="fas fa-clipboard-check me-1"></i>Checklist</button>';
                 } else if (!sampleDone) {
-                    stage1Html = '<button type="button" class="btn btn-sm btn-primary js-intake-sample-btn" data-batch-id="' + b.id + '" data-batch-number="' + esc(batchNum) + '" title="New batch sample"><i class="fas fa-vial me-1"></i>Sample</button>';
+                    stage1Html = '<button type="button" class="btn btn-sm btn-primary js-intake-sample-btn" data-batch-id="' + b.id + '" data-batch-number="' + esc(batchNum) + '" title="Take the batch sample"><i class="fas fa-vial me-1"></i>Take sample</button>';
                 } else {
-                    stage1Html = '<button type="button" class="btn btn-sm btn-primary js-intake-sample-btn" data-batch-id="' + b.id + '" data-batch-number="' + esc(batchNum) + '" title="View batch sample"><i class="fas fa-check me-1"></i>Sample</button>';
+                    stage1Html = '<button type="button" class="btn btn-sm btn-outline-secondary js-intake-sample-btn" data-batch-id="' + b.id + '" data-batch-number="' + esc(batchNum) + '" title="View the batch sample"><i class="fas fa-check"></i><span class="visually-hidden">View sample</span></button>';
                 }
 
                 var releaseHtml = canRelease
-                    ? '<button type="button" class="btn btn-sm btn-outline-success js-intake-release-btn" data-batch-id="' + b.id + '" title="Release to production"><i class="fas fa-arrow-right me-1"></i>Release</button>'
+                    ? '<button type="button" class="btn btn-sm btn-primary js-intake-release-btn" data-batch-id="' + b.id + '" title="Release to production"><i class="fas fa-arrow-right me-1"></i>Release</button>'
                     : '';
                 var deleteHtml = '<button type="button" class="btn btn-sm btn-outline-secondary js-intake-archive-btn" data-batch-id="' + b.id + '" title="Archive batch"><i class="fas fa-archive"></i></button>';
 
-                var weightLabel = b.wet_nis_received_kg != null ? _common.formatKg(b.wet_nis_received_kg) + ' kg' : '';
+                var kgForCard = b.actual_wet_nis_kg != null ? b.actual_wet_nis_kg : b.wet_nis_received_kg;
+                var tonnesLabel = kgForCard != null ? _common.formatKg(Number(kgForCard) / 1000, 1) + ' t' : '';
+                var gib = (typeof _giBags !== 'undefined') ? _giBags : null;
 
-                var html = '<div class="kanban-card js-intake-batch-row" data-batch-id="' + b.id + '">';
-                html += '<div class="kanban-card-title">' + esc(batchNum) + '</div>';
-                if (typeof BatchStatus !== 'undefined') {
-                    html += '<div class="kanban-card-status-row">' + BatchStatus.statusBadgeHtml(BatchStatus.getDisplayStatus(b)) + '</div>';
-                }
-                html += '<div class="kanban-card-meta">';
-                if (b.grower_name) html += '<div class="kanban-card-meta-item" title="Grower / supplier"><i class="fas fa-user"></i> ' + esc(b.grower_name) + '</div>';
-                if (receivedDate) html += '<div class="kanban-card-meta-item" title="Received date"><i class="fas fa-calendar"></i> ' + esc(receivedDate) + '</div>';
-                if (weightLabel) html += '<div class="kanban-card-meta-item" title="Wet NIS (kg)"><i class="fas fa-weight-hanging"></i> ' + esc(weightLabel) + '</div>';
-                html += '</div>';
-                html += '<div class="kanban-card-actions">' + stage1Html + releaseHtml + deleteHtml + '</div>';
+                // Collapsed card: number and tonnes, grower, one bag line, the next step. The column is the status.
+                var html = '<div class="kanban-card js-intake-batch-row gi-card' + (b._released ? ' gi-card-released' : '') + '" data-batch-id="' + b.id + '">';
+                html += '<div class="gi-card-head"><span class="kanban-card-title">' + esc(batchNum) + '</span>' +
+                    (tonnesLabel ? '<span class="gi-card-t" title="' + (b.actual_wet_nis_kg != null ? 'Weighed total' : "Supplier's declared") + (receivedDate ? ' · received ' + esc(receivedDate) : '') + '">' + esc(tonnesLabel) + '</span>' : '') + '</div>';
+                if (b.grower_name) html += '<div class="kanban-card-meta"><div class="kanban-card-meta-item" title="Grower / supplier"><i class="fas fa-user"></i> ' + esc(b.grower_name) + '</div></div>';
+                if (gib) html += gib.cardSummary(b.id, !!b._released);
+                var bagsBtn = gib ? gib.toggleButton(b.id) : '';
+                var steps = b._released ? '' : (canRelease ? releaseHtml + stage1Html : stage1Html) + deleteHtml;
+                if (steps || bagsBtn) html += '<div class="kanban-card-actions gi-card-actions">' + steps + (bagsBtn ? '<span class="gi-card-bags">' + bagsBtn + '</span>' : '') + '</div>';
+                if (gib) html += gib.cardPanel(b.id);
                 html += '</div>';
                 return html;
             });
 
             // Drag-and-drop: forward transitions only
-            var colOrder = ['receiving', 'intake_received', 'quality_pending', 'quality_approved'];
+            var colOrder = ['receiving', 'intake_received', 'quality_approved'];
             // Re-bind procurement drop zone after every Kanban render (DOM is replaced by KanbanHelper)
             if (typeof _growerIntakeGrid._bindProcurementReceivingDrop === 'function') {
                 _growerIntakeGrid._bindProcurementReceivingDrop();
             }
             KanbanHelper.enableDragDrop('giKanbanBoard', function (batchId, fromKey, toKey) {
+                if (fromKey === 'released' || toKey === 'released') return;
                 var fromIdx = colOrder.indexOf(fromKey);
                 var toIdx = colOrder.indexOf(toKey);
                 if (toIdx <= fromIdx) return; // block backward moves
@@ -514,7 +545,7 @@ var _growerIntakeGrid = function () {
                         _modal_grower_link_sample_to_batch.show(batchId);
                     }
                 }
-            });
+            }, { noDrag: (typeof _giBags !== 'undefined') ? _giBags.noDragSelector : '' });
         },
 
         moveBatchToRawStock: async (batchId) => {
@@ -759,6 +790,11 @@ var _growerIntakeGrid = function () {
                 scope.procurementToday = plan.today ? String(plan.today).slice(0, 10) : scope._procIsoFromDate(now);
                 scope.procurementAreas = Array.isArray(plan.areas) ? plan.areas : [];
                 scope.procurementItems = (plan.deliveries || []).filter(function (p) { return p && p.status !== 'received'; });
+                scope.procurementMeta = {
+                    poolKg: Number(plan.system_pool_kg) || 0,
+                    ratePerDay: Number(plan.settings && plan.settings.planned_kg_per_day) || 0,
+                    dayTypes: Array.isArray(plan.day_types) ? plan.day_types : []
+                };
             } catch (e) {
                 console.error('[Expected trucks] Failed to load:', e);
                 scope.procurementItems = [];
@@ -767,70 +803,110 @@ var _growerIntakeGrid = function () {
             scope.renderExpectedTrucks();
         },
 
+        /** Expected trucks: a strip above the board. Folded to one line; opened, a row of truck cards for
+         *  late (up to LATE_DAYS), today and tomorrow. Older late trucks are left to the Procurement plan. */
         renderExpectedTrucks: () => {
             const scope = _growerIntakeGrid;
+            var LATE_DAYS = 14;
             var host = document.getElementById('giExpectedTrucks');
             if (!host) return;
             if (scope.procurementLoadFailed) {
-                host.innerHTML = '<div class="gi-trucks-empty">Could not load the expected trucks. Refresh the page to try again.</div>';
+                host.innerHTML = '<div class="gi-trucks-line"><strong>Expected trucks</strong><span class="text-muted">Could not load them. Refresh the page to try again.</span></div>';
+                scope._renderProcurementButton();
                 return;
             }
             var esc = scope._procEsc;
             var today = scope.procurementToday || scope._procIsoFromDate(new Date());
+            var tp = today.split('-');
+            var d0 = new Date(parseInt(tp[0], 10), parseInt(tp[1], 10) - 1, parseInt(tp[2], 10));
+            var iso = function (n) { return scope._procIsoFromDate(new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + n)); };
+            var tomorrow = iso(1), lateFrom = iso(-LATE_DAYS), weekEnd = iso(6);
             var canBook = scope._procCanBook();
-            var items = (scope.procurementItems || []).slice().sort(function (a, b) {
-                return String(a.scheduled_date).localeCompare(String(b.scheduled_date)) ||
-                    ((a.sort_index != null ? a.sort_index : 9999) - (b.sort_index != null ? b.sort_index : 9999));
+            var items = (scope.procurementItems || []).slice().sort(function (x, y) {
+                return String(x.scheduled_date).localeCompare(String(y.scheduled_date)) ||
+                    ((x.sort_index != null ? x.sort_index : 9999) - (y.sort_index != null ? y.sort_index : 9999));
             });
-            var late = [], todays = [], next = [];
+            var old = [], late = [], todays = [], tom = [], week = 0;
             items.forEach(function (p) {
                 var d = String(p.scheduled_date || '').slice(0, 10);
-                if (d < today) late.push(p);
+                if (d < lateFrom) old.push(p);
+                else if (d < today) late.push(p);
                 else if (d === today) todays.push(p);
-                else next.push(p);
+                else if (d === tomorrow) tom.push(p);
+                if (d >= today && d <= weekEnd) week++;
             });
 
-            function title(p) { return (p.grower || 'Grower') + (p.truck_label ? ' · ' + p.truck_label : ''); }
-            function row(p, kind) {
-                var area = scope._procAreaLabel(p.storage_area_code);
-                var kgTxt = scope._procFmtTonnes(p.predicted_weight_kg);
-                var parts = [];
-                if (kind === 'late') parts.push('Was due ' + scope._procFmtDate(p.scheduled_date));
-                else parts.push(p.status === 'confirmed' ? 'Confirmed' : 'Not confirmed yet');
-                if (kgTxt) parts.push(kgTxt);
-                if (area) parts.push(area);
-                var h = '<div class="gi-truck-row" data-procurement-id="' + esc(p.id) + '">';
-                if (canBook) h += '<span class="gi-truck-handle" title="Drag onto Receiving"><i class="fas fa-grip-vertical" aria-hidden="true"></i><span class="visually-hidden">Drag handle</span></span>';
-                h += '<div class="gi-truck-main"><div class="gi-truck-title">' + esc(title(p)) + '</div>' +
-                    '<div class="gi-truck-sub' + (kind === 'late' ? ' is-late' : '') + '">' + esc(parts.join(' · ')) + '</div></div>';
-                if (canBook) h += '<button type="button" class="btn btn-sm ' + (kind === 'late' ? 'btn-outline-success' : 'btn-primary') +
-                    ' js-book-in-btn" data-procurement-id="' + esc(p.id) + '">Book in</button>';
-                return h + '</div>';
-            }
+            var parts = [];
+            if (late.length) parts.push('<span class="gi-trucks-late">' + late.length + ' late</span>');
+            parts.push(todays.length + ' today');
+            parts.push(week + ' in the next 7 days');
+            var shown = late.length + todays.length + tom.length;
+            var open = !!scope.trucksOpen && shown > 0;
+            var html = '<div class="gi-trucks-line"><strong>Expected trucks</strong><span>' + parts.join(' \u00B7 ') + '</span>' +
+                (shown ? '<button type="button" class="btn btn-sm btn-outline-secondary ms-auto" id="giTrucksToggle" aria-expanded="' + open + '">' + (open ? 'Hide \u25B4' : 'Show \u25BE') + '</button>' : '') + '</div>';
 
-            var html = '';
-            if (late.length) {
-                html += '<div class="gi-trucks-group is-late">Late · ' + late.length + '</div><div class="gi-trucks-list" data-kind="late">' +
-                    late.map(function (p) { return row(p, 'late'); }).join('') + '</div>';
+            if (open) {
+                var card = function (p, kind) {
+                    var area = scope._procAreaLabel(p.storage_area_code);
+                    var kgTxt = scope._procFmtTonnes(p.predicted_weight_kg);
+                    var when = kind === 'late' ? 'Was due ' + scope._procFmtDate(p.scheduled_date) : (kind === 'today' ? 'Today' : 'Tomorrow');
+                    var h = '<div class="gi-truck-card is-' + kind + '" data-procurement-id="' + esc(p.id) + '">';
+                    h += '<div class="gi-truck-card-top">' + (canBook ? '<span class="gi-truck-handle" title="Drag onto Receiving"><i class="fas fa-grip-vertical" aria-hidden="true"></i><span class="visually-hidden">Drag handle</span></span>' : '') +
+                        '<span class="gi-truck-when">' + esc(when) + (p.status === 'confirmed' ? '' : ' \u00B7 not confirmed') + '</span></div>';
+                    h += '<div class="gi-truck-title">' + esc(p.grower || 'Grower') + '</div>';
+                    h += '<div class="gi-truck-sub">' + esc([p.truck_label, kgTxt, area].filter(Boolean).join(' \u00B7 ')) + '</div>';
+                    if (canBook && kind !== 'tomorrow') h += '<button type="button" class="btn btn-sm btn-primary js-book-in-btn" data-procurement-id="' + esc(p.id) + '">Book in</button>';
+                    return h + '</div>';
+                };
+                html += '<div class="gi-trucks-list" data-kind="all">' +
+                    late.map(function (p) { return card(p, 'late'); }).join('') +
+                    todays.map(function (p) { return card(p, 'today'); }).join('') +
+                    tom.map(function (p) { return card(p, 'tomorrow'); }).join('') + '</div>';
             }
-            if (todays.length) {
-                html += '<div class="gi-trucks-group is-today">Today · ' + todays.length + '</div><div class="gi-trucks-list" data-kind="today">' +
-                    todays.map(function (p) { return row(p, 'today'); }).join('') + '</div>';
-            }
-            if (next.length) {
-                html += '<div class="gi-trucks-group is-next">Next 7 days · ' + next.length + '</div>';
-                next.forEach(function (p) {
-                    var unconf = p.status !== 'confirmed';
-                    html += '<div class="gi-truck-row is-upcoming"><span><strong>' + esc(title(p)) + '</strong><br>' +
-                        '<span class="' + (unconf ? 'gi-truck-sub is-unconfirmed' : 'gi-truck-sub') + '">' + (unconf ? 'Not confirmed yet' : 'Confirmed') + '</span></span>' +
-                        '<span class="gi-truck-sub">' + esc(scope._procFmtDate(p.scheduled_date)) + '</span></div>';
-                });
-            }
-            if (!late.length && !todays.length && !next.length) {
-                html = '<div class="gi-trucks-empty">No trucks expected in the next 7 days.</div>';
+            if (old.length) {
+                html += '<div class="gi-trucks-old"><button type="button" class="btn btn-link btn-sm p-0" id="giTrucksOld">' + old.length + (old.length === 1 ? ' old truck was' : ' old trucks were') +
+                    ' never booked in \u2192 sort out in the Procurement plan</button></div>';
             }
             host.innerHTML = html;
             scope._bindTruckDrag();
+            scope._renderProcurementButton();
+        },
+
+        /** Header button: "Procurement plan · N trucks this week", with an amber dot when the next 7 days
+         *  of the plan take stock under 100 t (same day rules as the plan: weekends off unless set). */
+        _renderProcurementButton: () => {
+            const scope = _growerIntakeGrid;
+            var btn = document.getElementById('giOpenProcurementPlanBtn');
+            if (!btn) return;
+            var today = scope.procurementToday || scope._procIsoFromDate(new Date());
+            var p = today.split('-');
+            var day0 = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+            var keys = [];
+            for (var i = 0; i < 7; i++) keys.push(scope._procIsoFromDate(new Date(day0.getFullYear(), day0.getMonth(), day0.getDate() + i)));
+            var week = (scope.procurementItems || []).filter(function (x) {
+                var d = String(x.scheduled_date || '').slice(0, 10);
+                return d >= keys[0] && d <= keys[6];
+            });
+            var low = null, meta = scope.procurementMeta;
+            if (meta && meta.ratePerDay > 0) {
+                var types = {};
+                meta.dayTypes.forEach(function (r) { types[String(r.day).slice(0, 10)] = r; });
+                var stock = meta.poolKg;
+                keys.forEach(function (k) {
+                    if (low) return;
+                    week.forEach(function (x) { if (String(x.scheduled_date).slice(0, 10) === k) stock += Number(x.predicted_weight_kg) || 0; });
+                    var wd = new Date(parseInt(k.slice(0, 4), 10), parseInt(k.slice(5, 7), 10) - 1, parseInt(k.slice(8, 10), 10)).getDay();
+                    var row = types[k];
+                    var type = row ? row.day_type : ((wd === 0 || wd === 6) ? 'off' : 'work');
+                    var ov = row && row.kg_override != null ? Number(row.kg_override) : null;
+                    if (type === 'work') stock -= ov != null ? ov : meta.ratePerDay;
+                    else if (type === 'half') stock -= ov != null ? ov : meta.ratePerDay / 2;
+                    if (stock < 100000) low = k;
+                });
+            }
+            btn.innerHTML = '<i class="fas fa-calendar-days me-1"></i>Procurement plan · ' + week.length + (week.length === 1 ? ' truck' : ' trucks') + ' this week' +
+                (low ? '<span class="gi-proc-dot" aria-hidden="true"></span>' : '');
+            btn.title = low ? 'Stock drops below 100 t around ' + scope._procFmtDate(low) + '. Open the procurement plan.' : 'Open the procurement plan';
         },
 
         /** Late and Today rows can be dragged into the Receiving column (copy; the drop handler opens Book in). */
