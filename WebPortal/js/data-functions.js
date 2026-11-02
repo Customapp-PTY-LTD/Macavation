@@ -4161,6 +4161,8 @@ var _dataFunctions = function () {
                     official_ffa: displayOfficialFfa,
                     adjust_stock_ffa: adjFfa != null ? adjFfa : null,
                     supplier_intake_official_ffa_at: intake.supplier_intake_official_ffa_at || null,
+                    // Out-of-spec FFA waiting for (or given) an exec decision, migration 20261102090000.
+                    ffa_decision: (intake.ffa_decision && typeof intake.ffa_decision === 'object') ? intake.ffa_decision : null,
                     created_by_name: o.created_by_name,
                     updated_by_name: o.updated_by_name
                 };
@@ -4170,7 +4172,8 @@ var _dataFunctions = function () {
         },
 
         /**
-         * First Supplier Intake sample test only: writes official FFA to oil.intake_data and sets status release_ready.
+         * First Supplier Intake sample test only: writes official FFA to oil.intake_data. In spec -> release_ready;
+         * not in spec -> stays awaiting_test for an exec decision (result.held = true).
          */
         completeSupplierIntakeFirstSampleFfa: async function (oilId, ffaPct, token = null) {
             if (!oilId || ffaPct == null || isNaN(Number(ffaPct))) {
@@ -4180,6 +4183,37 @@ var _dataFunctions = function () {
             var uid = this.getCurrentUserId();
             if (uid) payload.p_updated_by = uid;
             var result = await this.callFunction('complete_supplier_intake_first_sample_ffa', payload, token, { useCache: false });
+            this.clearCachePattern('supplier_intake');
+            this.clearCachePattern('oil_batches');
+            this.clearCachePattern('oil_production');
+            return result && (result.data !== undefined ? result.data : result);
+        },
+
+        /**
+         * First FFA for several bags at once (Record FFA for this delivery). items = [{ oil_id, ffa }].
+         * Out-of-spec bags stay in Awaiting tests for an exec decision. Returns { success, ready, held, failed }.
+         */
+        recordSupplierIntakeFfaBulk: async function (items, token = null) {
+            if (!Array.isArray(items) || !items.length) return { success: false, error: 'No FFA results to save' };
+            var payload = { p_items: items };
+            var uid = this.getCurrentUserId();
+            if (uid) payload.p_updated_by = uid;
+            var result = await this.callFunction('record_supplier_intake_ffa_bulk', payload, token, { useCache: false });
+            this.clearCachePattern('supplier_intake');
+            this.clearCachePattern('oil_batches');
+            this.clearCachePattern('oil_production');
+            return result && (result.data !== undefined ? result.data : result);
+        },
+
+        /**
+         * An exec accepts or rejects an out-of-spec FFA bag. decision 'accept' | 'reject' (reject needs a note).
+         */
+        decideOilFfa: async function (oilId, decision, note, token = null) {
+            if (!oilId || (decision !== 'accept' && decision !== 'reject')) return { success: false, error: 'Choose accept or reject' };
+            var payload = { p_oil_id: oilId, p_decision: decision, p_note: note || null };
+            var uid = this.getCurrentUserId();
+            if (uid) payload.p_actor_user_id = uid;
+            var result = await this.callFunction('decide_oil_ffa', payload, token, { useCache: false });
             this.clearCachePattern('supplier_intake');
             this.clearCachePattern('oil_batches');
             this.clearCachePattern('oil_production');
@@ -4441,6 +4475,7 @@ var _dataFunctions = function () {
             if (data.official_ffa != null && data.official_ffa !== '') intakeData.official_ffa = Number(data.official_ffa);
             if (data.supplier_intake_official_ffa_at) intakeData.supplier_intake_official_ffa_at = data.supplier_intake_official_ffa_at;
             if (data.ffa != null && data.ffa !== '') intakeData.ffa = Number(data.ffa);
+            if (data.ffa_decision && typeof data.ffa_decision === 'object') intakeData.ffa_decision = data.ffa_decision;
             var payload = {
                 p_oil_id: oilId,
                 p_batch_id: data.batch_number || null,

@@ -14,6 +14,8 @@ var _modal_supplier_receiver_checklist = (function () {
     var _editingBatchStatus = null;
     /** Snapshot of grid batch while editing — preserves official FFA fields not on the form. */
     var _editingBatchSnapshot = null;
+    /** FFA row of the sample spec (Kernel Pipeline Settings); null = no limit, every FFA goes to Ready. */
+    var _ffaSpec = null;
 
     function toISO(dateStr) {
         if (!dateStr || typeof dateStr !== 'string') return null;
@@ -321,6 +323,50 @@ var _modal_supplier_receiver_checklist = (function () {
         $('#srcBagTotal').text(fmtKg(total) || '0.00');
     }
 
+    /** FFA box: '' when blank, NaN when not a number 0-100. */
+    function readFfa($row) {
+        var raw = ($row.find('[name="ffa"]').val() || '').toString().trim().replace(',', '.');
+        if (raw === '') return '';
+        if (!/^\d+(\.\d+)?$/.test(raw)) return NaN;
+        var n = parseFloat(raw);
+        return (n < 0 || n > 100) ? NaN : n;
+    }
+
+    var GOES_TO = {
+        ready: '<span class="badge badge-stage-last">Ready for Oil Production</span>',
+        decision: '<span class="badge badge-stage-alert">Needs an exec decision</span>',
+        waiting: '<span class="badge badge-stage-first">Awaiting tests</span>',
+        invalid: '<span class="text-danger small">Enter 0 to 100</span>'
+    };
+
+    /** "Goes to" per bag and the count line under the table. */
+    function refreshFfaOutcomes() {
+        if (typeof $ === 'undefined') return;
+        var n = { ready: 0, decision: 0, waiting: 0 };
+        $('#srcItemsTableBody tr').each(function () {
+            var $row = $(this);
+            var kg = _common.parseKg($row.find('[name="quantity"]').val());
+            var ffa = readFfa($row);
+            var key = ffa === '' ? 'waiting' : (isNaN(ffa) ? 'invalid' : _common.oilFfaOutcome(_ffaSpec, ffa));
+            if (_editingBatchId) key = '';
+            $row.find('.srcGoesTo').html(key ? GOES_TO[key] : '');
+            $row.find('[name="ffa"]').toggleClass('is-invalid', key === 'invalid');
+            if (kg != null && kg > 0 && n[key] != null) n[key] += 1;
+        });
+        var parts = [];
+        if (n.ready) parts.push('<strong class="text-success">' + n.ready + (n.ready === 1 ? ' bag goes' : ' bags go') + '</strong> straight to Ready for Oil Production');
+        if (n.decision) parts.push('<strong class="text-danger">' + n.decision + (n.decision === 1 ? ' bag needs' : ' bags need') + '</strong> an exec decision');
+        if (n.waiting) parts.push('<strong class="text-warning">' + n.waiting + (n.waiting === 1 ? ' bag waits' : ' bags wait') + '</strong> for a test');
+        $('#srcFfaSummary').html(_editingBatchId ? '' : parts.join(' · '));
+    }
+
+    async function loadFfaSpec() {
+        _ffaSpec = await _common.loadOilFfaSpec();
+        var g = _ffaSpec && _ffaSpec.green_limit != null ? Number(_ffaSpec.green_limit) : NaN;
+        $('#srcFfaSpecText').text(isNaN(g) ? 'no FFA limit is set in Kernel Pipeline Settings' : 'more than ' + g + '%');
+        refreshFfaOutcomes();
+    }
+
     function readRows() {
         var items = [];
         if (typeof $ === 'undefined') return items;
@@ -339,7 +385,9 @@ var _modal_supplier_receiver_checklist = (function () {
             if (qty == null || qty <= 0) return;
 
             var product = splitProductValue(productType);
+            var ffa = readFfa($row);
             items.push({
+                ffa: ffa === '' ? null : ffa,
                 no: i + 1,
                 product_type: product.product_type,
                 grade: product.grade,
@@ -454,6 +502,10 @@ var _modal_supplier_receiver_checklist = (function () {
                 });
                 $(document).off('input.srcBagQty', '#srcItemsTableBody [name="quantity"]').on('input.srcBagQty', '#srcItemsTableBody [name="quantity"]', function () {
                     refreshBagTotals();
+                    refreshFfaOutcomes();
+                });
+                $(document).off('input.srcBagFfa', '#srcItemsTableBody [name="ffa"]').on('input.srcBagFfa', '#srcItemsTableBody [name="ffa"]', function () {
+                    refreshFfaOutcomes();
                 });
                 TRUCK_CHECKS.forEach(function (c) {
                     $(document).off('change.srcCheck', '#' + CONTAINER_ID + ' input[name="' + c.name + '"]').on('change.srcCheck', '#' + CONTAINER_ID + ' input[name="' + c.name + '"]', function () { syncCheckVisibility(c); });
@@ -495,6 +547,7 @@ var _modal_supplier_receiver_checklist = (function () {
                     $(this).closest('tr').remove();
                     ensureAtLeastOneRow();
                     refreshBagTotals();
+                    refreshFfaOutcomes();
                 });
                 $(document).off('shown.bs.modal.srcSupplierReceiver', '#' + CONTAINER_ID).on('shown.bs.modal.srcSupplierReceiver', '#' + CONTAINER_ID, function () {
                     initFlatpickrInModal();
@@ -517,6 +570,7 @@ var _modal_supplier_receiver_checklist = (function () {
                 _editingBatchSnapshot = null;
             }
             hideNewSupplierPanel();
+            loadFfaSpec(); // not awaited: a settings failure must never block the delivery
 
             var titleEl = document.getElementById('supplierReceiverChecklistModalLabel');
             var addBagBtn = document.getElementById('srcAddBagsWrap');
@@ -557,7 +611,8 @@ var _modal_supplier_receiver_checklist = (function () {
                         productType: productValueOf(editingBatch),
                         batch: (editingBatch.batch_number || '').toString(),
                         quantity: editingBatch.quantity_kg != null ? fmtKg(editingBatch.quantity_kg) : '',
-                        manufacturedDate: editManufacturedIso ? fromISO(editManufacturedIso) : ''
+                        manufacturedDate: editManufacturedIso ? fromISO(editManufacturedIso) : '',
+                        ffa: editingBatch.official_ffa != null ? String(editingBatch.official_ffa) : ''
                     });
                     initFlatpickrInModal();
                 }
@@ -599,6 +654,7 @@ var _modal_supplier_receiver_checklist = (function () {
             if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Save delivery';
             if (resetRows && typeof $ !== 'undefined') ensureAtLeastOneRow();
             refreshBagTotals();
+            refreshFfaOutcomes();
             resetCheckState();
             TRUCK_CHECKS.forEach(function (c) {
                 var thumbs = document.getElementById(c.name + 'Thumbs');
@@ -676,6 +732,10 @@ var _modal_supplier_receiver_checklist = (function () {
                 '<td><input type="text" class="form-control form-control-sm" name="batch" required placeholder="e.g. OIL-2026-03-001" value="' + escapeAttr(seed.batch || '') + '"></td>' +
                 '<td><input type="text" inputmode="decimal" class="form-control form-control-sm text-end js-kg-input" name="quantity" required value="' + escapeAttr(seed.quantity || '') + '"></td>' +
                 '<td><input type="text" class="form-control form-control-sm flatpickr-date" name="manufacturedDate" placeholder="dd/mm/yyyy" required value="' + escapeAttr(seed.manufacturedDate || '') + '"></td>' +
+                // FFA is recorded once per bag; when editing, a recorded one is shown but changed only through Quality Assurance.
+                '<td><input type="text" inputmode="decimal" class="form-control form-control-sm text-end" name="ffa" aria-label="FFA percent" placeholder="' + (_editingBatchId ? 'Sample test' : 'Optional') + '"' +
+                    (_editingBatchId ? ' disabled' : '') + ' value="' + escapeAttr(seed.ffa || '') + '"></td>' +
+                '<td class="srcGoesTo"></td>' +
                 '<td>' + (_editingBatchId ? '' : '<button type="button" class="btn btn-sm btn-outline-secondary srcRemoveItemRow" title="Remove" aria-label="Remove bag">✕</button>') + '</td>' +
                 '</tr>';
             var $row = $(row);
@@ -684,6 +744,7 @@ var _modal_supplier_receiver_checklist = (function () {
                 if (typeof flatpickr !== 'undefined' && !this._flatpickr) flatpickr(this, FLATPICKR_DDMMYYYY);
             });
             refreshBagTotals();
+            refreshFfaOutcomes();
             return $row;
         },
 
@@ -737,6 +798,7 @@ var _modal_supplier_receiver_checklist = (function () {
                 if (!r.product_type) missing.push(label + ': choose a description');
                 if (!r.batch_number) missing.push(label + ': enter a batch number');
                 if (!r.manufactured_date) missing.push(label + ': enter a manufactured date (best before is worked out as +18 months)');
+                if (!_editingBatchId && r.ffa != null && isNaN(r.ffa)) missing.push(label + ': FFA must be a number from 0 to 100, or left blank');
             });
             if (pendingUploads > 0) missing.push('Wait for the photo uploads to finish');
             if (missing.length) { showMessage(missing); return; }
@@ -787,6 +849,7 @@ var _modal_supplier_receiver_checklist = (function () {
                     if (_editingBatchSnapshot && _editingBatchSnapshot.supplier_intake_official_ffa_at) {
                         payload.supplier_intake_official_ffa_at = _editingBatchSnapshot.supplier_intake_official_ffa_at;
                     }
+                    if (_editingBatchSnapshot && _editingBatchSnapshot.ffa_decision) payload.ffa_decision = _editingBatchSnapshot.ffa_decision;
                     var res = await dataFunctions.updateSupplierIntakeBatch(_editingBatchId, payload);
                     if (res && res.success === false) {
                         throw new Error(res.error || res.message || 'Failed to update batch');
@@ -798,7 +861,7 @@ var _modal_supplier_receiver_checklist = (function () {
                         return;
                     }
                     var deliveryGroupId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : (function () { var d = new Date().getTime(); return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) { var r = (d + Math.random() * 16) % 16 | 0; d = Math.floor(d / 16); return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16); }); })();
-                    var created = 0;
+                    var created = 0, ready = 0, held = 0, ffaFailed = [];
                     for (var i = 0; i < rows.length; i++) {
                         var r = rows[i];
                         var payload = {
@@ -831,8 +894,28 @@ var _modal_supplier_receiver_checklist = (function () {
                             throw new Error(res.error || res.message || 'Failed to create batch');
                         }
                         created++;
+                        // Same rule as Sample test: in spec -> Ready, not in spec -> waits for an exec.
+                        if (r.ffa != null && res && res.id && dataFunctions.completeSupplierIntakeFirstSampleFfa) {
+                            try {
+                                var fr = await dataFunctions.completeSupplierIntakeFirstSampleFfa(res.id, r.ffa);
+                                if (fr && fr.success !== false) { if (fr.held) held++; else ready++; }
+                                else ffaFailed.push(r.batch_number);
+                            } catch (fe) {
+                                console.error('[Receiver checklist] FFA save failed', fe);
+                                ffaFailed.push(r.batch_number);
+                            }
+                        }
                     }
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Created', text: 'Delivery saved: ' + created + ' bag' + (created === 1 ? '' : 's') + ' moved to Awaiting tests.', timer: 2500, showConfirmButton: false });
+                    var waiting = created - ready - held;
+                    var parts = [];
+                    if (ready) parts.push(ready + ' ready for Oil Production');
+                    if (held) parts.push(held + ' waiting for an exec decision on FFA');
+                    if (waiting) parts.push(waiting + ' in Awaiting tests');
+                    var savedText = 'Delivery saved: ' + created + ' bag' + (created === 1 ? '' : 's') + ' (' + parts.join(', ') + ').';
+                    if (typeof Swal !== 'undefined') {
+                        if (ffaFailed.length) Swal.fire({ icon: 'warning', title: 'Saved, but some FFA results were not', text: savedText + ' Record FFA again for: ' + ffaFailed.join(', ') + '.' });
+                        else Swal.fire({ icon: 'success', title: 'Created', text: savedText, timer: held ? 4000 : 2500, showConfirmButton: false });
+                    }
                 }
 
                 var modalEl = document.getElementById(CONTAINER_ID);

@@ -166,7 +166,10 @@ var _modal_quality_test = (function () {
                     if (!siRes || siRes.success === false) {
                         throw new Error((siRes && siRes.error) || 'Could not record official FFA');
                     }
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Saved', text: 'Official bag FFA recorded. Batch is ready for Oil Production (release when you are ready).', timer: 2200, showConfirmButton: false });
+                    if (typeof Swal !== 'undefined') {
+                        if (siRes.held) Swal.fire({ icon: 'warning', title: 'Not in spec', text: 'FFA recorded. It is not in spec (' + (siRes.green_limit != null ? siRes.green_limit + '% or less' : 'see Kernel Pipeline Settings') + '), so the bag stays in Awaiting tests until Mark, Pete or Mike accepts or rejects it. They each have a task in My Day.' });
+                        else Swal.fire({ icon: 'success', title: 'Saved', text: 'Official bag FFA recorded. Batch is ready for Oil Production (release when you are ready).', timer: 2200, showConfirmButton: false });
+                    }
                     var modalEl = document.getElementById('qualityTestModal');
                     if (modalEl && typeof bootstrap !== 'undefined') { var m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
                     else if (typeof $ !== 'undefined' && $.fn.modal) $('#qualityTestModal').modal('hide');
