@@ -1,12 +1,20 @@
-<!-- Kernel Pipeline Settings — one place for everything Macavation asked to be adjustable.
-     Cards are rendered by js/kernel_pipeline_settings_grid.js from getKernelPipelineConfig(). -->
+<!-- Kernel Pipeline Settings — tabs: Intake & quality, Plant (cards rendered by
+     js/kernel_pipeline_settings_grid.js) and Prices (the style-prices module mounted in #ksp-module). -->
 <div class="module-content" id="kpsModule">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Kernel Pipeline Settings</h1>
     </div>
-    <p class="text-muted">One place for everything Macavation asked to be adjustable. Changes apply straight away.</p>
+    <ul class="nav nav-tabs mb-3" id="kpsTabs" role="tablist" aria-label="Settings sections"></ul>
     <div id="kpsNotice"></div>
-    <div id="kpsBody">
-        <div class="text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading&hellip;</div>
+    <div id="kpsNone" class="d-none text-muted py-4">Nothing here for your role.</div>
+    <div id="kpsPaneIntake" class="kps-pane d-none"></div>
+    <div id="kpsPanePlant" class="kps-pane d-none"></div>
+    <div id="kpsPanePrices" class="kps-pane d-none">
+        <div class="ksp-tab-intro">Price per kg for each kernel style. A basket is valued from these.</div>
+        <div id="ksp-module">
+            <div id="ksp-body">
+                <div class="text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading&hellip;</div>
+            </div>
+        </div>
     </div>
 </div>

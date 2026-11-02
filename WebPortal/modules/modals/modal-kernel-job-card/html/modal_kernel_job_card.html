@@ -62,15 +62,15 @@
                         <div class="row">
                             <div class="col-md-4">
                                 <label for="jobCardTotalWeight" class="form-label required">Total Weight (kg)</label>
-                                <input type="number" class="form-control" id="jobCardTotalWeight" step="0.01" required>
+                                <input type="text" inputmode="decimal" class="form-control js-kg-input" id="jobCardTotalWeight">
                             </div>
                             <div class="col-md-4">
                                 <label for="jobCardRemovedPreSizer" class="form-label">Removed Pre-Sizer (kg)</label>
-                                <input type="number" class="form-control" id="jobCardRemovedPreSizer" step="0.01">
+                                <input type="text" inputmode="decimal" class="form-control js-kg-input" id="jobCardRemovedPreSizer">
                             </div>
                             <div class="col-md-4">
                                 <label for="jobCardBalance" class="form-label">Balance (kg)</label>
-                                <input type="number" class="form-control" id="jobCardBalance" step="0.01" readonly>
+                                <input type="text" class="form-control" id="jobCardBalance" readonly>
                             </div>
                         </div>
                     </div>
@@ -156,7 +156,7 @@
                                             </select>
                                         </td>
                                         <td><input type="number" class="form-control form-control-sm" name="cartons" value="0"></td>
-                                        <td><input type="number" class="form-control form-control-sm" name="weight_kg" step="0.01" value="0"></td>
+                                        <td><input type="text" inputmode="decimal" class="form-control form-control-sm js-kg-input" name="weight_kg" value="0.00"></td>
                                         <td><button type="button" class="btn btn-sm btn-danger removeSoundKernelRow"><i class="fas fa-times"></i></button></td>
                                     </tr>
                                 </tbody>
@@ -203,7 +203,7 @@
                                             </select>
                                         </td>
                                         <td><input type="number" class="form-control form-control-sm" name="cartons" value="0"></td>
-                                        <td><input type="number" class="form-control form-control-sm" name="weight_kg" step="0.01" value="0"></td>
+                                        <td><input type="text" inputmode="decimal" class="form-control form-control-sm js-kg-input" name="weight_kg" value="0.00"></td>
                                         <td><button type="button" class="btn btn-sm btn-danger removeButterGradeRow"><i class="fas fa-times"></i></button></td>
                                     </tr>
                                 </tbody>
@@ -253,21 +253,21 @@
                         <div class="row">
                             <div class="col-md-3">
                                 <label for="jobCardWasteOilKernel" class="form-label">Oil Kernel (kg)</label>
-                                <input type="number" class="form-control" id="jobCardWasteOilKernel" step="0.01">
+                                <input type="text" inputmode="decimal" class="form-control js-kg-input" id="jobCardWasteOilKernel">
                             </div>
                             <div class="col-md-3">
                                 <label for="jobCardWasteShellFines" class="form-label">Shell Fines (kg)</label>
-                                <input type="number" class="form-control" id="jobCardWasteShellFines" step="0.01">
+                                <input type="text" inputmode="decimal" class="form-control js-kg-input" id="jobCardWasteShellFines">
                             </div>
                             <div class="col-md-3">
                                 <label for="jobCardWasteCompost" class="form-label">Compost (kg)</label>
-                                <input type="number" class="form-control" id="jobCardWasteCompost" step="0.01">
+                                <input type="text" inputmode="decimal" class="form-control js-kg-input" id="jobCardWasteCompost">
                             </div>
                         </div>
                         <div class="row mt-2">
                             <div class="col-md-3">
                                 <label for="jobCardWasteShell" class="form-label">Shell (kg)</label>
-                                <input type="number" class="form-control" id="jobCardWasteShell" step="0.01">
+                                <input type="text" inputmode="decimal" class="form-control js-kg-input" id="jobCardWasteShell">
                             </div>
                         </div>
                     </div>
@@ -282,11 +282,11 @@
                         <div class="row">
                             <div class="col-md-4">
                                 <label for="jobCardMassBalanceIn" class="form-label">In (kg)</label>
-                                <input type="number" class="form-control" id="jobCardMassBalanceIn" step="0.01" readonly>
+                                <input type="text" class="form-control" id="jobCardMassBalanceIn" readonly>
                             </div>
                             <div class="col-md-4">
                                 <label for="jobCardMassBalanceOut" class="form-label">Out (kg)</label>
-                                <input type="number" class="form-control" id="jobCardMassBalanceOut" step="0.01" readonly>
+                                <input type="text" class="form-control" id="jobCardMassBalanceOut" readonly>
                             </div>
                             <div class="col-md-4">
                                 <label for="jobCardMassBalancePercentage" class="form-label">Balance (%)</label>

@@ -387,6 +387,25 @@ if (userInput !== '__proto__' && userInput !== 'constructor') {
 - Verify library integrity with SRI (Subresource Integrity) hashes
 - Audit dependencies for known vulnerabilities
 
+## Weights (kg, t, g): entry and display
+
+Client rule (Macavation, 30 Oct 2026): a weight always shows as "1,000.00" - comma thousands, dot decimal, 2 decimals.
+
+- **Display** every weight with `_common.formatKg(v[, dp])` -> "1,234.50". Never `toFixed()`,
+  `toLocaleString(undefined)` or `'en-ZA'` for a weight (en-ZA renders "1 234,5").
+- **Inputs** are `<input type="text" inputmode="decimal" class="js-kg-input">`, never `type="number"` (it cannot
+  show commas). `common.js` strips the commas while the box has focus and formats it on blur, then fires `input`.
+- **Every reader** uses `_common.parseKg(value)` (null when blank). Never `parseFloat`/`Number` on a weight box:
+  `parseFloat("1,000.00") === 1`. `parseKg` also reads a South African decimal comma ("12,5" -> 12.5), so never
+  write your own comma handling and never use a helper that turns every ',' into '.'.
+- **Prefill** with `formatKg(value)`: setting `.value`/`.val()` does not trigger the blur formatter.
+- **Validate in JS** (null, <= 0, > available) before saving; no HTML5 `min`/`step`/`required` on weight boxes.
+- **Readonly computed weights** are text (a span or `type="text"`) filled with `formatKg`.
+- Exports/CSV and payloads sent to Supabase stay plain numbers.
+- Litres, cartons, crates, bag counts, %, FFA and money are not weights: no `js-kg-input` on them.
+- **Converting an existing box**: grep its id/name for every reader, switch each to `parseKg`, then check
+  1000 -> 1,000.00, 12,5 -> 12.50, the live total and the saved value.
+
 ## File Organization
 - One component per file
 - Structure: `/js/components/`, `/js/utils/`, `/js/pages/`

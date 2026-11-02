@@ -60,11 +60,11 @@ var _modal_oil_dispatch = (function () {
                         var qtyDisplay;
                         if (qtyL != null && !isNaN(qtyL) && qtyL > 0) {
                             qtyDisplay = qtyL.toFixed(2) + ' L';
-                            if (qtyKg != null && !isNaN(qtyKg)) qtyDisplay += ' <span class="text-muted small">(≈ ' + qtyKg.toFixed(1) + ' kg)</span>';
+                            if (qtyKg != null && !isNaN(qtyKg)) qtyDisplay += ' <span class="text-muted small">(≈ ' + _common.formatKg(qtyKg) + ' kg)</span>';
                         } else if (line.cartons != null && line.cartons >= 0) {
-                            qtyDisplay = DispatchFormShared.cartonLabel(line.cartons) + ' · ' + (qtyKg != null ? qtyKg : '—') + ' kg';
+                            qtyDisplay = DispatchFormShared.cartonLabel(line.cartons) + ' · ' + (qtyKg != null ? _common.formatKg(qtyKg) : '—') + ' kg';
                         } else {
-                            qtyDisplay = qtyKg != null ? qtyKg + ' kg' : '—';
+                            qtyDisplay = qtyKg != null ? _common.formatKg(qtyKg) + ' kg' : '—';
                         }
                         tr.innerHTML = '<td>' + (line.batch_number || '—') + '</td><td>' + (line.style || '—') + '</td><td class="text-end">' + qtyDisplay + '</td>';
                         tbody.appendChild(tr);

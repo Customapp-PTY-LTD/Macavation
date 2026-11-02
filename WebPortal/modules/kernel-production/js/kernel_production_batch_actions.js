@@ -306,6 +306,11 @@ var _kernelProductionBatchActions = function () {
                 if (form) form.reportValidity();
                 return;
             }
+            var wetNisKg = _common.parseKg($('#batchWetNIS').val());
+            if (wetNisKg == null || wetNisKg <= 0) {
+                if (typeof Swal !== 'undefined') Swal.fire({ icon: 'warning', title: 'Cannot save yet', text: 'Enter the Wet NIS (kg) as a number greater than 0.' });
+                return;
+            }
             if (typeof dataFunctions === 'undefined' || !dataFunctions.createKernelBatch) {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Create batch function not available. Please refresh.', 'error');
                 return;
@@ -317,7 +322,7 @@ var _kernelProductionBatchActions = function () {
             var batchData = {
                 batch_number:        batchNumTrim.length ? batchNumTrim : null,
                 received_date:       getVal('batchReceivedDate'),
-                wet_nis_received_kg: getFloat('batchWetNIS'),
+                wet_nis_received_kg: wetNisKg,
                 supplier_id:         getVal('batchSupplier') || null,
                 grower_name:         getVal('batchGrowerName') || null
             };

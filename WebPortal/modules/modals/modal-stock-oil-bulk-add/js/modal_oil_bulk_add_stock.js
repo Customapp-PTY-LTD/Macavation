@@ -15,7 +15,7 @@ var _modal_stock_oil_bulk_add = (function () {
             '<tr>' +
             '<td><input type="text" class="form-control form-control-sm" name="obaBatch" maxlength="120" placeholder="e.g. BFGO 25.06.01"></td>' +
             '<td><input type="text" class="form-control form-control-sm" name="obaGrade" maxlength="120" placeholder="e.g. Extra Virgin"></td>' +
-            '<td><input type="number" class="form-control form-control-sm" name="obaKg" step="0.01" min="0" placeholder="0"></td>' +
+            '<td><input type="text" inputmode="decimal" class="form-control form-control-sm js-kg-input" name="obaKg" placeholder="0"></td>' +
             '<td><input type="number" class="form-control form-control-sm" name="obaFfa" step="0.01" min="0" placeholder="Optional"></td>' +
             '<td><input type="date" class="form-control form-control-sm" name="obaBb"></td>' +
             '<td><input type="text" class="form-control form-control-sm" name="obaPd" maxlength="200" placeholder="Optional"></td>' +
@@ -66,7 +66,8 @@ var _modal_stock_oil_bulk_add = (function () {
             var bb = ($r.find('[name="obaBb"]').val() || '').trim();
             var pd = ($r.find('[name="obaPd"]').val() || '').trim();
             if (!batch) return;
-            var kg = kgRaw === '' ? NaN : parseFloat(kgRaw);
+            var kgParsed = _common.parseKg(kgRaw);
+            var kg = kgParsed == null ? NaN : kgParsed;
             rows.push({
                 batch_number: batch,
                 grade: grade || null,
