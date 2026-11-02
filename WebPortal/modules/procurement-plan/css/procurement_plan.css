@@ -151,3 +151,19 @@ button.pp-chip:hover { filter: brightness(0.95); }
 .pp-cleanup-head { font-weight: 600; font-size: 13px; }
 .pp-cleanup-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: space-between; font-size: 13px; }
 .pp-cleanup-name { flex: 1 1 220px; }
+
+/* 12-month view (31 Oct 2026): back link, chart range, Year tiles */
+.pp-head-right { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }
+.pp-crumb-link { border: 0; background: none; color: var(--mac-green); font-weight: 600; font-size: inherit; }
+.pp-crumb-link:hover { text-decoration: underline; }
+.pp-seg-sm .pp-seg-btn { min-height: 34px; font-size: 13px; }
+.pp-year { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.pp-ymon { text-align: left; background: var(--mac-bg); border: 1px solid var(--mac-border); border-radius: var(--mac-radius-md); padding: 12px; display: grid; gap: 6px; font-size: 13px; color: var(--mac-text-secondary); min-height: 44px; }
+.pp-ymon:hover { border-color: var(--mac-text-tertiary); }
+.pp-ymon:focus-visible { outline: 2px solid var(--mac-green); outline-offset: 2px; }
+.pp-ymon-name { font-weight: 700; font-size: 14px; color: var(--mac-text); }
+.pp-ymon-bar { display: block; height: 7px; border-radius: 9px; background: var(--mac-bg-tertiary); overflow: hidden; }
+.pp-ymon-bar > span { display: block; height: 100%; background: var(--mac-success); }
+.pp-ymon-short .pp-ymon-bar > span { background: var(--mac-warning); }
+.pp-ymon-short .pp-ymon-note { color: var(--mac-danger); font-weight: 600; }
+.pp-ymon-close { color: var(--mac-text-tertiary); }

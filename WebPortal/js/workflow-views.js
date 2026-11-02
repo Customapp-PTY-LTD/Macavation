@@ -461,7 +461,8 @@ var _workflowViews = function () {
         _KIND_LABELS: {
             dispatch_pick: 'Pick a dispatch', dispatch_approve: 'Approve a dispatch', truck_due: 'Truck due today',
             truck_late: 'Truck is late', truck_unconfirmed: 'Truck not confirmed', style_prices_stale: 'Style prices need a look',
-            nis_runway_low: 'Nut in shell runs out soon', nis_unplaced: 'Nut in shell not placed'
+            nis_runway_low: 'Nut in shell runs out soon', nis_unplaced: 'Nut in shell not placed',
+            oil_ffa_decision: 'Oil raw FFA out of spec'
         },
 
         _kindAction: function (task) {
@@ -496,6 +497,11 @@ var _workflowViews = function () {
             var link = task.kind === 'style_prices_stale'
                 ? ' <a href="#" class="ms-1" onclick="workflowViews.runTaskAction(\'' + id + '\'); return false;">Change when this reminder comes</a>' : '';
             var btns = task.is_snoozed ? '' : '<button type="button" class="btn btn-outline-secondary" onclick="workflowViews.snoozeTask(\'' + id + '\')" title="Hide until tomorrow 07:00">Snooze to tomorrow</button>';
+            // Out-of-spec FFA (migration 20261102090000): Mark, Pete or Mike decide right here.
+            if (task.kind === 'oil_ffa_decision') {
+                btns += '<button type="button" class="btn btn-outline-danger" onclick="workflowViews.decideOilFfa(\'' + id + '\', \'reject\')">Reject bag</button>' +
+                    '<button type="button" class="btn btn-primary" onclick="workflowViews.decideOilFfa(\'' + id + '\', \'accept\')">Accept for production</button>';
+            }
             if (act) {
                 btns += '<button type="button" class="btn btn-primary" id="wvActBtn-' + id + '" onclick="workflowViews.' +
                     (usePanel ? 'toggleApprovePanel' : 'runTaskAction') + '(\'' + id + '\')"' + (usePanel ? ' aria-expanded="false"' : '') + '>' + esc(act.label) + '</button>';
@@ -508,6 +514,36 @@ var _workflowViews = function () {
                 '</div><div class="task-actions">' + btns + '</div>' +
                 (usePanel ? '<div class="wv-approve-panel d-none" id="wvPanel-' + id + '"></div>' : '') +
                 '</div>';
+        },
+
+        /** Accept or reject an out-of-spec oil raw bag. A reason is required to reject. */
+        decideOilFfa: async function (taskId, decision) {
+            var task = this._findTask(taskId);
+            if (!task || !task.subject_id || typeof Swal === 'undefined') return;
+            var accept = decision === 'accept';
+            var ask = await Swal.fire({
+                title: accept ? 'Accept for production?' : 'Reject this bag?',
+                text: task.title,
+                input: 'textarea',
+                inputLabel: accept ? 'Note (optional)' : 'Why is it rejected?',
+                inputPlaceholder: accept ? 'e.g. fine for crude oil' : 'e.g. returned to supplier',
+                showCancelButton: true,
+                confirmButtonText: accept ? 'Accept for production' : 'Reject bag',
+                confirmButtonColor: accept ? undefined : '#CF222E',
+                inputValidator: function (v) { return (!accept && !(v || '').trim()) ? 'Say why the bag is rejected.' : undefined; }
+            });
+            if (!ask.isConfirmed) return;
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.decideOilFfa) throw new Error('Refresh the page and try again.');
+                var res = await dataFunctions.decideOilFfa(task.subject_id, decision, ask.value || null);
+                if (!res || res.success === false) throw new Error((res && res.error) || 'Could not save the decision.');
+                await this.refreshMyDay();
+                this._wvToast(accept ? 'Accepted: ready for Oil Production' : 'Rejected: it will not go to production');
+            } catch (e) {
+                console.error('[My Day] FFA decision failed:', e);
+                Swal.fire('Not saved', e.message || 'Could not save the decision.', 'error');
+                await this.refreshMyDay();
+            }
         },
 
         runTaskAction: function (taskId) {

@@ -25,7 +25,7 @@ var BatchStatus = (function () {
     };
 
     var MODULE_SUBTITLES = {
-        'grower-intake-grid': 'Batches here: Receiving, Intake received, Quality pending, Quality approved',
+        'grower-intake-grid': 'Book a truck in, do the checklist, take the sample, release. Open Bags on a batch to see and move where its bags are.',
         'kernel-production-grid': 'Batches here: Awaiting production, In production, Awaiting test, Release ready',
         'stock-management-kernel': 'Finished kernel stock by style — batches with remaining stock on hand',
         'kernel-dispatch-grid': 'Dispatch baskets for kernel customers',

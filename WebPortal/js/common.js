@@ -191,6 +191,34 @@ var _common = {
         return value <= g ? 'ok' : (value <= y ? 'warn' : 'bad');
     },
 
+    // Oil raw FFA (migration 20261102090000): in spec, or no limit set, goes to Ready for Oil
+    // Production; anything else waits for an exec decision. '' when there is no value.
+    oilFfaOutcome: function (spec, value) {
+        if (value == null || isNaN(value)) return '';
+        const st = this.classifySpec(spec, value);
+        return (st === 'warn' || st === 'bad') ? 'decision' : 'ready';
+    },
+
+    // The FFA row of Kernel Pipeline Settings' sample spec, loaded once per page. null when unset or unreadable.
+    loadOilFfaSpec: function () {
+        if (!this._oilFfaSpecPromise) {
+            this._oilFfaSpecPromise = (async function () {
+                try {
+                    if (typeof dataFunctions === 'undefined' || !dataFunctions.getKernelPipelineConfig) return null;
+                    const cfg = await dataFunctions.getKernelPipelineConfig();
+                    const list = cfg && Array.isArray(cfg.spec_thresholds) ? cfg.spec_thresholds : [];
+                    return list.filter(function (t) { return t && t.test_key === 'ffa'; })[0] || null;
+                } catch (e) {
+                    console.warn('FFA spec unavailable:', e);
+                    return null;
+                }
+            })();
+            const self = this;
+            this._oilFfaSpecPromise.then(function (spec) { if (!spec) self._oilFfaSpecPromise = null; });
+        }
+        return this._oilFfaSpecPromise;
+    },
+
     // Calendar-correct time from today until a YYYY-MM-DD date (whole months, then remaining days).
     // Month-end safe: adding a month to the 31st clamps to the last day of the shorter month.
     // Returns { expired, years, months, days, totalMonths, label } or null for missing/invalid input.
