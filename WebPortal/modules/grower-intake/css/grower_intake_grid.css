@@ -321,6 +321,16 @@ button.gib-chip:hover { border-color: var(--mac-text-tertiary); }
 .gib-bar.is-full > span { background: var(--mac-danger); }
 .gib-full { color: var(--mac-danger); }
 .gib-snote { font-size: var(--mac-text-xs); color: var(--mac-text-tertiary); margin-top: 0.4rem; }
+/* Recent moves (migration 20261102120000): folded list under the storage areas */
+.gib-moves { margin-top: 0.75rem; }
+.gib-moves summary { cursor: pointer; font-weight: 600; font-size: var(--mac-text-sm); min-height: 44px; display: flex; align-items: center; gap: 0.35rem; }
+.gib-mlist { list-style: none; margin: 0; padding: 0; background: var(--mac-bg-secondary); border: 1px solid var(--mac-border); border-radius: var(--mac-radius-md); }
+.gib-mrow { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.75rem; padding: 0.5rem 0.75rem; font-size: var(--mac-text-sm); border-top: 1px solid var(--mac-border); }
+.gib-mrow:first-child { border-top: 0; }
+.gib-mwhen { color: var(--mac-text-secondary); min-width: 7.5rem; }
+.gib-mwhat { flex: 1 1 16rem; min-width: 0; }
+.gib-mkg { font-variant-numeric: tabular-nums; font-weight: 600; }
+.gib-mby { font-size: var(--mac-text-xs); }
 .gib-detail { margin-top: 0.5rem; background: var(--mac-bg-secondary); border: 1px solid var(--mac-border); border-radius: var(--mac-radius-md); padding: 0.75rem 0.9rem; }
 .gib-dhead { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
 .gib-drow { display: grid; grid-template-columns: auto 1fr auto auto; gap: 0.35rem 0.75rem; align-items: center; padding: 0.5rem 0; border-top: 1px solid var(--mac-border); font-size: var(--mac-text-sm); }

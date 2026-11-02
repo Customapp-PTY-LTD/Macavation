@@ -19,8 +19,9 @@ var _giBags = (function () {
     var LONG_PRESS_MS = 450;
 
     var state = {
-        loaded: false, failed: false, areas: [], batches: [], byId: {},
-        open: {}, sel: {}, anchor: {}, to: {}, longPress: false, pressTimer: null, card: null
+        loaded: false, failed: false, areas: [], batches: [], byId: {}, moves: [],
+        open: {}, sel: {}, anchor: {}, to: {}, longPress: false, pressTimer: null, card: null,
+        handoff: null
     };
 
     // ------------------------------------------------------------------ helpers
@@ -417,9 +418,52 @@ var _giBags = (function () {
         });
         $list.html(html);
 
-        var noBags = state.batches.filter(function (b) { return !b.bags.length; }).length;
-        $note.text(noBags ? plural(noBags, 'batch has', 'batches have') + ' no bags recorded, so ' + (noBags === 1 ? 'it is' : 'they are') + ' not counted here.' : '');
+        var bagless = state.batches.filter(function (b) { return !b.bags.length; });
+        var baglessKg = bagless.reduce(function (s, b) { return s + (Number(b.actual_wet_nis_kg != null ? b.actual_wet_nis_kg : b.wet_nis_received_kg) || 0); }, 0);
+        $note.text(bagless.length ? plural(bagless.length, 'older batch', 'older batches') + ' (' + tonnes(baglessKg) + ') ' +
+            (bagless.length === 1 ? 'has' : 'have') + ' no bags recorded, so ' + (bagless.length === 1 ? 'it is' : 'they are') + ' not counted here.' : '');
         renderDetail();
+        renderMoves();
+    }
+
+    var MOVE_CHIP = { 'in': ['Placed', 'badge-stage-last'], out: ['Out', 'badge-stage-first'], move: ['Moved', 'badge-stage-mid'] };
+
+    /** Recent moves under the storage list (last 50, newest first), folded by default. */
+    function renderMoves() {
+        var $m = $('#giStorageMoves');
+        if (!$m.length) return;
+        var list = state.moves || [];
+        if (!state.loaded || !list.length) { $m.prop('hidden', true).empty(); return; }
+        var wasOpen = $m.find('details').prop('open');
+        var place = function (code) { return code ? ((areaOf(code) || {}).label || code) : ''; };
+        var rows = list.map(function (m) {
+            var chip = MOVE_CHIP[m.movement_type] || ['Moved', 'badge-stage-mid'];
+            var from = place(m.from_area), to = place(m.to_area);
+            var where = from && to ? from + ' → ' + to : (to ? 'Into ' + to : (from ? 'Out of ' + from : ''));
+            var when = m.moved_at ? _common.formatDateDDMMYYYY(m.moved_at) + ' ' + String(new Date(m.moved_at).toTimeString()).slice(0, 5) : '';
+            return '<li class="gib-mrow">' +
+                '<span class="gib-mwhen">' + esc(when) + '</span>' +
+                '<span class="badge ' + chip[1] + '">' + esc(chip[0]) + '</span>' +
+                '<span class="gib-mwhat"><strong>' + esc(m.batch_number || '—') + '</strong> · ' + esc(where) +
+                    (m.note ? ' <span class="text-muted">· ' + esc(m.note) + '</span>' : '') + '</span>' +
+                '<span class="gib-mkg">' + esc(tonnes(m.kg)) + '</span>' +
+                '<span class="gib-mby text-muted">' + esc(m.by_label || '') + '</span></li>';
+        }).join('');
+        $m.prop('hidden', false).html('<details' + (wasOpen ? ' open' : '') + '><summary>Recent moves <span class="text-muted">(last ' + list.length + ')</span></summary>' +
+            '<ul class="gib-mlist">' + rows + '</ul></details>');
+    }
+
+    /** Handoff from My Day ("Place them") or the Silos screen: show the storage list, then offer to place. */
+    function runHandoff() {
+        var h = state.handoff;
+        if (!h || !state.loaded) return;
+        state.handoff = null;
+        var head = document.getElementById('giStorageHeading');
+        if (head && head.scrollIntoView) head.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (!h.placeBags) return;
+        var waiting = state.batches.some(function (b) { return b.bags.some(function (x) { return !x.loc; }); });
+        if (!waiting) { _common.showSuccessToast('Every bag has a place.'); return; }
+        if (canMove()) areaMoveDialog('');
     }
 
     function renderDetail() {
@@ -572,7 +616,7 @@ var _giBags = (function () {
         });
         $doc.on('click' + NS, '.js-gib-silos', function (e) {
             e.preventDefault();
-            if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) _appRouter.routeTo('nis-storage', true);
+            if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) _appRouter.routeTo('silo-allocation-grid', true);
         });
         $doc.on('click' + NS, '.js-gib-open-batch', function (e) {
             e.preventDefault();
@@ -614,6 +658,7 @@ var _giBags = (function () {
                 state.failed = false;
                 state.loaded = true;
                 state.areas = Array.isArray(res.areas) ? res.areas : [];
+                state.moves = Array.isArray(res.movements) ? res.movements : [];
                 state.batches = (Array.isArray(res.batches) ? res.batches : []).map(function (b) {
                     return Object.assign({}, b, {
                         bags: (Array.isArray(b.bags) ? b.bags : []).map(function (x) {
@@ -634,6 +679,13 @@ var _giBags = (function () {
             }
             renderStorage();
             rerenderGrid();
+            runHandoff();
+        },
+
+        /** h = { placeBags?, storage? } from the router handoff; runs once the bags have loaded. */
+        openStorage: function (h) {
+            state.handoff = h || { storage: true };
+            runHandoff();
         },
 
         cardSummary: cardSummary,
