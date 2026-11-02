@@ -2374,26 +2374,11 @@ var _dataFunctions = function () {
             return this._rpcWrite('set_procurement_plan_settings', { p_settings: settings }, token);
         },
 
-        // --- NIS storage areas --------------------------------------------------------------
-        getNisStorageOverview: async function (limit, token = null) {
-            return this._rpcRead('get_nis_storage_overview', { p_limit: limit || 50 }, token);
-        },
-
-        /** m = { fromArea, toArea, kg, kernelId, batchNumber, movedAt, note } (null area = not placed / cracked) */
-        recordNisStorageMovement: async function (m, token = null) {
-            return this._rpcWrite('record_nis_storage_movement', {
-                p_from_area: m.fromArea || null,
-                p_to_area: m.toArea || null,
-                p_kg: Number(m.kg),
-                p_kernel_id: m.kernelId || null,
-                p_batch_number: m.batchNumber || null,
-                p_moved_at: m.movedAt || null,
-                p_note: m.note || null
-            }, token);
-        },
+        // --- NIS storage areas (bag-based, on Grower Intake) -----------------------------------
 
         /** Grower Intake: every active intake/production batch with its bags and where each bag is
-         *  (loc = area code | 'silo:<n>' | 'cracked' | '' not placed), plus the storage areas. */
+         *  (loc = area code | 'silo:<n>' | 'cracked' | '' not placed), the storage areas, and the
+         *  last 50 storage movements (migration 20261102120000). */
         getIntakeBagOverview: async function (limit, token = null) {
             return this._rpcRead('get_intake_bag_overview', { p_limit: limit || 300 }, token);
         },

@@ -257,11 +257,25 @@ var _kernelPipelineSettingsGrid = (function () {
         return card('Silo capacity', '<div class="row g-3 kps-silo-grid">' + cells + '</div>', saveBtn('kpsSaveSilos'));
     }
 
+    // Nut-in-shell storage areas (Grower Intake fill bars). Blank = no capacity, no bar.
+    function storageCard(cfg) {
+        var cells = (cfg.storage_areas || []).map(function (a) {
+            var id = 'kpsArea_' + String(a.code).replace(/[^a-z0-9_]/gi, '');
+            return '<div class="col-6 col-md-3"><label class="form-label" for="' + id + '">' + esc(a.label) + ' (kg)</label>' +
+                '<input type="text" inputmode="decimal" class="form-control form-control-sm kps-num kps-area js-kg-input" id="' + id + '" data-code="' + esc(a.code) + '"' +
+                ' placeholder="No limit" value="' + (a.capacity_kg != null ? kgAttr(a.capacity_kg) : '') + '"' + dis() + '></div>';
+        }).join('');
+        if (!cells) return '';
+        return card('Storage area capacity',
+            '<p class="text-muted small mb-2">How much nut in shell each area holds. Grower Intake shows how full each one is. Leave blank for no limit.</p>' +
+            '<div class="row g-3">' + cells + '</div>', saveBtn('kpsSaveAreas'));
+    }
+
     function render() {
         var cfg = state.cfg;
         $('#kpsNotice').html('');
         $('#kpsPaneIntake').html(specCard(cfg) + crateCard(cfg) + batchCard(cfg) + shelfCard(cfg));
-        $('#kpsPanePlant').html(targetCard(cfg) + transportCard(cfg) + siloCard(cfg));
+        $('#kpsPanePlant').html(targetCard(cfg) + transportCard(cfg) + siloCard(cfg) + storageCard(cfg));
     }
 
     function renderTabs() {
@@ -427,6 +441,19 @@ var _kernelPipelineSettingsGrid = (function () {
         runAll(btn, calls, 'Silo capacity saved.');
     }
 
+    function saveAreas(btn) {
+        var calls = [], bad = false;
+        $('#kpsModule .kps-area').each(function () {
+            var code = $(this).attr('data-code'), kg = kgOrNull($(this).val());
+            var old = (state.cfg.storage_areas || []).filter(function (a) { return a.code === code; })[0] || {};
+            if (kg != null && (isNaN(kg) || kg <= 0)) { bad = true; return false; }
+            if (same(old.capacity_kg, kg)) return;
+            calls.push(function () { return dataFunctions.setNisStorageAreaCapacity(code, kg); });
+        });
+        if (bad) { toast('Storage area capacity must be more than 0, or blank.', 'error'); return; }
+        runAll(btn, calls, 'Storage area capacity saved.');
+    }
+
     async function transportSave(kind, name, id, isActive, okMsg) {
         var fn = kind === 'transporter' ? 'upsertTransporter' : 'upsertTransportType';
         try {
@@ -472,6 +499,7 @@ var _kernelPipelineSettingsGrid = (function () {
         $d.on('click' + NS, '#kpsSaveShelf', function () { saveShelf(this); });
         $d.on('click' + NS, '#kpsSaveTarget', function () { saveTarget(this); });
         $d.on('click' + NS, '#kpsSaveSilos', function () { saveSilos(this); });
+        $d.on('click' + NS, '#kpsSaveAreas', function () { saveAreas(this); });
         $d.on('click' + NS, '#kpsGoRolePerms', function () {
             if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) _appRouter.routeTo('role-permissions-grid');
         });

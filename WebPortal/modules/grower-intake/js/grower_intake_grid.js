@@ -87,6 +87,10 @@ var _growerIntakeGrid = function () {
                     scope.bookIn(handoff.bookInProcurementId);
                 });
             }
+            // My Day "Place them" / Silos screen link: open on the Storage areas list (grower_intake_bags.js).
+            if (handoff && (handoff.placeBags || handoff.storage) && typeof _giBags !== 'undefined' && _giBags.openStorage) {
+                _giBags.openStorage({ placeBags: !!handoff.placeBags, storage: true });
+            }
         },
 
         bindEvents: () => {
