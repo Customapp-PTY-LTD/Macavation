@@ -64,6 +64,12 @@ var _batchJourneyGrid = (function () {
         });
     }
 
+    // Weights show as 1,234.50 (comma thousands, 2 dp).
+    function formatKgCell(val) {
+        if (val == null || val === '' || isNaN(val)) return '-';
+        return _common.formatKg(val);
+    }
+
     function escapeHtml(s) {
         if (typeof BatchStatus !== 'undefined') return BatchStatus.escapeHtml(s);
         if (s == null) return '';
@@ -296,9 +302,9 @@ var _batchJourneyGrid = (function () {
                 + '<td>' + (b.grower_name || '-') + '</td>'
                 + '<td>' + statusBadgeHtml(displayStatus) + '</td>'
                 + '<td>' + receivedDate + '</td>'
-                + '<td class="text-end">' + formatNumber(b.wet_nis_received_kg) + '</td>'
+                + '<td class="text-end">' + formatKgCell(b.wet_nis_received_kg) + '</td>'
                 + '<td class="text-end">' + (moisture != null ? formatNumber(moisture, 1) + '%' : '-') + '</td>'
-                + '<td class="text-end">' + (totalYield > 0 ? formatNumber(totalYield) : '-') + '</td>'
+                + '<td class="text-end">' + (totalYield > 0 ? formatKgCell(totalYield) : '-') + '</td>'
                 + '<td class="text-end"><button type="button" class="btn btn-sm btn-primary js-bj-open-module" data-batch-id="' + kid + '" title="' + escapeHtml(routeInfo.label) + '">' + escapeHtml(routeInfo.label.replace(/^Open /, '')) + '</button></td>'
                 + '<td class="mac-table-actions-col">'
                 + MacTableActions.render({

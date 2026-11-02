@@ -35,6 +35,12 @@ var _modal_grower_create_kernel_batch = (function () {
     /** Set when modal is opened from the procurement calendar; cleared on close or save. */
     var _pendingProcurementId = null;
     var _pendingGrowerNameOverride = null;
+    /** The planned truck being booked in (from the plan payload), its storage area choices, and the radio pick. */
+    var _planTruck = null;
+    var _planAreas = [];
+    var _chosenArea = '';
+    /** Book-in split: the last _splitBags bags went to _splitArea instead (tagged after save). */
+    var _splitOn = false;
 
     var EDIT_BATCH_NUMBER_KEY = 'grower_intake.edit_batch_number';
     var DOC_FOLDER = 'Macavation/Deliveries';
@@ -67,7 +73,8 @@ var _modal_grower_create_kernel_batch = (function () {
     }
 
     function numOrNull(raw) {
-        var t = String(raw == null ? '' : raw).trim();
+        if (typeof _common !== 'undefined' && _common.parseKg) return _common.parseKg(raw);
+        var t = String(raw == null ? '' : raw).replace(/,/g, '').trim();
         if (t === '') return null;
         var n = parseFloat(t);
         return isFinite(n) ? n : null;
@@ -115,8 +122,17 @@ var _modal_grower_create_kernel_batch = (function () {
                 modalEl.addEventListener('hidden.bs.modal', function () {
                     _pendingProcurementId = null;
                     _pendingGrowerNameOverride = null;
-                    var banner = document.getElementById('intakeProcurementBanner');
-                    if (banner) banner.style.display = 'none';
+                    api._resetBookInUi();
+                });
+                var splitAdd = document.getElementById('intakeSplitAddBtn');
+                if (splitAdd) splitAdd.addEventListener('click', function (e) { e.preventDefault(); api._openSplit(); });
+                var splitBags = document.getElementById('intakeSplitBags');
+                if (splitBags) splitBags.addEventListener('input', function () { api._updatePlaced(); });
+                var splitArea = document.getElementById('intakeSplitArea');
+                if (splitArea) splitArea.addEventListener('change', function () { api._updatePlaced(); });
+                var areaOpts = document.getElementById('intakeBookInAreaOptions');
+                if (areaOpts) areaOpts.addEventListener('change', function (e) {
+                    if (e.target && e.target.name === 'intakeBookInArea') api._setChosenArea(e.target.value);
                 });
             }
             var addSupplierBtn = document.getElementById('intakeAddSupplierBtn');
@@ -139,7 +155,13 @@ var _modal_grower_create_kernel_batch = (function () {
             var declEl = byId('intakeBatchWetNis');
             if (declEl) declEl.addEventListener('input', api._updateCalcs);
             var addBagBtn = byId('intakeAddBagBtn');
-            if (addBagBtn) addBagBtn.addEventListener('click', function (e) { e.preventDefault(); api._addBag(); });
+            if (addBagBtn) addBagBtn.addEventListener('click', function (e) { e.preventDefault(); api._addBag(api._readAddCount()); });
+            var addCountEl = byId('intakeAddBagCount');
+            if (addCountEl) addCountEl.addEventListener('keydown', function (e) {
+                if (e.key !== 'Enter') return;
+                e.preventDefault();
+                api._addBag(api._readAddCount());
+            });
             var bagsBody = byId('intakeBagsBody');
             if (bagsBody) {
                 bagsBody.addEventListener('input', function (e) {
@@ -193,6 +215,159 @@ var _modal_grower_create_kernel_batch = (function () {
             if (docsInput) docsInput.addEventListener('change', function () { api._uploadDocs(docsInput); });
         },
 
+        // ---------- Book in a planned truck ----------
+
+        _areaLabel: function (code) {
+            var a = _planAreas.filter(function (x) { return x.code === code; })[0];
+            return a ? a.label : '';
+        },
+
+        _resetBookInUi: function () {
+            _planTruck = null;
+            _planAreas = [];
+            _chosenArea = '';
+            api._resetSplit();
+            ['intakeBookInSub', 'intakeBookInArea', 'intakeBookInSummary'].forEach(function (id) {
+                var el = byId(id);
+                if (el) el.style.display = 'none';
+            });
+            setText('createKernelBatchModalLabel', 'New Delivery');
+            setText('saveCreateKernelBatchLabel', 'Save delivery');
+        },
+
+        _renderBookIn: function () {
+            if (!_planTruck) return;
+            var t = _planTruck;
+            var todayIso = new Date().toISOString().split('T')[0];
+            var d = String(t.scheduled_date || '').slice(0, 10);
+            var dateTxt = d === todayIso ? 'today' : (function () {
+                var p = d.split('-');
+                var dt = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+                var days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                return isNaN(dt.getTime()) ? d : days[dt.getDay()] + ' ' + dt.getDate() + ' ' + months[dt.getMonth()];
+            })();
+            setText('createKernelBatchModalLabel', 'Book in ' + (t.grower || t.grower_name || 'grower') + (t.truck_label ? ' \u00B7 ' + t.truck_label : ''));
+            setText('intakeBookInSub', 'Planned for ' + dateTxt + ' \u00B7 filled in from the procurement plan');
+            setText('saveCreateKernelBatchLabel', 'Create batch');
+            api._renderAreaRadios();
+            var planned = t.storage_area_code ? api._areaLabel(t.storage_area_code) : '';
+            setText('intakeBookInAreaHint', planned
+                ? 'Mike chose ' + planned + ' on the plan. Change it if the truck went somewhere else.'
+                : 'Choose where it went.');
+            api._updateBookInSummary();
+            ['intakeBookInSub', 'intakeBookInArea', 'intakeBookInSummary'].forEach(function (id) {
+                var el = byId(id);
+                if (el) el.style.display = '';
+            });
+        },
+
+        _renderAreaRadios: function () {
+            var html = '';
+            _planAreas.forEach(function (a) {
+                var on = a.code === _chosenArea;
+                html += '<div class="col-12 col-sm-6"><label class="d-flex align-items-center gap-2 border rounded px-3 py-2 w-100' + (on ? ' border-success bg-success-subtle' : '') + '" style="min-height:44px">' +
+                    '<input type="radio" class="form-check-input mt-0" name="intakeBookInArea" value="' + esc(a.code) + '"' + (on ? ' checked' : '') + '>' +
+                    '<span>' + esc(a.label) + '</span></label></div>';
+            });
+            var opts = byId('intakeBookInAreaOptions');
+            if (opts) opts.innerHTML = html;
+            var sel = byId('intakeSplitArea');
+            if (sel) {
+                var keep = sel.value;
+                sel.innerHTML = _planAreas.map(function (a) { return '<option value="' + esc(a.code) + '">' + esc(a.label) + '</option>'; }).join('');
+                if (keep) sel.value = keep;
+            }
+            api._updatePlaced();
+        },
+
+        /** Plain New Delivery: the same "Where did the bags go?" picker, optional, no plan box. */
+        _showAreaPicker: function () {
+            var box = byId('intakeBookInArea');
+            if (!box) return;
+            setText('intakeBookInAreaHint', 'Optional. Bags without an area show as Not placed yet on Grower Intake, and can be moved there later.');
+            box.style.display = '';
+            if (_planAreas.length) { api._renderAreaRadios(); return; }
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.getProcurementPlan) return;
+            var t0 = new Date().toISOString().split('T')[0];
+            dataFunctions.getProcurementPlan(t0, t0).then(function (plan) {
+                if (plan && Array.isArray(plan.areas) && !_planTruck) {
+                    _planAreas = plan.areas;
+                    api._renderAreaRadios();
+                }
+            }).catch(function () {});
+        },
+
+        _openSplit: function () {
+            _splitOn = true;
+            var wrap = byId('intakeSplitWrap'), add = byId('intakeSplitAddBtn'), sel = byId('intakeSplitArea');
+            if (wrap) wrap.hidden = false;
+            if (add) add.hidden = true;
+            if (sel && sel.value === _chosenArea) {
+                var other = _planAreas.filter(function (a) { return a.code !== _chosenArea; })[0];
+                if (other) sel.value = other.code;
+            }
+            var n = byId('intakeSplitBags');
+            if (n) n.focus();
+            api._updatePlaced();
+        },
+
+        _resetSplit: function () {
+            _splitOn = false;
+            var wrap = byId('intakeSplitWrap'), add = byId('intakeSplitAddBtn'), n = byId('intakeSplitBags');
+            if (wrap) wrap.hidden = true;
+            if (add) add.hidden = false;
+            if (n) n.value = '0';
+            setText('intakePlacedLine', '');
+        },
+
+        /** { total, firstN, splitN, splitArea } for the bags on the form right now. */
+        _splitPlan: function () {
+            var total = _bags.length;
+            var n = _splitOn ? parseInt((byId('intakeSplitBags') || {}).value, 10) : 0;
+            n = isNaN(n) || n < 0 ? 0 : Math.min(n, total);
+            var area = _splitOn && byId('intakeSplitArea') ? byId('intakeSplitArea').value : '';
+            return { total: total, firstN: total - n, splitN: n, splitArea: area };
+        },
+
+        _updatePlaced: function () {
+            var line = byId('intakePlacedLine');
+            if (!line) return;
+            var p = api._splitPlan();
+            if (!_chosenArea) {
+                line.textContent = p.total ? 'No area chosen: the bags will show as Not placed yet.' : '';
+                line.className = 'small fw-semibold text-muted';
+                return;
+            }
+            var parts = [p.firstN + ' to ' + api._areaLabel(_chosenArea)];
+            if (p.splitN) parts.push(p.splitN + ' to ' + api._areaLabel(p.splitArea));
+            var ok = p.splitN === 0 || p.splitArea !== _chosenArea;
+            line.textContent = parts.join(' \u00B7 ') + ' \u00B7 ' + p.total + ' of ' + p.total + ' bags placed' + (ok ? ' \u2713' : '');
+            line.className = 'small fw-semibold ' + (ok ? 'text-success' : 'text-danger');
+        },
+
+        _setChosenArea: function (code) {
+            _chosenArea = code || '';
+            var opts = byId('intakeBookInAreaOptions');
+            if (opts) {
+                Array.prototype.forEach.call(opts.querySelectorAll('label'), function (lab) {
+                    var inp = lab.querySelector('input');
+                    var on = !!(inp && inp.checked);
+                    lab.classList.toggle('border-success', on);
+                    lab.classList.toggle('bg-success-subtle', on);
+                });
+            }
+            api._updateBookInSummary();
+            api._updatePlaced();
+        },
+
+        _updateBookInSummary: function () {
+            var name = _chosenArea ? api._areaLabel(_chosenArea) : '';
+            setText('intakeBookInSummaryArea', name
+                ? '\u00B7 The nut in shell is added to ' + name + '.'
+                : '\u00B7 The nut in shell is added to a storage area once you choose one.');
+        },
+
         // ---------- New Delivery: bags ----------
 
         _renderBags: function () {
@@ -205,7 +380,7 @@ var _modal_grower_create_kernel_batch = (function () {
                     '<td><select class="form-select form-select-sm" data-bag-idx="' + i + '" data-bag-field="desc" aria-label="Description bag ' + esc(b.no) + '">' +
                     '<option value="NIS"' + (b.desc === 'NIS' ? ' selected' : '') + '>NIS</option>' +
                     '<option value="Kernel"' + (b.desc === 'Kernel' ? ' selected' : '') + '>Kernel</option></select></td>' +
-                    '<td><input type="number" step="0.01" min="0" class="form-control form-control-sm text-end" data-bag-idx="' + i + '" data-bag-field="kg" value="' + esc(b.kg) + '" aria-label="Weight bag ' + esc(b.no) + '"></td>' +
+                    '<td><input type="text" inputmode="decimal" class="form-control form-control-sm text-end js-kg-input" data-bag-idx="' + i + '" data-bag-field="kg" value="' + esc(numOrNull(b.kg) != null ? fmtKg(b.kg) : b.kg) + '" aria-label="Weight bag ' + esc(b.no) + '"></td>' +
                     '<td><button type="button" class="btn btn-sm btn-outline-secondary" data-bag-del="' + i + '" aria-label="Remove bag ' + esc(b.no) + '">\u2715</button></td>' +
                     '</tr>';
             });
@@ -213,13 +388,28 @@ var _modal_grower_create_kernel_batch = (function () {
             api._updateCalcs();
         },
 
-        _addBag: function () {
+        /** Typed "Add [n] bag(s)" count; anything odd falls back to 1, capped at 500. */
+        _readAddCount: function () {
+            var el = byId('intakeAddBagCount');
+            var n = parseInt(el && el.value, 10);
+            if (isNaN(n) || n <= 0) n = 1;
+            if (n > 500) n = 500;
+            if (el) el.value = '1';
+            return n;
+        },
+
+        _addBag: function (count) {
+            count = count > 0 ? count : 1;
+            var firstNew = _bags.length;
             var prev = _bags.length ? _bags[_bags.length - 1].desc : 'NIS';
-            _bags.push({ no: _nextBagNo, desc: prev, kg: '' });
-            _nextBagNo += 1;
+            for (var i = 0; i < count; i++) {
+                _bags.push({ no: _nextBagNo, desc: prev, kg: '' });
+                _nextBagNo += 1;
+            }
             api._renderBags();
+            api._updatePlaced();
             var inputs = document.querySelectorAll('#intakeBagsBody input[data-bag-field="kg"]');
-            if (inputs.length) inputs[inputs.length - 1].focus();
+            if (inputs[firstNew]) inputs[firstNew].focus();
         },
 
         _deleteBag: function (idx) {
@@ -230,6 +420,7 @@ var _modal_grower_create_kernel_batch = (function () {
                 _nextBagNo = _bags.length + 1;
             }
             api._renderBags();
+            api._updatePlaced();
         },
 
         /** Weighed total, bag count and the declared-vs-weighed warning. */
@@ -558,7 +749,7 @@ var _modal_grower_create_kernel_batch = (function () {
             numberEl && numberEl.setAttribute('placeholder', 'Bn suggestion');
 
             var wetEl = document.getElementById('intakeBatchWetNis');
-            if (wetEl) wetEl.value = opts.wetNisKg != null ? opts.wetNisKg : '';
+            if (wetEl) wetEl.value = opts.wetNisKg != null ? fmtKg(opts.wetNisKg) : '';
 
             _pendingGrowerNameOverride = opts.growerNameOverride || null;
 
@@ -580,20 +771,32 @@ var _modal_grower_create_kernel_batch = (function () {
 
             api.populateSupplierDropdown(opts.supplierId);
 
-            // Show procurement banner if opened from calendar
-            var banner = document.getElementById('intakeProcurementBanner');
-            if (banner) banner.style.display = opts.fromProcurement ? '' : 'none';
+            // Planned truck: title, storage area choice and "When you save" box. Plain New Delivery hides them.
+            if (opts.fromProcurement && _planTruck) api._renderBookIn();
+            else { api._resetBookInUi(); api._showAreaPicker(); }
 
             var modalEl = document.getElementById(CONTAINER_ID);
             if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(modalEl).show();
             else if (typeof $ !== 'undefined' && $.fn.modal) $('#' + CONTAINER_ID).modal('show');
         },
 
-        /** Open from the procurement calendar with pre-filled data. */
-        showFromProcurement: function (procurement) {
+        /** Book in a planned truck (from the Expected trucks list). areas = [{code,label}] from the plan payload. */
+        showFromProcurement: function (procurement, areas) {
             if (!procurement) return;
             if (!canCreateIntakeBatch()) return;
             _pendingProcurementId = procurement.id || null;
+            _planTruck = procurement;
+            _planAreas = Array.isArray(areas) ? areas : [];
+            _chosenArea = procurement.storage_area_code || '';
+            if (!_planAreas.length && typeof dataFunctions !== 'undefined' && dataFunctions.getProcurementPlan) {
+                var t0 = new Date().toISOString().split('T')[0];
+                dataFunctions.getProcurementPlan(t0, t0).then(function (plan) {
+                    if (plan && Array.isArray(plan.areas) && _planTruck === procurement) {
+                        _planAreas = plan.areas;
+                        api._renderBookIn();
+                    }
+                }).catch(function () {});
+            }
             api.show({
                 supplierId:        procurement.supplier_id || null,
                 growerNameOverride: procurement.grower_name || null,
@@ -682,6 +885,11 @@ var _modal_grower_create_kernel_batch = (function () {
             if (_configLoaded && !transporterId) problems.push('Select a Transporter.');
             if (_configLoaded && !transportTypeId) problems.push('Select a Transport Type.');
             if (_uploadsInFlight > 0) problems.push('Documents are still uploading. Wait a moment and save again.');
+            var split = api._splitPlan();
+            if (split.splitN && !_chosenArea) problems.push('Choose where the first bags went.');
+            if (split.splitN && split.splitArea === _chosenArea) problems.push('The second area must be different from the first.');
+            // Captured now: closing the modal resets the area picker before the bags are tagged below.
+            var tagArea = _chosenArea;
             if (problems.length) {
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
@@ -694,6 +902,17 @@ var _modal_grower_create_kernel_batch = (function () {
             }
 
             try {
+                // Planned truck: if the area was changed, record it on the truck first so the DB
+                // puts the stock into that area when the truck converts below.
+                if (_pendingProcurementId && _planTruck && _chosenArea && _chosenArea !== (_planTruck.storage_area_code || '')) {
+                    var areaRes = (typeof dataFunctions !== 'undefined' && dataFunctions._rpcWrite)
+                        ? await dataFunctions._rpcWrite('set_procurement_storage_area', { p_id: _pendingProcurementId, p_storage_area_code: _chosenArea })
+                        : { success: false, error: 'Storage area could not be saved.' };
+                    if (!areaRes || areaRes.success === false) {
+                        throw new Error((areaRes && areaRes.error) || 'Could not save the storage area.');
+                    }
+                }
+
                 // Step 1: create row in batches (uses form batch number as human-readable id)
                 var batchResult = await dataFunctions.upsertBatch({
                     batch_id:   batchNumber,
@@ -771,19 +990,35 @@ var _modal_grower_create_kernel_batch = (function () {
                     $('#' + CONTAINER_ID).modal('hide');
                 }
 
-                // If opened from procurement calendar, mark the procurement as converted
+                // If booked in from a planned truck, mark the procurement as converted
                 if (_pendingProcurementId) {
                     var pendingId = _pendingProcurementId;
                     _pendingProcurementId = null;
                     _pendingGrowerNameOverride = null;
-                    var banner = document.getElementById('intakeProcurementBanner');
-                    if (banner) banner.style.display = 'none';
                     var dfConvert = (typeof _dataFunctions !== 'undefined' && _dataFunctions) ? _dataFunctions
                         : (typeof dataFunctions !== 'undefined' ? dataFunctions : null);
                     if (dfConvert && typeof dfConvert.convertKernelIntakeProcurement === 'function') {
-                        dfConvert.convertKernelIntakeProcurement(pendingId, batchUuid).catch(function (err) {
+                        // Awaited so the Expected trucks refresh below no longer shows this truck.
+                        try {
+                            await dfConvert.convertKernelIntakeProcurement(pendingId, batchUuid);
+                        } catch (err) {
                             console.warn('[New Delivery] Failed to convert procurement:', err);
-                        });
+                        }
+                    }
+                }
+
+                // Bag tags: a planned truck's bags were tagged with its area by the database on convert.
+                // Here: a plain delivery's area, and the split. A failure only leaves bags "Not placed yet".
+                if (!deliveryProblem && kernelResult.id && tagArea && typeof dataFunctions.moveNisBags === 'function') {
+                    try {
+                        var bagNos = weighedBags.map(function (b) { return b.no; });
+                        var nSplit = Math.min(split.splitN, bagNos.length);
+                        var firstNos = bagNos.slice(0, bagNos.length - nSplit);
+                        var restNos = bagNos.slice(bagNos.length - nSplit);
+                        if (firstNos.length) await dataFunctions.moveNisBags(kernelResult.id, firstNos, tagArea);
+                        if (restNos.length && split.splitArea) await dataFunctions.moveNisBags(kernelResult.id, restNos, split.splitArea);
+                    } catch (tagErr) {
+                        console.warn('[New Delivery] Tagging bags failed:', tagErr);
                     }
                 }
 
@@ -812,7 +1047,7 @@ var _modal_grower_create_kernel_batch = (function () {
                     : (typeof window.growerIntakeGrid !== 'undefined' && window.growerIntakeGrid.loadIntakeBatches ? window.growerIntakeGrid : null);
                 if (grid) {
                     await grid.loadIntakeBatches(true);
-                    // Refresh procurement calendar to remove converted entry
+                    // Refresh Expected trucks to remove the booked-in truck
                     if (typeof grid.loadProcurements === 'function') grid.loadProcurements(true);
                 } else {
                     console.warn('[New Delivery] Grower Intake grid not found; refresh the page to see the new batch.');

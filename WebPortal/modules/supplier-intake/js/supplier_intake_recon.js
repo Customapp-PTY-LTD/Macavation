@@ -33,7 +33,7 @@ var _supplierIntakeRecon = (function () {
     };
 
     function esc(v) { return _common.escapeHtml(v == null ? '' : String(v)); }
-    function kg(v) { var n = Number(v); return _common.formatKg(isFinite(n) ? n : 0, 0); }
+    function kg(v, dp) { var n = Number(v); return _common.formatKg(isFinite(n) ? n : 0, dp === undefined ? 2 : dp); }
     function pad2(n) { return (n < 10 ? '0' : '') + n; }
     function todayStr() { var d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
     function fmtDate(iso) {
@@ -120,11 +120,11 @@ var _supplierIntakeRecon = (function () {
         shown.forEach(function (l) { addTo(l.own ? own : bought, l); });
         var flagged = shown.filter(function (l) { return !!l.flag; });
         h += '<div class="si-cake-totals">' +
-            '<div class="card"><div class="card-body"><span>Bought in</span><strong>' + esc(kg(bought.total)) + ' kg</strong>' +
+            '<div class="card"><div class="card-body"><span>Bought in</span><strong>' + esc(kg(bought.total, 0)) + ' kg</strong>' +
             '<div class="small text-muted">' + esc(bought.loads) + ' loads</div></div></div>' +
-            '<div class="card"><div class="card-body"><span>Our own material</span><strong>' + esc(kg(own.total)) + ' kg</strong>' +
+            '<div class="card"><div class="card-body"><span>Our own material</span><strong>' + esc(kg(own.total, 0)) + ' kg</strong>' +
             '<div class="small text-muted">' + esc(own.loads) + ' loads</div></div></div>' +
-            '<div class="card"><div class="card-body"><span>All received</span><strong>' + esc(kg(bought.total + own.total)) + ' kg</strong>' +
+            '<div class="card"><div class="card-body"><span>All received</span><strong>' + esc(kg(bought.total + own.total, 0)) + ' kg</strong>' +
             '<div class="small text-muted">' + esc(fmtDate(state.from)) + ' – ' + esc(fmtDate(state.to)) + '</div></div></div>' +
             '</div>';
         if (flagged.length) {

@@ -13,7 +13,9 @@
  *
  * Source: get_data_health (migrations/20261014120000), one compact row per day:
  *   [date, typed cracked kg, factory cracked kg (null = not tracked), NIS intake rows,
- *    deliveries booked in, kernel sales lines, kernel dispatch orders, oil sales lines, oil export rows]
+ *    deliveries booked in, kernel sales lines, kernel dispatch orders, oil sales lines, oil export rows,
+ *    batches with silo runs, of those still missing shell bags on the cracking sheet]  (last two: 20261030160000)
+ * The Cracking sheets row lists the batches to finish from get_unfinished_cracking_sheets.
  *
  * Clicking a cell shows that week day by day, with a button that opens the tab where the gap gets
  * filled (via the onOpen callback the page controller passes in).
@@ -33,7 +35,7 @@ var DataHealthPanel = (function () {
     var LABELS = { ok: 'Captured', miss: 'Missing', diff: 'Differs', none: 'No activity', cant: 'Can’t check', future: '–', will: 'Filled by this file' };
     var RANK = { miss: 5, diff: 4, cant: 3, ok: 2, none: 1, future: 0 };
 
-    var state = { fy: null, byIso: {}, weeks: [], status: {}, todayIso: null, onOpen: null, root: null, sel: null, container: null, lastImport: null };
+    var state = { fy: null, byIso: {}, weeks: [], status: {}, todayIso: null, onOpen: null, root: null, sel: null, container: null, lastImport: null, unfinished: [] };
 
     // Fill gaps from a file (data-import-wizard.js): offered only to people who may edit data pages,
     // and only when the wizard script loaded.
@@ -52,6 +54,15 @@ var DataHealthPanel = (function () {
     function canImportAll() { return canImport() && typeof DataImportAllWizard !== 'undefined'; }
 
     function reload() { if (state.container && document.body.contains(state.container)) load(state.container); }
+
+    // Production screen with the batch searched, where its production sheet takes the shell bags.
+    function openProductionBatch(batchNumber) {
+        if (typeof HandoffDialog !== 'undefined' && HandoffDialog.navigateToRoute) {
+            HandoffDialog.navigateToRoute('kernel-production-grid', batchNumber || '', 'searchBatchesInput');
+        } else if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) {
+            _appRouter.routeTo('kernel-production-grid');
+        }
+    }
 
     function openImportAll() {
         if (!state.weeks.length) return;
@@ -188,6 +199,11 @@ var DataHealthPanel = (function () {
             if (s.indexOf('ok') !== -1) return 'ok';
             return s.indexOf('cant') !== -1 ? 'cant' : 'none';
         } },
+        { key: 'cracking_sheets', name: 'Cracking sheets', sub: 'shell bags vs silo runs', cell: function (w) {
+            if (!weekStarted(w)) return 'future';
+            if (weekSum(w, 10) > 0) return 'miss';
+            return weekSum(w, 9) > 0 ? 'ok' : 'none';
+        } },
         { key: 'nis_intake', name: 'Nut in Shell Intake', sub: 'vs deliveries booked in', cell: function (w) {
             if (!weekStarted(w)) return 'future';
             var n = weekSum(w, 3), k = weekSum(w, 4);
@@ -253,6 +269,9 @@ var DataHealthPanel = (function () {
             { cls: count('kernel_sales_lines') ? 'red' : 'green', k: 'Kernel Sales',
               v: count('kernel_sales_lines') ? count('kernel_sales_lines') + ' week' + (count('kernel_sales_lines') === 1 ? '' : 's') + ' missing' : 'Up to date',
               s: count('kernel_sales_lines') ? 'Dispatches went out with no invoice lines entered' : 'Every dispatch week has invoice lines' },
+            { cls: state.unfinished.length ? 'red' : 'green', k: 'Cracking sheets',
+              v: state.unfinished.length ? state.unfinished.length + ' to finish' : 'Up to date',
+              s: state.unfinished.length ? 'Silo runs logged but no shell bags entered' : 'Every cracked batch has its shell bags' },
             { cls: 'grey', k: 'Oil sales & exports', v: 'Can’t check yet', s: 'Needs the oil pipeline captured in the portal' }
         ];
         tiles.forEach(function (t) {
@@ -367,6 +386,26 @@ var DataHealthPanel = (function () {
                 var x = row(isoOf(d)) || [];
                 line([DAYS[d.getDay()] + ' ' + fmt(d), x[2] == null ? 'not tracked yet' : num(x[2]), num(x[1]), pill(prodDay(d))], [1, 2]);
             });
+        } else if (rk === 'cracking_sheets') {
+            head([{ t: 'Day' }, { t: 'Batch' }, { t: 'Cracked in silo runs (kg)', num: true }, { t: '' }]);
+            var weekFrom = isoOf(w.start), weekTo = isoOf(w.end), listed = false;
+            state.unfinished.forEach(function (u) {
+                var iso = String(u.date || '').slice(0, 10);
+                if (iso < weekFrom || iso > weekTo) return;
+                listed = true;
+                var d = parseIso(iso);
+                var open = el('button', 'btn btn-outline-primary btn-sm py-0', 'Open on Production');
+                open.type = 'button';
+                open.addEventListener('click', function () { openProductionBatch(u.batch_number); });
+                line([DAYS[d.getDay()] + ' ' + fmt(d), u.batch_number || '', num(u.kg), open], [2]);
+            });
+            if (!listed) {
+                var tr3 = el('tr'), td3 = el('td', 'text-muted',
+                    days.some(function (d) { return Number((row(isoOf(d)) || [])[9]) > 0; })
+                        ? 'Every batch cracked this week has its shell bags entered.'
+                        : 'No silo runs this week (the Cracking log starts on 26 Oct 2026).');
+                td3.colSpan = 4; tr3.appendChild(td3); tbody.appendChild(tr3);
+            }
         } else if (rk === 'nis_intake' || rk === 'kernel_sales_lines') {
             var a = rk === 'nis_intake' ? 4 : 6, b = rk === 'nis_intake' ? 3 : 5;
             head([{ t: 'Day' }, { t: rk === 'nis_intake' ? 'Deliveries booked in' : 'Dispatch orders', num: true },
@@ -401,6 +440,9 @@ var DataHealthPanel = (function () {
         table.appendChild(thead);
         table.appendChild(tbody);
         host.appendChild(table);
+
+        // Cracking sheets are finished on the Production screen, not on a data page: each row has its own button.
+        if (rk === 'cracking_sheets') return;
 
         var bar = el('div', 'dh-fixbar');
         var btn = el('button', 'btn btn-primary btn-sm');
@@ -498,7 +540,7 @@ var DataHealthPanel = (function () {
         var explain = el('div', 'dh-explain');
         var e1 = el('div');
         e1.appendChild(el('h4', null, 'How “missing” is worked out'));
-        e1.appendChild(el('p', null, 'Production: each day’s typed cracked kg is compared with what the factory recorded on Kernel Production. Nut in Shell Intake: each week’s intake rows are compared with the deliveries booked in on Grower Intake. Kernel Sales: a week with dispatches but no invoice lines is flagged. Oil sales and exports have no factory figure to compare against yet.'));
+        e1.appendChild(el('p', null, 'Production: each day’s typed cracked kg is compared with what the factory recorded on Kernel Production. Nut in Shell Intake: each week’s intake rows are compared with the deliveries booked in on Grower Intake. Kernel Sales: a week with dispatches but no invoice lines is flagged. Cracking sheets: a batch cracked in a silo run whose cracking sheet has no shell bags for that day is flagged. Oil sales and exports have no factory figure to compare against yet.'));
         var e2 = el('div');
         e2.appendChild(el('h4', null, 'Why a blank isn’t always a gap'));
         e2.appendChild(el('p', null, 'A week without a delivery or a sale can be perfectly normal, so this page only flags a gap when the factory side shows activity and the data page doesn’t.'));
@@ -529,7 +571,13 @@ var DataHealthPanel = (function () {
         host.appendChild(el('div', 'text-muted', 'Loading…'));
         var df = (typeof dataFunctions !== 'undefined') ? dataFunctions : null;
         var p = (df && typeof df.getDataHealth === 'function') ? df.getDataHealth(range.from, range.to) : Promise.resolve(null);
-        return p.catch(function () { return null; }).then(function (res) {
+        // Best-effort: without it the Cracking sheets row still colours, its week view just lists no batches.
+        var u = (df && typeof df.getUnfinishedCrackingSheets === 'function')
+            ? Promise.resolve().then(function () { return df.getUnfinishedCrackingSheets(null); }).catch(function () { return null; })
+            : Promise.resolve(null);
+        return Promise.all([p.catch(function () { return null; }), u]).then(function (both) {
+            var res = both[0];
+            state.unfinished = (both[1] && Array.isArray(both[1].days)) ? both[1].days : [];
             if (!res || !Array.isArray(res.days)) {
                 clear(container);
                 var box = el('div', 'mac-empty-state text-center py-4');

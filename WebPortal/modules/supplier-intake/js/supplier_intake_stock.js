@@ -44,7 +44,7 @@ var _supplierIntakeStock = (function () {
     };
 
     function esc(v) { return _common.escapeHtml(v == null ? '' : String(v)); }
-    function kg(v, dp) { var n = Number(v); return _common.formatKg(isFinite(n) ? n : 0, dp === undefined ? 0 : dp); }
+    function kg(v, dp) { var n = Number(v); return _common.formatKg(isFinite(n) ? n : 0, dp === undefined ? 2 : dp); }
     function pad2(n) { return (n < 10 ? '0' : '') + n; }
     function todayStr() { var d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
     function fmtDate(iso) {
@@ -171,7 +171,7 @@ var _supplierIntakeStock = (function () {
                 '<div class="si-stock-card-top"><div><div class="small text-muted">#' + (idx + 1) + ' to buy</div>' +
                 '<div class="fw-semibold">' + esc(i.name) + '</div></div>' +
                 '<span class="si-stock-pill si-stock-pill-' + i.status + '">' + esc(STATUS_LABEL[i.status]) + '</span></div>' +
-                '<div class="si-stock-kg">' + esc(kg(i.onHand)) + ' <span>kg on hand</span></div>' + sub +
+                '<div class="si-stock-kg">' + esc(kg(i.onHand, 0)) + ' <span>kg on hand</span></div>' + sub +
                 '<div class="si-stock-bar" role="img" aria-label="' + esc(kg(i.onHand)) + ' kg of a ' + esc(kg(i.min)) + ' kg minimum">' +
                 '<span class="si-stock-bar-fill si-stock-bar-' + i.status + '" style="width:' + fillPct.toFixed(1) + '%"></span>' +
                 '<span class="si-stock-bar-min" style="left:' + minPct.toFixed(1) + '%"></span></div>' +
@@ -204,15 +204,15 @@ var _supplierIntakeStock = (function () {
             '<div class="table-responsive"><table class="table align-middle mb-2"><thead><tr><th>Material</th><th>Counted (kg)</th><th>Daily use (kg)</th><th class="text-end">Minimum (kg)</th></tr></thead><tbody>';
         MATERIALS.forEach(function (m) {
             var s = (set.materials && set.materials[m.key]) || {};
-            var count = '<input type="number" class="form-control si-set-count" min="0" step="1" data-key="' + m.key + '" aria-label="' + esc(m.name) + ' counted kg" value="' + esc(s.count_kg != null ? s.count_kg : '') + '">';
+            var count = '<input type="text" inputmode="decimal" class="form-control js-kg-input si-set-count" data-key="' + m.key + '" aria-label="' + esc(m.name) + ' counted kg" value="' + esc(_common.formatKg(s.count_kg)) + '">';
             if (m.key === 'oil_kernel') {
                 var fg = Number(s.count_food_grade_kg) || 0;
                 count = '<div class="d-flex gap-2 flex-wrap">' +
-                    '<label class="small">Crude<input type="number" class="form-control si-set-crude" min="0" step="1" value="' + esc((Number(s.count_kg) || 0) - fg) + '"></label>' +
-                    '<label class="small">Food grade<input type="number" class="form-control si-set-fg" min="0" step="1" value="' + esc(fg) + '"></label></div>';
+                    '<label class="small">Crude<input type="text" inputmode="decimal" class="form-control js-kg-input si-set-crude" value="' + esc(_common.formatKg((Number(s.count_kg) || 0) - fg)) + '"></label>' +
+                    '<label class="small">Food grade<input type="text" inputmode="decimal" class="form-control js-kg-input si-set-fg" value="' + esc(_common.formatKg(fg)) + '"></label></div>';
             }
             h += '<tr><td class="fw-semibold">' + esc(m.name) + '</td><td>' + count + '</td>' +
-                '<td><input type="number" class="form-control si-set-daily" min="0" step="1" data-key="' + m.key + '" aria-label="' + esc(m.name) + ' daily use kg" value="' + esc(s.daily_kg != null ? s.daily_kg : '') + '"></td>' +
+                '<td><input type="text" inputmode="decimal" class="form-control js-kg-input si-set-daily" data-key="' + m.key + '" aria-label="' + esc(m.name) + ' daily use kg" value="' + esc(_common.formatKg(s.daily_kg)) + '"></td>' +
                 '<td class="text-end">' + esc(kg((Number(s.daily_kg) || 0) * WORK_DAYS_PER_WEEK * MIN_WEEKS)) + '</td></tr>';
         });
         h += '</tbody></table></div>' +
@@ -225,7 +225,7 @@ var _supplierIntakeStock = (function () {
     function saveSettings() {
         var materials = {};
         var bad = false;
-        function num(v) { var n = Number(v); if (v === '' || !isFinite(n) || n < 0) { bad = true; } return n; }
+        function num(v) { var n = _common.parseKg(v); if (n == null || !isFinite(n) || n < 0) { bad = true; return 0; } return n; }
         MATERIALS.forEach(function (m) { materials[m.key] = {}; });
         $('.si-set-daily').each(function () { materials[$(this).attr('data-key')].daily_kg = num($(this).val()); });
         $('.si-set-count').each(function () { materials[$(this).attr('data-key')].count_kg = num($(this).val()); });
@@ -277,8 +277,8 @@ var _supplierIntakeStock = (function () {
             '<label for="siCakeMonth" class="form-label mb-0 fw-semibold">Month</label>' +
             '<input type="month" class="form-control si-cake-month" id="siCakeMonth" max="' + esc(todayStr().slice(0, 7)) + '" value="' + esc(ym) + '"></div>';
         h += '<div class="si-cake-totals">' +
-            '<div class="card"><div class="card-body"><span>Produced in ' + esc(monthName) + '</span><strong>' + esc(kg(r.produced_kg)) + ' kg</strong></div></div>' +
-            '<div class="card"><div class="card-body"><span>Sold in ' + esc(monthName) + '</span><strong>' + esc(kg(r.sold_kg)) + ' kg</strong></div></div>' +
+            '<div class="card"><div class="card-body"><span>Produced in ' + esc(monthName) + '</span><strong>' + esc(kg(r.produced_kg, 0)) + ' kg</strong></div></div>' +
+            '<div class="card"><div class="card-body"><span>Sold in ' + esc(monthName) + '</span><strong>' + esc(kg(r.sold_kg, 0)) + ' kg</strong></div></div>' +
             '</div>';
         h += '<div class="card mb-3"><div class="card-body">' +
             '<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3"><h3 class="h6 mb-0">Record oil cake</h3>' +
@@ -288,7 +288,7 @@ var _supplierIntakeStock = (function () {
             '</div></div>' +
             '<div class="row g-2 align-items-end">' +
             '<div class="col-sm-6 col-lg-2"><label for="siCakeDate" class="form-label">Date</label><input type="date" class="form-control" id="siCakeDate" max="' + esc(todayStr()) + '" value="' + esc(todayStr()) + '"></div>' +
-            '<div class="col-sm-6 col-lg-2"><label for="siCakeKg" class="form-label">Weight (kg)</label><input type="number" class="form-control" id="siCakeKg" min="0" step="0.01"></div>' +
+            '<div class="col-sm-6 col-lg-2"><label for="siCakeKg" class="form-label">Weight (kg)</label><input type="text" inputmode="decimal" class="form-control js-kg-input" id="siCakeKg"></div>' +
             (sale ? '<div class="col-sm-6 col-lg-3"><label for="siCakeSoldTo" class="form-label">Sold to</label><input type="text" class="form-control" id="siCakeSoldTo" maxlength="200"></div>' : '') +
             '<div class="col-sm-6 col-lg-3"><label for="siCakeNotes" class="form-label">Notes</label><input type="text" class="form-control" id="siCakeNotes" maxlength="500" placeholder="Optional"></div>' +
             '<div class="col-sm-6 col-lg-2"><button type="button" class="btn btn-primary w-100" id="siCakeSave">' + (sale ? 'Save sale' : 'Save production') + '</button></div>' +
@@ -313,11 +313,11 @@ var _supplierIntakeStock = (function () {
     function saveCake() {
         var sale = state.cakeKind === 'sold';
         var date = String($('#siCakeDate').val() || '');
-        var amount = Number($('#siCakeKg').val());
+        var amount = _common.parseKg($('#siCakeKg').val());
         var soldTo = sale ? String($('#siCakeSoldTo').val() || '').trim() : null;
         var notes = String($('#siCakeNotes').val() || '').trim();
         if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { notify('warning', 'Enter the date.'); return; }
-        if (!(amount > 0)) { notify('warning', 'Enter the weight in kg.'); return; }
+        if (amount == null || !(amount > 0)) { notify('warning', 'Enter the weight in kg.'); return; }
         if (sale && !soldTo) { notify('warning', 'Enter who the oil cake was sold to.'); return; }
         $('#siCakeSave').prop('disabled', true);
         safe(dataFunctions.saveOilCakeMovement(state.cakeKind, date, amount, soldTo, notes)).then(function (r) {

@@ -107,9 +107,48 @@ var _supplierIntakeGrid = function () {
         return false;
     }
 
+    /** Out-of-spec FFA decision on a bag: 'pending' | 'accepted' | 'rejected' | ''. */
+    function ffaDecisionStatus(b) {
+        return (b && b.ffa_decision && b.ffa_decision.status) ? String(b.ffa_decision.status) : '';
+    }
+
+    /** Still in Awaiting tests with no FFA yet: what Record FFA for this delivery fills in. */
+    function isWaitingForFfa(b) {
+        return !!b && getSupplierColumnKey(b) === 'awaiting_test' && !hasSupplierIntakeOfficialFfa(b);
+    }
+
+    /** Status label + badge stage for a bag, decision states included. */
+    function bagStatus(b) {
+        var dec = ffaDecisionStatus(b);
+        if (getSupplierColumnKey(b) === 'awaiting_test') {
+            if (dec === 'pending') return { label: 'Awaiting decision', cls: 'badge-stage-alert' };
+            if (dec === 'rejected') return { label: 'Rejected', cls: 'badge-stage-alert' };
+            return { label: 'Awaiting tests', cls: 'badge-stage-first' };
+        }
+        return { label: 'Ready for Oil Production', cls: 'badge-stage-last' };
+    }
+
+    function ffaCellHtml(b) {
+        if (b.official_ffa == null || b.official_ffa === '') return '<span class="text-muted">—</span>';
+        var dec = ffaDecisionStatus(b);
+        var cls = (dec === 'pending' || dec === 'rejected') ? ' class="supplier-intake-ffa-off"' : '';
+        return '<span' + cls + '>' + escapeHtml(String(b.official_ffa)) + '</span>';
+    }
+
+    /** FFA box in the delivery FFA list: '' blank, NaN invalid, else the number. */
+    function parseFfaInput(v) {
+        var raw = (v == null ? '' : String(v)).trim().replace(',', '.');
+        if (raw === '') return '';
+        if (!/^\d+(\.\d+)?$/.test(raw)) return NaN;
+        var n = parseFloat(raw);
+        return (n < 0 || n > 100) ? NaN : n;
+    }
+
     return {
         batches: [],
         filteredBatches: [],
+        _deliveryGroups: {},
+        _deliveryFfa: null,
         weeklyOilRows: [],
         weeklySnapshotLoaded: false,
         siWeeklyMode: 'in',
@@ -252,6 +291,39 @@ var _supplierIntakeGrid = function () {
                     return (b.id != null && String(b.id) === String(batchId)) || (b.batch_number != null && String(b.batch_number) === String(batchId));
                 });
                 scope.releaseBatchToOilProduction(batchId, batch);
+            });
+            $(document).off('click.siDeliveryFfa').on('click.siDeliveryFfa', '#supplierIntakeBatchesTableBody .js-si-delivery-ffa', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                scope.showDeliveryFfa(String($(this).attr('data-group') || ''));
+            });
+            $('#siDeliveryFfaBody').off('input.siFfa').on('input.siFfa', 'input[name="siBagFfa"]', function () {
+                scope.refreshDeliveryFfa();
+            });
+            $('#siDeliveryFfaBody').off('keydown.siFfa').on('keydown.siFfa', 'input[name="siBagFfa"]', function (e) {
+                if (e.key !== 'Enter') return;
+                e.preventDefault();
+                var inputs = $('#siDeliveryFfaBody input[name="siBagFfa"]');
+                var next = inputs.eq(inputs.index(this) + 1);
+                if (next.length) next.trigger('focus').trigger('select');
+                else $('#siDeliveryFfaSaveBtn').trigger('focus');
+            });
+            $('#siDeliveryFfaFillAllBtn').off('click').on('click', function (e) {
+                e.preventDefault();
+                var v = ($('#siDeliveryFfaAll').val() || '').trim();
+                if (v === '') { $('#siDeliveryFfaAll').trigger('focus'); return; }
+                $('#siDeliveryFfaBody input[name="siBagFfa"]').val(v);
+                scope.refreshDeliveryFfa();
+            });
+            $('#siDeliveryFfaAll').off('keydown').on('keydown', function (e) {
+                if (e.key === 'Enter') { e.preventDefault(); $('#siDeliveryFfaFillAllBtn').trigger('click'); }
+            });
+            $('#siDeliveryFfaSaveBtn').off('click').on('click', function (e) {
+                e.preventDefault();
+                scope.saveDeliveryFfa();
+            });
+            $('#siWeightBeforeProductionInput').off('input.siW').on('input.siW', function () {
+                scope.refreshWeightNote();
             });
             $(document).on('click', '#siKanbanBoard .js-supplier-intake-sample-test-btn', function (e) {
                 e.preventDefault();
@@ -426,7 +498,7 @@ var _supplierIntakeGrid = function () {
                 var batchId = (b.id != null ? b.id : b.batch_number || '').toString();
                 var batchNum = (b.batch_number || '—').toString();
                 var dateStr = formatDate(b.date_received) || '—';
-                var qtyStr = (b.quantity_kg != null ? b.quantity_kg + ' kg' : '');
+                var qtyStr = (b.quantity_kg != null ? _common.formatKg(b.quantity_kg) + ' kg' : '');
                 var productStr = batchProductLabel(b) || '—';
                 var supplierStr = (b.supplier_details || '—').toString();
                 var colKey = getSupplierColumnKey(b);
@@ -451,6 +523,9 @@ var _supplierIntakeGrid = function () {
                 if (supplierStr !== '—') html += '<div class="kanban-card-meta-item"><i class="fas fa-truck"></i> ' + esc(supplierStr) + '</div>';
                 if (dateStr !== '—') html += '<div class="kanban-card-meta-item"><i class="fas fa-calendar"></i> ' + esc(dateStr) + '</div>';
                 if (qtyStr) html += '<div class="kanban-card-meta-item"><i class="fas fa-weight-hanging"></i> ' + esc(qtyStr) + '</div>';
+                if (b.official_ffa != null && b.official_ffa !== '') html += '<div class="kanban-card-meta-item"><i class="fas fa-vial"></i> FFA ' + ffaCellHtml(b) + '%</div>';
+                var dec = ffaDecisionStatus(b);
+                if (dec === 'pending' || dec === 'rejected') html += '<div class="kanban-card-meta-item"><span class="badge badge-stage-alert">' + esc(bagStatus(b).label) + '</span></div>';
                 html += '</div>';
                 html += '<div class="kanban-card-actions">' + sampleBtn + releaseBtn + viewBtn + deleteBtn + '</div>';
                 html += '</div>';
@@ -462,10 +537,10 @@ var _supplierIntakeGrid = function () {
             const scope = _supplierIntakeGrid;
             const tbody = $('#supplierIntakeBatchesTableBody');
             if (!tbody.length) return;
-            tbody.html('<tr><td colspan="10" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>Loading…</td></tr>');
+            tbody.html('<tr><td colspan="11" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>Loading…</td></tr>');
             try {
                 if (typeof dataFunctions === 'undefined' || !dataFunctions.getSupplierIntakeBatches) {
-                    tbody.html('<tr><td colspan="10" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>Data functions not available.</td></tr>');
+                    tbody.html('<tr><td colspan="11" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>Data functions not available.</td></tr>');
                     return;
                 }
                 const all = await dataFunctions.getSupplierIntakeBatches('supplier_intake', null, forceRefresh);
@@ -481,7 +556,7 @@ var _supplierIntakeGrid = function () {
             } catch (e) {
                 console.error('[Supplier Intake] loadBatches failed:', e);
                 scope.batches = [];
-                tbody.html('<tr><td colspan="10" class="text-center text-danger py-4">Failed to load batches.</td></tr>');
+                tbody.html('<tr><td colspan="11" class="text-center text-danger py-4">Failed to load batches.</td></tr>');
             }
         },
 
@@ -492,9 +567,9 @@ var _supplierIntakeGrid = function () {
             tbody.empty();
             if (scope.filteredBatches.length === 0) {
                 if (scope.batches.length === 0) {
-                    tbody.html('<tr><td colspan="10" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No batches in supplier intake. Click Receiver checklist to add batches.</td></tr>');
+                    tbody.html('<tr><td colspan="11" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No batches in supplier intake. Click Receiver checklist to add batches.</td></tr>');
                 } else {
-                    tbody.html('<tr><td colspan="10" class="text-center text-muted py-4"><i class="fas fa-filter me-2"></i>No batches match your search.</td></tr>');
+                    tbody.html('<tr><td colspan="11" class="text-center text-muted py-4"><i class="fas fa-filter me-2"></i>No batches match your search.</td></tr>');
                 }
                 return;
             }
@@ -514,6 +589,11 @@ var _supplierIntakeGrid = function () {
                 return an.localeCompare(bn);
             });
             var lastGroup = null;
+            scope._deliveryGroups = {};
+            list.forEach(function (b) {
+                var k = groupKey(b);
+                (scope._deliveryGroups[k] = scope._deliveryGroups[k] || []).push(b);
+            });
             list.forEach((b) => {
                 const batchId = (b.id != null ? b.id : b.batch_number || '').toString();
                 const supplier = (b.supplier_details != null ? b.supplier_details : (b.supplier_id ? '—' : '—'));
@@ -526,6 +606,11 @@ var _supplierIntakeGrid = function () {
                 var receivingCell;
                 if (colKey === 'release_ready') {
                     receivingCell = '<div class="supplier-intake-receiving-buttons">' + releaseToOilBtn + '</div>';
+                } else if (ffaDecisionStatus(b) === 'pending') {
+                    receivingCell = '<div class="supplier-intake-receiving-buttons"><span class="small text-danger">Not in spec: waiting for Mark, Pete or Mike</span></div>';
+                } else if (ffaDecisionStatus(b) === 'rejected') {
+                    receivingCell = '<div class="supplier-intake-receiving-buttons"><span class="small text-danger">Rejected' +
+                        (b.ffa_decision.decided_by_name ? ' by ' + escapeHtml(b.ffa_decision.decided_by_name) : '') + '</span></div>';
                 } else if (hasSupplierIntakeOfficialFfa(b)) {
                     receivingCell = '<div class="supplier-intake-receiving-buttons"><span class="text-muted small">Official FFA on file</span></div>';
                 } else {
@@ -541,9 +626,8 @@ var _supplierIntakeGrid = function () {
                     id: 'supplierIntakeActions' + batchId,
                     items: [releaseItem, viewItem, editItem, deleteItem]
                 });
-                var statusLabel = colKey === 'release_ready' ? 'Ready for Oil Production' : 'Awaiting tests';
-                var stagePos = colKey === 'release_ready' ? 'last' : 'first';
-                var statusBadgeHtml = (typeof KanbanHelper !== 'undefined' && KanbanHelper.statusBadge) ? KanbanHelper.statusBadge(statusLabel, stagePos) : ('<span class="badge bg-info">' + escapeHtml(statusLabel) + '</span>');
+                var st = bagStatus(b);
+                var statusBadgeHtml = '<span class="badge ' + st.cls + '">' + escapeHtml(st.label) + '</span>';
 
                 var gk = groupKey(b);
                 if (gk !== lastGroup) {
@@ -552,9 +636,14 @@ var _supplierIntakeGrid = function () {
                     var grpDelivery = b.delivery_note_ref || '—';
                     var grpDate = formatDate(b.date_received) || '—';
                     var grpHtml = '<tr class="supplier-intake-group-row">' +
-                        '<td colspan="10" class="supplier-intake-group-cell">' +
+                        '<td colspan="11" class="supplier-intake-group-cell">' +
                         '<span class="supplier-intake-group-title">' + escapeHtml(grpSupplier) + '</span>' +
                         '<span class="supplier-intake-group-meta">Delivery: ' + escapeHtml(grpDelivery) + ' • Received: ' + escapeHtml(grpDate) + '</span>' +
+                        (function () {
+                            var waiting = (scope._deliveryGroups[gk] || []).filter(isWaitingForFfa).length;
+                            return waiting ? '<button type="button" class="btn btn-sm btn-primary si-delivery-ffa-btn js-si-delivery-ffa" data-group="' + escapeHtml(gk) + '">' +
+                                '<i class="fas fa-vial me-1" aria-hidden="true"></i>Record FFA for this delivery · ' + waiting + ' waiting</button>' : '';
+                        })() +
                         '</td></tr>';
                     tbody.append(grpHtml);
                 }
@@ -564,7 +653,8 @@ var _supplierIntakeGrid = function () {
                     '<td class="supplier-intake-col-date">' + (formatDate(b.date_received) || '—') + '</td>' +
                     '<td class="supplier-intake-col-note d-none d-lg-table-cell">' + (b.delivery_note_ref || '—') + '</td>' +
                     '<td class="supplier-intake-col-supplier">' + (supplier || '—') + '</td>' +
-                    '<td class="supplier-intake-col-qty d-none d-sm-table-cell">' + (b.quantity_kg != null ? b.quantity_kg : '—') + '</td>' +
+                    '<td class="supplier-intake-col-qty d-none d-sm-table-cell">' + (b.quantity_kg != null ? _common.formatKg(b.quantity_kg) : '—') + '</td>' +
+                    '<td class="supplier-intake-col-ffa text-end">' + ffaCellHtml(b) + '</td>' +
                     '<td class="supplier-intake-col-mfg d-none d-lg-table-cell">' + mfgBb + '</td>' +
                     '<td class="supplier-intake-col-receiving">' + receivingCell + '</td>' +
                     '<td class="supplier-intake-col-status">' + statusBadgeHtml + '</td>' +
@@ -666,7 +756,7 @@ var _supplierIntakeGrid = function () {
             var numCols = 1 + colKeys.length + 1;
             function fmtKg(n) {
                 if (n == null || isNaN(n) || n <= 0.0001) return '—';
-                return Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
+                return _common.formatKg(n);
             }
             if (thead) {
                 var headCells = '<tr><th class="si-weekly-th-week">Week</th>';
@@ -718,7 +808,7 @@ var _supplierIntakeGrid = function () {
                 : keys.map(function (key) {
                     var total = byIngredient[key];
                     var label = productTypeLabel(key);
-                    var amount = (total != null && !isNaN(total)) ? Number(total).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—';
+                    var amount = (total != null && !isNaN(total)) ? _common.formatKg(total) : '—';
                     return '<tr><td>' + escapeHtml(label) + '</td><td class="text-end">' + escapeHtml(String(amount)) + '</td></tr>';
                 }).join('');
             tbody.innerHTML = rows;
@@ -760,20 +850,29 @@ var _supplierIntakeGrid = function () {
             };
             var html = '<div class="text-start small">' +
                 '<p><strong>Batch #:</strong> ' + escapeHtml(b.batch_number || '—') + '</p>' +
-                line('Product type', batchProductLabel(b) || b.product_type) +
+                line('Description', batchProductLabel(b) || b.product_type) +
                 line('Date received', formatDate(b.date_received)) +
                 line('Delivery note / PO', b.delivery_note_ref) +
                 line('Supplier', b.supplier_details) +
-                line('Receiving weight (kg)', b.quantity_kg != null ? b.quantity_kg : '') +
+                line('Receiving weight (kg)', b.quantity_kg != null ? _common.formatKg(b.quantity_kg) : '') +
                 line('Carton / bulk bags', b.carton_bulk_bags) +
                 line('Manufactured date', formatDate(b.manufactured_date)) +
                 line('Best before date', formatDate(b.best_before_date)) +
                 line('Official FFA (bag) %', b.official_ffa != null && b.official_ffa !== '' ? b.official_ffa : '') +
-                line('Reference / PO', b.reference) +
-                line('Description', b.description) +
+                (function () {
+                    var d = b.ffa_decision;
+                    if (!d || !d.status) return '';
+                    if (d.status === 'pending') return line('FFA decision', 'Not in spec: waiting for Mark, Pete or Mike');
+                    return line('FFA decision', (d.status === 'accepted' ? 'Accepted for production' : 'Rejected') +
+                        (d.decided_by_name ? ' by ' + d.decided_by_name : '') + (d.decided_at ? ' on ' + formatDate(d.decided_at) : '') +
+                        (d.note ? ' (' + d.note + ')' : ''));
+                })() +
+                // Older batches only: New delivery no longer asks for a per-bag reference.
+                (b.reference ? line('Reference / PO', b.reference) : '') +
+                (b.description ? line('Notes', b.description) : '') +
                 line('Status', (function () {
                     var s = (b.status || '').toLowerCase();
-                    if (s === 'intake' || s === 'awaiting_test') return 'Awaiting tests';
+                    if (s === 'intake' || s === 'awaiting_test') return bagStatus(b).label;
                     if (s === 'release_ready') return 'Release ready';
                     if (s === 'production') return 'Production';
                     return b.status || '—';
@@ -788,6 +887,18 @@ var _supplierIntakeGrid = function () {
                     line('Pest infestations', b.pest_infestations) +
                     line('Pallets condition', b.pallets_condition) +
                     line('Raw materials condition', b.raw_materials_condition);
+                var checkNames = { vehicle_clean: 'Vehicle clean', vehicle_enclosed: 'Vehicle enclosed', hazard_substances: 'Hazard substances', pest_infestations: 'Pest infestations', pallets_condition: 'Pallets condition', raw_materials_condition: 'Raw materials condition' };
+                var itemComments = b.item_comments || {};
+                var itemPhotos = b.item_photos || {};
+                Object.keys(checkNames).forEach(function (k) {
+                    if (itemComments[k]) html += line(checkNames[k] + ' — what was wrong / action', itemComments[k]);
+                    var photos = Array.isArray(itemPhotos[k]) ? itemPhotos[k].filter(function (p) { return p && p.file_link; }) : [];
+                    if (photos.length) {
+                        html += '<p>' + photos.map(function (p, i) {
+                            return '<a target="_blank" rel="noopener noreferrer" href="' + escapeHtml(p.file_link) + '">' + escapeHtml(checkNames[k] + ' photo ' + (i + 1)) + '</a>';
+                        }).join(' · ') + '</p>';
+                    }
+                });
             }
             if (b.receiving_comments != null && String(b.receiving_comments).trim() !== '') {
                 html += line('Receiving comments', b.receiving_comments);
@@ -806,22 +917,24 @@ var _supplierIntakeGrid = function () {
             var first = batch.quantity_kg != null && batch.quantity_kg !== '' ? Number(batch.quantity_kg) : NaN;
             var elFirst = document.getElementById('siFirstWeightDisplay');
             var elInput = document.getElementById('siWeightBeforeProductionInput');
-            if (elFirst) elFirst.textContent = !isNaN(first) ? (first + ' kg') : '— (not recorded — still enter weight before production)';
-            if (elInput) elInput.value = '';
+            if (elFirst) elFirst.textContent = !isNaN(first) ? (_common.formatKg(first) + ' kg') : '— (not recorded — still enter weight before production)';
+            // Pre-filled with the intake weight: a bag that has not changed is one press of Release.
+            if (elInput) elInput.value = !isNaN(first) ? _common.formatKg(first) : '';
+            scope.refreshWeightNote();
             var modalEl = document.getElementById('supplierIntakeWeightBeforeProductionModal');
             if (modalEl && typeof bootstrap !== 'undefined') {
                 bootstrap.Modal.getOrCreateInstance(modalEl).show();
-                setTimeout(function () { if (elInput) elInput.focus(); }, 300);
+                setTimeout(function () { if (elInput) { elInput.focus(); elInput.select(); } }, 300);
             } else if (typeof Swal !== 'undefined') {
                 Swal.fire({
                     title: 'Weight before production (kg)',
-                    html: '<p class="text-start small text-muted mb-2">Intake reference: ' + (!isNaN(first) ? first + ' kg' : '—') + '</p><input type="number" id="swalSiWeightBeforeProd" class="form-control" step="0.01" min="0" placeholder="kg">',
+                    html: '<p class="text-start small text-muted mb-2">Intake reference: ' + (!isNaN(first) ? _common.formatKg(first) + ' kg' : '—') + '</p><input type="text" inputmode="decimal" id="swalSiWeightBeforeProd" class="form-control js-kg-input" placeholder="kg">',
                     showCancelButton: true,
                     confirmButtonText: 'Release to Oil Production',
                     preConfirm: function () {
                         var v = document.getElementById('swalSiWeightBeforeProd');
-                        var n = v && v.value !== '' ? parseFloat(v.value, 10) : NaN;
-                        if (isNaN(n) || n < 0) {
+                        var n = v ? _common.parseKg(v.value) : null;
+                        if (n == null || isNaN(n) || n < 0) {
                             Swal.showValidationMessage('Enter a valid weight (kg)');
                             return false;
                         }
@@ -833,6 +946,149 @@ var _supplierIntakeGrid = function () {
             }
         },
 
+        /** Under the weight box: same as intake, or how far below it (more than 50 kg warns the dashboard). */
+        refreshWeightNote: function () {
+            var note = document.getElementById('siWeightBeforeProdNote');
+            var input = document.getElementById('siWeightBeforeProductionInput');
+            var p = _supplierIntakeGrid._pendingOilRelease;
+            if (!note || !input) return;
+            var first = p && p.batch && p.batch.quantity_kg != null && p.batch.quantity_kg !== '' ? Number(p.batch.quantity_kg) : NaN;
+            var w = _common.parseKg(input.value);
+            note.classList.remove('is-ok', 'is-warn');
+            if (w == null || isNaN(w) || w < 0) { note.classList.add('d-none'); note.textContent = ''; return; }
+            note.classList.remove('d-none');
+            var drop = !isNaN(first) ? first - w : 0;
+            if (!isNaN(first) && Math.abs(drop) < 0.005) {
+                note.classList.add('is-ok');
+                note.textContent = 'Same as intake. ' + _common.formatKg(w) + ' kg comes off raw stock.';
+            } else if (drop > 50) {
+                note.classList.add('is-warn');
+                note.textContent = _common.formatKg(drop) + ' kg less than at intake. Releasing will add a warning to the dashboard so someone can check for spillage or a short delivery.';
+            } else {
+                note.classList.add('is-ok');
+                note.textContent = _common.formatKg(w) + ' kg comes off raw stock.';
+            }
+        },
+
+        // ---- Record FFA for this delivery (every bag still waiting for a result) ----
+        showDeliveryFfa: async function (groupKey) {
+            const scope = _supplierIntakeGrid;
+            var bags = (scope._deliveryGroups[groupKey] || []).filter(isWaitingForFfa);
+            if (!bags.length) {
+                if (typeof Swal !== 'undefined') Swal.fire('Nothing waiting', 'Every bag on this delivery already has an FFA result.', 'info');
+                return;
+            }
+            scope._deliveryFfa = { bags: bags, spec: null };
+            var b0 = bags[0];
+            var limitText = '';
+            $('#siDeliveryFfaSub').text([b0.supplier_details || '—', b0.delivery_note_ref || '—',
+                bags.length + (bags.length === 1 ? ' bag waiting' : ' bags waiting')].join(' · '));
+            $('#siDeliveryFfaAll').val('');
+            $('#siDeliveryFfaBody').html(bags.map(function (b, i) {
+                return '<tr data-oil-id="' + escapeHtml(b.id) + '">' +
+                    '<td class="text-nowrap">' + escapeHtml(b.batch_number || '—') + '</td>' +
+                    '<td>' + escapeHtml(batchProductLabel(b)) + '</td>' +
+                    '<td class="text-end">' + (b.quantity_kg != null ? _common.formatKg(b.quantity_kg) : '—') + '</td>' +
+                    '<td><input type="text" inputmode="decimal" class="form-control form-control-sm text-end" name="siBagFfa" autocomplete="off" placeholder="—" aria-label="FFA percent for ' + escapeHtml(b.batch_number || 'bag ' + (i + 1)) + '"></td>' +
+                    '<td class="si-ffa-result is-waiting">No result yet, stays waiting</td></tr>';
+            }).join(''));
+            scope.refreshDeliveryFfa();
+            var modalEl = document.getElementById('siDeliveryFfaModal');
+            if (modalEl && typeof bootstrap !== 'undefined') {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                setTimeout(function () { $('#siDeliveryFfaBody input[name="siBagFfa"]').first().trigger('focus'); }, 300);
+            }
+            var spec = await _common.loadOilFfaSpec();
+            if (scope._deliveryFfa) scope._deliveryFfa.spec = spec;
+            var g = spec && spec.green_limit != null ? Number(spec.green_limit) : NaN;
+            limitText = isNaN(g) ? 'No FFA limit set' : 'In spec: FFA ' + g + '% or less';
+            $('#siDeliveryFfaSub').text($('#siDeliveryFfaSub').text() + ' · ' + limitText);
+            scope.refreshDeliveryFfa();
+        },
+
+        refreshDeliveryFfa: function () {
+            var st = _supplierIntakeGrid._deliveryFfa;
+            if (!st) return;
+            var n = { ready: 0, decision: 0, blank: 0, bad: 0 };
+            var heldNames = [];
+            $('#siDeliveryFfaBody tr').each(function () {
+                var $tr = $(this);
+                var $in = $tr.find('input[name="siBagFfa"]');
+                var v = parseFfaInput($in.val());
+                var $res = $tr.find('.si-ffa-result');
+                $res.removeClass('is-ready is-decision is-waiting');
+                $in.removeClass('is-invalid is-valid');
+                if (v === '') { n.blank++; $res.addClass('is-waiting').text('No result yet, stays waiting'); return; }
+                if (isNaN(v)) { n.bad++; $in.addClass('is-invalid'); $res.addClass('is-decision').text('Enter 0 to 100'); return; }
+                if (_common.oilFfaOutcome(st.spec, v) === 'decision') {
+                    n.decision++;
+                    $in.addClass('is-invalid');
+                    $res.addClass('is-decision').html('<i class="fas fa-triangle-exclamation me-1" aria-hidden="true"></i>Not in spec, needs an exec decision');
+                    heldNames.push($tr.children('td').first().text());
+                } else {
+                    n.ready++;
+                    $in.addClass('is-valid');
+                    $res.addClass('is-ready').html('<i class="fas fa-check me-1" aria-hidden="true"></i>Passes, goes to Ready');
+                }
+            });
+            var parts = [];
+            if (n.ready) parts.push('<strong class="text-success">' + n.ready + ' ready</strong>');
+            if (n.decision) parts.push('<strong class="text-danger">' + n.decision + ' not in spec</strong>');
+            if (n.blank) parts.push('<strong class="text-muted">' + n.blank + ' left blank</strong>');
+            $('#siDeliveryFfaSummary').html(parts.join(' · '));
+            var note = document.getElementById('siDeliveryFfaHeldNote');
+            if (note) {
+                note.classList.toggle('d-none', !heldNames.length);
+                note.textContent = heldNames.length
+                    ? heldNames.join(', ') + (heldNames.length === 1 ? ' is' : ' are') + ' not in spec, so ' + (heldNames.length === 1 ? 'it stays' : 'they stay') +
+                      ' in Awaiting tests and Mark, Pete and Mike each get a task to accept or reject ' + (heldNames.length === 1 ? 'it' : 'them') + '. Not released.'
+                    : '';
+            }
+            var toSave = n.ready + n.decision;
+            var btn = document.getElementById('siDeliveryFfaSaveBtn');
+            if (btn) {
+                btn.disabled = toSave === 0 || n.bad > 0;
+                btn.innerHTML = '<i class="fas fa-save me-1"></i>Save ' + (toSave ? toSave + ' result' + (toSave === 1 ? '' : 's') : 'results');
+            }
+        },
+
+        saveDeliveryFfa: async function () {
+            const scope = _supplierIntakeGrid;
+            var items = [];
+            $('#siDeliveryFfaBody tr').each(function () {
+                var v = parseFfaInput($(this).find('input[name="siBagFfa"]').val());
+                if (v !== '' && !isNaN(v)) items.push({ oil_id: String($(this).attr('data-oil-id')), ffa: v });
+            });
+            if (!items.length) return;
+            var btn = document.getElementById('siDeliveryFfaSaveBtn');
+            if (btn) btn.disabled = true;
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.recordSupplierIntakeFfaBulk) throw new Error('Save not available. Refresh the page.');
+                var res = await dataFunctions.recordSupplierIntakeFfaBulk(items);
+                if (!res || res.success === false) throw new Error((res && res.error) || 'Could not save the FFA results');
+                var modalEl = document.getElementById('siDeliveryFfaModal');
+                if (modalEl && typeof bootstrap !== 'undefined') { var m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
+                scope._deliveryFfa = null;
+                var parts = [];
+                if (res.ready) parts.push(res.ready + ' ready for Oil Production');
+                if (res.held) parts.push(res.held + ' waiting for an exec decision');
+                var failed = Array.isArray(res.failed) ? res.failed : [];
+                if (typeof Swal !== 'undefined') {
+                    if (failed.length) {
+                        Swal.fire({ icon: 'warning', title: 'Some results were not saved', text: (parts.length ? 'Saved: ' + parts.join(', ') + '. ' : '') +
+                            failed.length + ' not saved: ' + failed.map(function (f) { return f.error; }).filter(Boolean).join('; ') });
+                    } else {
+                        Swal.fire({ icon: 'success', title: 'FFA saved', text: parts.join(', ') + '.', timer: res.held ? 4000 : 2500, showConfirmButton: false });
+                    }
+                }
+                await scope.loadBatches(true);
+            } catch (e) {
+                console.error('[Supplier Intake] delivery FFA save failed:', e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to save the FFA results.', 'error');
+                if (btn) btn.disabled = false;
+            }
+        },
+
         confirmWeightBeforeProductionRelease: async () => {
             const scope = _supplierIntakeGrid;
             var input = document.getElementById('siWeightBeforeProductionInput');
@@ -841,8 +1097,8 @@ var _supplierIntakeGrid = function () {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Enter weight before production (kg).', 'error');
                 return;
             }
-            var w2 = parseFloat(raw, 10);
-            if (isNaN(w2) || w2 < 0) {
+            var w2 = _common.parseKg(raw);
+            if (w2 == null || isNaN(w2) || w2 < 0) {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Enter a valid weight in kg.', 'error');
                 return;
             }
@@ -964,11 +1220,11 @@ var _supplierIntakeGrid = function () {
             }
             const columns = [
                 { key: 'batch_number', label: 'Batch #' },
-                { key: 'product_type', label: 'Product type' },
+                { key: 'product_type', label: 'Description' },
                 { key: 'date_received', label: 'Date received' },
                 { key: 'delivery_note_ref', label: 'Delivery note / PO' },
                 { key: 'supplier_details', label: 'Supplier' },
-                { key: 'quantity_kg', label: 'Quantity (kg)' },
+                { key: 'quantity_kg', label: 'Weight (kg)' },
                 { key: 'adjust_stock_ffa', label: 'Recorded FFA (adjust stock) %' },
                 { key: 'official_ffa', label: 'Official FFA (bag) %' },
                 { key: 'status', label: 'Status' }

@@ -127,8 +127,8 @@ var _oilDashboard = (function () {
         D.drawChart('odSohChart', 'line', w.labels, [{ label: '', data: w.values, color: c.info }], 'kg');
         var names = { food_grade: 'Food grade', cosmetic: 'Cosmetic', protein: 'Protein' };
         D.fillTable('odStreamTable', [{ text: 'Stream' }, { text: 'kg', num: true }],
-            s.latest.map(function (r) { return [names[r.series] || r.series, D.num(r.qty_kg)]; }),
-            s.latest.length ? ['Total', D.num(now)] : null);
+            s.latest.map(function (r) { return [names[r.series] || r.series, D.kgNum(r.qty_kg)]; }),
+            s.latest.length ? ['Total', D.kgNum(now)] : null);
     }
 
     function load(period) {

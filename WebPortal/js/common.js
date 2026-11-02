@@ -191,6 +191,34 @@ var _common = {
         return value <= g ? 'ok' : (value <= y ? 'warn' : 'bad');
     },
 
+    // Oil raw FFA (migration 20261102090000): in spec, or no limit set, goes to Ready for Oil
+    // Production; anything else waits for an exec decision. '' when there is no value.
+    oilFfaOutcome: function (spec, value) {
+        if (value == null || isNaN(value)) return '';
+        const st = this.classifySpec(spec, value);
+        return (st === 'warn' || st === 'bad') ? 'decision' : 'ready';
+    },
+
+    // The FFA row of Kernel Pipeline Settings' sample spec, loaded once per page. null when unset or unreadable.
+    loadOilFfaSpec: function () {
+        if (!this._oilFfaSpecPromise) {
+            this._oilFfaSpecPromise = (async function () {
+                try {
+                    if (typeof dataFunctions === 'undefined' || !dataFunctions.getKernelPipelineConfig) return null;
+                    const cfg = await dataFunctions.getKernelPipelineConfig();
+                    const list = cfg && Array.isArray(cfg.spec_thresholds) ? cfg.spec_thresholds : [];
+                    return list.filter(function (t) { return t && t.test_key === 'ffa'; })[0] || null;
+                } catch (e) {
+                    console.warn('FFA spec unavailable:', e);
+                    return null;
+                }
+            })();
+            const self = this;
+            this._oilFfaSpecPromise.then(function (spec) { if (!spec) self._oilFfaSpecPromise = null; });
+        }
+        return this._oilFfaSpecPromise;
+    },
+
     // Calendar-correct time from today until a YYYY-MM-DD date (whole months, then remaining days).
     // Month-end safe: adding a month to the 31st clamps to the last day of the shorter month.
     // Returns { expired, years, months, days, totalMonths, label } or null for missing/invalid input.
@@ -326,6 +354,20 @@ var _common = {
         var n = typeof value === 'number' ? value : parseFloat(String(value).replace(/,/g, ''));
         if (!isFinite(n)) return '';
         return n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    },
+
+    /**
+     * Reads a typed weight that may carry thousands commas ("1,000.00" -> 1000); null when blank or not a number.
+     * A South African keypad types the decimal as a comma, so "12,5" / "12,50" (one comma, 1-2 digits after it,
+     * no dot) is read as 12.5, not 125. "1,000" (3 digits after the comma) stays a thousands separator.
+     */
+    parseKg: function (value) {
+        var t = String(value == null ? '' : value).replace(/\s/g, '');
+        if (/^-?\d+,\d{1,2}$/.test(t)) t = t.replace(',', '.');
+        t = t.replace(/,/g, '');
+        if (t === '') return null;
+        var n = parseFloat(t);
+        return isFinite(n) ? n : null;
     },
 
     // Debounce function
@@ -589,6 +631,25 @@ window.forceCloseAllModals = function () {
         window._common.forceCloseAllModals();
     }
 };
+
+// Weight boxes (class js-kg-input, type="text" inputmode="decimal"): the plain number while typing,
+// "1,000.00" once you leave the box. Readers must use _common.parseKg, since parseFloat("1,000.00") is 1.
+document.addEventListener('focusin', function (e) {
+    var t = e.target;
+    if (!t || !t.classList || !t.classList.contains('js-kg-input')) return;
+    t.value = t.value.replace(/,/g, '');
+});
+document.addEventListener('focusout', function (e) {
+    var t = e.target;
+    if (!t || !t.classList || !t.classList.contains('js-kg-input')) return;
+    var n = _common.parseKg(t.value);
+    if (n == null) return;
+    var formatted = _common.formatKg(n);
+    if (formatted === t.value) return;
+    t.value = formatted;
+    // Let the screen re-read the rounded value, so what is shown is what gets totalled and saved.
+    t.dispatchEvent(new Event('input', { bubbles: true }));
+});
 
 // Also add waitForDataFunctions as a standalone global function for convenience
 window.waitForDataFunctions = async function (maxRetries = 50, delay = 100) {

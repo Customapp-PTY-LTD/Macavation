@@ -41,7 +41,7 @@ var _modal_stock_oil_lot = (function () {
             setVal('oilLotGrade', lot ? (lot.grade || '') : '');
             setVal('oilLotFfa', lot ? (lot.ffa !== undefined && lot.ffa !== null ? lot.ffa : '') : '');
             setVal('oilLotUnits', lot ? (lot.units !== undefined && lot.units !== null ? lot.units : '') : '');
-            setVal('oilLotKg', lot ? (lot.kilograms !== undefined && lot.kilograms !== null ? lot.kilograms : '') : '');
+            setVal('oilLotKg', lot ? _common.formatKg(lot.kilograms) : '');
             setVal('oilLotVolume', lot ? (lot.volume !== undefined && lot.volume !== null ? lot.volume : '') : '');
             setVal('oilLotDeliveryDate', lot ? (lot.delivery_date || '') : '');
             setVal('oilLotManufactureDate', lot ? (lot.manufacture_date || '') : '');
@@ -72,7 +72,7 @@ var _modal_stock_oil_lot = (function () {
                 var lotId = val('oilLotId') || null;
                 var location = val('oilLotLocation');
                 var category = val('oilLotCategory');
-                var kg = parseFloat(val('oilLotKg'));
+                var kg = _common.parseKg(val('oilLotKg'));
 
                 if (!location || !category || !kg || kg <= 0) {
                     if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire('Validation', 'Location, Category, and Kilograms (> 0) are required.', 'warning');

@@ -139,6 +139,12 @@ var _appRouter = function () {
         },
         loadContent: async ({ routeName, elementSelector }) => {
 
+            // Style prices moved to a tab of Kernel Pipeline Settings (28 Oct 2026); old links land there.
+            if (routeName === 'kernel-style-prices') {
+                routeName = 'kernel-pipeline-settings';
+                if (!_appRouter.handoff) _appRouter.handoff = { route: routeName, params: { tab: 'prices' } };
+            }
+
             console.info("appRouter.loadContent", routeName);
 
             // Check authentication for all routes
@@ -483,6 +489,21 @@ var _appRouter = function () {
                         _kernelDashboard.init();
                     }
                 },
+                'procurement-plan': () => {
+                    if (typeof _procurementPlan !== 'undefined' && _procurementPlan.init) {
+                        _procurementPlan.init();
+                    }
+                },
+                'nis-storage': () => {
+                    if (typeof _nisStorage !== 'undefined' && _nisStorage.init) {
+                        _nisStorage.init();
+                    }
+                },
+                'kernel-style-prices': () => {
+                    if (typeof _kernelStylePrices !== 'undefined' && _kernelStylePrices.init) {
+                        _kernelStylePrices.init();
+                    }
+                },
                 'oil-dashboard': () => {
                     if (typeof _oilDashboard !== 'undefined' && _oilDashboard.init) {
                         _oilDashboard.init();
@@ -615,6 +636,23 @@ var _appRouter = function () {
             }
 
             return result;
+        },
+        /**
+         * One-shot details for the next screen, e.g. My Day opening Grower Intake on one truck:
+         *   _appRouter.openWith('grower-intake-grid', { bookInProcurementId: id })
+         * The screen's init calls _appRouter.takeHandoff('<its route>'), which returns the params
+         * once (or null) and clears them.
+         */
+        handoff: null,
+        openWith: (routeName, params) => {
+            _appRouter.handoff = { route: routeName, params: params || {} };
+            _appRouter.routeTo(routeName, true);
+        },
+        takeHandoff: (routeName) => {
+            var h = _appRouter.handoff;
+            if (!h || h.route !== routeName) return null;
+            _appRouter.handoff = null;
+            return h.params || {};
         },
         routeTo: (routeName, addBreadCrumb, params) => {
             try {

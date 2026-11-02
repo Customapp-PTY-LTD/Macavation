@@ -1,0 +1,85 @@
+/* Kernel style prices. Every selector is classed: the table standard owns bare td/th. */
+.ksp-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mac-space-md);
+    align-items: flex-end;
+    justify-content: space-between;
+    padding-top: var(--mac-space-md);
+    margin-bottom: var(--mac-space-md);
+}
+.ksp-crumb, .ksp-sub { font-size: var(--mac-text-sm); color: var(--mac-text-secondary); }
+.ksp-title { margin: 4px 0; font-size: var(--mac-text-xl); font-weight: 700; }
+.ksp-lock {
+    display: inline-flex; gap: var(--mac-space-sm); align-items: center;
+    background: var(--mac-warning-light); border: 1px solid var(--mac-warning); color: var(--mac-warning-text);
+    border-radius: var(--mac-radius-sm); padding: 8px 12px; font-size: var(--mac-text-sm);
+}
+
+.ksp-panel {
+    background: var(--mac-bg-secondary);
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-lg);
+}
+.ksp-mode {
+    padding: var(--mac-space-md); margin-bottom: var(--mac-space-md);
+    display: flex; flex-wrap: wrap; gap: var(--mac-space-md); align-items: center; justify-content: space-between;
+}
+.ksp-strong { font-size: var(--mac-text-base); font-weight: 600; }
+.ksp-muted { font-size: var(--mac-text-sm); color: var(--mac-text-secondary); }
+.ksp-tiny { font-size: var(--mac-text-xs); color: var(--mac-text-tertiary); }
+.ksp-seg { display: inline-flex; flex-wrap: wrap; gap: 4px; background: var(--mac-bg-tertiary); border-radius: var(--mac-radius-md); padding: 4px; }
+.ksp-seg-btn {
+    min-height: 40px; padding: 0 14px; border: 0; border-radius: var(--mac-radius-sm);
+    background: transparent; color: var(--mac-text-secondary); font-size: var(--mac-text-base);
+}
+.ksp-seg-btn.is-active { background: var(--mac-bg-secondary); color: var(--mac-text); font-weight: 600; }
+.ksp-seg-btn:disabled { cursor: default; }
+
+.ksp-split { display: flex; flex-wrap: wrap; gap: var(--mac-space-md); align-items: flex-start; }
+.ksp-main { flex: 2 1 640px; min-width: 0; overflow-x: auto; }
+.ksp-side { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: var(--mac-space-md); }
+.ksp-bar {
+    padding: var(--mac-space-md); display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;
+}
+.ksp-h2 { margin: 0; font-size: var(--mac-text-md); font-weight: 700; }
+.ksp-inline { display: inline-flex; gap: var(--mac-space-sm); align-items: center; font-size: var(--mac-text-sm); color: var(--mac-text-secondary); }
+.ksp-inline .form-control, .ksp-inline .form-select { min-height: 40px; }
+.ksp-note { padding: 0 var(--mac-space-md) 12px; }
+
+.ksp-table { width: 100%; min-width: 620px; margin: 0; font-size: var(--mac-text-sm); }
+.ksp-table .ksp-th { background: var(--mac-bg); color: var(--mac-text-secondary); font-weight: 600; }
+.ksp-table .ksp-r { text-align: right; }
+.ksp-price { display: inline-flex; align-items: center; gap: 6px; }
+.ksp-price .ksp-input { min-height: 40px; width: 120px; }
+.ksp-actions { padding: var(--mac-space-md); display: flex; justify-content: flex-end; gap: var(--mac-space-sm); }
+.ksp-btn { min-height: 44px; }
+
+.ksp-side-card { padding: var(--mac-space-md); display: flex; flex-direction: column; gap: 10px; }
+.ksp-hist-row {
+    display: flex; justify-content: space-between; gap: var(--mac-space-sm);
+    border-top: 1px solid var(--mac-bg-tertiary); padding-top: var(--mac-space-sm); font-size: var(--mac-text-sm);
+}
+.ksp-hist-prices { grid-column: 1 / -1; }
+.ksp-hist-detail { margin: 6px 0 0; padding-left: 1rem; font-size: var(--mac-text-xs); color: var(--mac-text-secondary); }
+.ksp-chip { display: inline-block; border-radius: 6px; padding: 2px 8px; height: fit-content; white-space: nowrap; }
+.ksp-chip-current { background: var(--mac-green-light); color: var(--mac-green-hover); }
+.ksp-chip-future { background: var(--mac-info-light); color: var(--mac-info); }
+.ksp-link-btn { border: 0; background: transparent; min-height: 40px; padding: 0 4px; color: var(--mac-green-hover); text-decoration: underline; font-size: var(--mac-text-sm); }
+
+/* Missing / old price flags and the price reminder card. */
+.ksp-flag { display: inline-block; font-size: var(--mac-text-xs); font-weight: 600; border-radius: 6px; padding: 3px 8px; }
+.ksp-flag-bad { background: var(--mac-danger-light); color: var(--mac-danger); }
+.ksp-flag-old { background: var(--mac-warning-light); color: var(--mac-warning-text); }
+.ksp-price .ksp-input.ksp-input-missing { border: 2px solid var(--mac-danger); }
+.ksp-reminder { margin-top: var(--mac-space-md); }
+.ksp-rem-top { display: flex; flex-wrap: wrap; gap: var(--mac-space-md); justify-content: space-between; align-items: center; }
+.ksp-rem-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.ksp-field { display: flex; flex-direction: column; gap: 6px; font-size: var(--mac-text-sm); font-weight: 500; }
+.ksp-field .form-select, .ksp-field .form-control { min-height: 44px; }
+.ksp-field .ksp-days { width: 90px; }
+.ksp-check { display: inline-flex; gap: 10px; align-items: center; min-height: 44px; font-size: var(--mac-text-base); }
+.ksp-check .form-check-input { width: 20px; height: 20px; margin: 0; }
+
+/* Mounted as the Prices tab of Kernel Pipeline Settings (no page header). */
+.ksp-tab-intro { font-size: var(--mac-text-sm); color: var(--mac-text-secondary); margin-bottom: var(--mac-space-md); }
