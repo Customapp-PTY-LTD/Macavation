@@ -8,6 +8,11 @@
  * Supplier and batch number move together: batch numbers are 'Bn SS YY NN' where SS is the
  * supplier's contacts.supplier_number, so picking a different supplier re-suggests the number via
  * get_next_batch_number. See migrations/20260317000001_batch_naming_bn_supplier_year_seq.sql.
+ *
+ * The form pieces (fields, grower picker, batch-number suggestion, validation) are also used inline by
+ * Find a batch's batch page (modules/batch-journey/js/batch_journey_detail.js). Every builder takes an
+ * id prefix: the dialog keeps 'swalKBatch' (its ids are unchanged), the batch page uses its own, so the
+ * two can never collide and the rules live in one place.
  */
 (function (global) {
     'use strict';
@@ -53,6 +58,9 @@
         return isNaN(n) ? '' : String(n);
     }
 
+    /** Id prefix of the SweetAlert dialog's fields. Kept as before so nothing else has to change. */
+    var DIALOG_PREFIX = 'swalKBatch';
+
     function el(id) {
         return document.getElementById(id);
     }
@@ -96,10 +104,11 @@
      * A null list (load failed) still renders a usable dialog — the grower simply cannot be
      * changed, and an omitted supplier_id leaves both fields untouched server-side.
      */
-    function growerSelectHtml(suppliers, currentSupplierId, currentGrowerName) {
+    function growerSelectHtml(suppliers, currentSupplierId, currentGrowerName, prefix) {
+        var selectId = (prefix || DIALOG_PREFIX) + 'Supplier';
         if (!suppliers) {
             var label = currentGrowerName || 'current grower';
-            return '<select id="swalKBatchSupplier" class="form-select mb-1" disabled>' +
+            return '<select id="' + selectId + '" class="form-select mb-1" disabled>' +
                 '<option>' + escapeHtml(label) + '</option></select>' +
                 '<div class="small text-danger mb-2">Grower list could not be loaded, so the grower cannot be changed right now. Refresh and try again.</div>';
         }
@@ -114,30 +123,64 @@
             var selected = String(c.id) === String(currentSupplierId) ? ' selected' : '';
             opts += '<option value="' + escapeHtml(c.id) + '"' + selected + '>' + escapeHtml(contactName(c) + code) + '</option>';
         });
-        return '<select id="swalKBatchSupplier" class="form-select mb-2">' + opts + '</select>';
+        return '<select id="' + selectId + '" class="form-select mb-2">' + opts + '</select>';
     }
 
-    function dialogHtml(batch, suppliers) {
+    /**
+     * The six fields as { label, html } pairs, ids built from `prefix`. dialogHtml stacks them for the
+     * SweetAlert exactly as before; gridFormHtml lays the same pairs out for the batch page.
+     */
+    function formParts(batch, suppliers, prefix) {
+        var p = prefix || DIALOG_PREFIX;
         var currentSupplierId = supplierIdFromBatch(batch);
         var bnLocked = !(typeof window.hasAction === 'function' && window.hasAction('grower_intake.edit_batch_number'));
-        return '<div class="text-start">' +
-            '<label class="form-label">Grower</label>' +
-            growerSelectHtml(suppliers, currentSupplierId, batch.grower_name) +
-            '<label class="form-label">Batch number <span class="text-danger">*</span></label>' +
-            '<input id="swalKBatchBn" class="form-control mb-1" value="' + escapeHtml(batch.batch_number || '') + '" autocomplete="off"' + (bnLocked ? ' readonly' : '') + '>' +
-            '<div id="swalKBatchBnHint" class="small text-muted mb-2">' + (bnLocked
-                ? '🔒 Auto-generated. Your role cannot change it.'
-                : 'Auto-generated. Your role is allowed to change it. Changing the grower suggests a new number (Bn [grower #] [year] [seq]).') + '</div>' +
-            '<label class="form-label">Received date</label>' +
-            '<input id="swalKBatchRd" type="date" class="form-control mb-2" value="' + escapeHtml(isoDateOnlyForInput(batch.received_date)) + '">' +
-            '<label class="form-label">Supplier\'s declared weight (kg)</label>' +
-            '<input id="swalKBatchWet" type="text" inputmode="decimal" class="form-control mb-2 js-kg-input" value="' + escapeHtml(_common.formatKg(batch.wet_nis_received_kg)) + '">' +
-            '<label class="form-label">FFA (QA)</label>' +
-            '<input id="swalKBatchFfa" type="number" step="0.01" min="0" class="form-control mb-2" value="' + escapeHtml(numberForInput(batch.ffa)) + '" placeholder="Optional">' +
-            '<label class="form-label">Best before date</label>' +
-            '<input id="swalKBatchBb" type="date" class="form-control" value="' + escapeHtml(isoDateOnlyForInput(batch.best_before_date)) + '">' +
-            '<p class="small text-muted mt-2 mb-0">Leave FFA or best before empty to leave them unchanged. Clearing the supplier\'s declared weight or received date removes the stored value.</p>' +
-            '</div>';
+        return [
+            {
+                label: '<label class="form-label">Grower</label>',
+                html: growerSelectHtml(suppliers, currentSupplierId, batch.grower_name, p)
+            },
+            {
+                label: '<label class="form-label">Batch number <span class="text-danger">*</span></label>',
+                html: '<input id="' + p + 'Bn" class="form-control mb-1" value="' + escapeHtml(batch.batch_number || '') + '" autocomplete="off"' + (bnLocked ? ' readonly' : '') + '>' +
+                    '<div id="' + p + 'BnHint" class="small text-muted mb-2">' + (bnLocked
+                        ? '🔒 Auto-generated. Your role cannot change it.'
+                        : 'Auto-generated. Your role is allowed to change it. Changing the grower suggests a new number (Bn [grower #] [year] [seq]).') + '</div>'
+            },
+            {
+                label: '<label class="form-label">Received date</label>',
+                html: '<input id="' + p + 'Rd" type="date" class="form-control mb-2" value="' + escapeHtml(isoDateOnlyForInput(batch.received_date)) + '">'
+            },
+            {
+                label: '<label class="form-label">Supplier\'s declared weight (kg)</label>',
+                html: '<input id="' + p + 'Wet" type="text" inputmode="decimal" class="form-control mb-2 js-kg-input" value="' + escapeHtml(_common.formatKg(batch.wet_nis_received_kg)) + '">'
+            },
+            {
+                label: '<label class="form-label">FFA (QA)</label>',
+                html: '<input id="' + p + 'Ffa" type="number" step="0.01" min="0" class="form-control mb-2" value="' + escapeHtml(numberForInput(batch.ffa)) + '" placeholder="Optional">'
+            },
+            {
+                label: '<label class="form-label">Best before date</label>',
+                html: '<input id="' + p + 'Bb" type="date" class="form-control" value="' + escapeHtml(isoDateOnlyForInput(batch.best_before_date)) + '">'
+            }
+        ];
+    }
+
+    /** What an empty box means on save (same RPC, same rules, wherever the form is shown). */
+    var SAVE_RULES_NOTE = 'Leave FFA or best before empty to leave them unchanged. Clearing the supplier\'s declared weight or received date removes the stored value.';
+
+    function dialogHtml(batch, suppliers) {
+        var html = '<div class="text-start">';
+        formParts(batch, suppliers, DIALOG_PREFIX).forEach(function (part) { html += part.label + part.html; });
+        return html + '<p class="small text-muted mt-2 mb-0">' + SAVE_RULES_NOTE + '</p></div>';
+    }
+
+    /** The same fields in a responsive grid (two columns from md up, one on a phone) for an inline editor. */
+    function gridFormHtml(batch, suppliers, prefix) {
+        var html = '<div class="row g-2">';
+        formParts(batch, suppliers, prefix).forEach(function (part) {
+            html += '<div class="col-12 col-md-6">' + part.label + part.html + '</div>';
+        });
+        return html + '</div><p class="small text-muted mt-2 mb-0">' + SAVE_RULES_NOTE + '</p>';
     }
 
     /**
@@ -149,10 +192,11 @@
      *    the dialog is reopened.
      *  - Stop suggesting once the user types their own number.
      */
-    function bindBatchNumberSuggestion(batch) {
-        var supplierEl = el('swalKBatchSupplier');
-        var numberEl = el('swalKBatchBn');
-        var hintEl = el('swalKBatchBnHint');
+    function bindBatchNumberSuggestion(batch, prefix) {
+        var p = prefix || DIALOG_PREFIX;
+        var supplierEl = el(p + 'Supplier');
+        var numberEl = el(p + 'Bn');
+        var hintEl = el(p + 'BnHint');
         if (!supplierEl || !numberEl || supplierEl.disabled) return;
 
         var originalSupplierId = supplierIdFromBatch(batch);
@@ -171,7 +215,7 @@
                 return;
             }
             if (typeof dataFunctions === 'undefined' || !dataFunctions.getNextBatchNumber) return;
-            var dateStr = valueOf('swalKBatchRd');
+            var dateStr = valueOf(p + 'Rd');
             var year = dateStr && dateStr.length >= 4 ? parseInt(dateStr.slice(0, 4), 10) : new Date().getFullYear();
             if (hintEl) hintEl.textContent = 'Suggesting a batch number for the new supplier…';
             dataFunctions.getNextBatchNumber(chosen, year).then(function (nextId) {
@@ -189,28 +233,27 @@
         });
     }
 
-    function readForm(batch, suppliers) {
-        var Swal = global.Swal;
-        var batchNumber = valueOf('swalKBatchBn').trim();
-        if (!batchNumber) {
-            Swal.showValidationMessage('Batch number is required');
-            return false;
-        }
-        var wetRaw = valueOf('swalKBatchWet').trim();
+    /**
+     * Validate and read the form. Returns { value } (the updateKernelStockBatchInfo payload) or
+     * { error } (a message for the user). Reads the DOM only; the caller decides how to show an error.
+     */
+    function collectForm(batch, suppliers, prefix) {
+        var p = prefix || DIALOG_PREFIX;
+        var batchNumber = valueOf(p + 'Bn').trim();
+        if (!batchNumber) return { error: 'Batch number is required' };
+        var wetRaw = valueOf(p + 'Wet').trim();
         var wet = wetRaw === '' ? null : _common.parseKg(wetRaw);
         if (wetRaw !== '' && (wet == null || !isFinite(wet) || wet < 0)) {
-            Swal.showValidationMessage('Supplier\'s declared weight must be a valid non-negative number');
-            return false;
+            return { error: 'Supplier\'s declared weight must be a valid non-negative number' };
         }
-        var ffaRaw = valueOf('swalKBatchFfa').trim();
+        var ffaRaw = valueOf(p + 'Ffa').trim();
         var ffa = ffaRaw === '' ? null : parseFloat(ffaRaw);
         if (ffaRaw !== '' && (!isFinite(ffa) || ffa < 0)) {
-            Swal.showValidationMessage('FFA must be a valid non-negative number');
-            return false;
+            return { error: 'FFA must be a valid non-negative number' };
         }
-        var receivedDate = valueOf('swalKBatchRd').trim();
-        var bestBefore = valueOf('swalKBatchBb').trim();
-        var supplierEl = el('swalKBatchSupplier');
+        var receivedDate = valueOf(p + 'Rd').trim();
+        var bestBefore = valueOf(p + 'Bb').trim();
+        var supplierEl = el(p + 'Supplier');
         var chosenId = (supplierEl && !supplierEl.disabled && supplierEl.value) ? supplierEl.value : null;
 
         // grower_name is derived, never typed. It is what every kernel grid displays and what
@@ -226,15 +269,27 @@
         var growerName = chosenName != null ? chosenName : ((batch && batch.grower_name) || null);
 
         return {
-            batch_number: batchNumber,
-            // Empty means "keep current" — the RPC treats a null p_supplier_id as leave-unchanged.
-            supplier_id: chosenId,
-            grower_name: growerName,
-            received_date: receivedDate === '' ? null : receivedDate,
-            wet_nis_received_kg: wet,
-            ffa: ffa,
-            best_before_date: bestBefore === '' ? null : bestBefore
+            value: {
+                batch_number: batchNumber,
+                // Empty means "keep current" — the RPC treats a null p_supplier_id as leave-unchanged.
+                supplier_id: chosenId,
+                grower_name: growerName,
+                received_date: receivedDate === '' ? null : receivedDate,
+                wet_nis_received_kg: wet,
+                ffa: ffa,
+                best_before_date: bestBefore === '' ? null : bestBefore
+            }
         };
+    }
+
+    /** SweetAlert preConfirm adapter: shows the validation message, or hands back the payload. */
+    function readForm(batch, suppliers) {
+        var res = collectForm(batch, suppliers, DIALOG_PREFIX);
+        if (res.error) {
+            global.Swal.showValidationMessage(res.error);
+            return false;
+        }
+        return res.value;
     }
 
     /**
@@ -287,6 +342,12 @@
 
     global.KernelBatchEdit = {
         prompt: prompt,
-        SUPPLIER_TYPES: SUPPLIER_TYPES
+        SUPPLIER_TYPES: SUPPLIER_TYPES,
+        // Inline-editor building blocks (Find a batch → batch page). Same rules as the dialog.
+        loadSuppliers: loadSuppliers,
+        kernelIdFromBatch: kernelIdFromBatch,
+        gridFormHtml: gridFormHtml,
+        bindBatchNumberSuggestion: bindBatchNumberSuggestion,
+        collectForm: collectForm
     };
 })(typeof window !== 'undefined' ? window : this);

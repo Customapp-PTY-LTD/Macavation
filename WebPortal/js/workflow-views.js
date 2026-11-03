@@ -470,7 +470,7 @@ var _workflowViews = function () {
             switch (task.kind) {
                 case 'dispatch_pick': return { label: 'Confirm picking', route: 'kernel-dispatch-grid', params: { openOrderId: sid } };
                 case 'truck_due': return { label: 'Book in', route: 'grower-intake-grid', params: { bookInProcurementId: sid } };
-                case 'nis_unplaced': return { label: 'Place it', route: 'nis-storage', params: { tab: 'areas', place: true } };
+                case 'nis_unplaced': return { label: 'Place them', route: 'grower-intake-grid', params: { placeBags: true, storage: true } };
                 case 'truck_late':
                 case 'truck_unconfirmed': return { label: 'Open in plan', route: 'procurement-plan', params: { focusProcurementId: sid } };
                 case 'nis_runway_low': return { label: 'Open the plan', route: 'procurement-plan', params: { section: 'runway' } };

@@ -717,9 +717,7 @@
             "js": [
                 "js/nis_storage.js"
             ],
-            "css": [
-                "css/nis_storage.css"
-            ]
+            "css": []
         },
         "kernel-style-prices": {
             "description": "Kernel style prices",
@@ -871,7 +869,8 @@
             "path": "batch-journey",
             "html": "html/batch_journey_grid.html",
             "js": [
-                "js/batch_journey_grid.js"
+                "js/batch_journey_grid.js",
+                "js/batch_journey_detail.js"
             ],
             "css": [
                 "css/batch_journey_grid.css"

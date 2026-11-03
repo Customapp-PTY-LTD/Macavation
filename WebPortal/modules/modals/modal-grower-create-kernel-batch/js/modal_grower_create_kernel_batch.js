@@ -51,6 +51,8 @@ var _modal_grower_create_kernel_batch = (function () {
     var _nextBagNo = 1;
     /** 'stable' (a deleted number is never reused) or 'renumber' (1..N on delete). */
     var _bagNumbering = 'stable';
+    // Where bags are weighed (Kernel Pipeline Settings 'bag_weighing'): 'silo' lets bags be estimated here.
+    var _bagWhere = 'silo';
     var _transporters = [];
     var _transportTypes = [];
     /** False when get_kernel_pipeline_config failed: transporter / type are then optional so saving still works. */
@@ -92,6 +94,15 @@ var _modal_grower_create_kernel_batch = (function () {
             return sum + (n != null && n > 0 ? n : 0);
         }, 0);
     }
+
+    /** Mike's rule: supplier's weight / number of bags. null when either is missing. */
+    function averageBagKg() {
+        var declared = numOrNull(byId('intakeBatchWetNis') && byId('intakeBatchWetNis').value);
+        if (declared == null || declared <= 0 || !_bags.length) return null;
+        return Math.round(declared / _bags.length * 100) / 100;
+    }
+
+    function estimatesAllowed() { return _bagWhere === 'silo'; }
 
     function setText(id, text) {
         var el = byId(id);
@@ -153,7 +164,18 @@ var _modal_grower_create_kernel_batch = (function () {
                 dateEl.addEventListener('change', api._onReceivedDateChange);
             }
             var declEl = byId('intakeBatchWetNis');
-            if (declEl) declEl.addEventListener('input', api._updateCalcs);
+            if (declEl) declEl.addEventListener('input', function () { api._syncEstimates(); api._updateCalcs(); api._updateSpread(); });
+            var spreadCount = byId('intakeSpreadCount');
+            if (spreadCount) {
+                spreadCount.addEventListener('input', api._updateSpread);
+                spreadCount.addEventListener('keydown', function (e) {
+                    if (e.key !== 'Enter') return;
+                    e.preventDefault();
+                    api._spreadBags();
+                });
+            }
+            var spreadBtn = byId('intakeSpreadBtn');
+            if (spreadBtn) spreadBtn.addEventListener('click', function (e) { e.preventDefault(); api._spreadBags(); });
             var addBagBtn = byId('intakeAddBagBtn');
             if (addBagBtn) addBagBtn.addEventListener('click', function (e) { e.preventDefault(); api._addBag(api._readAddCount()); });
             var addCountEl = byId('intakeAddBagCount');
@@ -169,7 +191,25 @@ var _modal_grower_create_kernel_batch = (function () {
                     if (!t || !t.getAttribute) return;
                     var idx = parseInt(t.getAttribute('data-bag-idx'), 10);
                     if (isNaN(idx) || !_bags[idx]) return;
-                    if (t.getAttribute('data-bag-field') === 'kg') { _bags[idx].kg = t.value; api._updateCalcs(); }
+                    if (t.getAttribute('data-bag-field') === 'kg') {
+                        // Typing a weight means this bag was weighed.
+                        _bags[idx].kg = t.value;
+                        if (_bags[idx].est) { _bags[idx].est = false; api._paintBagRow(idx); }
+                        api._updateCalcs();
+                    }
+                });
+                bagsBody.addEventListener('focusout', function (e) {
+                    var t = e.target;
+                    if (!t || !t.getAttribute || t.getAttribute('data-bag-field') !== 'kg') return;
+                    var idx = parseInt(t.getAttribute('data-bag-idx'), 10);
+                    if (isNaN(idx) || !_bags[idx]) return;
+                    // Cleared again: back to the average (only where estimates are allowed).
+                    if (String(t.value || '').trim() === '' && estimatesAllowed() && averageBagKg() != null) {
+                        _bags[idx].est = true;
+                        api._syncEstimates();
+                        api._paintBagRow(idx);
+                        api._updateCalcs();
+                    }
                 });
                 bagsBody.addEventListener('change', function (e) {
                     var t = e.target;
@@ -375,17 +415,97 @@ var _modal_grower_create_kernel_batch = (function () {
             if (!body) return;
             var html = '';
             _bags.forEach(function (b, i) {
-                html += '<tr>' +
+                html += '<tr data-bag-row="' + i + '">' +
                     '<td><strong>' + esc(b.no) + '</strong></td>' +
                     '<td><select class="form-select form-select-sm" data-bag-idx="' + i + '" data-bag-field="desc" aria-label="Description bag ' + esc(b.no) + '">' +
                     '<option value="NIS"' + (b.desc === 'NIS' ? ' selected' : '') + '>NIS</option>' +
                     '<option value="Kernel"' + (b.desc === 'Kernel' ? ' selected' : '') + '>Kernel</option></select></td>' +
-                    '<td><input type="text" inputmode="decimal" class="form-control form-control-sm text-end js-kg-input" data-bag-idx="' + i + '" data-bag-field="kg" value="' + esc(numOrNull(b.kg) != null ? fmtKg(b.kg) : b.kg) + '" aria-label="Weight bag ' + esc(b.no) + '"></td>' +
+                    '<td><input type="text" inputmode="decimal" class="form-control form-control-sm text-end js-kg-input' + (b.est ? ' nd-est' : '') + '" data-bag-idx="' + i + '" data-bag-field="kg" value="' + esc(numOrNull(b.kg) != null ? fmtKg(b.kg) : b.kg) + '" aria-label="Weight bag ' + esc(b.no) + '"></td>' +
+                    '<td class="nd-est-col"' + (estimatesAllowed() ? '' : ' style="display:none"') + '><span class="nd-tag" data-bag-tag="' + i + '">' + api._tagHtml(b) + '</span></td>' +
                     '<td><button type="button" class="btn btn-sm btn-outline-secondary" data-bag-del="' + i + '" aria-label="Remove bag ' + esc(b.no) + '">\u2715</button></td>' +
                     '</tr>';
             });
             body.innerHTML = html;
             api._updateCalcs();
+        },
+
+        _tagHtml: function (b) {
+            if (b.est) return '<span class="badge nd-badge-est">est.</span>';
+            return numOrNull(b.kg) != null && numOrNull(b.kg) > 0 ? '<span class="badge nd-badge-weighed">Weighed</span>' : '';
+        },
+
+        /** One row's estimate styling and tag, without re-rendering (keeps focus while typing). */
+        _paintBagRow: function (idx) {
+            var b = _bags[idx];
+            if (!b) return;
+            var input = document.querySelector('#intakeBagsBody input[data-bag-idx="' + idx + '"][data-bag-field="kg"]');
+            if (input) {
+                input.classList.toggle('nd-est', !!b.est);
+                if (b.est) input.value = numOrNull(b.kg) != null ? fmtKg(b.kg) : '';
+            }
+            var tag = document.querySelector('#intakeBagsBody [data-bag-tag="' + idx + '"]');
+            if (tag) tag.innerHTML = api._tagHtml(b);
+        },
+
+        /** Estimated bags always carry the current average (it moves with the supplier's weight and the bag count). */
+        _syncEstimates: function () {
+            var avg = averageBagKg();
+            _bags.forEach(function (b, i) {
+                if (!b.est) return;
+                b.kg = avg != null ? String(avg) : '';
+                api._paintBagRow(i);
+            });
+        },
+
+        /** Setting: show the Number of bags row and the "Weight is" column only where estimates are allowed. */
+        _applyBagWhere: function () {
+            var on = estimatesAllowed();
+            var wrap = byId('intakeSpreadWrap');
+            if (wrap) wrap.style.display = on ? '' : 'none';
+            document.querySelectorAll('#intakeBagsTable .nd-est-col').forEach(function (el) { el.style.display = on ? '' : 'none'; });
+            if (!on) {
+                // Weighed at New delivery: no estimates; their boxes empty so each bag gets typed in.
+                _bags.forEach(function (b) { if (b.est) { b.est = false; b.kg = ''; } });
+            }
+            api._updateSpread();
+        },
+
+        _updateSpread: function () {
+            var n = parseInt((byId('intakeSpreadCount') && byId('intakeSpreadCount').value) || '', 10);
+            var declared = numOrNull(byId('intakeBatchWetNis') && byId('intakeBatchWetNis').value);
+            var btn = byId('intakeSpreadBtn');
+            var ok = n > 0 && n <= 500 && declared != null && declared > 0;
+            if (btn) btn.disabled = !ok;
+            setText('intakeSpreadBtnText', ok
+                ? (_bags.some(function (b) { return numOrNull(b.kg) != null || b.est; }) ? 'Make it ' : 'Add ') + n + ' bags at ' + fmtKg(Math.round(declared / n * 100) / 100) + ' kg each'
+                : 'Add bags at the average weight');
+            var note = byId('intakeSpreadNote');
+            if (note) {
+                note.innerHTML = ok
+                    ? 'Average bag weight: <strong>supplier\'s weight ' + esc(fmtKg(declared)) + ' kg \u00f7 ' + n + ' bags = ' + esc(fmtKg(Math.round(declared / n * 100) / 100)) + ' kg</strong>. Every bag not weighed gets the average, marked <strong>est.</strong>, and is weighed at the silo.'
+                    : 'Bags are weighed at the silo. Enter the supplier\'s weight and the number of bags: every bag not weighed gets the average, marked <strong>est.</strong>';
+            }
+        },
+
+        /** "Add 32 bags at 937.50 kg each": exactly n bags; weighed ones keep their weight, the rest get the average. */
+        _spreadBags: function () {
+            var n = parseInt((byId('intakeSpreadCount') && byId('intakeSpreadCount').value) || '', 10);
+            if (!(n > 0 && n <= 500) || averageBagKg() == null && !(numOrNull(byId('intakeBatchWetNis') && byId('intakeBatchWetNis').value) > 0)) return;
+            var desc = _bags.length ? _bags[0].desc : 'NIS';
+            var next = [];
+            for (var i = 0; i < n; i++) {
+                var old = _bags[i];
+                var weighed = old && !old.est && numOrNull(old.kg) != null && numOrNull(old.kg) > 0;
+                next.push(weighed ? old : { no: old ? old.no : null, desc: old ? old.desc : desc, kg: '', est: true });
+            }
+            var maxNo = next.reduce(function (m, b) { return b.no != null && b.no > m ? b.no : m; }, 0);
+            next.forEach(function (b) { if (b.no == null) { maxNo += 1; b.no = maxNo; } });
+            _bags = next;
+            _nextBagNo = Math.max(_nextBagNo, maxNo + 1);
+            api._syncEstimates();
+            api._renderBags();
+            api._updatePlaced();
+            api._updateSpread();
         },
 
         /** Typed "Add [n] bag(s)" count; anything odd falls back to 1, capped at 500. */
@@ -402,10 +522,12 @@ var _modal_grower_create_kernel_batch = (function () {
             count = count > 0 ? count : 1;
             var firstNew = _bags.length;
             var prev = _bags.length ? _bags[_bags.length - 1].desc : 'NIS';
+            var est = estimatesAllowed() && numOrNull(byId('intakeBatchWetNis') && byId('intakeBatchWetNis').value) > 0;
             for (var i = 0; i < count; i++) {
-                _bags.push({ no: _nextBagNo, desc: prev, kg: '' });
+                _bags.push({ no: _nextBagNo, desc: prev, kg: '', est: est });
                 _nextBagNo += 1;
             }
+            if (est) api._syncEstimates();
             api._renderBags();
             api._updatePlaced();
             var inputs = document.querySelectorAll('#intakeBagsBody input[data-bag-field="kg"]');
@@ -419,6 +541,7 @@ var _modal_grower_create_kernel_batch = (function () {
                 _bags.forEach(function (b, i) { b.no = i + 1; });
                 _nextBagNo = _bags.length + 1;
             }
+            api._syncEstimates();
             api._renderBags();
             api._updatePlaced();
         },
@@ -431,10 +554,14 @@ var _modal_grower_create_kernel_batch = (function () {
             setText('intakeBagCount', String(count));
             setText('intakeBagTotal', fmtKg(total) || '0.00');
             setText('intakePallets', String(count));
+            var nEst = _bags.filter(function (b) { return b.est && numOrNull(b.kg) != null; }).length;
+            var split = byId('intakeBagSplit');
+            if (split) split.innerHTML = nEst ? '<span class="text-success">' + (count - nEst) + ' weighed</span> · <span class="nd-est-text">' + nEst + ' est.</span>' : '';
 
             var declared = numOrNull(byId('intakeBatchWetNis') && byId('intakeBatchWetNis').value);
             var warn = '';
-            if (declared != null && declared > 0 && total > 0 && Math.abs(total - declared) >= 0.005) {
+            if (declared != null && declared > 0 && total > 0 && Math.abs(total - declared) >= 0.005 &&
+                !(nEst && nEst === count)) {
                 var diff = Math.abs(total - declared);
                 warn = 'Weighed total is ' + fmtKg(diff) + ' kg ' + (total < declared ? 'less' : 'more') +
                     " than the supplier's declared weight. Both figures are kept.";
@@ -475,11 +602,14 @@ var _modal_grower_create_kernel_batch = (function () {
                 _transporters = (cfg.transporters || []).filter(function (t) { return t && t.is_active !== false; });
                 _transportTypes = (cfg.transport_types || []).filter(function (t) { return t && t.is_active !== false; });
                 if (cfg.settings && cfg.settings.bag_numbering === 'renumber') _bagNumbering = 'renumber';
+                var bw = cfg.settings && cfg.settings.bag_weighing;
+                _bagWhere = bw && bw.where === 'intake' ? 'intake' : 'silo';
             } catch (err) {
                 console.warn('[New Delivery] Pipeline config not available:', err);
                 showInline('intakeTransportNotice', 'The transporter and transport type lists could not be loaded, so they are optional for now. The delivery can still be saved.');
             }
             api._fillTransportSelects();
+            api._applyBagWhere();
         },
 
         _toggleTransporterForm: function (show) {
@@ -756,11 +886,13 @@ var _modal_grower_create_kernel_batch = (function () {
             // New Delivery state: one empty bag row, no transport / documents yet.
             _bags = [{ no: 1, desc: 'NIS', kg: '' }];
             _nextBagNo = 2;
+            var spreadEl = byId('intakeSpreadCount');
+            if (spreadEl) spreadEl.value = '';
             _docs = [];
             _uploadsInFlight = 0;
             _collectionAddresses = [];
             _selectedCollection = [];
-            ['intakeDeliveryNoteRef'].forEach(function (id) { var e = byId(id); if (e) e.value = ''; });
+            ['intakeDeliveryNoteRef', 'intakeConsignmentRef'].forEach(function (id) { var e = byId(id); if (e) e.value = ''; });
             api._toggleTransporterForm(false);
             showInline('intakeDocsError', '');
             api._renderDocs();
@@ -870,8 +1002,11 @@ var _modal_grower_create_kernel_batch = (function () {
             var transporterId = byId('intakeTransporter') && byId('intakeTransporter').value || '';
             var transportTypeId = byId('intakeTransportType') && byId('intakeTransportType').value || '';
             var deliveryNoteRef = (byId('intakeDeliveryNoteRef') && byId('intakeDeliveryNoteRef').value || '').trim();
+            var consignmentRef = (byId('intakeConsignmentRef') && byId('intakeConsignmentRef').value || '').trim();
             var weighedBags = _bags.map(function (b) {
-                return { no: b.no, description: b.desc, weight_kg: numOrNull(b.kg) };
+                var row = { no: b.no, description: b.desc, weight_kg: numOrNull(b.kg) };
+                if (b.est && estimatesAllowed()) row.estimated = true;
+                return row;
             }).filter(function (b) { return b.weight_kg != null && b.weight_kg > 0; });
 
             var problems = [];
@@ -880,7 +1015,7 @@ var _modal_grower_create_kernel_batch = (function () {
             if (!batchNumber) problems.push('Batch Number is required.');
             if (wetNis != null && wetNis < 0) problems.push("Supplier's declared weight cannot be negative.");
             if (!weighedBags.length) problems.push('Add at least one bag with a weight greater than 0.');
-            if (!deliveryNoteRef) problems.push('Delivery Note Reference Number is required.');
+            if (!deliveryNoteRef) problems.push('Delivery Note Reference is required.');
             // When the pipeline config could not be loaded the lists are empty, so these stay optional.
             if (_configLoaded && !transporterId) problems.push('Select a Transporter.');
             if (_configLoaded && !transportTypeId) problems.push('Select a Transport Type.');
@@ -966,6 +1101,7 @@ var _modal_grower_create_kernel_batch = (function () {
                             transporter_id: transporterId || null,
                             transporter_name: transporterRow ? transporterRow.name : null,
                             delivery_note_ref: deliveryNoteRef,
+                            consignment_ref: consignmentRef || null,
                             collection_points: _selectedCollection.slice(),
                             transport_type_id: transportTypeId || null,
                             transport_type_name: typeRow ? typeRow.name : null,

@@ -166,8 +166,13 @@ var _batchJourneyGrid = (function () {
      * user still gets a clear message instead of a silent no-op.
      */
     function withEditDialog(globalName, src, run, onFail) {
+        // A dotted name ('KernelBatchEdit.collectForm') waits for a member, not just the global: an older
+        // copy of a shared script can define the global without the function this build needs.
         function ready() {
-            return typeof window[globalName] !== 'undefined' && !!window[globalName];
+            var v = String(globalName).split('.').reduce(function (o, k) {
+                return o != null ? o[k] : undefined;
+            }, window);
+            return typeof v !== 'undefined' && !!v;
         }
         // onFail lets a caller carry on without the module — the Supplier column preloads this way,
         // so a failed fetch degrades to plain text instead of an error popup on page load.
@@ -257,6 +262,42 @@ var _batchJourneyGrid = (function () {
         } else if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) {
             _appRouter.routeTo(routeInfo.route);
         }
+    }
+
+    /** Show or hide the list side of the module (tabs + both panels) while the batch page is open. */
+    function showList(show) {
+        var tabs = document.getElementById('bjStreamTabs');
+        if (tabs) tabs.classList.toggle('d-none', !show);
+        var kernelPanel = document.getElementById('bjKernelPanel');
+        var oilPanel = document.getElementById('bjOilPanel');
+        if (!show) {
+            if (kernelPanel) kernelPanel.style.display = 'none';
+            if (oilPanel) oilPanel.style.display = 'none';
+            return;
+        }
+        if (kernelPanel) kernelPanel.style.display = scope.activeStream === 'kernel' ? '' : 'none';
+        if (oilPanel) oilPanel.style.display = scope.activeStream === 'oil' ? '' : 'none';
+    }
+
+    /**
+     * Kernel row click → the batch page (batch_journey_detail.js). The list is only hidden, so its search,
+     * filter and sort are exactly as they were when the user comes back.
+     */
+    function openKernelBatchPage(batchId) {
+        var src = 'modules/batch-journey/js/batch_journey_detail.js';
+        if (typeof _appRouterWithVersion === 'function') src = _appRouterWithVersion(src);
+        withEditDialog('_batchJourneyDetail', src, function () {
+            _batchJourneyDetail.open(batchId, {
+                getBatch: function (id) {
+                    return scope.batches.find(function (b) { return String(b.id) === String(id); }) || null;
+                },
+                reloadList: loadBatches,
+                openInModule: openActionForKernelBatch,
+                archive: function (id, label, onArchived) { scope.archiveKernelBatch(id, label, onArchived); },
+                withEditDialog: withEditDialog,
+                showList: showList
+            });
+        });
     }
 
     function openActionForOilBatch(batch) {
@@ -464,15 +505,19 @@ var _batchJourneyGrid = (function () {
             });
         });
 
-        $(document).on('click', '#bjTableBody tr.js-bj-row', function (e) {
+        // The router runs init on every visit but loads this file once, so document-level handlers are
+        // namespaced and dropped first; otherwise each visit added another copy and a click fired twice.
+        $(document).off('.bjGrid');
+
+        // Kernel row → the batch page (every value editable, by stage). The Batch history popup is still
+        // used by Kernel Production; this screen no longer opens it.
+        $(document).on('click.bjGrid', '#bjTableBody tr.js-bj-row', function (e) {
             if ($(e.target).closest('button, .btn, .dropdown, a').length) return;
             var batchId = $(this).data('batch-id');
-            if (batchId && typeof _modal_batch_history !== 'undefined' && _modal_batch_history.show) {
-                _modal_batch_history.show(batchId);
-            }
+            if (batchId) openKernelBatchPage(batchId);
         });
 
-        $(document).on('click', '#bjTableBody .js-bj-open-module', function (e) {
+        $(document).on('click.bjGrid', '#bjTableBody .js-bj-open-module', function (e) {
             e.preventDefault();
             e.stopPropagation();
             var batchId = $(this).data('batch-id');
@@ -483,7 +528,7 @@ var _batchJourneyGrid = (function () {
         // Edit batch details — kernel. Reuses the shared dialog that Kernel Production uses, so the
         // rules live in one place. Rows here come from get_kernel_batches, the exact shape the
         // dialog expects, so no extra fetch is needed.
-        $(document).on('click', '#bjTableBody .js-bj-edit-batch', function (e) {
+        $(document).on('click.bjGrid', '#bjTableBody .js-bj-edit-batch', function (e) {
             e.preventDefault();
             e.stopPropagation();
             var batchId = $(this).data('batch-id');
@@ -497,7 +542,7 @@ var _batchJourneyGrid = (function () {
             });
         });
 
-        $(document).on('click', '#bjOilTableBody .js-bj-oil-open-module', function (e) {
+        $(document).on('click.bjGrid', '#bjOilTableBody .js-bj-oil-open-module', function (e) {
             e.preventDefault();
             var oilId = $(this).data('oil-id');
             var batch = scope.filteredOilBatches.find(function (b) { return String(b.id) === String(oilId); });
@@ -505,7 +550,7 @@ var _batchJourneyGrid = (function () {
         });
 
         // Raw ingredients that went into an oil batch — the oil equivalent of "supplier".
-        $(document).on('click', '#bjOilTableBody .js-bj-oil-ingredients', function (e) {
+        $(document).on('click.bjGrid', '#bjOilTableBody .js-bj-oil-ingredients', function (e) {
             e.preventDefault();
             e.stopPropagation();
             var batchNumber = $(this).data('batch-number');
@@ -515,7 +560,7 @@ var _batchJourneyGrid = (function () {
         });
 
         // Edit batch details — oil. Header fields only, mirroring the kernel dialog's scope.
-        $(document).on('click', '#bjOilTableBody .js-bj-oil-edit-batch', function (e) {
+        $(document).on('click.bjGrid', '#bjOilTableBody .js-bj-oil-edit-batch', function (e) {
             e.preventDefault();
             e.stopPropagation();
             var oilId = $(this).data('oil-id');
@@ -529,7 +574,7 @@ var _batchJourneyGrid = (function () {
             });
         });
 
-        $(document).on('click', '#bjOilTableBody .js-bj-oil-history', function (e) {
+        $(document).on('click.bjGrid', '#bjOilTableBody .js-bj-oil-history', function (e) {
             e.preventDefault();
             var oilId = $(this).data('oil-id');
             var batch = scope.filteredOilBatches.find(function (b) { return String(b.id) === String(oilId); });
@@ -545,11 +590,11 @@ var _batchJourneyGrid = (function () {
             }
         });
 
-        $(document).on('click', '#bjTableBody .dropdown-toggle', function (e) {
+        $(document).on('click.bjGrid', '#bjTableBody .dropdown-toggle', function (e) {
             e.stopPropagation();
         });
 
-        $(document).on('click', '#bjTableBody .bj-archive-batch', function (e) {
+        $(document).on('click.bjGrid', '#bjTableBody .bj-archive-batch', function (e) {
             e.preventDefault();
             e.stopPropagation();
             var kernelId = $(this).data('kernel-id');
@@ -560,7 +605,9 @@ var _batchJourneyGrid = (function () {
         });
     }
 
-    scope.archiveKernelBatch = function (kernelId, label) {
+    /** onArchived (optional) runs after a successful archive — the batch page uses it to go back to the list. */
+    scope.archiveKernelBatch = function (kernelId, label, onArchived) {
+        var done = function () { if (typeof onArchived === 'function') onArchived(); };
         var df = (typeof dataFunctions !== 'undefined') ? dataFunctions : (typeof _dataFunctions !== 'undefined' ? _dataFunctions : null);
         if (!df || !df.deactivateKernelBatch) {
             if (typeof Swal !== 'undefined') Swal.fire('Error', 'Archive is not available. Please refresh.', 'error');
@@ -573,6 +620,7 @@ var _batchJourneyGrid = (function () {
             df.deactivateKernelBatch(kernelId).then(function (result) {
                 var inner = (result && result.deactivate_kernel_batch) ? result.deactivate_kernel_batch : result;
                 if (inner && inner.success === false) throw new Error(inner.error || 'Archive failed');
+                done();
                 loadBatches();
             }).catch(function (err) {
                 console.error('Batch Journey: archive failed', err);
@@ -600,6 +648,7 @@ var _batchJourneyGrid = (function () {
                     timer: 2200,
                     showConfirmButton: false
                 });
+                done();
                 loadBatches();
             }).catch(function (err) {
                 console.error('Batch Journey: archive failed', err);
@@ -609,10 +658,11 @@ var _batchJourneyGrid = (function () {
         });
     };
 
+    /** Returns a promise (the batch page waits on it after a save so its row is fresh). */
     function loadBatches() {
-        if (typeof _dataFunctions === 'undefined') return;
+        if (typeof _dataFunctions === 'undefined') return Promise.resolve();
 
-        _dataFunctions.getKernelBatches(null, false, {
+        return _dataFunctions.getKernelBatches(null, false, {
             status: null,
             limit: 500
         }).then(function (data) {

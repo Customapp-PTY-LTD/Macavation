@@ -19,8 +19,9 @@ var _giBags = (function () {
     var LONG_PRESS_MS = 450;
 
     var state = {
-        loaded: false, failed: false, areas: [], batches: [], byId: {},
-        open: {}, sel: {}, anchor: {}, to: {}, longPress: false, pressTimer: null, card: null
+        loaded: false, failed: false, areas: [], batches: [], byId: {}, moves: [],
+        open: {}, sel: {}, anchor: {}, to: {}, longPress: false, pressTimer: null, card: null,
+        handoff: null
     };
 
     // ------------------------------------------------------------------ helpers
@@ -180,9 +181,9 @@ var _giBags = (function () {
 
         var grid = '<div class="gib-bags">' + b.bags.map(function (x) {
             var t = tagOf(x.loc), on = !!s[x.no];
-            return '<button type="button" class="gib-bag ' + t.cls + (t.movable ? '' : ' is-ro') + (on ? ' is-sel' : '') + '"' +
+            return '<button type="button" class="gib-bag ' + t.cls + (t.movable ? '' : ' is-ro') + (on ? ' is-sel' : '') + (x.est ? ' is-est' : '') + '"' +
                 ' data-kernel-id="' + esc(id) + '" data-bag-no="' + x.no + '" aria-pressed="' + on + '"' +
-                ' title="Bag ' + x.no + ': ' + esc(t.label) + ' · ' + esc(kg(x.kg)) + ' kg">' +
+                ' title="Bag ' + x.no + ': ' + esc(t.label) + ' · ' + esc(kg(x.kg)) + ' kg' + (x.est ? ' (estimated)' : '') + '">' +
                 '<span class="gib-no">' + x.no + '</span><span class="gib-lt">' + mark(t) + '</span></button>';
         }).join('') + '</div>';
 
@@ -193,13 +194,46 @@ var _giBags = (function () {
         return '<div class="gib-panel">' + chips + grid + foot + '</div>';
     }
 
+    /** Estimated vs weighed for one batch (migration 20261103090000); '' when every bag was weighed at intake. */
+    function weighCheck(b) {
+        var n = b.bags.length, nEst = 0, estKg = 0, nIn = 0, inKg = 0, nSilo = 0, siloKg = 0, siloEst = 0;
+        b.bags.forEach(function (x) {
+            if (x.est) { nEst++; estKg += x.kg; }
+            else if (x.at === 'silo') { nSilo++; siloKg += x.kg; siloEst += x.estKg != null ? x.estKg : x.kg; }
+            else { nIn++; inKg += x.kg; }
+        });
+        if (!nEst && !nSilo) return '';
+        var best = inKg + siloKg + estKg;
+        var declared = b.wet_nis_received_kg != null ? Number(b.wet_nis_received_kg) : null;
+        var diff = function (d) { return Math.abs(d) < 0.005 ? 'same' : kg(Math.abs(d)) + ' kg ' + (d < 0 ? 'less' : 'more'); };
+        var weighed = n - nEst;
+        var cell = function (label, value, sub, cls) {
+            return '<div class="gib-wc-cell"><span class="gib-wc-label">' + esc(label) + '</span><strong class="' + (cls || '') + '">' + esc(value) + '</strong>' +
+                (sub ? '<span class="gib-wc-sub">' + esc(sub) + '</span>' : '') + '</div>';
+        };
+        return '<div class="gib-wc">' +
+            '<div class="gib-wc-head"><span class="badge gib-wc-pill">' + weighed + ' of ' + n + ' bags weighed</span></div>' +
+            '<div class="gib-wc-bar" role="img" aria-label="' + weighed + ' of ' + n + ' bags weighed"><span style="width:' + (n ? (weighed / n * 100).toFixed(1) : 0) + '%"></span></div>' +
+            '<div class="gib-wc-grid">' +
+                cell('Weighed at intake', kg(inKg) + ' kg', plural(nIn, 'bag', 'bags')) +
+                cell('Weighed at the silo', kg(siloKg) + ' kg', nSilo ? plural(nSilo, 'bag', 'bags') + ' · ' + diff(siloKg - siloEst) + ' than estimated' : 'none yet') +
+                cell('Still estimated', kg(estKg) + ' kg', nEst ? plural(nEst, 'bag', 'bags') : 'none', 'gib-est-text') +
+                cell('Best figure now', kg(best) + ' kg', declared != null ? diff(best - declared) + ' than declared' : '') +
+            '</div></div>';
+    }
+
     /** Card: strip (when asked or open) and the one-line bag summary. */
     function cardSummary(kernelId, showStrip) {
         if (!state.loaded) return '';
         var b = state.byId[kernelId];
         if (!b || !b.bags.length) return '<div class="gib-sum gib-sum-none">No bags recorded</div>';
         return (showStrip || state.open[kernelId] ? strip(b) : '') +
-            '<div class="gib-sum">' + plural(b.bags.length, 'bag', 'bags') + ' · ' + esc(summary(b)) + '</div>';
+            '<div class="gib-sum">' + plural(b.bags.length, 'bag', 'bags') + ' · ' + esc(summary(b)) + estNote(b) + '</div>';
+    }
+
+    function estNote(b) {
+        var n = b.bags.filter(function (x) { return x.est; }).length;
+        return n ? ' · <span class="gib-est-text">' + n + ' est.</span>' : '';
     }
 
     /** Card: the Bags button for the card's button row ('' when the batch has no bags). */
@@ -217,7 +251,7 @@ var _giBags = (function () {
         var date = _common.formatDateDDMMYYYY(b.received_date);
         return '<div class="gib-meta">' + (date ? 'Received ' + esc(date) + ' · ' : '') +
             'weighed ' + esc(kg(b.actual_wet_nis_kg != null ? b.actual_wet_nis_kg : bagKg(b))) + ' kg' +
-            (b.wet_nis_received_kg != null ? ' · declared ' + esc(kg(b.wet_nis_received_kg)) + ' kg' : '') + '</div>' + panelHtml(b);
+            (b.wet_nis_received_kg != null ? ' · declared ' + esc(kg(b.wet_nis_received_kg)) + ' kg' : '') + '</div>' + weighCheck(b) + panelHtml(b);
     }
 
     /** Table "Bags" cell. */
@@ -225,7 +259,7 @@ var _giBags = (function () {
         if (!state.loaded) return '';
         var b = state.byId[kernelId];
         if (!b || !b.bags.length) return '<span class="text-muted small">No bags recorded</span>';
-        return '<div class="gib-cell">' + strip(b) + '<span>' + plural(b.bags.length, 'bag', 'bags') + ' · ' + esc(summary(b)) + '</span></div>';
+        return '<div class="gib-cell">' + strip(b) + '<span>' + plural(b.bags.length, 'bag', 'bags') + ' · ' + esc(summary(b)) + estNote(b) + '</span></div>';
     }
 
     /** Table expand arrow. */
@@ -356,13 +390,17 @@ var _giBags = (function () {
     // ------------------------------------------------------------------ storage list
 
     function placeTotals(match) {
-        var bags = 0, kgSum = 0, batches = 0;
+        var bags = 0, kgSum = 0, batches = 0, estKg = 0;
         state.batches.forEach(function (b) {
             var n = 0;
-            b.bags.forEach(function (x) { if (match(x.loc || '')) { n++; kgSum += Number(x.kg) || 0; } });
+            b.bags.forEach(function (x) {
+                if (!match(x.loc || '')) return;
+                n++; kgSum += Number(x.kg) || 0;
+                if (x.est) estKg += Number(x.kg) || 0;
+            });
             if (n) { bags += n; batches++; }
         });
-        return { bags: bags, kg: kgSum, batches: batches };
+        return { bags: bags, kg: kgSum, batches: batches, estKg: estKg };
     }
 
     function storageRow(code, t, label, p, opts) {
@@ -371,7 +409,8 @@ var _giBags = (function () {
         var figures = p.bags
             ? '<span class="gib-srow-num">' + plural(p.bags, 'bag', 'bags') + '</span>' +
               '<span class="gib-srow-num">' + esc(tonnes(p.kg)) + '</span>' +
-              '<span class="gib-srow-num gib-srow-muted">' + plural(p.batches, 'batch', 'batches') + '</span>'
+              '<span class="gib-srow-num gib-srow-muted">' + plural(p.batches, 'batch', 'batches') + '</span>' +
+              (p.estKg > 0.005 ? '<span class="gib-srow-num gib-est-text">' + esc(tonnes(p.estKg)) + ' of it estimated</span>' : '')
             : '<span class="gib-srow-empty">Empty</span>';
         var bar = pct !== null && p.bags
             ? '<span class="gib-srow-cap"><span class="gib-bar' + (pct > 90 ? ' is-full' : '') + '"><span class="' + t.cls + '" style="width:' + pct.toFixed(1) + '%"></span></span>' +
@@ -417,9 +456,52 @@ var _giBags = (function () {
         });
         $list.html(html);
 
-        var noBags = state.batches.filter(function (b) { return !b.bags.length; }).length;
-        $note.text(noBags ? plural(noBags, 'batch has', 'batches have') + ' no bags recorded, so ' + (noBags === 1 ? 'it is' : 'they are') + ' not counted here.' : '');
+        var bagless = state.batches.filter(function (b) { return !b.bags.length; });
+        var baglessKg = bagless.reduce(function (s, b) { return s + (Number(b.actual_wet_nis_kg != null ? b.actual_wet_nis_kg : b.wet_nis_received_kg) || 0); }, 0);
+        $note.text(bagless.length ? plural(bagless.length, 'older batch', 'older batches') + ' (' + tonnes(baglessKg) + ') ' +
+            (bagless.length === 1 ? 'has' : 'have') + ' no bags recorded, so ' + (bagless.length === 1 ? 'it is' : 'they are') + ' not counted here.' : '');
         renderDetail();
+        renderMoves();
+    }
+
+    var MOVE_CHIP = { 'in': ['Placed', 'badge-stage-last'], out: ['Out', 'badge-stage-first'], move: ['Moved', 'badge-stage-mid'] };
+
+    /** Recent moves under the storage list (last 50, newest first), folded by default. */
+    function renderMoves() {
+        var $m = $('#giStorageMoves');
+        if (!$m.length) return;
+        var list = state.moves || [];
+        if (!state.loaded || !list.length) { $m.prop('hidden', true).empty(); return; }
+        var wasOpen = $m.find('details').prop('open');
+        var place = function (code) { return code ? ((areaOf(code) || {}).label || code) : ''; };
+        var rows = list.map(function (m) {
+            var chip = MOVE_CHIP[m.movement_type] || ['Moved', 'badge-stage-mid'];
+            var from = place(m.from_area), to = place(m.to_area);
+            var where = from && to ? from + ' → ' + to : (to ? 'Into ' + to : (from ? 'Out of ' + from : ''));
+            var when = m.moved_at ? _common.formatDateDDMMYYYY(m.moved_at) + ' ' + String(new Date(m.moved_at).toTimeString()).slice(0, 5) : '';
+            return '<li class="gib-mrow">' +
+                '<span class="gib-mwhen">' + esc(when) + '</span>' +
+                '<span class="badge ' + chip[1] + '">' + esc(chip[0]) + '</span>' +
+                '<span class="gib-mwhat"><strong>' + esc(m.batch_number || '—') + '</strong> · ' + esc(where) +
+                    (m.note ? ' <span class="text-muted">· ' + esc(m.note) + '</span>' : '') + '</span>' +
+                '<span class="gib-mkg">' + esc(tonnes(m.kg)) + '</span>' +
+                '<span class="gib-mby text-muted">' + esc(m.by_label || '') + '</span></li>';
+        }).join('');
+        $m.prop('hidden', false).html('<details' + (wasOpen ? ' open' : '') + '><summary>Recent moves <span class="text-muted">(last ' + list.length + ')</span></summary>' +
+            '<ul class="gib-mlist">' + rows + '</ul></details>');
+    }
+
+    /** Handoff from My Day ("Place them") or the Silos screen: show the storage list, then offer to place. */
+    function runHandoff() {
+        var h = state.handoff;
+        if (!h || !state.loaded) return;
+        state.handoff = null;
+        var head = document.getElementById('giStorageHeading');
+        if (head && head.scrollIntoView) head.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (!h.placeBags) return;
+        var waiting = state.batches.some(function (b) { return b.bags.some(function (x) { return !x.loc; }); });
+        if (!waiting) { _common.showSuccessToast('Every bag has a place.'); return; }
+        if (canMove()) areaMoveDialog('');
     }
 
     function renderDetail() {
@@ -572,7 +654,7 @@ var _giBags = (function () {
         });
         $doc.on('click' + NS, '.js-gib-silos', function (e) {
             e.preventDefault();
-            if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) _appRouter.routeTo('nis-storage', true);
+            if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) _appRouter.routeTo('silo-allocation-grid', true);
         });
         $doc.on('click' + NS, '.js-gib-open-batch', function (e) {
             e.preventDefault();
@@ -614,10 +696,12 @@ var _giBags = (function () {
                 state.failed = false;
                 state.loaded = true;
                 state.areas = Array.isArray(res.areas) ? res.areas : [];
+                state.moves = Array.isArray(res.movements) ? res.movements : [];
                 state.batches = (Array.isArray(res.batches) ? res.batches : []).map(function (b) {
                     return Object.assign({}, b, {
                         bags: (Array.isArray(b.bags) ? b.bags : []).map(function (x) {
-                            return { no: parseInt(x.no, 10), kg: Number(x.kg) || 0, loc: x.loc || '' };
+                            return { no: parseInt(x.no, 10), kg: Number(x.kg) || 0, loc: x.loc || '',
+                                     est: !!x.est, at: x.at || null, estKg: x.est_kg != null ? Number(x.est_kg) : null };
                         }).filter(function (x) { return x.no > 0; })
                     });
                 });
@@ -634,6 +718,13 @@ var _giBags = (function () {
             }
             renderStorage();
             rerenderGrid();
+            runHandoff();
+        },
+
+        /** h = { placeBags?, storage? } from the router handoff; runs once the bags have loaded. */
+        openStorage: function (h) {
+            state.handoff = h || { storage: true };
+            runHandoff();
         },
 
         cardSummary: cardSummary,
