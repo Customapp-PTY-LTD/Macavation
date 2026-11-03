@@ -125,6 +125,7 @@ var _batchJourneyDetail = (function () {
 
     var SECTION_LABELS = {
         details: 'Batch details',
+        delivery: 'Delivery',
         receiving: 'Receiving',
         samples: 'Intake samples',
         production: 'Production days',
@@ -147,6 +148,11 @@ var _batchJourneyDetail = (function () {
             stageEditing: false,
             suppliers: undefined,
             crateKg: {},
+            cfg: null,          // Kernel Pipeline config: transporters, transport types (New Delivery's lists)
+            bagLocs: null,      // { ok, inOverview, map: { bagNo: loc } } from get_intake_bag_overview
+            runsByDate: {},     // 'YYYY-MM-DD' -> { loading } | { total, count } | { error }
+            dispatchFull: null, // [{ order, lines }] full orders while Dispatch is being edited
+            jcStartEarly: false,
             saving: false,
             loadSeq: 0,
             scroll: null,
@@ -466,7 +472,7 @@ var _batchJourneyDetail = (function () {
         html += '<div class="row g-3 bjd-body">';
         html += '<div class="col-12 col-lg-3 col-xxl-2">' + navHtml() + '</div>';
         html += '<div class="col-12 col-lg-9 col-xxl-10 d-flex flex-column gap-3">';
-        html += detailsSectionHtml() + receivingSectionHtml() + samplesSectionHtml() + productionSectionHtml() +
+        html += detailsSectionHtml() + deliverySectionHtml() + receivingSectionHtml() + samplesSectionHtml() + productionSectionHtml() +
             jobCardSectionHtml() + qaSectionHtml() + dispatchSectionHtml();
         html += '</div></div>';
         el.innerHTML = html;
@@ -605,9 +611,301 @@ var _batchJourneyDetail = (function () {
                 dlItem('FFA (QA)', b.ffa != null && b.ffa !== '' ? esc(String(b.ffa)) : 'Not set', b.ffa == null || b.ffa === '') +
                 dlItem('Best before', esc(dateText(b.best_before_date, 'Not set')), !b.best_before_date) +
                 '</dl>' +
-                '<p class="small text-muted mt-3 mb-0">The weighed total comes from the delivery bags (or received items) — change those under Receiving.</p>';
+                '<p class="small text-muted mt-3 mb-0">Weighed total: calculated from the delivery bags (Delivery) or, on older batches, the received items (Receiving).</p>';
         }
         return sectionHtml('details', { body: body, headerButtons: editButton('details'), saveLabel: 'batch details' });
+    }
+
+    // ------------------------------------------------------------------ Delivery (New Delivery's bags + transport)
+
+    function transportOf(dlv) {
+        return dlv && dlv.transport && typeof dlv.transport === 'object' ? dlv.transport : {};
+    }
+
+    function deliverySectionHtml() {
+        var dlv = delivery();
+        var body;
+        if (!dlv) {
+            body = '<p class="text-muted mb-0">No delivery recorded — this batch was booked in before New Delivery. Its received items are under Receiving.</p>';
+        } else {
+            body = state.editing === 'delivery' ? deliveryEditHtml() : deliveryViewHtml();
+        }
+        // Same key as the New Delivery button on Grower Intake (data-action-perm="grower.intake.create").
+        var canEdit = can('grower.intake.create');
+        if (dlv && !canEdit && state.editing !== 'delivery') body += '<p class="small text-muted mt-2 mb-0"><i class="fas fa-lock me-1"></i>Your role cannot book in deliveries, so it cannot change one either.</p>';
+        return sectionHtml('delivery', {
+            body: body,
+            headerButtons: dlv && canEdit ? editButton('delivery') : '',
+            saveLabel: 'delivery'
+        });
+    }
+
+    function storageAreaLabel(code) {
+        var areas = (state.cfg && Array.isArray(state.cfg.storage_areas)) ? state.cfg.storage_areas : [];
+        var a = areas.filter(function (x) { return x && x.code === code; })[0];
+        return a && a.label ? a.label : code;
+    }
+
+    /** Grower Intake's bag place: area code | 'silo:<n>' | 'cracked' | '' (get_intake_bag_overview, 20261102120000:84-86). */
+    function bagLocText(loc) {
+        if (loc == null) return '—';
+        if (loc === '') return 'Not placed yet';
+        if (loc === 'cracked') return 'Cracked';
+        if (/^silo:/.test(loc)) return 'Silo ' + loc.slice(5);
+        return storageAreaLabel(loc);
+    }
+
+    /**
+     * Why a bag's weight cannot change / the bag cannot be removed, or '' when it can.
+     *
+     * A bag's place is keyed by (kernel_id, bag_no) and every storage movement carries the bag's weight
+     * at the time it moved (20261031090000_nis_bag_locations.sql:116-131, silo trigger :230); a silo allocation stores its own
+     * weight_kg and pre-sizer split. Re-weighing or deleting a placed bag would leave those kg behind, so
+     * only bags that are not placed anywhere can be re-weighed or removed. Descriptions are free to change.
+     */
+    function bagLockReason(no) {
+        var bl = state.bagLocs;
+        if (!bl || !bl.ok) return 'Could not check where this bag is, so its weight is locked. Close and reopen Edit to try again.';
+        if (!bl.inOverview) return 'This batch is past production; its bags have been through the silos.';
+        var loc = bl.map[String(no)];
+        if (loc && loc !== '') return 'In ' + bagLocText(loc) + '. Take it out on Grower Intake first, then change the weight here.';
+        return '';
+    }
+
+    function loadBagLocations() {
+        var d = df();
+        if (!d || typeof d.getIntakeBagOverview !== 'function') {
+            state.bagLocs = { ok: false };
+            return Promise.resolve(state.bagLocs);
+        }
+        return Promise.resolve().then(function () { return d.getIntakeBagOverview(500); }).then(function (res) {
+            if (!res || res.success === false || !Array.isArray(res.batches)) throw new Error((res && res.error) || 'Bag overview unavailable');
+            var b = res.batches.filter(function (x) { return x && String(x.kernel_id) === String(state.kernelId); })[0];
+            var map = {};
+            if (b) arr(b.bags).forEach(function (bag) { if (bag && bag.no != null) map[String(bag.no)] = bag.loc == null ? '' : String(bag.loc); });
+            state.bagLocs = { ok: true, inOverview: !!b, map: map };
+            return state.bagLocs;
+        }).catch(function (err) {
+            console.warn('[Batch page] bag places unavailable', err);
+            state.bagLocs = { ok: false };
+            return state.bagLocs;
+        });
+    }
+
+    function deliveryViewHtml() {
+        var dlv = delivery();
+        var tr = transportOf(dlv);
+        var bags = arr(dlv.bags);
+        var cps = arr(tr.collection_points).filter(hasText);
+        var h = '<dl class="bjd-dl">';
+        h += dlItem('Delivery note ref', hasText(tr.delivery_note_ref) ? esc(tr.delivery_note_ref) : 'Not set', !hasText(tr.delivery_note_ref));
+        h += dlItem('Consignment ref', hasText(tr.consignment_ref) ? esc(tr.consignment_ref) : '—');
+        h += dlItem('Transporter', hasText(tr.transporter_name) ? esc(tr.transporter_name) : '—');
+        h += dlItem('Transport type', hasText(tr.transport_type_name) ? esc(tr.transport_type_name) : '—');
+        h += dlItem('Rate (whole trip)', numOrNull(tr.rate_zar) != null ? 'R ' + esc(_common.formatKg(numOrNull(tr.rate_zar))) : 'Not entered yet', numOrNull(tr.rate_zar) == null);
+        h += dlItem('Collection points', cps.length ? cps.map(esc).join('<br>') : '—', !cps.length);
+        h += '</dl>';
+        var total = 0;
+        h += '<h4 class="bjd-subhead">Bags</h4><div class="table-responsive bjd-table-box"><table class="table align-middle mb-0"><thead><tr><th>No.</th><th>Description</th><th class="text-end">Weight (kg)</th></tr></thead><tbody>';
+        bags.forEach(function (bag) {
+            total += kgNum(bag && bag.weight_kg) || 0;
+            h += '<tr><td>' + esc(bag && bag.no) + '</td><td>' + esc(bag && bag.description) + '</td><td class="text-end">' + esc(_common.formatKg(kgNum(bag && bag.weight_kg))) + '</td></tr>';
+        });
+        h += '<tr class="fw-semibold"><td colspan="2">Weighed total</td><td class="text-end">' + esc(_common.formatKg(total)) + '</td></tr></tbody></table></div>';
+        var docs = typeof historyFileLinksHtml === 'function' ? historyFileLinksHtml(dlv.documents) : '';
+        if (docs) h += '<p class="small mt-2 mb-0">Documents: ' + docs + '</p>';
+        return h;
+    }
+
+    function optionList(rows, currentId, currentName) {
+        var list = Array.isArray(rows) ? rows : [];
+        var found = false;
+        var h = '<option value="">Select…</option>';
+        list.forEach(function (r) {
+            if (!r) return;
+            var sel = currentId != null && currentId !== '' && String(r.id) === String(currentId);
+            if (sel) found = true;
+            if (r.is_active === false && !sel) return;
+            h += '<option value="' + esc(r.id) + '"' + (sel ? ' selected' : '') + '>' + esc(r.name) + '</option>';
+        });
+        // A stored choice that is no longer on the list stays selectable, so saving does not drop it.
+        if (!found && currentId != null && currentId !== '') {
+            h += '<option value="' + esc(currentId) + '" selected>' + esc(currentName || 'Current') + '</option>';
+        }
+        return h;
+    }
+
+    function bagRowHtml(bag, isNew) {
+        bag = bag || {};
+        var lock = isNew ? '' : bagLockReason(bag.no);
+        var w = kgNum(bag.weight_kg);
+        var loc = state.bagLocs && state.bagLocs.ok ? bagLocText(state.bagLocs.map[String(bag.no)] != null ? state.bagLocs.map[String(bag.no)] : '') : '—';
+        return '<tr class="bjd-bag-row" data-no="' + esc(bag.no) + '" data-new="' + (isNew ? '1' : '0') + '">' +
+            '<td class="text-nowrap">' + esc(bag.no) + '</td>' +
+            '<td><input type="text" class="form-control form-control-sm" data-bag="description" aria-label="Description" value="' + esc(bag.description || '') + '"></td>' +
+            '<td><input type="text" inputmode="decimal" class="form-control form-control-sm text-end js-kg-input" data-bag="weight_kg" aria-label="Weight kg" value="' + esc(w == null ? '' : _common.formatKg(w)) + '"' + (lock ? ' readonly tabindex="-1"' : '') + '></td>' +
+            '<td class="small">' + (isNew ? 'New' : esc(loc)) + (lock ? ' <i class="fas fa-lock ms-1" title="' + esc(lock) + '" aria-label="' + esc(lock) + '"></i>' : '') + '</td>' +
+            '<td class="text-center">' + (lock ? '' : '<button type="button" class="btn btn-outline-danger btn-sm bjd-touch" data-bjd-act="remove-bag" aria-label="Remove bag"><i class="fas fa-times"></i></button>') + '</td></tr>';
+    }
+
+    function deliveryEditHtml() {
+        var dlv = delivery();
+        var tr = transportOf(dlv);
+        var cfg = state.cfg || {};
+        var h = '<div class="row g-2">';
+        h += '<div class="col-12 col-md-6 col-xl-4"><label class="form-label" for="bjdDlvNote">Delivery note ref <span class="text-danger">*</span></label>' +
+            '<input type="text" class="form-control" id="bjdDlvNote" value="' + esc(tr.delivery_note_ref || '') + '"></div>';
+        h += '<div class="col-12 col-md-6 col-xl-4"><label class="form-label" for="bjdDlvConsignment">Consignment ref</label>' +
+            '<input type="text" class="form-control" id="bjdDlvConsignment" value="' + esc(tr.consignment_ref || '') + '"></div>';
+        h += '<div class="col-12 col-md-6 col-xl-4"><label class="form-label" for="bjdDlvRate">Rate for the whole trip (R)</label>' +
+            '<input type="number" min="0" step="0.01" class="form-control" id="bjdDlvRate" value="' + esc(numOrNull(tr.rate_zar) == null ? '' : String(numOrNull(tr.rate_zar))) + '">' +
+            '<div class="form-text">Saved the way the My Day rate task saves it; leaving it blank keeps what is stored.</div></div>';
+        h += '<div class="col-12 col-md-6 col-xl-4"><label class="form-label" for="bjdDlvTransporter">Transporter</label>' +
+            '<select class="form-select" id="bjdDlvTransporter">' + optionList(cfg.transporters, tr.transporter_id, tr.transporter_name) + '</select></div>';
+        h += '<div class="col-12 col-md-6 col-xl-4"><label class="form-label" for="bjdDlvType">Transport type</label>' +
+            '<select class="form-select" id="bjdDlvType">' + optionList(cfg.transport_types, tr.transport_type_id, tr.transport_type_name) + '</select></div>';
+        h += '<div class="col-12 col-xl-4"><label class="form-label" for="bjdDlvPoints">Collection points (one per line)</label>' +
+            '<textarea class="form-control" id="bjdDlvPoints" rows="2">' + esc(arr(tr.collection_points).filter(hasText).join('\n')) + '</textarea></div>';
+        h += '</div>';
+
+        h += '<h4 class="bjd-subhead">Bags</h4>';
+        if (state.bagLocs && !state.bagLocs.ok) {
+            h += '<div class="alert alert-warning small py-2">Could not check where the bags are, so bag weights are locked. Close and reopen Edit to try again.</div>';
+        }
+        h += '<div class="table-responsive bjd-table-box"><table class="table align-middle mb-0 bjd-items-table"><thead><tr><th>No.</th><th>Description</th><th class="text-end">Weight (kg)</th><th>Where</th><th class="bjd-col-btn"><span class="visually-hidden">Remove</span></th></tr></thead><tbody id="bjdBagsBody">';
+        arr(dlv.bags).forEach(function (bag) { h += bagRowHtml(bag, false); });
+        h += '</tbody><tfoot><tr class="fw-semibold"><td colspan="2">Weighed total (becomes wet NIS weighed)</td><td class="text-end" id="bjdBagsTotal"></td><td colspan="2"></td></tr></tfoot></table></div>';
+        h += '<button type="button" class="btn btn-outline-secondary btn-sm mt-2 bjd-touch" data-bjd-act="add-bag"><i class="fas fa-plus me-1"></i>Add bag</button>';
+        h += '<p class="small text-muted mt-2 mb-0">Saving rewrites the delivery the way New Delivery saved it: the weighed total (wet NIS) becomes the sum of the bags. ' +
+            'Only bags that are not placed in a storage area or a silo can be re-weighed or removed — a placed bag\'s kg is already counted there. ' +
+            'New bags start as "Not placed yet"; place them on Grower Intake. Documents are kept as they are.</p>';
+        return h;
+    }
+
+    function updateBagsTotal() {
+        var total = 0;
+        $('#bjdBagsBody input[data-bag="weight_kg"]').each(function () { total += _common.parseKg(this.value) || 0; });
+        $('#bjdBagsTotal').text(_common.formatKg(total));
+    }
+
+    function nextBagNo() {
+        var dlv = delivery() || {};
+        var max = 0;
+        $('#bjdBagsBody tr.bjd-bag-row').each(function () { max = Math.max(max, parseInt(this.getAttribute('data-no'), 10) || 0); });
+        arr(dlv.bags).forEach(function (b) { max = Math.max(max, parseInt(b && b.no, 10) || 0); });
+        // Numbers never go backwards, even after a delete (save_kernel_delivery next_bag_no, 20261006090100:85).
+        return Math.max(max + 1, parseInt(dlv.next_bag_no, 10) || 1);
+    }
+
+    function saveDelivery() {
+        var d = df();
+        if (!d || !d.saveKernelDelivery) throw new Error('Save is not available. Refresh the page and try again.');
+        var dlv = delivery();
+        if (!dlv) throw new Error('This batch has no delivery to edit.');
+        var tr = transportOf(dlv);
+        var cfg = state.cfg || {};
+        var problems = [];
+        var note = $.trim($('#bjdDlvNote').val() || '');
+        if (!note) problems.push('Delivery note ref is required');
+        var transporterId = $('#bjdDlvTransporter').val() || '';
+        var typeId = $('#bjdDlvType').val() || '';
+        // Same rule as New Delivery: required when the lists could be loaded (modal_grower_create_kernel_batch.js:886-887).
+        if (Array.isArray(cfg.transporters) && cfg.transporters.length && !transporterId) problems.push('Select a transporter');
+        if (Array.isArray(cfg.transport_types) && cfg.transport_types.length && !typeId) problems.push('Select a transport type');
+        var rateRaw = $.trim($('#bjdDlvRate').val() || '');
+        var rate = rateRaw === '' ? null : numOrNull(rateRaw);
+        if (rateRaw !== '' && (rate == null || rate < 0)) problems.push('The rate must be 0 or more');
+
+        var stored = {};
+        arr(dlv.bags).forEach(function (b) { if (b && b.no != null) stored[String(b.no)] = b; });
+        var bags = [];
+        var touched = []; // bag numbers whose weight changed, or that are new / removed
+        var seen = {};
+        $('#bjdBagsBody tr.bjd-bag-row').each(function () {
+            var no = parseInt(this.getAttribute('data-no'), 10);
+            var isNew = this.getAttribute('data-new') === '1';
+            var desc = $.trim($(this).find('[data-bag="description"]').val() || '');
+            var $w = $(this).find('[data-bag="weight_kg"]');
+            if (!isNew && $w.prop('readOnly')) {
+                // Locked (placed) bag: its weight goes back exactly as stored.
+                seen[String(no)] = true;
+                bags.push(Object.assign({}, stored[String(no)] || {}, { no: no, description: desc }));
+                return;
+            }
+            var wRaw = $.trim($w.val() || '');
+            var w = wRaw === '' ? null : _common.parseKg(wRaw);
+            if (isNew && !desc && w == null) return; // an empty new row is ignored, as on New Delivery
+            if (w == null || !(w > 0)) { problems.push('Bag ' + no + ' needs a weight greater than 0'); return; }
+            w = Math.round(w * 100) / 100;
+            seen[String(no)] = true;
+            var base = isNew ? {} : (stored[String(no)] || {});
+            var reweighed = isNew || kgNum(base.weight_kg) !== w;
+            if (reweighed) touched.push(no);
+            // Keep every other key on the stored bag as it is; only description and weight are edited here.
+            var bag = Object.assign({}, base, { no: no, description: desc, weight_kg: w });
+            // A typed weight is a real weight: an estimated bag (20261103090000) becomes weighed, keeping its
+            // old estimate the way the silo does (estimate_kg).
+            if (reweighed && !isNew && bag.estimated === true) {
+                bag.estimated = false;
+                bag.estimate_kg = kgNum(base.weight_kg);
+                bag.weighed_at = 'batch_page';
+                bag.weighed_on = new Date().toISOString();
+            }
+            bags.push(bag);
+        });
+        Object.keys(stored).forEach(function (no) { if (!seen[no]) touched.push(parseInt(no, 10)); });
+        if (!bags.length) problems.push('Keep at least one bag');
+        if (problems.length) throw new Error(problems.filter(function (p, i, a) { return a.indexOf(p) === i; }).join('. ') + '.');
+
+        var tName = $('#bjdDlvTransporter option:selected').text();
+        var tyName = $('#bjdDlvType option:selected').text();
+        var points = String($('#bjdDlvPoints').val() || '').split(/\r?\n/).map(function (s) { return $.trim(s); }).filter(Boolean);
+        // The transport block is stored as sent (20261006090100:82), so start from what is stored:
+        // rate_zar / rate_entered_at and anything else survive unless changed below.
+        var transport = Object.assign({}, tr, {
+            delivery_note_ref: note,
+            consignment_ref: $.trim($('#bjdDlvConsignment').val() || '') || null,
+            transporter_id: transporterId || null,
+            transporter_name: transporterId ? tName : null,
+            transport_type_id: typeId || null,
+            transport_type_name: typeId ? tyName : null,
+            collection_points: points
+        });
+        var rateChanged = rate != null && rate !== numOrNull(tr.rate_zar);
+
+        // Re-check the bags' places just before writing: a bag placed since the form opened must not be re-weighed.
+        return loadBagLocations().then(function () {
+            var nowLocked = touched.filter(function (no) {
+                var isNewNo = !stored[String(no)];
+                return !isNewNo && bagLockReason(no);
+            });
+            if (nowLocked.length) {
+                throw new Error('Bag ' + nowLocked.join(', ') + ' has been placed since you opened this form. Cancel, reopen Edit and try again.');
+            }
+            return d.saveKernelDelivery({
+                kernel_id: state.kernelId,
+                bags: bags,
+                transport: transport,
+                documents: arr(dlv.documents),
+                allow_replace: true
+            });
+        }).then(function (r) {
+            var inner;
+            try {
+                inner = assertOk(r, 'save_kernel_delivery');
+            } catch (e) {
+                if (r && r.already_has_delivery) throw new Error('This tab has an older version of the portal. Refresh the page and save again.');
+                throw e;
+            }
+            if (!rateChanged) return inner;
+            // The rate goes through the same RPC as the My Day "Enter rate" task (workflow-views.js:749),
+            // which also closes that task (20261027130000_transport_rate_tasks.sql:146-169).
+            return d.callFunction('set_transport_rate', { p_kernel_id: state.kernelId, p_rate_zar: rate }, null, { useCache: false })
+                .then(function (rr) { assertOk(rr, 'set_transport_rate'); return inner; });
+        }).then(function (inner) {
+            var total = inner && inner.weighed_total_kg != null ? kgNum(inner.weighed_total_kg) : null;
+            return 'Delivery saved.' + (total != null ? ' Weighed total is now ' + _common.formatKg(total) + ' kg.' : '');
+        });
     }
 
     // ------------------------------------------------------------------ Receiving
@@ -623,6 +921,14 @@ var _batchJourneyDetail = (function () {
             saveLabel: 'receiving'
         });
     }
+
+    /**
+     * The batch-level pre-sizer figure is not typed anywhere: _silo_sync_presizer keeps it equal to the
+     * figure typed at release plus every live silo allocation's presizer_kg (20261008090000_silo_tweaks.sql:57-77),
+     * re-running on each allocate / undo (:287, :308; 20261027120000:98). Writing it directly would be
+     * overwritten by the next allocation, and no RPC edits a live allocation's pre-sizer.
+     */
+    var PRESIZER_NOTE = 'Calculated from silo allocations: the kg typed at release plus the pre-sizer kg entered for each bag put into a silo. To change it, undo the bag on Silos and allocate it again.';
 
     /** Removed pre-sizer: the batch-level figure (release + silo allocations) wins over the checklist's own copy. */
     function preSizerInfo() {
@@ -643,13 +949,9 @@ var _batchJourneyDetail = (function () {
         var h = '<dl class="bjd-dl">';
         h += dlItem('Date received (checklist)', esc(dateText(cl.date_received || (state.detail || {}).received_date, 'Not set')));
         h += dlItem('Delivery note ref', hasText(note) ? esc(note) : 'Not set', !hasText(note));
-        h += dlItem('Removed pre-sizer', esc(kgText(pre.value, 'Not set')), kgNum(pre.value) == null);
-        if (dlv) {
-            h += dlItem('Consignment ref', hasText(tr.consignment_ref) ? esc(tr.consignment_ref) : '—');
-            h += dlItem('Transporter', hasText(tr.transporter_name) ? esc(tr.transporter_name) : '—');
-            h += dlItem('Transport type', hasText(tr.transport_type_name) ? esc(tr.transport_type_name) : '—');
-        }
+        h += dlItem('Removed pre-sizer', esc(kgText(pre.value, 'Not set')) + (pre.locked ? '<div class="small text-muted">' + esc(PRESIZER_NOTE) + '</div>' : ''), kgNum(pre.value) == null);
         h += '</dl>';
+        if (dlv) h += '<p class="small text-muted mt-2 mb-0">Bags, transport and the delivery note are in the Delivery section.</p>';
 
         h += '<h4 class="bjd-subhead">Truck and load checks</h4><div class="bjd-check-grid">';
         var comments = obj(cl.item_comments);
@@ -671,22 +973,12 @@ var _batchJourneyDetail = (function () {
         return h;
     }
 
+    /** Legacy received items (batches from before New Delivery). Delivery bags live in the Delivery section. */
     function itemsViewHtml() {
         var dlv = delivery();
         var bags = dlv && Array.isArray(dlv.bags) ? dlv.bags : [];
         var h = '';
-        if (bags.length) {
-            var total = 0;
-            h += '<h4 class="bjd-subhead">Delivery bags</h4><div class="table-responsive bjd-table-box"><table class="table align-middle mb-0"><thead><tr><th>No.</th><th>Description</th><th class="text-end">Weight (kg)</th></tr></thead><tbody>';
-            bags.forEach(function (bag) {
-                total += kgNum(bag && bag.weight_kg) || 0;
-                h += '<tr><td>' + esc(bag && bag.no) + '</td><td>' + esc(bag && bag.description) + '</td><td class="text-end">' + esc(_common.formatKg(kgNum(bag && bag.weight_kg))) + '</td></tr>';
-            });
-            h += '<tr class="fw-semibold"><td colspan="2">Weighed total</td><td class="text-end">' + esc(_common.formatKg(total)) + '</td></tr></tbody></table></div>';
-            var docs = typeof historyFileLinksHtml === 'function' ? historyFileLinksHtml(dlv.documents) : '';
-            if (docs) h += '<p class="small mt-2 mb-0">Documents: ' + docs + '</p>';
-            return h;
-        }
+        if (bags.length) return '';
         var items = arr(checklist().received_items);
         if (!items.length) return '';
         var sum = 0;
@@ -712,7 +1004,7 @@ var _batchJourneyDetail = (function () {
         h += '<div class="col-12 col-md-4"><label class="form-label" for="bjdRcvNote">Delivery note ref</label>';
         if (noteLocked) {
             h += '<input type="text" class="form-control" id="bjdRcvNote" value="' + esc(tr.delivery_note_ref) + '" readonly>' +
-                '<div class="form-text">Recorded on New Delivery with the bags; shown from there.</div>';
+                '<div class="form-text">Stored with the delivery — edit it in the Delivery section.</div>';
         } else {
             h += '<input type="text" class="form-control" id="bjdRcvNote" value="' + esc(cl.delivery_note_ref || '') + '">';
         }
@@ -720,7 +1012,7 @@ var _batchJourneyDetail = (function () {
         h += '<div class="col-12 col-md-4"><label class="form-label" for="bjdRcvPre">Removed pre-sizer (kg)</label>';
         if (pre.locked) {
             h += '<input type="text" class="form-control text-end" id="bjdRcvPre" value="' + esc(_common.formatKg(kgNum(pre.value))) + '" readonly>' +
-                '<div class="form-text">Set at release and silo allocation; change it there.</div>';
+                '<div class="form-text">' + esc(PRESIZER_NOTE) + '</div>';
         } else {
             h += '<input type="text" inputmode="decimal" class="form-control text-end js-kg-input" id="bjdRcvPre" value="' + esc(_common.formatKg(kgNum(pre.value))) + '">';
         }
@@ -744,8 +1036,7 @@ var _batchJourneyDetail = (function () {
 
         var bags = dlv && Array.isArray(dlv.bags) ? dlv.bags : [];
         if (bags.length) {
-            h += itemsViewHtml();
-            h += '<p class="small text-muted mt-2 mb-0">Bag weights are recorded on New Delivery and set the weighed total; they cannot be changed from here.</p>';
+            h += '<p class="small text-muted mt-3 mb-0">Bag weights set the weighed total; edit them in the Delivery section.</p>';
         } else {
             var items = arr(cl.received_items);
             h += '<h4 class="bjd-subhead">Received items</h4>';
@@ -914,16 +1205,40 @@ var _batchJourneyDetail = (function () {
 
     /** Why a stage cannot be edited here, or '' when it can. */
     function stageLockReason(stageKey, day) {
-        if (stageKey === 'cracking') {
-            return 'Cracking is filled from the silo Cracking log and also books shell stock, so it is edited on Kernel Production only.';
-        }
         if (!day || !day.date) return 'This entry has no date, so it cannot be matched for saving. Open it on Kernel Production.';
         if (!can('kernel.production_stages.edit')) return 'Your role cannot edit production stages.';
         if (isGrowerIntakeStage()) return 'This batch has not been released to production yet.';
         if (stageKey === 'packing' && isJobcardApproved()) {
-            return 'The job card is approved, so packing is locked; stock now follows the job card.';
+            // upsert_kernel_production ignores packing once the job card is approved
+            // (20260519120000_job_card_stock_gated_on_approval.sql:201, :236): an edit here would be dropped.
+            return 'The job card is approved, so stock follows the job card\'s style lines and the packing sheet can no longer change. Edit the packed styles on the job card instead.';
         }
         return '';
+    }
+
+    /** Hint under a calculated box: what it is worked out from (Kernel Production's formulas). */
+    var STAGE_CALC_NOTES = {
+        total_crates: 'Calculated: floater + sinker crates',
+        crate_diff: 'Calculated: crates in − crates out',
+        total_qty: 'Calculated: floater + sinker kg',
+        qty_diff: 'Calculated: kg in − kg out',
+        waste_total: 'Calculated: shell fines + compost',
+        sound_crates: 'Calculated: style 0 to 7/8 crates',
+        sound_qty: 'Calculated: style 0 to 7/8 kg',
+        butter_crates: 'Calculated: butter low oil crates',
+        butter_qty: 'Calculated: butter low oil kg',
+        sk_total_cartons: 'Calculated: sound kernel cartons',
+        sk_total_qty: 'Calculated: sound cartons × 11.34 kg',
+        bt_total_cartons: 'Calculated: butter cartons',
+        bt_total_qty: 'Calculated: butter cartons × 11.34 kg',
+        totals_cartons: 'Calculated: sound + butter cartons',
+        totals_qty: 'Calculated: all cartons × 11.34 kg'
+    };
+
+    function stageCalcNote(stageKey, key) {
+        if (STAGE_CALC_NOTES[key]) return STAGE_CALC_NOTES[key];
+        if (stageKey === 'packing' && /_qty$/.test(key)) return 'Calculated: cartons × 11.34 kg';
+        return 'Calculated';
     }
 
     function productionSectionHtml() {
@@ -945,15 +1260,26 @@ var _batchJourneyDetail = (function () {
                 var e = day.stages[st.key];
                 var lock = stageLockReason(st.key, day);
                 var btn = '';
-                if (!lock && state.editing !== 'stage') {
-                    btn = '<button type="button" class="btn btn-outline-secondary btn-sm bjd-touch" data-bjd-act="stage-edit" data-stage="' + st.key + '">' + (e ? 'Edit' : 'Add') + '</button>';
-                } else if (e && state.editing !== 'stage') {
-                    btn = '<button type="button" class="btn btn-outline-secondary btn-sm bjd-touch" data-bjd-act="stage-view" data-stage="' + st.key + '">View</button>';
+                var idle = state.editing !== 'stage';
+                if (idle && e) {
+                    btn += '<button type="button" class="btn btn-outline-secondary btn-sm bjd-touch" data-bjd-act="stage-view" data-stage="' + st.key + '">View</button>';
+                }
+                if (idle && !lock) {
+                    // Cracking opens Kernel Production's own sheet: silo runs fill it, and its save books
+                    // shell stock in the browser (modal_production_stages.js:2420-2423). The other stages edit inline.
+                    btn += st.key === 'cracking'
+                        ? '<button type="button" class="btn btn-outline-secondary btn-sm bjd-touch" data-bjd-act="sheet" data-stage="cracking">' + (e ? 'Edit' : 'Add') + '</button>'
+                        : '<button type="button" class="btn btn-outline-secondary btn-sm bjd-touch" data-bjd-act="stage-edit" data-stage="' + st.key + '">' + (e ? 'Edit' : 'Add') + '</button>';
+                } else if (idle && st.key === 'packing' && isJobcardApproved() && jobCardHasContent()) {
+                    btn += '<button type="button" class="btn btn-outline-secondary btn-sm bjd-touch" data-bjd-act="edit" data-section="jobcard">Edit on job card</button>';
                 }
                 var open = state.openStage === st.key;
                 body += '<div class="bjd-subcard' + (e ? '' : ' bjd-subcard--empty') + (open ? ' bjd-subcard--open' : '') + '">' +
-                    '<div class="d-flex justify-content-between align-items-center gap-2"><h4 class="h6 mb-0">' + esc(st.label) + '</h4>' + btn + '</div>' +
-                    stageSummaryHtml(st.key, e) + '</div>';
+                    '<div class="d-flex justify-content-between align-items-center gap-2 flex-wrap"><h4 class="h6 mb-0">' + esc(st.label) + '</h4><div class="d-flex gap-1">' + btn + '</div></div>' +
+                    stageSummaryHtml(st.key, e) +
+                    (st.key === 'cracking' && day.date ? '<div class="small bjd-runs-note" data-runs-date="' + esc(day.date) + '"></div>' : '') +
+                    (st.key === 'packing' && isJobcardApproved() ? '<div class="small text-muted"><i class="fas fa-lock me-1"></i>Locked: stock follows the approved job card.</div>' : '') +
+                    '</div>';
             });
             body += '</div>';
             if (state.openStage) body += stagePanelHtml(day, state.openStage);
@@ -979,8 +1305,12 @@ var _batchJourneyDetail = (function () {
         } else {
             h += '<button type="button" class="btn btn-outline-secondary btn-sm bjd-touch" data-bjd-act="stage-close">Close</button>';
         }
+        if (!lock && day.date && !state.saving) {
+            // The whole Kernel Production sheet for this day (all four tabs, signature pad, silo runs).
+            h += '<button type="button" class="btn btn-outline-secondary btn-sm bjd-touch" data-bjd-act="sheet" data-stage="' + stageKey + '"' + (editing ? ' disabled' : '') + '>Open full sheet</button>';
+        }
         h += '</div></div>';
-        if (lock && !editing) h += '<p class="small text-muted mb-2"><i class="fas fa-lock me-1"></i>' + esc(lock) + (stageKey === 'cracking' || !day.date ? ' <button type="button" class="btn btn-link btn-sm p-0 align-baseline" data-bjd-act="open-production">Open Kernel Production</button>' : '') + '</p>';
+        if (lock && !editing) h += '<p class="small text-muted mb-2"><i class="fas fa-lock me-1"></i>' + esc(lock) + (!day.date ? ' <button type="button" class="btn btn-link btn-sm p-0 align-baseline" data-bjd-act="open-production">Open Kernel Production</button>' : '') + '</p>';
         if (editing) {
             h += stageEditorHtml(stageKey, e || {}, day);
         } else {
@@ -1005,7 +1335,7 @@ var _batchJourneyDetail = (function () {
             }
             if (spec.type === 'signature') {
                 var sig = hasText(v) ? (String(v).indexOf('data:image') === 0 ? 'On file' : String(v)) : 'Not signed';
-                h += '<div class="col-12 col-sm-6 col-xl-4"><label class="form-label small mb-1">' + label + '</label><input type="text" class="form-control" value="' + esc(sig) + '" readonly><div class="form-text">Signed on Kernel Production.</div></div>';
+                h += '<div class="col-12 col-sm-6 col-xl-4"><label class="form-label small mb-1">' + label + '</label><input type="text" class="form-control" value="' + esc(sig) + '" readonly><div class="form-text">Drawn by hand: use "Open full sheet" to sign again.</div></div>';
                 return;
             }
             if (spec.type === 'bool') {
@@ -1017,7 +1347,8 @@ var _batchJourneyDetail = (function () {
             var isKg = !!(spec.unit && /^kg$/.test(spec.unit));
             var readonly = calc.indexOf(spec.key) >= 0 || !!factorKg[spec.key];
             var shown = v == null || v === '' ? '' : (isKg && kgNum(v) != null ? _common.formatKg(kgNum(v)) : String(v));
-            var hint = calc.indexOf(spec.key) >= 0 ? 'Calculated' : (factorKg[spec.key] ? 'Crates × ' + _common.formatKg(factorKg[spec.key]) + ' kg' : '');
+            var hint = calc.indexOf(spec.key) >= 0 ? stageCalcNote(stageKey, spec.key)
+                : (factorKg[spec.key] ? 'Calculated: crates × ' + _common.formatKg(factorKg[spec.key]) + ' kg (Settings)' : '');
             h += '<div class="col-12 col-sm-6 col-xl-4"><label class="form-label small mb-1" for="' + id + '">' + label + '</label>' +
                 '<input type="text" class="form-control' + (isKg ? ' text-end js-kg-input' : '') + '"' + (isKg || /crates|cartons|_diff/.test(spec.key) ? ' inputmode="decimal"' : '') +
                 ' id="' + id + '" data-stage-key="' + spec.key + '" data-stage-type="' + (isKg ? 'kg' : 'text') + '" value="' + esc(shown) + '"' + (readonly ? ' readonly tabindex="-1"' : '') + '>' +
@@ -1111,14 +1442,19 @@ var _batchJourneyDetail = (function () {
         var badge = has
             ? (approved ? '<span class="badge rounded-pill text-bg-light border">Approved</span>' : '<span class="badge rounded-pill text-bg-light border">Draft — not approved</span>')
             : '';
+        var finished = !!(state.detail && state.detail.production_finished_at);
         var body;
         if (state.editing === 'jobcard') body = jobCardEditHtml();
-        else if (!has) body = '<p class="text-muted mb-0">Not started. Kernel Production fills the job card in when production is finished; it can be edited here after that.</p>';
-        else body = jobCardViewHtml();
+        else if (!has) {
+            body = finished
+                ? '<p class="text-muted mb-0">No job card yet.</p>'
+                : '<p class="text-muted mb-0">Not started. Kernel Production fills the job card in from the packing sheet when production is finished. You can start it early here, but then it is not filled in for you.</p>';
+        } else body = jobCardViewHtml();
+        var startBtn = '<button type="button" class="btn btn-outline-secondary btn-sm bjd-touch" data-bjd-act="jc-start">' + (finished ? 'Start job card' : 'Start job card early') + '</button>';
         return sectionHtml('jobcard', {
             body: body,
             badge: badge,
-            headerButtons: has ? editButton('jobcard') : '',
+            headerButtons: has ? editButton('jobcard') : startBtn,
             saveLabel: 'job card draft'
         });
     }
@@ -1187,26 +1523,37 @@ var _batchJourneyDetail = (function () {
     function jobCardEditHtml() {
         var pre = jcVal('removed_pre_sizer_kg');
         if (pre == null) pre = intake().removed_pre_sizer_kg;
+        var row = state.row || {};
+        var d = state.detail || {};
+        // A new card starts from what the batch already knows (as the job card dialog prefills receiving weights).
+        var totalWeight = jcVal('total_weight_kg');
+        if (totalWeight == null) totalWeight = row.actual_wet_nis_kg != null ? row.actual_wet_nis_kg : (d.actual_wet_nis_kg != null ? d.actual_wet_nis_kg : row.wet_nis_received_kg);
+        var recvMoisture = jcVal('receiving_moisture_percentage');
+        if (recvMoisture == null && ziplock()) recvMoisture = ziplock().moisture_result;
         var h = '';
         if (isJobcardApproved()) {
             h += '<div class="alert alert-warning small">This job card is approved. Saving updates the batch\'s stock by style straight away.</div>';
+        } else if (!jobCardHasContent() && !d.production_finished_at) {
+            h += '<div class="alert alert-warning small">Starting the job card before production is finished: Kernel Production will <strong>not</strong> fill it in from the packing sheet when production is finished (it only fills an empty job card), so enter the packed styles yourself.</div>';
         }
         h += '<div class="row g-2">';
         h += jcField('bjdJc_batch_number', 'Batch number', jcVal('batch_number') || (state.detail || {}).batch_number);
         h += jcField('bjdJc_received_date', 'Received date', jcVal('received_date') || (state.detail || {}).received_date, { type: 'date' });
         h += jcField('bjdJc_supplier', 'Supplier', jcVal('supplier_name') || (state.row || {}).grower_name || (state.detail || {}).grower_name, { readonly: true, hint: 'Change the grower under Batch details.' });
         h += '</div><h4 class="bjd-subhead">Receiving</h4><div class="row g-2">';
-        h += jcField('bjdJc_total_weight_kg', 'Total weight (kg)', jcVal('total_weight_kg'), { type: 'kg' });
+        h += jcField('bjdJc_total_weight_kg', 'Total weight (kg)', totalWeight, { type: 'kg' });
         h += jcField('bjdJc_removed_pre_sizer_kg', 'Removed pre-sizer (kg)', pre, { type: 'kg' });
-        h += jcField('bjdJc_balance_kg', 'Balance (kg)', jcVal('balance_kg'), { type: 'kg', readonly: true, hint: 'Total weight − pre-sizer' });
+        h += jcField('bjdJc_balance_kg', 'Balance (kg)', jcVal('balance_kg'), { type: 'kg', readonly: true, hint: 'Calculated: total weight − pre-sizer' });
         h += '</div><h4 class="bjd-subhead">Moisture</h4><div class="row g-2">';
-        h += jcField('bjdJc_receiving_moisture_percentage', 'Receiving (%)', jcVal('receiving_moisture_percentage'), { type: 'number' });
+        h += jcField('bjdJc_receiving_moisture_percentage', 'Receiving (%)', recvMoisture, { type: 'number' });
         h += jcField('bjdJc_packing_moisture_percentage', 'Packing (%)', jcVal('packing_moisture_percentage'), { type: 'number' });
-        h += jcField('bjdJc_removed_moisture_percentage', 'Removed (%)', jcVal('removed_moisture_percentage'), { type: 'number', readonly: true, hint: 'Receiving − packing' });
+        h += jcField('bjdJc_removed_moisture_percentage', 'Removed (%)', jcVal('removed_moisture_percentage'), { type: 'number', readonly: true, hint: 'Calculated: receiving − packing' });
         h += '</div><h4 class="bjd-subhead">Packing</h4><div class="row g-2">';
         h += jcField('bjdJc_packing_start_date', 'Start date', jcVal('packing_start_date'), { type: 'date' });
         h += jcField('bjdJc_packing_completion_date', 'Completion date', jcVal('packing_completion_date'), { type: 'date' });
-        h += jcField('bjdJc_best_before_date', 'Best before', jcVal('best_before_date'), { type: 'date', readonly: true, hint: 'Follows the start date (shelf life from Settings)' });
+        // Overridable: Kernel Production's own "Edit batch details" sets best before directly
+        // (update_kernel_stock_batch_info → job_card_data.best_before_date, 20260815140000:90-94).
+        h += jcField('bjdJc_best_before_date', 'Best before', jcVal('best_before_date'), { type: 'date', hint: 'Calculated from the start date + shelf life (Settings) when the start date changes; you can type over it.' });
         h += '</div>';
         ['sound', 'butter'].forEach(function (g) {
             h += '<h4 class="bjd-subhead">' + (g === 'sound' ? 'Sound kernel' : 'Butter grade') + '</h4>';
@@ -1223,9 +1570,9 @@ var _batchJourneyDetail = (function () {
         h += jcField('bjdJc_waste_compost_kg', 'Compost (kg)', jcVal('waste_compost_kg'), { type: 'kg' });
         h += jcField('bjdJc_waste_shell_kg', 'Shell (kg)', jcVal('waste_shell_kg'), { type: 'kg' });
         h += '</div><h4 class="bjd-subhead">Mass balance</h4><div class="row g-2">';
-        h += jcField('bjdJc_mass_balance_in_kg', 'In (kg)', jcVal('mass_balance_in_kg'), { type: 'kg', readonly: true });
-        h += jcField('bjdJc_mass_balance_out_kg', 'Out (kg)', jcVal('mass_balance_out_kg'), { type: 'kg', readonly: true });
-        h += jcField('bjdJc_mass_balance_percentage', 'Mass balance (%)', jcVal('mass_balance_percentage'), { type: 'number', readonly: true });
+        h += jcField('bjdJc_mass_balance_in_kg', 'In (kg)', jcVal('mass_balance_in_kg'), { type: 'kg', readonly: true, hint: 'Calculated: the balance' });
+        h += jcField('bjdJc_mass_balance_out_kg', 'Out (kg)', jcVal('mass_balance_out_kg'), { type: 'kg', readonly: true, hint: 'Calculated: sound + butter + waste' });
+        h += jcField('bjdJc_mass_balance_percentage', 'Mass balance (%)', jcVal('mass_balance_percentage'), { type: 'number', readonly: true, hint: 'Calculated: out ÷ in' });
         h += '</div><p class="small text-muted mt-2 mb-0">Saves a draft only. Approve the job card on Kernel Production.</p>';
         return h;
     }
@@ -1319,21 +1666,262 @@ var _batchJourneyDetail = (function () {
         h += '</tbody></table></div><div class="row g-2 mt-1">';
         h += '<div class="col-12 col-md-6"><label class="form-label small mb-1" for="bjdQa_supervisor_signed_by">Signed (Supervisor)</label><input type="text" class="form-control" id="bjdQa_supervisor_signed_by" value="' + esc(qa.supervisor_signed_by || '') + '"></div>';
         h += '<div class="col-12 col-md-6"><label class="form-label small mb-1" for="bjdQa_nut_plant_manager_signed_by">Signed (Nut Plant Manager)</label><input type="text" class="form-control" id="bjdQa_nut_plant_manager_signed_by" value="' + esc(qa.nut_plant_manager_signed_by || '') + '"></div>';
-        h += '</div><p class="small text-muted mt-2 mb-0">The lab test PDF and anything else already stored on the end sample are kept. Upload a PDF on Kernel Production.</p>';
+        var pdf = state.qaPdf !== undefined ? state.qaPdf : qa.lab_test_pdf_url;
+        h += '<div class="col-12"><label class="form-label small mb-1" for="bjdQaPdf">Lab test PDF</label><div class="d-flex flex-wrap align-items-center gap-2" id="bjdQaPdfBox">' + qaPdfHtml(pdf) + '</div>' +
+            '<input type="file" accept="application/pdf" class="form-control mt-1" id="bjdQaPdf"><div class="form-text">PDF, up to 10 MB — uploaded the way the End sample dialog uploads it.</div></div>';
+        h += '</div><p class="small text-muted mt-2 mb-0">Anything else already stored on the end sample is kept.</p>';
         return h;
+    }
+
+    function qaPdfHtml(url) {
+        if (!url) return '<span class="small text-muted">None</span>';
+        var link = /^https?:\/\//i.test(String(url))
+            ? '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer"><i class="fas fa-file-pdf me-1"></i>Open</a>'
+            : '<span>' + esc(url) + '</span>';
+        return link + '<button type="button" class="btn btn-outline-secondary btn-sm bjd-touch" data-bjd-act="qa-pdf-remove">Remove</button>';
+    }
+
+    /** Same checks and folder as modal_end_sample.js handleLabTestPdfSelect (10 MB, PDF only). */
+    function uploadQaPdf(input) {
+        var file = input && input.files && input.files[0];
+        if (!file) return;
+        if (file.size > 10 * 1024 * 1024) { showError('File too large. Max 10MB.'); input.value = ''; return; }
+        if (file.type !== 'application/pdf') { showError('Please select a PDF file.'); input.value = ''; return; }
+        if (typeof _common === 'undefined' || !_common.uploadFile) { showError('Upload is not available.'); return; }
+        $('#bjdQaPdfBox').html('<span class="small text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Uploading…</span>');
+        Promise.resolve(_common.uploadFile({ file: file, resourceFolder: 'EFS Assist/PreInspections/', fileId: file.name })).then(function (res) {
+            if (!(res && res.Success && res.Data && res.Data.fileLink)) throw new Error((res && res.LastErrorDescription) || 'Upload failed');
+            state.qaPdf = res.Data.fileLink;
+            $('#bjdQaPdfBox').html(qaPdfHtml(state.qaPdf));
+        }).catch(function (err) {
+            input.value = '';
+            $('#bjdQaPdfBox').html(qaPdfHtml(state.qaPdf !== undefined ? state.qaPdf : qaData().lab_test_pdf_url));
+            showError('Error uploading PDF: ' + ((err && err.message) || 'Upload failed'));
+        });
     }
 
     // ------------------------------------------------------------------ Dispatch
 
+    /** Kernel Dispatch's edit dialog refuses dispatched and cancelled orders (modal_kernel_dispatch_edit.js:112-120). */
+    function orderLocked(status) {
+        var st = String(status || '').toLowerCase();
+        if (st === 'dispatched') return 'Already dispatched. Re-open the basket on Kernel Dispatch (Edit) to change it.';
+        if (st === 'cancelled') return 'Cancelled when its last line went back to stock.';
+        return '';
+    }
+
+    function lineIsThisBatch(line) {
+        var d = state.detail || {};
+        var row = state.row || {};
+        return typeof dispatchLineMatchesBatch === 'function' &&
+            dispatchLineMatchesBatch(line, state.kernelId, d.batch_number || row.batch_number, row.batch_id);
+    }
+
+    function lineCartons(line) {
+        var ct = numOrNull(line && line.cartons);
+        if (ct != null) return ct;
+        var kg = numOrNull(line && line.quantity_kg);
+        return kg != null ? Math.round(kg / KG_PER_CARTON) : 0;
+    }
+
     function dispatchSectionHtml() {
-        var body = (typeof buildBatchHistoryDispatchPanelHtml === 'function')
-            ? buildBatchHistoryDispatchPanelHtml(state.detail)
-            : '<p class="text-muted mb-0">Dispatch details are not available.</p>';
-        body += '<p class="small text-muted mt-2 mb-0">Orders are edited on Kernel Dispatch because one order can hold several batches.</p>';
+        var orders = dispatchOrders();
+        var editable = orders.some(function (o) { return o && !orderLocked(o.status != null ? o.status : o.Status); });
+        var body;
+        if (state.editing === 'dispatch') {
+            body = dispatchEditHtml();
+        } else {
+            body = (typeof buildBatchHistoryDispatchPanelHtml === 'function')
+                ? buildBatchHistoryDispatchPanelHtml(state.detail)
+                : '<p class="text-muted mb-0">Dispatch details are not available.</p>';
+            body += '<p class="small text-muted mt-2 mb-0">You can change this batch\'s cartons on an order that has not been dispatched. Buyer, dates and the other batches on an order are changed on Kernel Dispatch.</p>';
+        }
+        var buttons = '<button type="button" class="btn btn-link btn-sm bjd-touch" data-bjd-act="open-dispatch">Open Kernel Dispatch</button>';
+        if (editable) buttons = editButton('dispatch', 'Edit cartons') + buttons;
         return sectionHtml('dispatch', {
             body: '<div class="bjd-dispatch">' + body + '</div>',
-            headerButtons: '<button type="button" class="btn btn-link btn-sm bjd-touch" data-bjd-act="open-dispatch">Open Kernel Dispatch</button>'
+            headerButtons: buttons,
+            saveLabel: 'cartons'
         });
+    }
+
+    function dispatchEditHtml() {
+        var full = state.dispatchFull || [];
+        if (!full.length) return '<p class="text-muted mb-0">No orders could be loaded.</p>';
+        var h = '';
+        full.forEach(function (f, oi) {
+            var o = f.order || {};
+            var lock = orderLocked(o.status);
+            h += '<div class="bjd-subcard mb-3"><div class="d-flex flex-wrap align-items-center gap-2"><span class="fw-semibold">' + esc(o.buyer_name || 'Buyer not set') + '</span>' +
+                (o.status ? '<span class="badge text-bg-light border text-uppercase">' + esc(o.status) + '</span>' : '') +
+                '<span class="small text-muted">Delivery ' + esc(dateText(o.delivery_date)) + '</span></div>';
+            if (lock) h += '<p class="small text-muted mb-1"><i class="fas fa-lock me-1"></i>' + esc(lock) + '</p>';
+            h += '<div class="table-responsive bjd-table-box"><table class="table align-middle mb-0"><thead><tr><th>Style</th><th class="text-end">Cartons</th><th class="text-end">Weight (kg)</th></tr></thead><tbody>';
+            var mine = 0;
+            f.lines.forEach(function (ln, li) {
+                if (!lineIsThisBatch(ln)) return;
+                mine++;
+                var ct = lineCartons(ln);
+                h += '<tr><td>' + esc(ln.style || '—') + '</td><td class="text-end">' +
+                    (lock ? esc(String(ct)) : '<input type="number" min="0" step="1" class="form-control form-control-sm text-end bjd-dispatch-cartons" data-order="' + oi + '" data-line="' + li + '" aria-label="Cartons" value="' + esc(String(ct)) + '">') +
+                    '</td><td class="text-end" data-kg-for="' + oi + '-' + li + '">' + esc(_common.formatKg(ct * KG_PER_CARTON)) + '</td></tr>';
+            });
+            if (!mine) h += '<tr><td colspan="3" class="text-muted">No line for this batch.</td></tr>';
+            h += '</tbody></table></div>';
+            var others = f.lines.length - mine;
+            if (others > 0) h += '<p class="small text-muted mt-1 mb-0">' + others + ' line' + (others === 1 ? '' : 's') + ' for other batches stay exactly as they are.</p>';
+            h += '</div>';
+        });
+        h += '<p class="small text-muted mb-0">Weight is calculated: cartons × 11.34 kg. Setting 0 keeps the line on the order at 0; to take a line off the order use "Send back to stock" on Kernel Dispatch.</p>';
+        return h;
+    }
+
+    function loadDispatchFull() {
+        var d = df();
+        if (!d || !d.getKernelDispatchOrder) return Promise.reject(new Error('Dispatch orders cannot be loaded. Refresh the page and try again.'));
+        var ids = dispatchOrders().map(function (o) { return o && (o.id != null ? o.id : o.Id); }).filter(Boolean);
+        return Promise.all(ids.map(function (id) { return d.getKernelDispatchOrder(id); })).then(function (rows) {
+            state.dispatchFull = (rows || []).filter(function (r) { return r && r.order; });
+        });
+    }
+
+    function saveDispatch() {
+        var d = df();
+        if (!d || !d.updateKernelDispatchOrder || !d.getKernelDispatchOrder) throw new Error('Save is not available. Refresh the page and try again.');
+        var full = state.dispatchFull || [];
+        var changes = {}; // order index -> { lineIndex: cartons }
+        var added = 0;
+        var problems = [];
+        $('#' + CONTAINER_ID + ' .bjd-dispatch-cartons').each(function () {
+            var oi = parseInt(this.getAttribute('data-order'), 10);
+            var li = parseInt(this.getAttribute('data-line'), 10);
+            var raw = $.trim(this.value || '');
+            var n = parseInt(raw, 10);
+            if (raw === '' || isNaN(n) || n < 0 || String(n) !== raw.replace(/^0+(?=\d)/, '')) { problems.push('Cartons must be whole numbers, 0 or more'); return; }
+            var before = lineCartons(full[oi].lines[li]);
+            if (n === before) return;
+            if (n > before) added += n - before;
+            changes[oi] = changes[oi] || {};
+            changes[oi][li] = n;
+        });
+        if (problems.length) throw new Error(problems[0] + '.');
+        var orderIdx = Object.keys(changes);
+        if (!orderIdx.length) return Promise.resolve('Nothing changed.');
+
+        var run = function () {
+            // One order at a time. Each is re-read first: if anyone changed it since this form opened, stop.
+            return orderIdx.reduce(function (p, oi) {
+                return p.then(function () {
+                    var f = full[oi];
+                    var id = f.order.id;
+                    return d.getKernelDispatchOrder(id).then(function (fresh) {
+                        if (!fresh || !fresh.order) throw new Error('An order could not be found any more. Reload and try again.');
+                        if (orderLocked(fresh.order.status)) throw new Error('The order for ' + (fresh.order.buyer_name || 'this buyer') + ' was dispatched or cancelled meanwhile. Nothing was changed on it.');
+                        if (JSON.stringify(fresh.lines) !== JSON.stringify(f.lines)) throw new Error('The order for ' + (fresh.order.buyer_name || 'this buyer') + ' was changed by someone else since you opened this form. Cancel, reopen and try again.');
+                        // Every line goes back as stored; only this batch's edited lines get new cartons.
+                        var lines = fresh.lines.map(function (ln, li) {
+                            if (changes[oi][li] == null) return ln;
+                            var n = changes[oi][li];
+                            return Object.assign({}, ln, { cartons: n, quantity_kg: Math.round(n * KG_PER_CARTON * 100) / 100 });
+                        });
+                        // Buyer / dates are passed as null, which update_kernel_dispatch_order leaves unchanged
+                        // (20261013090100_kernel_dispatch_planned_collection_date.sql:223-227).
+                        return d.updateKernelDispatchOrder({ order_id: id, lines: lines });
+                    }).then(function (r) { assertOk(r, 'update_kernel_dispatch_order'); });
+                });
+            }, Promise.resolve()).then(function () {
+                if (typeof d.clearCachePattern === 'function') d.clearCachePattern('kernel_batches');
+                return 'Cartons saved. Stock on hand follows the new order lines.';
+            });
+        };
+        if (!added) return run();
+        return confirmBox('Take ' + added + ' more carton' + (added === 1 ? '' : 's') + ' of this batch?',
+            'Adding cartons to an order takes them from this batch\'s stock on hand. Neither this page nor Kernel Dispatch checks how much stock is left, so check Stock (Kernel) first.',
+            'Save cartons').then(function (ok) { return ok ? run() : null; });
+    }
+
+    // ------------------------------------------------------------------ Kernel Production's own sheet (reused, not copied)
+
+    /**
+     * Load Kernel Production's production-stages dialog (and the batch summary it links to) into this page
+     * exactly the way Kernel Production does: router loadContent into empty .modal containers, then init
+     * (kernel_production_grid.js:274-287). Done once per visit; the router only fetches the scripts once.
+     */
+    function ensureProductionSheet() {
+        var $m = $('#productionStagesModal');
+        if (!$m.length) return Promise.reject(new Error('The production sheet is not available on this page. Refresh and try again.'));
+        if ($m.data('bjdLoaded')) return Promise.resolve();
+        if (typeof _appRouter === 'undefined' || !_appRouter.loadContent) return Promise.reject(new Error('The production sheet cannot be loaded. Refresh and try again.'));
+        var loads = [_appRouter.loadContent({ routeName: 'production-stages-modal', elementSelector: '#productionStagesModal' })];
+        if ($('#batchSummaryModal').length) loads.push(_appRouter.loadContent({ routeName: 'batch-summary-modal', elementSelector: '#batchSummaryModal' }));
+        return Promise.all(loads).then(function () {
+            if (typeof _modal_production_stages === 'undefined' || !_modal_production_stages.showProductionStagesModalForBatch) {
+                throw new Error('The production sheet did not load. Refresh and try again.');
+            }
+            _modal_production_stages.init();
+            $m.data('bjdLoaded', true);
+        });
+    }
+
+    /**
+     * Open the real Kernel Production sheet for this batch on one day and tab. Its save is the one Kernel
+     * Production uses: upsert_kernel_production for the day, then autoCreateShellLotFromProduction for the
+     * shell total (modal_production_stages.js:2420-2423), with cracking filled from the silo runs (runs mode).
+     */
+    function openProductionSheet(date, tab) {
+        ensureProductionSheet().then(function () {
+            // A tab opened before this deploy has the older sheet, which cannot open outside Kernel Production.
+            if (_modal_production_stages.showProductionStagesModalForBatch.length < 2) {
+                throw new Error('This tab has an older version of the production sheet. Refresh the page and try again.');
+            }
+            var $m = $('#productionStagesModal');
+            $m.off('hidden.bs.modal.bjd').on('hidden.bs.modal.bjd', function () {
+                $m.off('hidden.bs.modal.bjd');
+                // The sheet flushes its last autosave while closing; give that a moment, then re-read the batch.
+                state.runsByDate = {};
+                setTimeout(function () { if (state.kernelId) reloadAll(); }, 1500);
+            });
+            _modal_production_stages.showProductionStagesModalForBatch(state.kernelId, batchForForm(), { date: date, tab: tab || 'cracking' });
+        }).catch(function (err) {
+            showError((err && err.message) || 'Could not open the production sheet.');
+        });
+    }
+
+    /**
+     * Compare the cracking sheet with the silo Cracking log for a day. From 26 Oct 2026 closed runs are the
+     * record and fill the sheet automatically (sync_batch_cracking_from_runs, 20261030150000:1-22), so a
+     * difference means the sheet was typed over or a run changed since.
+     */
+    function loadRunsNote(date) {
+        var d = df();
+        if (!date || date < '2026-10-26' || !d || typeof d.getBatchCrackingRuns !== 'function') return;
+        var cached = state.runsByDate[date];
+        if (cached && !cached.loading) { paintRunsNote(date); return; }
+        if (cached && cached.loading) return;
+        state.runsByDate[date] = { loading: true };
+        Promise.resolve().then(function () { return d.getBatchCrackingRuns(state.kernelId, date); }).then(function (res) {
+            if (!res || res.success === false || !Array.isArray(res.runs)) throw new Error('unavailable');
+            var total = numOrNull(res.total_batch_kg);
+            if (total == null) total = res.runs.reduce(function (a, r) { return a + (numOrNull(r && r.batch_kg) || 0); }, 0);
+            state.runsByDate[date] = { total: total, count: res.runs.length };
+        }).catch(function () {
+            state.runsByDate[date] = { error: true };
+        }).then(function () { paintRunsNote(date); });
+    }
+
+    function paintRunsNote(date) {
+        var info = state.runsByDate[date];
+        var $el = $('#' + CONTAINER_ID + ' .bjd-runs-note[data-runs-date="' + date + '"]');
+        if (!$el.length || !info || info.loading || info.error || !info.count) { $el.empty(); return; }
+        var day = productionDays().filter(function (x) { return x.date === date; })[0];
+        var sheetKg = day && day.stages.cracking ? crackKg(day.stages.cracking) : null;
+        var runsText = _common.formatKg(info.total) + ' kg in ' + info.count + ' silo run' + (info.count === 1 ? '' : 's');
+        if (sheetKg != null && Math.abs(sheetKg - info.total) <= 0.5) {
+            $el.attr('class', 'small text-muted bjd-runs-note').text('Matches the silo Cracking log (' + runsText + ').');
+        } else {
+            $el.attr('class', 'small bjd-runs-note bjd-runs-note--diff')
+                .text('Silo Cracking log: ' + runsText + '; this sheet: ' + (sheetKg != null ? _common.formatKg(sheetKg) + ' kg' : 'nothing') + '. Opening the sheet refills it from the runs.');
+        }
     }
 
     // ------------------------------------------------------------------ after render wiring
@@ -1343,8 +1931,10 @@ var _batchJourneyDetail = (function () {
             KernelBatchEdit.bindBatchNumberSuggestion(batchForForm(), BATCH_FORM_PREFIX);
         }
         if (state.editing === 'receiving') updateItemsTotal();
+        if (state.editing === 'delivery') updateBagsTotal();
         if (state.editing === 'jobcard') recalcJobCard();
         if (state.editing === 'stage' && state.openStage) recalcStage(state.openStage, true);
+        $('#' + CONTAINER_ID + ' .bjd-runs-note[data-runs-date]').each(function () { loadRunsNote(this.getAttribute('data-runs-date')); });
     }
 
     function scrollToSection(key) {
@@ -1373,6 +1963,7 @@ var _batchJourneyDetail = (function () {
             need('buildBatchHistoryDispatchPanelHtml', 'modules/modals/modal-batch-history/js/modal_batch_history.js'),
             // Shelf life (best before) and crate kg factors, both from Kernel Pipeline Settings. null on failure.
             (typeof _common !== 'undefined' && _common.loadKernelPipelineConfig) ? _common.loadKernelPipelineConfig().then(function (cfg) {
+                state.cfg = cfg || null;
                 var map = {};
                 if (cfg && Array.isArray(cfg.crate_weights)) {
                     cfg.crate_weights.forEach(function (cw) {
@@ -1685,6 +2276,10 @@ var _batchJourneyDetail = (function () {
         // upsert_kernel_job_card REPLACES job_card_data, so start from what is stored (supplier, production
         // batch id, anything else) and lay the edits over it. Approval flags are stripped: this is a draft save.
         var payload = Object.assign({}, jobCard(), edited);
+        // A card started here carries the same identity keys the job card dialog writes
+        // (supplier from the batch, production_batch_id = kernel id).
+        if (payload.supplier_id == null && payload.p_supplier_id == null && (state.row || {}).supplier_id) payload.supplier_id = state.row.supplier_id;
+        if (payload.production_batch_id == null && payload.p_production_batch_id == null) payload.production_batch_id = state.kernelId;
         delete payload.jobcard_approved;
         delete payload.submit_action;
         delete payload._submit_action;
@@ -1715,6 +2310,7 @@ var _batchJourneyDetail = (function () {
         });
         edited.supervisor_signed_by = $.trim($('#bjdQa_supervisor_signed_by').val() || '') || null;
         edited.nut_plant_manager_signed_by = $.trim($('#bjdQa_nut_plant_manager_signed_by').val() || '') || null;
+        if (state.qaPdf !== undefined) edited.lab_test_pdf_url = state.qaPdf || null;
         // upsert_kernel_qa replaces qa_data whole, so merge onto the stored object: lab_test_pdf_url,
         // completed_at and any flags written by other screens survive.
         var payload = Object.assign({}, existing, edited, { completed_at: existing.completed_at || new Date().toISOString() });
@@ -1729,6 +2325,8 @@ var _batchJourneyDetail = (function () {
         var run;
         try {
             if (section === 'details') run = saveDetails();
+            else if (section === 'delivery') run = saveDelivery();
+            else if (section === 'dispatch') run = saveDispatch();
             else if (section === 'receiving') run = saveReceiving();
             else if (section === 'samples') run = saveSamples();
             else if (section === 'stage') run = saveStage();
@@ -1747,6 +2345,8 @@ var _batchJourneyDetail = (function () {
             if (msg == null) return;  // cancelled at a confirm; the form is untouched
             state.editing = null;
             state.stageEditing = false;
+            state.dispatchFull = null;
+            state.qaPdf = undefined;
             toast('Saved', msg);
             return reloadAll();
         }).catch(function (err) {
@@ -1795,6 +2395,17 @@ var _batchJourneyDetail = (function () {
                 load.then(function () { state.editing = 'details'; render(); scrollToSection('details'); });
                 return;
             }
+            if (section === 'delivery' || section === 'dispatch') {
+                // Both need a fresh read first: where each bag is now / the full orders with every batch's lines.
+                var pre = section === 'delivery' ? loadBagLocations() : loadDispatchFull();
+                pre.then(function () {
+                    state.editing = section;
+                    render();
+                    scrollToSection(section);
+                }).catch(function (err) { showError((err && err.message) || 'Could not start editing.'); });
+                return;
+            }
+            state.qaPdf = undefined;
             state.editing = section;
             render();
             scrollToSection(section);
@@ -1837,7 +2448,32 @@ var _batchJourneyDetail = (function () {
                 case 'cancel':
                     state.editing = null;
                     state.stageEditing = false;
+                    state.dispatchFull = null;
+                    state.qaPdf = undefined;
                     render();
+                    break;
+                case 'sheet':
+                    leaveEditIfAllowed().then(function (ok) {
+                        if (ok) openProductionSheet(state.dayKey, $t.attr('data-stage'));
+                    });
+                    break;
+                case 'jc-start':
+                    if (state.detail && state.detail.production_finished_at) { startEdit('jobcard'); break; }
+                    confirmBox('Start the job card early?',
+                        'Kernel Production only fills in an <strong>empty</strong> job card when production is finished. If you start it now, you enter the packed styles yourself.',
+                        'Start it').then(function (ok) { if (ok) startEdit('jobcard'); });
+                    break;
+                case 'add-bag':
+                    $('#bjdBagsBody').append(bagRowHtml({ no: nextBagNo() }, true));
+                    updateBagsTotal();
+                    break;
+                case 'remove-bag':
+                    $t.closest('tr').remove();
+                    updateBagsTotal();
+                    break;
+                case 'qa-pdf-remove':
+                    state.qaPdf = null;
+                    $('#bjdQaPdfBox').html(qaPdfHtml(null));
                     break;
                 case 'save':
                     save($t.attr('data-section'));
@@ -1899,6 +2535,13 @@ var _batchJourneyDetail = (function () {
             $('#bjdChkCmt_' + key).toggleClass('d-none', !bad);
         });
         $c.on('input', '#bjdItemsBody input[data-item="quantity_kg"]', updateItemsTotal);
+        $c.on('input', '#bjdBagsBody input[data-bag="weight_kg"]', updateBagsTotal);
+        $c.on('change', '#bjdQaPdf', function () { uploadQaPdf(this); });
+        $c.on('input change', '.bjd-dispatch-cartons', function () {
+            var n = parseInt(this.value, 10);
+            $('#' + CONTAINER_ID + ' [data-kg-for="' + this.getAttribute('data-order') + '-' + this.getAttribute('data-line') + '"]')
+                .text(isNaN(n) || n < 0 ? '—' : _common.formatKg(n * KG_PER_CARTON));
+        });
         $c.on('input change', '#bjdStagePanel [data-stage-key]', function () {
             if (state.openStage) recalcStage(state.openStage, false);
         });

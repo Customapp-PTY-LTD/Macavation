@@ -380,3 +380,11 @@
 .bjd-dispatch .table {
     margin-bottom: 0.5rem;
 }
+
+/* Cracking sheet vs silo Cracking log */
+.bjd-runs-note--diff {
+    color: var(--mac-warning-text);
+    background: var(--mac-warning-light);
+    border-radius: var(--mac-radius-sm);
+    padding: 0.25rem 0.5rem;
+}
