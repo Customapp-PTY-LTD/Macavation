@@ -330,7 +330,7 @@ var _modal_production_stages = (function () {
                 e.preventDefault();
                 scope.showBatchSummary();
             });
-            $(document).on('click', '#batchSummaryFinishProductionBtn', function (e) {
+            $(document).off('click.mpsInit', '#batchSummaryFinishProductionBtn').on('click.mpsInit', '#batchSummaryFinishProductionBtn', function (e) {
                 e.preventDefault();
                 var batchId = $('#batchSummaryModal').data('current-batch-id') || $('#productionStagesBatchId').val();
                 if (!batchId) {
@@ -351,7 +351,7 @@ var _modal_production_stages = (function () {
             $(document).on('change input', '#ps_crack_start1, #ps_crack_end1', function () {
                 scope.updateCrackTimeSpentRow(1);
             });
-            $(document).on('click', '.js-clear-time-input', function (e) {
+            $(document).off('click.mpsInit', '.js-clear-time-input').on('click.mpsInit', '.js-clear-time-input', function (e) {
                 e.preventDefault();
                 var targetSel = this.getAttribute('data-target');
                 if (!targetSel) return;
@@ -450,11 +450,11 @@ var _modal_production_stages = (function () {
             $('#productionStagesModal').off('hide.bs.modal').on('hide.bs.modal', function () {
                 scope.flushAutoSave();
             });
-            $(document).on('click', '#productionStagesDayList [data-day-id]', function () {
+            $(document).off('click.mpsInit', '#productionStagesDayList [data-day-id]').on('click.mpsInit', '#productionStagesDayList [data-day-id]', function () {
                 var dayId = $(this).attr('data-day-id');
                 if (dayId) scope.selectProductionDay(dayId);
             });
-            $(document).on('click', '#addProductionDayBtn', function (e) {
+            $(document).off('click.mpsInit', '#addProductionDayBtn').on('click.mpsInit', '#addProductionDayBtn', function (e) {
                 e.preventDefault();
                 scope.addProductionDay();
             });
@@ -2460,9 +2460,16 @@ var _modal_production_stages = (function () {
             }
         },
 
-        showProductionStagesModalForBatch: (batchId) => {
+        /**
+         * batchRow / opts are optional (Kernel Production passes neither, so it behaves exactly as before).
+         * Find a batch's batch page opens this same sheet for its own batch: it hands over the get_kernel_batches
+         * row (that screen has no _kernelProductionGrid) and the day + tab to show first:
+         * opts = { date: 'YYYY-MM-DD', tab: 'cracking' | 'washing' | 'sorting' | 'packing' }.
+         */
+        showProductionStagesModalForBatch: (batchId, batchRow, opts) => {
             const scope = _modal_production_stages;
-            var batch = typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch ? _kernelProductionGrid.getBatch(batchId) : null;
+            opts = opts || {};
+            var batch = batchRow || (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch ? _kernelProductionGrid.getBatch(batchId) : null);
             if (!batch) {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not found', 'error');
                 return;
@@ -2518,6 +2525,10 @@ var _modal_production_stages = (function () {
                 scope.refreshProductionDatePickers();
                 scope.setProductionStagesTabsVisibility(true);
                 var first = list[0];
+                if (opts.date) {
+                    var wanted = list.filter(function (d) { return d.id === opts.date; })[0];
+                    if (wanted) first = wanted;
+                }
                 $('#productionStagesDayId').val(first.id);
 
                 return scope.populateProductionGrowerSelects(batch.grower_name || '').then(function () {
@@ -2540,8 +2551,10 @@ var _modal_production_stages = (function () {
                 scope.refreshProductionDatePickers();
                 var modalEl = document.getElementById('productionStagesModal');
                 var doRestoreTab = function () {
-                    var savedTab = null;
-                    try { savedTab = localStorage.getItem('kernelProduction_lastTab_' + batchId); } catch (err) {}
+                    var savedTab = opts.tab || null;
+                    if (!savedTab) {
+                        try { savedTab = localStorage.getItem('kernelProduction_lastTab_' + batchId); } catch (err) {}
+                    }
                     var tabNames = ['cracking', 'washing', 'sorting', 'packing'];
                     if (savedTab && tabNames.indexOf(savedTab) !== -1) {
                         var tabBtn = document.getElementById('tab-' + savedTab);

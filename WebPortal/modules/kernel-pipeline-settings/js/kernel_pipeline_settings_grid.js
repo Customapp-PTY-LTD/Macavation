@@ -175,6 +175,41 @@ var _kernelPipelineSettingsGrid = (function () {
         return card('Batch numbers & bags', body, saveBtn('kpsSaveBatch'));
     }
 
+    // Where nut-in-shell bags are weighed (migration 20261103090000, setting bag_weighing).
+    function bagWeighValue(cfg) {
+        var v = (cfg && cfg.settings && cfg.settings.bag_weighing) || {};
+        return { where: v.where === 'intake' ? 'intake' : 'silo', silo_unweighed: v.silo_unweighed === 'block' ? 'block' : 'allow' };
+    }
+
+    function bagWeighCard(cfg) {
+        var v = bagWeighValue(cfg);
+        var opt = function (name, value, title, text) {
+            return '<label class="kps-choice' + (v[name === 'kpsBagWhere' ? 'where' : 'silo_unweighed'] === value ? ' is-on' : '') + '">' +
+                '<input class="form-check-input" type="radio" name="' + name + '" value="' + value + '"' +
+                (v[name === 'kpsBagWhere' ? 'where' : 'silo_unweighed'] === value ? ' checked' : '') + dis() + '>' +
+                '<span><strong>' + esc(title) + '</strong>' + (text ? '<span class="d-block small text-muted">' + esc(text) + '</span>' : '') + '</span></label>';
+        };
+        var body = '<fieldset class="mb-3"><legend class="form-label fw-semibold fs-6">Where are bags weighed?</legend>' +
+            opt('kpsBagWhere', 'intake', 'At New delivery', 'Every bag needs a weight before the delivery can be saved. The silo uses that weight. (How it worked before.)') +
+            opt('kpsBagWhere', 'silo', 'At the silo (estimate at New delivery)', 'Enter the number of bags. Bags without a weight get the average: supplier’s weight ÷ number of bags, marked est. Bags that are weighed at New delivery keep their weight. Each estimated bag is weighed when it goes into a silo.') +
+            '</fieldset><fieldset><legend class="form-label fw-semibold fs-6">An estimated bag that reaches the silo without being weighed</legend>' +
+            opt('kpsBagSilo', 'allow', 'Can go in at its estimate, with a warning', '') +
+            opt('kpsBagSilo', 'block', 'Must be weighed first', '') +
+            '</fieldset><p class="small text-muted mb-0 mt-2">Changing this only affects deliveries booked in from now on. Bags already booked in keep their weights, weighed or estimated.</p>';
+        return card('Bag weights', body, saveBtn('kpsSaveBagWeigh'));
+    }
+
+    function saveBagWeigh(btn) {
+        var v = {
+            where: $('#kpsModule input[name="kpsBagWhere"]:checked').val() === 'intake' ? 'intake' : 'silo',
+            silo_unweighed: $('#kpsModule input[name="kpsBagSilo"]:checked').val() === 'block' ? 'block' : 'allow'
+        };
+        var old = bagWeighValue(state.cfg);
+        var calls = (old.where === v.where && old.silo_unweighed === v.silo_unweighed) ? [] :
+            [function () { return dataFunctions.setKernelPipelineSetting('bag_weighing', v); }];
+        runAll(btn, calls, 'Bag weights saved.');
+    }
+
     function shelfValues(cfg) {
         var st = (cfg && cfg.settings) || {};
         var months = parseInt(st.kernel_best_before_months, 10);
@@ -257,11 +292,25 @@ var _kernelPipelineSettingsGrid = (function () {
         return card('Silo capacity', '<div class="row g-3 kps-silo-grid">' + cells + '</div>', saveBtn('kpsSaveSilos'));
     }
 
+    // Nut-in-shell storage areas (Grower Intake fill bars). Blank = no capacity, no bar.
+    function storageCard(cfg) {
+        var cells = (cfg.storage_areas || []).map(function (a) {
+            var id = 'kpsArea_' + String(a.code).replace(/[^a-z0-9_]/gi, '');
+            return '<div class="col-6 col-md-3"><label class="form-label" for="' + id + '">' + esc(a.label) + ' (kg)</label>' +
+                '<input type="text" inputmode="decimal" class="form-control form-control-sm kps-num kps-area js-kg-input" id="' + id + '" data-code="' + esc(a.code) + '"' +
+                ' placeholder="No limit" value="' + (a.capacity_kg != null ? kgAttr(a.capacity_kg) : '') + '"' + dis() + '></div>';
+        }).join('');
+        if (!cells) return '';
+        return card('Storage area capacity',
+            '<p class="text-muted small mb-2">How much nut in shell each area holds. Grower Intake shows how full each one is. Leave blank for no limit.</p>' +
+            '<div class="row g-3">' + cells + '</div>', saveBtn('kpsSaveAreas'));
+    }
+
     function render() {
         var cfg = state.cfg;
         $('#kpsNotice').html('');
-        $('#kpsPaneIntake').html(specCard(cfg) + crateCard(cfg) + batchCard(cfg) + shelfCard(cfg));
-        $('#kpsPanePlant').html(targetCard(cfg) + transportCard(cfg) + siloCard(cfg));
+        $('#kpsPaneIntake').html(specCard(cfg) + crateCard(cfg) + batchCard(cfg) + bagWeighCard(cfg) + shelfCard(cfg));
+        $('#kpsPanePlant').html(targetCard(cfg) + transportCard(cfg) + siloCard(cfg) + storageCard(cfg));
     }
 
     function renderTabs() {
@@ -427,6 +476,19 @@ var _kernelPipelineSettingsGrid = (function () {
         runAll(btn, calls, 'Silo capacity saved.');
     }
 
+    function saveAreas(btn) {
+        var calls = [], bad = false;
+        $('#kpsModule .kps-area').each(function () {
+            var code = $(this).attr('data-code'), kg = kgOrNull($(this).val());
+            var old = (state.cfg.storage_areas || []).filter(function (a) { return a.code === code; })[0] || {};
+            if (kg != null && (isNaN(kg) || kg <= 0)) { bad = true; return false; }
+            if (same(old.capacity_kg, kg)) return;
+            calls.push(function () { return dataFunctions.setNisStorageAreaCapacity(code, kg); });
+        });
+        if (bad) { toast('Storage area capacity must be more than 0, or blank.', 'error'); return; }
+        runAll(btn, calls, 'Storage area capacity saved.');
+    }
+
     async function transportSave(kind, name, id, isActive, okMsg) {
         var fn = kind === 'transporter' ? 'upsertTransporter' : 'upsertTransportType';
         try {
@@ -470,8 +532,13 @@ var _kernelPipelineSettingsGrid = (function () {
         $d.on('click' + NS, '#kpsSaveCrates', function () { saveCrates(this); });
         $d.on('click' + NS, '#kpsSaveBatch', function () { saveBatch(this); });
         $d.on('click' + NS, '#kpsSaveShelf', function () { saveShelf(this); });
+        $d.on('click' + NS, '#kpsSaveBagWeigh', function () { saveBagWeigh(this); });
+        $d.on('change' + NS, '#kpsModule .kps-choice input', function () {
+            $('#kpsModule input[name="' + this.name + '"]').each(function () { $(this).closest('.kps-choice').toggleClass('is-on', this.checked); });
+        });
         $d.on('click' + NS, '#kpsSaveTarget', function () { saveTarget(this); });
         $d.on('click' + NS, '#kpsSaveSilos', function () { saveSilos(this); });
+        $d.on('click' + NS, '#kpsSaveAreas', function () { saveAreas(this); });
         $d.on('click' + NS, '#kpsGoRolePerms', function () {
             if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) _appRouter.routeTo('role-permissions-grid');
         });
