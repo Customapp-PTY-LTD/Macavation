@@ -2085,6 +2085,14 @@ var _dataFunctions = function () {
         getSiloRunsBetween: async function (fromIso, toIso, token = null) {
             return this._kpUnwrap(await this.callFunction('get_silo_runs_between', { p_date_from: fromIso, p_date_to: toIso }, token, { useCache: false }));
         },
+        /** { days: [{day, kg, minutes, runs, emptied}] } per SA day (max 400 days). Migration 20261103103053. */
+        getCrackingLogDaily: async function (fromIso, toIso, token = null) {
+            return this._kpUnwrap(await this.callFunction('get_cracking_log_daily', { p_date_from: fromIso, p_date_to: toIso }, token, { useCache: false }));
+        },
+        /** { rows: [{day, batch_number, supplier, by_style, sk_kg, bt_kg, sk_cartons, bt_cartons}] } per batch per packing day (max 400 days). Migration 20261103103053. */
+        getPackingLog: async function (fromIso, toIso, token = null) {
+            return this._kpUnwrap(await this.callFunction('get_packing_log', { p_date_from: fromIso, p_date_to: toIso }, token, { useCache: false }));
+        },
         /** removedPreSizerKg is required (0 if none). Migration 20261008090000. */
         allocateBagsToSilo: async function (kernelId, bagNos, siloNumber, removedPreSizerKg, token = null) {
             return this._kpUnwrap(await this.callFunction('allocate_bags_to_silo', {
