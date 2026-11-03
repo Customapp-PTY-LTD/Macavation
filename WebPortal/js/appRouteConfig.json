@@ -869,7 +869,8 @@
             "path": "batch-journey",
             "html": "html/batch_journey_grid.html",
             "js": [
-                "js/batch_journey_grid.js"
+                "js/batch_journey_grid.js",
+                "js/batch_journey_detail.js"
             ],
             "css": [
                 "css/batch_journey_grid.css"
