@@ -321,6 +321,25 @@ button.gib-chip:hover { border-color: var(--mac-text-tertiary); }
 .gib-bar.is-full > span { background: var(--mac-danger); }
 .gib-full { color: var(--mac-danger); }
 .gib-snote { font-size: var(--mac-text-xs); color: var(--mac-text-tertiary); margin-top: 0.4rem; }
+/* Estimated bag weights (migration 20261103090000): estimated = dashed / italic, info colour */
+.gib-bag.is-est { border-style: dashed !important; }
+.gib-est-text { color: var(--mac-info); font-style: italic; }
+.gib-wc { background: var(--mac-bg-secondary); border: 1px solid var(--mac-border); border-radius: var(--mac-radius-md); padding: 0.75rem; margin-bottom: 0.75rem; }
+.gib-wc-head { margin-bottom: 0.5rem; }
+.gib-wc-pill { background: rgba(var(--mac-info-rgb), 0.12); color: var(--mac-info); font-weight: 600; }
+.gib-wc-bar { height: 8px; border-radius: var(--mac-radius-pill); background: rgba(var(--mac-info-rgb), 0.15); overflow: hidden; margin-bottom: 0.75rem; }
+.gib-wc-bar > span { display: block; height: 100%; background: var(--mac-green); }
+.gib-wc-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; }
+@media (max-width: 767.98px) { .gib-wc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.gib-wc-cell { display: flex; flex-direction: column; gap: 2px; background: var(--mac-bg); border-radius: var(--mac-radius-sm); padding: 0.5rem 0.625rem; }
+.gib-wc-label, .gib-wc-sub { font-size: var(--mac-text-xs); color: var(--mac-text-secondary); }
+/* New delivery: estimated bags */
+.nd-spread { background: rgba(var(--mac-info-rgb), 0.06); border: 1px solid rgba(var(--mac-info-rgb), 0.25); border-radius: var(--mac-radius-md); padding: 0.75rem; }
+.nd-spread-note { color: var(--mac-text-secondary); }
+input.nd-est { color: var(--mac-info); font-style: italic; }
+.nd-badge-est { background: rgba(var(--mac-info-rgb), 0.12); color: var(--mac-info); }
+.nd-badge-weighed { background: rgba(var(--mac-green-rgb), 0.12); color: var(--mac-green); }
+.nd-est-text { color: var(--mac-info); }
 /* Recent moves (migration 20261102120000): folded list under the storage areas */
 .gib-moves { margin-top: 0.75rem; }
 .gib-moves summary { cursor: pointer; font-weight: 600; font-size: var(--mac-text-sm); min-height: 44px; display: flex; align-items: center; gap: 0.35rem; }

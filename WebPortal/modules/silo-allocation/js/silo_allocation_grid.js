@@ -32,6 +32,7 @@ var _siloAllocationGrid = (function () {
         batchId: null,
         pickedKernel: null, // "Show a batch" on the Silos card: kernel_id, or null for all silos
         allocOpen: false,   // Allocate bags unfolded; remembered on this device
+        siloUnweighed: 'allow', // Kernel Pipeline Settings bag_weighing: an estimated bag may go in unweighed?
         timer: null
     };
 
@@ -417,7 +418,9 @@ var _siloAllocationGrid = (function () {
                 h += '<tr><td><input type="checkbox" class="form-check-input silo-bag-sel" value="' + esc(b.no) +
                     '" data-kg="' + esc(Number(b.weight_kg) || 0) + '" aria-label="Bag ' + esc(b.no) +
                     '"></td><td><strong>' + esc(b.no) +
-                    '</strong></td><td class="text-end">' + esc(kg(b.weight_kg)) + '</td></tr>';
+                    '</strong></td><td class="text-end">' + (b.estimated
+                        ? '<span class="silo-est" title="Estimated at New delivery: weigh it as it goes in">' + esc(kg(b.weight_kg)) + ' <span class="badge silo-est-badge">est.</span></span>'
+                        : esc(kg(b.weight_kg))) + '</td></tr>';
             });
             h += '</tbody></table></div>';
             var opts = siloOptions(batch);
@@ -765,6 +768,8 @@ var _siloAllocationGrid = (function () {
             if (nos.indexOf(Number(b.no)) !== -1) { totalKg += Number(b.weight_kg) || 0; }
         });
         $msg.html('');
+        var estBags = (batch.bags || []).filter(function (b) { return b.estimated && nos.indexOf(Number(b.no)) !== -1; });
+        if (estBags.length) { allocateWeighed(batch, nos, silo, estBags, totalKg); return; }
 
         var $in;
         Swal.fire({
@@ -810,6 +815,113 @@ var _siloAllocationGrid = (function () {
                 $('#siloAllocBtn').prop('disabled', false);
                 $('#siloAllocMsg').html('<div class="alert alert-danger mb-0">' +
                     esc(errText(r, 'Could not allocate those bags.')) + '</div>');
+            });
+        }).catch(function (e) {
+            $('#siloAllocBtn').prop('disabled', false);
+            $('#siloAllocMsg').html('<div class="alert alert-danger mb-0">' + esc(String(e)) + '</div>');
+        });
+    }
+
+    // Bags estimated at New delivery: type each real weight (Enter moves on), then the pre-sizer kg.
+    function allocateWeighed(batch, nos, silo, estBags, totalKg) {
+        var block = state.siloUnweighed === 'block';
+        var estKg = estBags.reduce(function (s, b) { return s + (Number(b.weight_kg) || 0); }, 0);
+        var rows = estBags.map(function (b) {
+            return '<tr data-no="' + esc(b.no) + '" data-est="' + esc(Number(b.weight_kg) || 0) + '"><td><strong>' + esc(b.no) + '</strong></td>' +
+                '<td class="text-end silo-est">' + esc(kg(b.weight_kg)) + '</td>' +
+                '<td><input type="text" inputmode="decimal" class="form-control form-control-sm text-end js-kg-input silo-weigh-in" placeholder="Not weighed" aria-label="Weighed now, bag ' + esc(b.no) + '"></td>' +
+                '<td class="small silo-weigh-diff"></td></tr>';
+        }).join('');
+        var others = nos.length - estBags.length;
+        Swal.fire({
+            title: 'Allocate ' + nos.length + ' bag' + (nos.length === 1 ? '' : 's') + ' to Silo ' + silo,
+            width: 760,
+            html: '<div class="text-start">' +
+                '<div class="small text-muted mb-2">' + esc(batch.batch_number) + (batch.grower_name ? ' · ' + esc(batch.grower_name) : '') + '</div>' +
+                '<div class="silo-weigh-note mb-2">' + (estBags.length === 1 ? 'This bag was' : 'These ' + estBags.length + ' bags were') +
+                    ' <strong>estimated</strong> at intake. Weigh each one now. Enter jumps to the next bag.' +
+                    (others ? ' The other ' + others + ' ' + (others === 1 ? 'bag was' : 'bags were') + ' weighed at intake.' : '') + '</div>' +
+                '<div class="table-responsive"><table class="table table-sm align-middle mb-2"><thead><tr><th>Bag</th><th class="text-end">Estimated</th>' +
+                    '<th class="text-end" style="width:170px">Weighed now (kg)</th><th>Difference</th></tr></thead><tbody id="siloWeighBody">' + rows + '</tbody></table></div>' +
+                '<div class="alert alert-warning small py-2 mb-2 d-none" id="siloWeighWarn"></div>' +
+                '<div class="silo-weigh-cards mb-3">' +
+                    '<div><span>Estimated (' + estBags.length + ' bag' + (estBags.length === 1 ? '' : 's') + ')</span><strong class="silo-est">' + esc(kg(estKg)) + ' kg</strong></div>' +
+                    '<div><span>Into the silo</span><strong id="siloWeighInto">' + esc(kg(totalKg)) + ' kg</strong><small id="siloWeighIntoSub"></small></div>' +
+                    '<div><span>Weighed vs estimate</span><strong id="siloWeighDiff">—</strong><small id="siloWeighDiffSub"></small></div>' +
+                '</div>' +
+                '<label for="siloPresizerKg" class="form-label fw-semibold">Taken out at the pre-sizer for these bags (kg)</label>' +
+                '<input type="text" inputmode="decimal" id="siloPresizerKg" class="form-control js-kg-input" style="max-width:180px">' +
+                '<div class="form-text">Enter 0 if none.</div></div>',
+            showCancelButton: true,
+            confirmButtonText: 'Allocate to Silo ' + silo,
+            cancelButtonText: 'Back',
+            focusConfirm: false,
+            didOpen: function () {
+                var $ins = $('#siloWeighBody .silo-weigh-in');
+                var refresh = function () {
+                    var weighed = 0, estOfWeighed = 0, n = 0, missing = [];
+                    $('#siloWeighBody tr').each(function () {
+                        var $tr = $(this), est = Number($tr.attr('data-est')) || 0;
+                        var v = _common.parseKg($tr.find('.silo-weigh-in').val());
+                        var $d = $tr.find('.silo-weigh-diff').removeClass('text-danger text-success text-warning');
+                        if (v === null || !(v > 0)) {
+                            missing.push($tr.attr('data-no'));
+                            $d.addClass('text-warning').text(block ? 'Weigh it first' : 'Goes in at the estimate');
+                            return;
+                        }
+                        n++; weighed += v; estOfWeighed += est;
+                        var d = v - est;
+                        $d.addClass(d < 0 ? 'text-danger' : 'text-success').text(Math.abs(d) < 0.005 ? 'Same as estimate' : kg(Math.abs(d)) + ' kg ' + (d < 0 ? 'less' : 'more'));
+                    });
+                    var pre = _common.parseKg($('#siloPresizerKg').val());
+                    var into = totalKg - estOfWeighed + weighed - (pre !== null && pre >= 0 ? pre : 0);
+                    $('#siloWeighInto').text(kg(into) + ' kg');
+                    $('#siloWeighIntoSub').text(n + ' weighed' + (missing.length ? ' + ' + missing.length + ' est.' : '') + (others ? ' + ' + others + ' weighed at intake' : ''));
+                    var diff = weighed - estOfWeighed;
+                    $('#siloWeighDiff').toggleClass('text-danger', diff < 0).toggleClass('text-success', diff > 0)
+                        .text(n ? (Math.abs(diff) < 0.005 ? 'Same' : kg(Math.abs(diff)) + ' kg ' + (diff < 0 ? 'less' : 'more')) : '—');
+                    $('#siloWeighDiffSub').text(n ? 'on the ' + n + ' weighed bag' + (n === 1 ? '' : 's') : '');
+                    var $w = $('#siloWeighWarn');
+                    if (missing.length && n) {
+                        $w.removeClass('d-none').text((missing.length === 1 ? 'Bag ' + missing[0] + ' has' : 'Bags ' + missing.join(', ') + ' have') + ' no weight yet. ' +
+                            (block ? 'Weigh ' + (missing.length === 1 ? 'it' : 'them') + ' before ' + (missing.length === 1 ? 'it goes' : 'they go') + ' into the silo (Kernel Pipeline Settings).'
+                                   : (missing.length === 1 ? 'It' : 'They') + ' can still go in at the estimate and stay' + (missing.length === 1 ? 's' : '') + ' marked est.'));
+                    } else { $w.addClass('d-none').text(''); }
+                };
+                $ins.on('input', refresh);
+                $('#siloPresizerKg').on('input', refresh);
+                $ins.on('keydown', function (e) {
+                    if (e.key !== 'Enter') return;
+                    e.preventDefault();
+                    var next = $ins.eq($ins.index(this) + 1);
+                    (next.length ? next : $('#siloPresizerKg')).trigger('focus');
+                });
+                $ins.first().trigger('focus');
+                refresh();
+            },
+            preConfirm: function () {
+                var weights = {}, bad = null, missing = [];
+                $('#siloWeighBody tr').each(function () {
+                    var raw = $(this).find('.silo-weigh-in').val();
+                    var v = _common.parseKg(raw);
+                    if (String(raw || '').trim() === '') { missing.push($(this).attr('data-no')); return; }
+                    if (v === null || !(v > 0)) { bad = $(this).attr('data-no'); return false; }
+                    weights[$(this).attr('data-no')] = v;
+                });
+                if (bad) { Swal.showValidationMessage('Check the weight of bag ' + bad + '.'); return false; }
+                if (block && missing.length) { Swal.showValidationMessage('Weigh bag ' + missing.join(', ') + ' before it goes into the silo.'); return false; }
+                var pre = _common.parseKg($('#siloPresizerKg').val());
+                if (pre === null || pre < 0) { Swal.showValidationMessage('Enter the kg removed at the pre-sizer. Use 0 if none.'); return false; }
+                if (pre > totalKg + 0.005) { Swal.showValidationMessage('That is more than the selected bags weigh (' + kg(totalKg) + ' kg).'); return false; }
+                return { weights: weights, pre: pre };
+            }
+        }).then(function (c) {
+            if (!c.isConfirmed) { return; }
+            $('#siloAllocBtn').prop('disabled', true);
+            return dataFunctions.allocateBagsToSiloWeighed(batch.kernel_id, nos, silo, c.value.pre, c.value.weights).then(function (r) {
+                if (isOk(r)) { return load(); }
+                $('#siloAllocBtn').prop('disabled', false);
+                $('#siloAllocMsg').html('<div class="alert alert-danger mb-0">' + esc(errText(r, 'Could not allocate those bags.')) + '</div>');
             });
         }).catch(function (e) {
             $('#siloAllocBtn').prop('disabled', false);
@@ -1275,6 +1387,12 @@ var _siloAllocationGrid = (function () {
             });
             state.batchId = null;
             state.tally = null;
+            if (dataFunctions.getKernelPipelineConfig) {
+                dataFunctions.getKernelPipelineConfig().then(function (cfg) {
+                    var bw = cfg && cfg.settings && cfg.settings.bag_weighing;
+                    state.siloUnweighed = bw && bw.silo_unweighed === 'block' ? 'block' : 'allow';
+                }).catch(function () { /* server re-checks; the default only shapes the wording */ });
+            }
             state.pickedKernel = null;
             state.period = { mode: 'week', anchor: todayStr() };
             state.periodRuns = null;

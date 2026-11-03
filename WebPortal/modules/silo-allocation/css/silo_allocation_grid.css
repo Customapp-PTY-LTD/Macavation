@@ -396,3 +396,12 @@
     .silo-period-label { margin-left: 0; width: 100%; }
     .silo-period-days { gap: 4px; padding: 12px 8px; }
 }
+
+/* Estimated bag weights (migration 20261103090000): weigh estimated bags as they go in */
+.silo-est { color: var(--mac-info); font-style: italic; }
+.silo-est-badge { background: rgba(var(--mac-info-rgb), 0.12); color: var(--mac-info); font-style: normal; font-weight: 600; }
+.silo-weigh-note { background: rgba(var(--mac-info-rgb), 0.08); border-radius: var(--mac-radius-sm); padding: 0.5rem 0.75rem; font-size: var(--mac-text-sm); }
+.silo-weigh-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+@media (max-width: 575.98px) { .silo-weigh-cards { grid-template-columns: 1fr; } }
+.silo-weigh-cards > div { display: flex; flex-direction: column; gap: 2px; background: var(--mac-bg-secondary); border-radius: var(--mac-radius-sm); padding: 0.5rem 0.75rem; }
+.silo-weigh-cards span, .silo-weigh-cards small { font-size: var(--mac-text-xs); color: var(--mac-text-secondary); }
