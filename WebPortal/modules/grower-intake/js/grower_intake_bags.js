@@ -107,8 +107,17 @@ var _giBags = (function () {
         return out.join(', ');
     }
 
+    /** Redraw the batches but stay put: the board replaces every column, which would jump each one back to its top. */
     function rerenderGrid() {
-        if (typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.filterIntakeBatches) _growerIntakeGrid.filterIntakeBatches();
+        if (typeof _growerIntakeGrid === 'undefined' || !_growerIntakeGrid.filterIntakeBatches) return;
+        var cols = {}, x = window.scrollX, y = window.scrollY;
+        $('#giKanbanBoard .kanban-column-body').each(function () { cols[$(this).data('column-key')] = this.scrollTop; });
+        _growerIntakeGrid.filterIntakeBatches();
+        $('#giKanbanBoard .kanban-column-body').each(function () {
+            var top = cols[$(this).data('column-key')];
+            if (top) this.scrollTop = top;
+        });
+        if (window.scrollX !== x || window.scrollY !== y) window.scrollTo(x, y);
     }
 
     // ------------------------------------------------------------------ selection
