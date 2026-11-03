@@ -415,9 +415,11 @@ var _kernelDashboard = (function () {
             bindJumps();
             load(getPeriod());
             loadStock();
+            if (window._productionLog) window._productionLog.init();
         },
         destroy: function () {
             loadSeq++;
+            if (window._productionLog) window._productionLog.destroy();
             if (D) D.destroyAll();
             last = { proc: null, sales: null, stock: null, prices: null, dispatch: null };
         }

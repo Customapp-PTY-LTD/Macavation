@@ -90,6 +90,41 @@
             <h3 class="mgmt-chart-title" id="kdProdTitle">Cracked (kg) per month</h3>
             <div class="mgmt-chart mgmt-chart-tall"><canvas id="kdCrackedChart"></canvas></div>
             <p class="text-muted small mb-0 mt-1">The current month is month to date (hollow dot), so a drop there is not a real fall-off.</p>
+
+            <!-- Production log (Mike, 3 Nov 2026): cracked or packed, by day / week / month / quarter / year.
+                 Has its own period picker; the financial year filter above does not change it.
+                 js/production_log.js, RPCs in migrations/20261103103053. -->
+            <div class="plog mt-4" id="plog">
+                <div class="plog-head">
+                    <h3 class="mgmt-chart-title mb-0">Production log</h3>
+                    <div class="btn-group btn-group-sm mgmt-chips" role="group" id="plogStage" aria-label="What to show">
+                        <button type="button" class="btn btn-outline-secondary active" data-stage="cracked" aria-pressed="true">Nut &amp; shell cracked</button>
+                        <button type="button" class="btn btn-outline-secondary" data-stage="packed" aria-pressed="false">Sound kernel packed</button>
+                    </div>
+                </div>
+                <div class="plog-bar">
+                    <div class="btn-group mgmt-chips" role="group" id="plogMode" aria-label="Period">
+                        <button type="button" class="btn btn-outline-secondary" data-mode="day">Day</button>
+                        <button type="button" class="btn btn-outline-secondary active" data-mode="week">Week</button>
+                        <button type="button" class="btn btn-outline-secondary" data-mode="month">Month</button>
+                        <button type="button" class="btn btn-outline-secondary" data-mode="quarter" title="Financial year quarters: Q1 Apr – Jun">Quarter</button>
+                        <button type="button" class="btn btn-outline-secondary" data-mode="year" title="Financial year, Apr – Mar">Year</button>
+                    </div>
+                    <div class="d-flex gap-2 align-items-center">
+                        <button type="button" class="btn btn-outline-secondary" id="plogPrev" aria-label="Previous period"><i class="fas fa-chevron-left"></i></button>
+                        <input type="date" class="form-control plog-date" id="plogDate" aria-label="Pick a date">
+                        <button type="button" class="btn btn-outline-secondary" id="plogNext" aria-label="Next period"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary" id="plogToday">This week</button>
+                    <div class="plog-label" id="plogLabel"></div>
+                </div>
+                <div class="plog-totals" id="plogTotals"></div>
+                <div class="plog-bars d-none" id="plogBars"></div>
+                <div class="table-responsive">
+                    <table class="table table-sm mgmt-table plog-table mb-0" id="plogTable"></table>
+                </div>
+                <p class="text-muted small mb-0 mt-2" id="plogNote"></p>
+            </div>
         </div>
     </section>
 
