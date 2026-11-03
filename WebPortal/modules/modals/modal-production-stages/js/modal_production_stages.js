@@ -330,7 +330,7 @@ var _modal_production_stages = (function () {
                 e.preventDefault();
                 scope.showBatchSummary();
             });
-            $(document).on('click', '#batchSummaryFinishProductionBtn', function (e) {
+            $(document).off('click.mpsInit', '#batchSummaryFinishProductionBtn').on('click.mpsInit', '#batchSummaryFinishProductionBtn', function (e) {
                 e.preventDefault();
                 var batchId = $('#batchSummaryModal').data('current-batch-id') || $('#productionStagesBatchId').val();
                 if (!batchId) {
@@ -351,7 +351,7 @@ var _modal_production_stages = (function () {
             $(document).on('change input', '#ps_crack_start1, #ps_crack_end1', function () {
                 scope.updateCrackTimeSpentRow(1);
             });
-            $(document).on('click', '.js-clear-time-input', function (e) {
+            $(document).off('click.mpsInit', '.js-clear-time-input').on('click.mpsInit', '.js-clear-time-input', function (e) {
                 e.preventDefault();
                 var targetSel = this.getAttribute('data-target');
                 if (!targetSel) return;
@@ -450,11 +450,11 @@ var _modal_production_stages = (function () {
             $('#productionStagesModal').off('hide.bs.modal').on('hide.bs.modal', function () {
                 scope.flushAutoSave();
             });
-            $(document).on('click', '#productionStagesDayList [data-day-id]', function () {
+            $(document).off('click.mpsInit', '#productionStagesDayList [data-day-id]').on('click.mpsInit', '#productionStagesDayList [data-day-id]', function () {
                 var dayId = $(this).attr('data-day-id');
                 if (dayId) scope.selectProductionDay(dayId);
             });
-            $(document).on('click', '#addProductionDayBtn', function (e) {
+            $(document).off('click.mpsInit', '#addProductionDayBtn').on('click.mpsInit', '#addProductionDayBtn', function (e) {
                 e.preventDefault();
                 scope.addProductionDay();
             });
