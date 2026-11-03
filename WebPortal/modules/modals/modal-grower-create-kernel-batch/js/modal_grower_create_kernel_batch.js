@@ -760,7 +760,7 @@ var _modal_grower_create_kernel_batch = (function () {
             _uploadsInFlight = 0;
             _collectionAddresses = [];
             _selectedCollection = [];
-            ['intakeDeliveryNoteRef'].forEach(function (id) { var e = byId(id); if (e) e.value = ''; });
+            ['intakeDeliveryNoteRef', 'intakeConsignmentRef'].forEach(function (id) { var e = byId(id); if (e) e.value = ''; });
             api._toggleTransporterForm(false);
             showInline('intakeDocsError', '');
             api._renderDocs();
@@ -870,6 +870,7 @@ var _modal_grower_create_kernel_batch = (function () {
             var transporterId = byId('intakeTransporter') && byId('intakeTransporter').value || '';
             var transportTypeId = byId('intakeTransportType') && byId('intakeTransportType').value || '';
             var deliveryNoteRef = (byId('intakeDeliveryNoteRef') && byId('intakeDeliveryNoteRef').value || '').trim();
+            var consignmentRef = (byId('intakeConsignmentRef') && byId('intakeConsignmentRef').value || '').trim();
             var weighedBags = _bags.map(function (b) {
                 return { no: b.no, description: b.desc, weight_kg: numOrNull(b.kg) };
             }).filter(function (b) { return b.weight_kg != null && b.weight_kg > 0; });
@@ -880,7 +881,7 @@ var _modal_grower_create_kernel_batch = (function () {
             if (!batchNumber) problems.push('Batch Number is required.');
             if (wetNis != null && wetNis < 0) problems.push("Supplier's declared weight cannot be negative.");
             if (!weighedBags.length) problems.push('Add at least one bag with a weight greater than 0.');
-            if (!deliveryNoteRef) problems.push('Delivery Note Reference Number is required.');
+            if (!deliveryNoteRef) problems.push('Delivery Note Reference is required.');
             // When the pipeline config could not be loaded the lists are empty, so these stay optional.
             if (_configLoaded && !transporterId) problems.push('Select a Transporter.');
             if (_configLoaded && !transportTypeId) problems.push('Select a Transport Type.');
@@ -966,6 +967,7 @@ var _modal_grower_create_kernel_batch = (function () {
                             transporter_id: transporterId || null,
                             transporter_name: transporterRow ? transporterRow.name : null,
                             delivery_note_ref: deliveryNoteRef,
+                            consignment_ref: consignmentRef || null,
                             collection_points: _selectedCollection.slice(),
                             transport_type_id: transportTypeId || null,
                             transport_type_name: typeRow ? typeRow.name : null,
