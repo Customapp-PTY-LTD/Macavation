@@ -557,10 +557,10 @@ var _modal_batch_history = (function () {
         var hasProductionData = productionDayCount > 0 || hasJobCard || cracking.length > 0 || washing.length > 0 || sorting.length > 0 || packing.length > 0;
         var productionFinished = !!batch.production_finished_at;
 
-        if (productionFinished && hasQa) return 'Release ready';
-        if (productionFinished) return 'Awaiting test';
+        if (productionFinished && hasQa) return 'Ready for stock';
+        if (productionFinished) return 'Waiting for end sample';
         if (hasProductionData) return 'In production';
-        return batch.status ? statusToTitleCase(batch.status) : 'Awaiting production';
+        return batch.status ? statusToTitleCase(batch.status) : 'Ready to crack';
     }
 
     function getBatchInfoText(batch) {
