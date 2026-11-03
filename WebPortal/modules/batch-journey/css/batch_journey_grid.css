@@ -96,3 +96,295 @@
     border-color: var(--mac-green, var(--mac-green));
     box-shadow: 0 0 0 0.2rem rgba(44, 85, 48, 0.25);
 }
+
+/* ------------------------------------------------------------------
+   Kernel batch page (js/batch_journey_detail.js). Tokens only.
+   ------------------------------------------------------------------ */
+
+/* Touch targets: 40px minimum for buttons and inputs on iPad / phone. */
+.bjd .bjd-touch,
+.bjd .form-control,
+.bjd .form-select {
+    min-height: 40px;
+}
+
+.bjd .bjd-touch.btn-sm {
+    display: inline-flex;
+    align-items: center;
+}
+
+.bjd-breadcrumb .btn-link {
+    color: var(--mac-green);
+    text-decoration: none;
+}
+
+.bjd-header {
+    border-radius: var(--mac-radius-lg);
+}
+
+.bjd-batch-number {
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+/* Key figures */
+.bjd-figures {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.75rem;
+}
+
+.bjd-figure {
+    background: var(--mac-bg-tertiary);
+    border-radius: var(--mac-radius-md);
+    padding: 0.75rem 0.875rem;
+}
+
+.bjd-figure-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-top: 0.125rem;
+}
+
+/* Journey strip: done / current / not yet */
+.bjd-journey {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 0.375rem;
+}
+
+.bjd-step {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.bjd-step-bar {
+    display: block;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--mac-border);
+}
+
+.bjd-step-label {
+    font-size: 0.75rem;
+    color: var(--mac-text-tertiary);
+}
+
+.bjd-step--done .bjd-step-bar {
+    background: var(--mac-green);
+}
+
+.bjd-step--done .bjd-step-label {
+    color: var(--mac-green-hover);
+    font-weight: 600;
+}
+
+.bjd-step--current .bjd-step-bar {
+    background: var(--mac-info);
+}
+
+.bjd-step--current .bjd-step-label {
+    color: var(--mac-info);
+    font-weight: 600;
+}
+
+/* Section menu: a column beside the sections from lg up, a scrolling row of chips below that. */
+.bjd-nav {
+    border-radius: var(--mac-radius-lg);
+    padding: 0.5rem;
+}
+
+.bjd-nav-list {
+    display: flex;
+    gap: 0.25rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.bjd-nav-link {
+    flex: 0 0 auto;
+    min-height: 40px;
+    padding: 0.5rem 0.75rem;
+    border: 0;
+    border-radius: var(--mac-radius-sm);
+    background: transparent;
+    color: var(--mac-text);
+    font-size: 0.875rem;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.bjd-nav-link:hover,
+.bjd-nav-link:focus-visible {
+    background: var(--mac-bg-tertiary);
+}
+
+.bjd-nav-link.active {
+    background: var(--mac-green-light);
+    color: var(--mac-green-hover);
+    font-weight: 600;
+}
+
+@media (min-width: 992px) {
+    .bjd-nav {
+        position: sticky;
+        top: 1rem;
+    }
+
+    .bjd-nav-list {
+        flex-direction: column;
+        overflow-x: visible;
+    }
+
+    .bjd-nav-link {
+        white-space: normal;
+    }
+}
+
+/* Section cards */
+.bjd-section {
+    border-radius: var(--mac-radius-lg);
+    scroll-margin-top: 1rem;
+}
+
+.bjd-section-header {
+    background: transparent;
+}
+
+.bjd-section--editing {
+    border: 2px solid var(--mac-green);
+}
+
+.bjd-section--editing > .bjd-section-header {
+    background: var(--mac-green-light);
+}
+
+.bjd-editing-note {
+    color: var(--mac-green-hover);
+}
+
+.bjd-dl {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.875rem 1.5rem;
+}
+
+.bjd-subhead {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--mac-text-secondary);
+    margin: 1.25rem 0 0.5rem;
+}
+
+/* Truck and load checks */
+.bjd-check-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 0.625rem 1.25rem;
+}
+
+.bjd-check {
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-sm);
+    padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.bjd-check--bad {
+    border-color: rgba(var(--mac-warning-rgb), 0.6);
+    background: var(--mac-warning-light);
+}
+
+.bjd .bjd-check-select {
+    width: auto;
+    min-width: 5.5rem;
+}
+
+.bjd-check-input {
+    width: 1.375rem;
+    height: 1.375rem;
+}
+
+/* Tables scroll inside their own box on a narrow screen */
+.bjd-table-box {
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-sm);
+}
+
+.bjd-table-box > .table {
+    margin-bottom: 0;
+}
+
+.bjd-items-table {
+    min-width: 520px;
+}
+
+.bjd-col-btn {
+    width: 56px;
+}
+
+/* Sub-cards: samples, production stages */
+.bjd-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+}
+
+.bjd-card-grid--stages {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.75rem;
+}
+
+.bjd-subcard {
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-md);
+    padding: 0.75rem 0.875rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.bjd-subcard--empty {
+    border-style: dashed;
+    border-color: var(--mac-border-strong);
+    background: var(--mac-bg-tertiary);
+}
+
+.bjd-subcard--open {
+    border-color: var(--mac-green);
+}
+
+.bjd-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.375rem 0.75rem;
+}
+
+.bjd-stage-figure {
+    font-size: 1.125rem;
+    font-weight: 700;
+}
+
+.bjd-stage-panel {
+    border-top: 1px solid var(--mac-border);
+    padding-top: 1rem;
+}
+
+.bjd-summary {
+    cursor: pointer;
+    color: var(--mac-green);
+    min-height: 24px;
+}
+
+.bjd-dispatch .table {
+    margin-bottom: 0.5rem;
+}
+
+/* Cracking sheet vs silo Cracking log */
+.bjd-runs-note--diff {
+    color: var(--mac-warning-text);
+    background: var(--mac-warning-light);
+    border-radius: var(--mac-radius-sm);
+    padding: 0.25rem 0.5rem;
+}

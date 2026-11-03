@@ -2050,16 +2050,20 @@ var _dataFunctions = function () {
         /**
          * Save New Delivery details to kernel.intake_data.delivery and set the weighed total.
          * @param {object} data - { kernel_id, bags:[{no, description, weight_kg}],
-         *   transport:{transporter_id, transporter_name, delivery_note_ref, collection_points[], transport_type_id,
+         *   transport:{transporter_id, transporter_name, delivery_note_ref, consignment_ref, collection_points[], transport_type_id,
          *   transport_type_name, rate_zar}, documents:[{file_id, file_link, name}] }
          */
         saveKernelDelivery: async function (data, token = null) {
-            const result = await this.callFunction('save_kernel_delivery', {
+            const params = {
                 p_kernel_id: data.kernel_id,
                 p_bags: data.bags || [],
                 p_transport: data.transport || {},
                 p_documents: data.documents || []
-            }, token, { useCache: false });
+            };
+            // Editing an existing delivery (Find a batch → batch page). The RPC refuses to overwrite a
+            // stored delivery unless asked (20261006090100 p_allow_replace); New Delivery never sends it.
+            if (data.allow_replace === true) params.p_allow_replace = true;
+            const result = await this.callFunction('save_kernel_delivery', params, token, { useCache: false });
             this.clearCachePattern('kernel_batches');
             this.clearCachePattern('kernel_batch_detail');
             return this._kpUnwrap(result);
@@ -2086,6 +2090,15 @@ var _dataFunctions = function () {
             return this._kpUnwrap(await this.callFunction('allocate_bags_to_silo', {
                 p_kernel_id: kernelId, p_bag_nos: bagNos, p_silo_number: siloNumber,
                 p_removed_pre_sizer_kg: removedPreSizerKg != null ? Number(removedPreSizerKg) : null
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
+        /** Same as allocateBagsToSilo, plus the real weights of bags weighed now: weights = { "<bag no>": kg }.
+         *  Estimated bags leave storage at their estimate, then take the real weight (migration 20261103090000). */
+        allocateBagsToSiloWeighed: async function (kernelId, bagNos, siloNumber, removedPreSizerKg, weights, token = null) {
+            return this._kpUnwrap(await this.callFunction('allocate_bags_to_silo_weighed', {
+                p_kernel_id: kernelId, p_bag_nos: bagNos, p_silo_number: siloNumber,
+                p_removed_pre_sizer_kg: removedPreSizerKg != null ? Number(removedPreSizerKg) : null,
+                p_weights: weights || {}
             }, token, { useCache: false, preserveNullParams: true }));
         },
         unallocateSiloBag: async function (kernelId, bagNo, token = null) {
@@ -2374,26 +2387,11 @@ var _dataFunctions = function () {
             return this._rpcWrite('set_procurement_plan_settings', { p_settings: settings }, token);
         },
 
-        // --- NIS storage areas --------------------------------------------------------------
-        getNisStorageOverview: async function (limit, token = null) {
-            return this._rpcRead('get_nis_storage_overview', { p_limit: limit || 50 }, token);
-        },
-
-        /** m = { fromArea, toArea, kg, kernelId, batchNumber, movedAt, note } (null area = not placed / cracked) */
-        recordNisStorageMovement: async function (m, token = null) {
-            return this._rpcWrite('record_nis_storage_movement', {
-                p_from_area: m.fromArea || null,
-                p_to_area: m.toArea || null,
-                p_kg: Number(m.kg),
-                p_kernel_id: m.kernelId || null,
-                p_batch_number: m.batchNumber || null,
-                p_moved_at: m.movedAt || null,
-                p_note: m.note || null
-            }, token);
-        },
+        // --- NIS storage areas (bag-based, on Grower Intake) -----------------------------------
 
         /** Grower Intake: every active intake/production batch with its bags and where each bag is
-         *  (loc = area code | 'silo:<n>' | 'cracked' | '' not placed), plus the storage areas. */
+         *  (loc = area code | 'silo:<n>' | 'cracked' | '' not placed), the storage areas, and the
+         *  last 50 storage movements (migration 20261102120000). */
         getIntakeBagOverview: async function (limit, token = null) {
             return this._rpcRead('get_intake_bag_overview', { p_limit: limit || 300 }, token);
         },
