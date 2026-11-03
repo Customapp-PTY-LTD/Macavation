@@ -281,7 +281,7 @@ var _roleMenuConfig = function () {
             'nis-storage': {
                 route: 'nis-storage',
                 icon: 'fas fa-boxes',
-                label: 'Silos & storage',
+                label: 'Silos',
                 category: 'kernel',
                 parent: 'kernelCollapse'
             },
