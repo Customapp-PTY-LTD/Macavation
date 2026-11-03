@@ -17,7 +17,7 @@ var _kernelDispatchGrid = function () {
     };
 
     var DISPATCH_KANBAN_COLUMNS = [
-        { key: 'confirmed', label: 'Ready to Dispatch' },
+        { key: 'confirmed', label: 'Dispatch orders' },
         { key: 'dispatched', label: 'Dispatched' }
     ];
 
@@ -251,8 +251,8 @@ var _kernelDispatchGrid = function () {
             scope.orders.forEach(function (o) { counts[scope.stageKey(o)]++; });
             var defs = [
                 ['all', 'All', 'kd-chip-all'],
-                ['picking', 'Picking', 'kd-chip-picking'],
-                ['approval', 'Waiting for approval', 'kd-chip-approval'],
+                ['picking', 'Waiting for picking', 'kd-chip-picking'],
+                ['approval', 'Waiting for pricing', 'kd-chip-approval'],
                 ['approved', 'Approved', 'kd-chip-approved'],
                 ['legacy', 'Older orders', 'kd-chip-legacy']
             ];
@@ -271,7 +271,7 @@ var _kernelDispatchGrid = function () {
             var info = this.stages[o.id] || {};
             var map = {
                 picking: ['Waiting for picking', 'bg-warning text-dark'],
-                approval: ['Waiting for Pete', 'bg-info text-dark'],
+                approval: ['Waiting for pricing', 'bg-info text-dark'],
                 approved: ['Approved – sale recorded', 'bg-success']
             };
             var m = map[stage];

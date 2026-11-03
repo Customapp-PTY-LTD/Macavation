@@ -9,10 +9,12 @@ var _growerIntakeGrid = function () {
     var INTAKE_KANBAN_COLUMNS = [
         { key: 'receiving', label: 'Receiving' },
         // Checklist done, sample still to take (Quality Pending folded in: nothing ever sat there).
-        { key: 'intake_received', label: 'Quality checks' },
-        { key: 'quality_approved', label: 'Ready to release' },
+        { key: 'intake_received', label: 'Samples' },
+        // Checklist and samples done but something is out of spec: kernel_auto_release (20261103140000)
+        // held it, so it is released by hand. In-spec batches skip this column.
+        { key: 'quality_approved', label: 'Needs a decision' },
         // Released to production but with bags still waiting in storage or a silo (grower_intake_bags.js).
-        { key: 'released', label: 'Released – cracking' }
+        { key: 'released', label: 'Ready to crack' }
     ];
 
     function getIntakeColumnKey(b) {
@@ -459,7 +461,7 @@ var _growerIntakeGrid = function () {
                     '<td class="intake-col-wet d-none d-sm-table-cell">' + wetCellContent + '</td>' +
                     '<td class="intake-col-bags">' + (gib ? gib.tableCell(b.id) : '') + '</td>' +
                     '<td class="intake-col-stage1">' + stage1Cell + '</td>' +
-                    '<td class="intake-col-status">' + (b._released ? KanbanHelper.statusBadge('Released – cracking', 'last') : (function() { var ik = getIntakeColumnKey(b); var sp = ik === 'receiving' ? 'first' : ik === 'quality_approved' ? 'last' : 'mid'; return KanbanHelper.statusBadge((INTAKE_KANBAN_COLUMNS.filter(function (c) { return c.key === ik; })[0] || { label: b.status || '' }).label, sp); })()) + '</td>' +
+                    '<td class="intake-col-status">' + (b._released ? KanbanHelper.statusBadge('Ready to crack', 'last') : (function() { var ik = getIntakeColumnKey(b); var sp = ik === 'receiving' ? 'first' : ik === 'quality_approved' ? 'last' : 'mid'; return KanbanHelper.statusBadge((INTAKE_KANBAN_COLUMNS.filter(function (c) { return c.key === ik; })[0] || { label: b.status || '' }).label, sp); })()) + '</td>' +
                     '<td class="intake-col-actions mac-table-actions-col">' + actionsCell + '</td></tr>';
                 tbody.append(row + (gib ? gib.tableRow(b.id, 9) : ''));
             });

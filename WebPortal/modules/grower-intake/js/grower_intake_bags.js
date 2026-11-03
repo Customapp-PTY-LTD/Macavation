@@ -2,7 +2,7 @@
  * Grower Intake - bags (31 Oct 2026).
  * Every batch's delivery bags and where each one is: a storage area (tagged here), a silo or
  * cracked (set on the Silos screen, read-only here), or not placed yet. Also supplies the
- * "Released – cracking" cards and draws the Storage areas list at the bottom of the screen.
+ * "Ready to crack" cards and draws the Storage areas list at the bottom of the screen.
  * Data: get_intake_bag_overview / move_nis_bags (migration 20261031090000_nis_bag_locations).
  * Moving bags needs the nis_storage.move action; everyone else sees the bags read-only.
  *
@@ -527,7 +527,7 @@ var _giBags = (function () {
             });
             if (!nos.length) return;
             total += nos.length;
-            var status = b.status === 'production' ? 'Released – cracking' : 'At intake';
+            var status = b.status === 'production' ? 'Ready to crack' : 'At intake';
             rows.push('<div class="gib-drow"><span class="gib-dn">' + esc(b.batch_number) + '</span>' +
                 '<span>' + esc(b.grower_name || '') + ' <span class="text-muted">· bags ' + esc(ranges(nos)) + (code === 'silos' ? ' · ' + esc(Object.keys(silos).join(', ')) : '') + '</span></span>' +
                 '<span class="badge ' + (b.status === 'production' ? 'bg-success' : 'bg-secondary') + '">' + status + '</span>' +

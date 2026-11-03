@@ -489,13 +489,27 @@ var _modal_grower_link_sample_to_batch = (function () {
                 clearDraft(_batchId);
 
                 if (_ziplockSaved && _fiveKgSaved) {
-                    if (typeof Swal !== 'undefined') Swal.fire({
-                        icon: 'success',
-                        title: 'Both samples complete',
-                        text: 'Ziplock and 5kg samples are saved. Use "Release to production" in the batch actions to move this batch forward.',
-                        timer: 3500,
-                        showConfirmButton: false
-                    });
+                    // kernel_auto_release (20261103140000) has already moved an in-spec batch on, or noted why not.
+                    var after = null;
+                    try {
+                        var kd = await dataFunctions.getKernelBatchDetail(_kernelId, null, true);
+                        after = kd && (kd.data !== undefined ? kd.data : kd);
+                    } catch (e) {
+                        console.warn('Could not re-read the batch after saving samples:', e);
+                    }
+                    var afterIntake = after && after.intake_data;
+                    if (typeof afterIntake === 'string') { try { afterIntake = JSON.parse(afterIntake); } catch (e) { afterIntake = null; } }
+                    var hold = afterIntake && afterIntake.release_hold && Array.isArray(afterIntake.release_hold.reasons) ? afterIntake.release_hold.reasons : [];
+                    var released = after && String(after.status || '').toLowerCase() === 'production';
+                    if (typeof Swal !== 'undefined') {
+                        if (released) {
+                            Swal.fire({ icon: 'success', title: 'Ready to crack', text: 'Both samples are in spec, so the batch has moved straight to Ready to crack. Its bags can now go into a silo.', timer: 3500, showConfirmButton: false });
+                        } else if (hold.length) {
+                            Swal.fire({ icon: 'warning', title: 'Needs a decision', text: 'Both samples are saved, but: ' + hold.join('; ') + '. The batch waits under Needs a decision until someone presses Release to production.' });
+                        } else {
+                            Swal.fire({ icon: 'success', title: 'Both samples complete', text: 'Ziplock and 5kg samples are saved. Once the receiving checklist is done the batch moves to Ready to crack.', timer: 3500, showConfirmButton: false });
+                        }
+                    }
                 } else {
                     var remaining = activeTab === 'ziplock' ? '5kg sample still needed.' : 'Ziplock sample still needed.';
                     if (typeof Swal !== 'undefined') Swal.fire({

@@ -684,8 +684,8 @@ var _stockManagementGrid = function () {
             var scope = _stockManagementGrid;
             if (!td) return;
             if (!scope.kernelAdjustMode) {
-                if (typeof Swal !== 'undefined') Swal.fire('Adjust Stock', 'Press the Adjust Stock button first, then click the batch/style cell you want to change.', 'info');
-                else window.alert('Press Adjust Stock first, then click a style cell.');
+                if (typeof Swal !== 'undefined') Swal.fire('Correct stock', 'Press the Correct stock button first, then click the batch/style cell you want to change.', 'info');
+                else window.alert('Press Correct stock first, then click a style cell.');
                 return;
             }
             var kernelId = (td.getAttribute('data-kernel-id') || '').trim();
@@ -839,8 +839,8 @@ var _stockManagementGrid = function () {
                 btn.classList.toggle('btn-outline-primary', !scope.kernelAdjustMode);
                 btn.classList.toggle('btn-primary', scope.kernelAdjustMode);
                 btn.innerHTML = scope.kernelAdjustMode
-                    ? '<i class="fas fa-times me-1"></i>Exit Adjust Stock'
-                    : '<i class="fas fa-balance-scale me-1"></i>Adjust Stock';
+                    ? '<i class="fas fa-times me-1"></i>Done correcting'
+                    : '<i class="fas fa-balance-scale me-1"></i>Correct stock';
             }
             if (hint) hint.style.display = scope.kernelAdjustMode ? '' : 'none';
             if (addBatchRow) addBatchRow.style.display = scope.kernelAdjustMode ? '' : 'none';
@@ -1319,8 +1319,8 @@ var _stockManagementGrid = function () {
                         icon: 'success',
                         title: 'Batch linked to stock',
                         text: pickedBn
-                            ? ('Batch ' + pickedBn + ' is available in By style with Adjust Stock on. Edit quantities or send to dispatch as needed.')
-                            : ('Adjust Stock is on and the batch list was refreshed. Edit quantities or send to dispatch as needed.'),
+                            ? ('Batch ' + pickedBn + ' is available in By style with Correct stock on. Edit quantities or send to dispatch as needed.')
+                            : ('Correct stock is on and the batch list was refreshed. Edit quantities or send to dispatch as needed.'),
                         timer: 5200,
                         showConfirmButton: true,
                         confirmButtonText: 'OK'
