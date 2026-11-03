@@ -125,14 +125,14 @@ var _kernelProductionGrid = function () {
                 hasProductionData: batchHasMeaningfulProductionData(batch)
             });
         }
-        const hasProductionData = batchHasMeaningfulProductionData(batch);
+        const hasProductionData = batchHasMeaningfulProductionData(batch) || !!batch._hasOpenSiloRun;
         const productionFinished = !!batch.production_finished_at;
         const hasEndSample = !!batch.has_qa;
 
-        if (productionFinished && hasEndSample) return { label: 'Release ready', filterValue: 'release_ready' };
-        if (productionFinished) return { label: 'Awaiting test', filterValue: 'awaiting_test' };
+        if (productionFinished && hasEndSample) return { label: 'Ready for stock', filterValue: 'release_ready' };
+        if (productionFinished) return { label: 'Waiting for end sample', filterValue: 'awaiting_test' };
         if (hasProductionData) return { label: 'In production', filterValue: 'in_production' };
-        return { label: 'Awaiting production', filterValue: 'awaiting_production' };
+        return { label: 'Ready to crack', filterValue: 'awaiting_production' };
     };
 
     function buildPrimaryProductionAction(batch, displayStatus, canReleaseToStock, isJobCardApproved) {
@@ -240,10 +240,10 @@ var _kernelProductionGrid = function () {
     };
 
     const KANBAN_COLUMNS = [
-        { key: 'awaiting_production', label: 'Awaiting Production' },
-        { key: 'in_production', label: 'In Production' },
-        { key: 'awaiting_test', label: 'Awaiting Test' },
-        { key: 'release_ready', label: 'Release Ready' }
+        { key: 'awaiting_production', label: 'Ready to crack' },
+        { key: 'in_production', label: 'In production' },
+        { key: 'awaiting_test', label: 'Waiting for end sample' },
+        { key: 'release_ready', label: 'Ready for stock' }
     ];
 
     return {
@@ -522,7 +522,7 @@ var _kernelProductionGrid = function () {
                             : '') +
                         '<div class="kanban-card-meta">' +
                             '<span class="kanban-card-meta-item" title="Supplier"><i class="fas fa-user"></i> ' + KanbanHelper._esc(batch.grower_name || 'N/A') + '</span>' +
-                            '<span class="kanban-card-meta-item" title="Wet NIS (kg)"><i class="fas fa-weight-hanging"></i> ' + KanbanHelper._esc(_common.formatKg(batch.display_wet_nis_kg != null ? batch.display_wet_nis_kg : (batch.wet_nis_received_kg || 0))) + ' kg</span>' +
+                            '<span class="kanban-card-meta-item" title="Weighed total (kg)"><i class="fas fa-weight-hanging"></i> ' + KanbanHelper._esc(_common.formatKg(batch.display_wet_nis_kg != null ? batch.display_wet_nis_kg : (batch.wet_nis_received_kg || 0))) + ' kg</span>' +
                             (receivedDate ? '<span class="kanban-card-meta-item" title="Received date"><i class="fas fa-calendar"></i> ' + KanbanHelper._esc(receivedDate) + '</span>' : '') +
                             (bbDisplay ? '<span class="kanban-card-meta-item" title="Best Before Date (from Job Card)"><i class="fas fa-calendar-check"></i> Best Before Date ' + KanbanHelper._esc(bbDisplay) + '</span>' : '') +
                         '</div>' +
@@ -544,7 +544,7 @@ var _kernelProductionGrid = function () {
                         Swal.fire({
                             icon: 'info',
                             title: 'Complete production first',
-                            text: 'Move the batch through Production and End sample to reach Release ready, then approve the job card and release to stock.'
+                            text: 'Move the batch through Production and End sample to reach Ready for stock, then approve the job card and release to stock.'
                         });
                     }
                     scope.loadBatches(true);
@@ -625,6 +625,20 @@ var _kernelProductionGrid = function () {
                     var displayKg = (b.actual_wet_nis_kg != null && b.actual_wet_nis_kg !== '') ? b.actual_wet_nis_kg : b.wet_nis_received_kg;
                     return Object.assign({}, b, { display_wet_nis_kg: displayKg, _hasMeaningfulProductionData: null, _productionCalendarEntries: [] });
                 });
+                // A silo open for the batch = In production, before the first run closes and writes the sheet.
+                if (typeof _dataFunctions.getSiloOverview === 'function') {
+                    try {
+                        var ov = await _dataFunctions.getSiloOverview();
+                        var cracking = {};
+                        ((ov && ov.silos) || []).forEach(function (s) {
+                            if (!s || !s.open_run) return;
+                            (s.contents || []).forEach(function (c) { if (c && c.kernel_id) cracking[c.kernel_id] = true; });
+                        });
+                        scope.batches.forEach(function (b) { b._hasOpenSiloRun = !!cracking[b.id]; });
+                    } catch (e) {
+                        console.warn('[Kernel Production] Silo overview unavailable; open silos not shown as In production', e);
+                    }
+                }
                 var batchesNeedingDetail = scope.batches.filter(function (b) {
                     return b.production_day_count > 0;
                 });
@@ -872,7 +886,7 @@ var _kernelProductionGrid = function () {
                 { key: 'grower_name', label: 'Supplier' },
                 { key: 'received_date', label: 'Received Date' },
                 { key: 'best_before_date', label: 'Best Before Date' },
-                { key: 'display_wet_nis_kg', label: 'Wet NIS (kg)' },
+                { key: 'display_wet_nis_kg', label: 'Weighed total (kg)' },
                 { key: 'status', label: 'Status' }
             ];
             if (typeof exportUtils !== 'undefined' && exportUtils.exportToCSV) {

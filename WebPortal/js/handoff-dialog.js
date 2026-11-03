@@ -68,14 +68,14 @@ var HandoffDialog = (function () {
     /**
      * @param {object} opts
      * @param {string} opts.batchLabel
-     * @param {string} opts.statusLabel - e.g. "Awaiting production"
+     * @param {string} opts.statusLabel - e.g. "Ready to crack"
      * @param {string} opts.destinationModule - e.g. "Kernel Production"
      * @param {string} opts.primaryRoute
      * @param {string} opts.primaryLabel
      * @param {string} [opts.searchText]
      * @param {string} [opts.searchInputId]
      * @param {string} [opts.secondaryRoute='batch-journey']
-     * @param {string} [opts.secondaryLabel='Find in Batch Journey']
+     * @param {string} [opts.secondaryLabel='Open in Find a batch']
      */
     function show(opts) {
         if (typeof Swal === 'undefined') {
@@ -95,7 +95,7 @@ var HandoffDialog = (function () {
             html: html,
             showCancelButton: true,
             confirmButtonText: opts.primaryLabel || 'Open next step',
-            cancelButtonText: opts.secondaryLabel || 'Find in Batch Journey',
+            cancelButtonText: opts.secondaryLabel || 'Open in Find a batch',
             reverseButtons: true,
             focusConfirm: true
         }).then(function (res) {
@@ -110,7 +110,7 @@ var HandoffDialog = (function () {
 
     function showKernelReleaseToProduction(batch) {
         var label = (batch && batch.batch_number) ? batch.batch_number : 'Batch';
-        var d = typeof BatchStatus !== 'undefined' ? BatchStatus.getDisplayStatus(batch) : { label: 'Awaiting production' };
+        var d = typeof BatchStatus !== 'undefined' ? BatchStatus.getDisplayStatus(batch) : { label: 'Ready to crack' };
         var route = typeof BatchStatus !== 'undefined' ? BatchStatus.getKernelRouteForStatus(d) : { route: 'kernel-production-grid', label: 'Open Kernel Production', searchInputId: 'searchBatchesInput' };
         return show({
             batchLabel: label,
