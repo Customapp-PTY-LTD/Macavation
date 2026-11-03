@@ -181,9 +181,9 @@ var _giBags = (function () {
 
         var grid = '<div class="gib-bags">' + b.bags.map(function (x) {
             var t = tagOf(x.loc), on = !!s[x.no];
-            return '<button type="button" class="gib-bag ' + t.cls + (t.movable ? '' : ' is-ro') + (on ? ' is-sel' : '') + '"' +
+            return '<button type="button" class="gib-bag ' + t.cls + (t.movable ? '' : ' is-ro') + (on ? ' is-sel' : '') + (x.est ? ' is-est' : '') + '"' +
                 ' data-kernel-id="' + esc(id) + '" data-bag-no="' + x.no + '" aria-pressed="' + on + '"' +
-                ' title="Bag ' + x.no + ': ' + esc(t.label) + ' · ' + esc(kg(x.kg)) + ' kg">' +
+                ' title="Bag ' + x.no + ': ' + esc(t.label) + ' · ' + esc(kg(x.kg)) + ' kg' + (x.est ? ' (estimated)' : '') + '">' +
                 '<span class="gib-no">' + x.no + '</span><span class="gib-lt">' + mark(t) + '</span></button>';
         }).join('') + '</div>';
 
@@ -194,13 +194,46 @@ var _giBags = (function () {
         return '<div class="gib-panel">' + chips + grid + foot + '</div>';
     }
 
+    /** Estimated vs weighed for one batch (migration 20261103090000); '' when every bag was weighed at intake. */
+    function weighCheck(b) {
+        var n = b.bags.length, nEst = 0, estKg = 0, nIn = 0, inKg = 0, nSilo = 0, siloKg = 0, siloEst = 0;
+        b.bags.forEach(function (x) {
+            if (x.est) { nEst++; estKg += x.kg; }
+            else if (x.at === 'silo') { nSilo++; siloKg += x.kg; siloEst += x.estKg != null ? x.estKg : x.kg; }
+            else { nIn++; inKg += x.kg; }
+        });
+        if (!nEst && !nSilo) return '';
+        var best = inKg + siloKg + estKg;
+        var declared = b.wet_nis_received_kg != null ? Number(b.wet_nis_received_kg) : null;
+        var diff = function (d) { return Math.abs(d) < 0.005 ? 'same' : kg(Math.abs(d)) + ' kg ' + (d < 0 ? 'less' : 'more'); };
+        var weighed = n - nEst;
+        var cell = function (label, value, sub, cls) {
+            return '<div class="gib-wc-cell"><span class="gib-wc-label">' + esc(label) + '</span><strong class="' + (cls || '') + '">' + esc(value) + '</strong>' +
+                (sub ? '<span class="gib-wc-sub">' + esc(sub) + '</span>' : '') + '</div>';
+        };
+        return '<div class="gib-wc">' +
+            '<div class="gib-wc-head"><span class="badge gib-wc-pill">' + weighed + ' of ' + n + ' bags weighed</span></div>' +
+            '<div class="gib-wc-bar" role="img" aria-label="' + weighed + ' of ' + n + ' bags weighed"><span style="width:' + (n ? (weighed / n * 100).toFixed(1) : 0) + '%"></span></div>' +
+            '<div class="gib-wc-grid">' +
+                cell('Weighed at intake', kg(inKg) + ' kg', plural(nIn, 'bag', 'bags')) +
+                cell('Weighed at the silo', kg(siloKg) + ' kg', nSilo ? plural(nSilo, 'bag', 'bags') + ' · ' + diff(siloKg - siloEst) + ' than estimated' : 'none yet') +
+                cell('Still estimated', kg(estKg) + ' kg', nEst ? plural(nEst, 'bag', 'bags') : 'none', 'gib-est-text') +
+                cell('Best figure now', kg(best) + ' kg', declared != null ? diff(best - declared) + ' than declared' : '') +
+            '</div></div>';
+    }
+
     /** Card: strip (when asked or open) and the one-line bag summary. */
     function cardSummary(kernelId, showStrip) {
         if (!state.loaded) return '';
         var b = state.byId[kernelId];
         if (!b || !b.bags.length) return '<div class="gib-sum gib-sum-none">No bags recorded</div>';
         return (showStrip || state.open[kernelId] ? strip(b) : '') +
-            '<div class="gib-sum">' + plural(b.bags.length, 'bag', 'bags') + ' · ' + esc(summary(b)) + '</div>';
+            '<div class="gib-sum">' + plural(b.bags.length, 'bag', 'bags') + ' · ' + esc(summary(b)) + estNote(b) + '</div>';
+    }
+
+    function estNote(b) {
+        var n = b.bags.filter(function (x) { return x.est; }).length;
+        return n ? ' · <span class="gib-est-text">' + n + ' est.</span>' : '';
     }
 
     /** Card: the Bags button for the card's button row ('' when the batch has no bags). */
@@ -218,7 +251,7 @@ var _giBags = (function () {
         var date = _common.formatDateDDMMYYYY(b.received_date);
         return '<div class="gib-meta">' + (date ? 'Received ' + esc(date) + ' · ' : '') +
             'weighed ' + esc(kg(b.actual_wet_nis_kg != null ? b.actual_wet_nis_kg : bagKg(b))) + ' kg' +
-            (b.wet_nis_received_kg != null ? ' · declared ' + esc(kg(b.wet_nis_received_kg)) + ' kg' : '') + '</div>' + panelHtml(b);
+            (b.wet_nis_received_kg != null ? ' · declared ' + esc(kg(b.wet_nis_received_kg)) + ' kg' : '') + '</div>' + weighCheck(b) + panelHtml(b);
     }
 
     /** Table "Bags" cell. */
@@ -226,7 +259,7 @@ var _giBags = (function () {
         if (!state.loaded) return '';
         var b = state.byId[kernelId];
         if (!b || !b.bags.length) return '<span class="text-muted small">No bags recorded</span>';
-        return '<div class="gib-cell">' + strip(b) + '<span>' + plural(b.bags.length, 'bag', 'bags') + ' · ' + esc(summary(b)) + '</span></div>';
+        return '<div class="gib-cell">' + strip(b) + '<span>' + plural(b.bags.length, 'bag', 'bags') + ' · ' + esc(summary(b)) + estNote(b) + '</span></div>';
     }
 
     /** Table expand arrow. */
@@ -357,13 +390,17 @@ var _giBags = (function () {
     // ------------------------------------------------------------------ storage list
 
     function placeTotals(match) {
-        var bags = 0, kgSum = 0, batches = 0;
+        var bags = 0, kgSum = 0, batches = 0, estKg = 0;
         state.batches.forEach(function (b) {
             var n = 0;
-            b.bags.forEach(function (x) { if (match(x.loc || '')) { n++; kgSum += Number(x.kg) || 0; } });
+            b.bags.forEach(function (x) {
+                if (!match(x.loc || '')) return;
+                n++; kgSum += Number(x.kg) || 0;
+                if (x.est) estKg += Number(x.kg) || 0;
+            });
             if (n) { bags += n; batches++; }
         });
-        return { bags: bags, kg: kgSum, batches: batches };
+        return { bags: bags, kg: kgSum, batches: batches, estKg: estKg };
     }
 
     function storageRow(code, t, label, p, opts) {
@@ -372,7 +409,8 @@ var _giBags = (function () {
         var figures = p.bags
             ? '<span class="gib-srow-num">' + plural(p.bags, 'bag', 'bags') + '</span>' +
               '<span class="gib-srow-num">' + esc(tonnes(p.kg)) + '</span>' +
-              '<span class="gib-srow-num gib-srow-muted">' + plural(p.batches, 'batch', 'batches') + '</span>'
+              '<span class="gib-srow-num gib-srow-muted">' + plural(p.batches, 'batch', 'batches') + '</span>' +
+              (p.estKg > 0.005 ? '<span class="gib-srow-num gib-est-text">' + esc(tonnes(p.estKg)) + ' of it estimated</span>' : '')
             : '<span class="gib-srow-empty">Empty</span>';
         var bar = pct !== null && p.bags
             ? '<span class="gib-srow-cap"><span class="gib-bar' + (pct > 90 ? ' is-full' : '') + '"><span class="' + t.cls + '" style="width:' + pct.toFixed(1) + '%"></span></span>' +
@@ -662,7 +700,8 @@ var _giBags = (function () {
                 state.batches = (Array.isArray(res.batches) ? res.batches : []).map(function (b) {
                     return Object.assign({}, b, {
                         bags: (Array.isArray(b.bags) ? b.bags : []).map(function (x) {
-                            return { no: parseInt(x.no, 10), kg: Number(x.kg) || 0, loc: x.loc || '' };
+                            return { no: parseInt(x.no, 10), kg: Number(x.kg) || 0, loc: x.loc || '',
+                                     est: !!x.est, at: x.at || null, estKg: x.est_kg != null ? Number(x.est_kg) : null };
                         }).filter(function (x) { return x.no > 0; })
                     });
                 });

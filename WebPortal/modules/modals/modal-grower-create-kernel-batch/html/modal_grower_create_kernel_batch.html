@@ -75,6 +75,18 @@
                     </div>
                 </div>
 
+                <!-- Bags not weighed yet: supplier's weight / number of bags (migration 20261103090000, setting bag_weighing) -->
+                <div class="nd-spread mb-3" id="intakeSpreadWrap" style="display:none">
+                    <div class="d-flex flex-wrap align-items-end gap-2">
+                        <div>
+                            <label for="intakeSpreadCount" class="form-label small mb-1">Number of bags</label>
+                            <input type="text" inputmode="numeric" class="form-control form-control-sm text-end" id="intakeSpreadCount" style="width: 110px;" autocomplete="off">
+                        </div>
+                        <button type="button" class="btn btn-sm btn-primary" id="intakeSpreadBtn" disabled><i class="fas fa-bars me-1" aria-hidden="true"></i><span id="intakeSpreadBtnText">Add bags at the average weight</span></button>
+                    </div>
+                    <div class="nd-spread-note small mt-2" id="intakeSpreadNote">Bags are weighed at the silo. Enter the supplier's weight and the number of bags: every bag not weighed gets the average, marked <strong>est.</strong></div>
+                </div>
+
                 <h6 class="border-bottom pb-1 mt-4">Wet Nut in Shell Received (Kg)</h6>
                 <div class="table-responsive">
                     <table class="table table-sm align-middle mb-1" id="intakeBagsTable">
@@ -83,6 +95,7 @@
                                 <th style="width:70px">No.</th>
                                 <th>Description</th>
                                 <th class="text-end" style="width:180px">Weight (Kg)</th>
+                                <th class="nd-est-col" style="width:110px">Weight is</th>
                                 <th style="width:50px"></th>
                             </tr>
                         </thead>
@@ -91,6 +104,7 @@
                             <tr>
                                 <td colspan="2">Weighed total (kg) – sum of bags · <span id="intakeBagCount">0</span> bags</td>
                                 <td class="text-end fw-bold" id="intakeBagTotal">0.00</td>
+                                <td class="nd-est-col small" id="intakeBagSplit"></td>
                                 <td></td>
                             </tr>
                         </tfoot>

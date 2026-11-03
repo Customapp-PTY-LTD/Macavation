@@ -2092,6 +2092,15 @@ var _dataFunctions = function () {
                 p_removed_pre_sizer_kg: removedPreSizerKg != null ? Number(removedPreSizerKg) : null
             }, token, { useCache: false, preserveNullParams: true }));
         },
+        /** Same as allocateBagsToSilo, plus the real weights of bags weighed now: weights = { "<bag no>": kg }.
+         *  Estimated bags leave storage at their estimate, then take the real weight (migration 20261103090000). */
+        allocateBagsToSiloWeighed: async function (kernelId, bagNos, siloNumber, removedPreSizerKg, weights, token = null) {
+            return this._kpUnwrap(await this.callFunction('allocate_bags_to_silo_weighed', {
+                p_kernel_id: kernelId, p_bag_nos: bagNos, p_silo_number: siloNumber,
+                p_removed_pre_sizer_kg: removedPreSizerKg != null ? Number(removedPreSizerKg) : null,
+                p_weights: weights || {}
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
         unallocateSiloBag: async function (kernelId, bagNo, token = null) {
             return this._kpUnwrap(await this.callFunction('unallocate_silo_bag', { p_kernel_id: kernelId, p_bag_no: bagNo }, token, { useCache: false }));
         },
