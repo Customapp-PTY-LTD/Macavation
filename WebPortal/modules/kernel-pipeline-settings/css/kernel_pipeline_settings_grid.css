@@ -47,3 +47,8 @@
 #kpsTabs .nav-link {
     min-height: 44px;
 }
+
+/* Bag weights card (migration 20261103090000) */
+.kps-choice { display: flex; gap: 0.75rem; align-items: flex-start; border: 1px solid var(--mac-border); border-radius: var(--mac-radius-md); padding: 0.625rem 0.75rem; margin-bottom: 0.5rem; cursor: pointer; min-height: 44px; }
+.kps-choice.is-on { border-color: var(--mac-green); background: rgba(var(--mac-green-rgb), 0.06); }
+.kps-choice .form-check-input { margin-top: 0.2rem; flex: 0 0 auto; }
