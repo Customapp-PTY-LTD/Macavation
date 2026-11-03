@@ -693,6 +693,7 @@
             "html": "html/kernel_dashboard.html",
             "js": [
                 "js/mgmt_dashboard_common.js",
+                "js/production_log.js",
                 "js/kernel_dashboard.js"
             ],
             "css": [
