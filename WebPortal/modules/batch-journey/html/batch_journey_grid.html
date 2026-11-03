@@ -163,5 +163,10 @@
          above is only hidden meanwhile, so Back returns to it with search/filter/sort intact. -->
     <div id="bjKernelDetail" class="bjd d-none" aria-live="polite"></div>
 
+    <!-- Kernel Production's own production sheet (and the batch summary it links to), loaded on demand by
+         the batch page's "Edit" on cracking / "Open full sheet" — same containers and ids as Kernel Production. -->
+    <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="productionStagesModal" role="dialog" route-name="production-stages-modal" tabindex="-1" aria-labelledby="productionStagesModalLabel" aria-hidden="true"></div>
+    <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="batchSummaryModal" role="dialog" route-name="batch-summary-modal" tabindex="-1" aria-labelledby="batchSummaryModalLabel" aria-hidden="true"></div>
+
     <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="batchHistoryModal" role="dialog" route-name="batch-history-modal" tabindex="-1" aria-labelledby="batchHistoryModalLabel" aria-hidden="true"></div>
 </div>

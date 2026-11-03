@@ -2460,9 +2460,16 @@ var _modal_production_stages = (function () {
             }
         },
 
-        showProductionStagesModalForBatch: (batchId) => {
+        /**
+         * batchRow / opts are optional (Kernel Production passes neither, so it behaves exactly as before).
+         * Find a batch's batch page opens this same sheet for its own batch: it hands over the get_kernel_batches
+         * row (that screen has no _kernelProductionGrid) and the day + tab to show first:
+         * opts = { date: 'YYYY-MM-DD', tab: 'cracking' | 'washing' | 'sorting' | 'packing' }.
+         */
+        showProductionStagesModalForBatch: (batchId, batchRow, opts) => {
             const scope = _modal_production_stages;
-            var batch = typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch ? _kernelProductionGrid.getBatch(batchId) : null;
+            opts = opts || {};
+            var batch = batchRow || (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch ? _kernelProductionGrid.getBatch(batchId) : null);
             if (!batch) {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not found', 'error');
                 return;
@@ -2518,6 +2525,10 @@ var _modal_production_stages = (function () {
                 scope.refreshProductionDatePickers();
                 scope.setProductionStagesTabsVisibility(true);
                 var first = list[0];
+                if (opts.date) {
+                    var wanted = list.filter(function (d) { return d.id === opts.date; })[0];
+                    if (wanted) first = wanted;
+                }
                 $('#productionStagesDayId').val(first.id);
 
                 return scope.populateProductionGrowerSelects(batch.grower_name || '').then(function () {
@@ -2540,8 +2551,10 @@ var _modal_production_stages = (function () {
                 scope.refreshProductionDatePickers();
                 var modalEl = document.getElementById('productionStagesModal');
                 var doRestoreTab = function () {
-                    var savedTab = null;
-                    try { savedTab = localStorage.getItem('kernelProduction_lastTab_' + batchId); } catch (err) {}
+                    var savedTab = opts.tab || null;
+                    if (!savedTab) {
+                        try { savedTab = localStorage.getItem('kernelProduction_lastTab_' + batchId); } catch (err) {}
+                    }
                     var tabNames = ['cracking', 'washing', 'sorting', 'packing'];
                     if (savedTab && tabNames.indexOf(savedTab) !== -1) {
                         var tabBtn = document.getElementById('tab-' + savedTab);

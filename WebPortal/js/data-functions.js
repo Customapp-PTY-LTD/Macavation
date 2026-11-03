@@ -2054,12 +2054,16 @@ var _dataFunctions = function () {
          *   transport_type_name, rate_zar}, documents:[{file_id, file_link, name}] }
          */
         saveKernelDelivery: async function (data, token = null) {
-            const result = await this.callFunction('save_kernel_delivery', {
+            const params = {
                 p_kernel_id: data.kernel_id,
                 p_bags: data.bags || [],
                 p_transport: data.transport || {},
                 p_documents: data.documents || []
-            }, token, { useCache: false });
+            };
+            // Editing an existing delivery (Find a batch → batch page). The RPC refuses to overwrite a
+            // stored delivery unless asked (20261006090100 p_allow_replace); New Delivery never sends it.
+            if (data.allow_replace === true) params.p_allow_replace = true;
+            const result = await this.callFunction('save_kernel_delivery', params, token, { useCache: false });
             this.clearCachePattern('kernel_batches');
             this.clearCachePattern('kernel_batch_detail');
             return this._kpUnwrap(result);
