@@ -1381,10 +1381,6 @@ var _siloAllocationGrid = (function () {
     return {
         init: function () {
             stopTicker();
-            $('#siloAllocationModule').off('click.nssTabs').on('click.nssTabs', '.js-nss-to-intake', function (e) {
-                e.preventDefault();
-                _appRouter.openWith('grower-intake-grid', { storage: true });
-            });
             state.batchId = null;
             state.tally = null;
             if (dataFunctions.getKernelPipelineConfig) {
