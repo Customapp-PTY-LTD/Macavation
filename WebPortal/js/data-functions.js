@@ -2050,7 +2050,7 @@ var _dataFunctions = function () {
         /**
          * Save New Delivery details to kernel.intake_data.delivery and set the weighed total.
          * @param {object} data - { kernel_id, bags:[{no, description, weight_kg}],
-         *   transport:{transporter_id, transporter_name, delivery_note_ref, collection_points[], transport_type_id,
+         *   transport:{transporter_id, transporter_name, delivery_note_ref, consignment_ref, collection_points[], transport_type_id,
          *   transport_type_name, rate_zar}, documents:[{file_id, file_link, name}] }
          */
         saveKernelDelivery: async function (data, token = null) {

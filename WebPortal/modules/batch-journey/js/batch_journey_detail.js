@@ -645,6 +645,7 @@ var _batchJourneyDetail = (function () {
         h += dlItem('Delivery note ref', hasText(note) ? esc(note) : 'Not set', !hasText(note));
         h += dlItem('Removed pre-sizer', esc(kgText(pre.value, 'Not set')), kgNum(pre.value) == null);
         if (dlv) {
+            h += dlItem('Consignment ref', hasText(tr.consignment_ref) ? esc(tr.consignment_ref) : '—');
             h += dlItem('Transporter', hasText(tr.transporter_name) ? esc(tr.transporter_name) : '—');
             h += dlItem('Transport type', hasText(tr.transport_type_name) ? esc(tr.transport_type_name) : '—');
         }
