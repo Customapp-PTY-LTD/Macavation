@@ -759,6 +759,7 @@ var _modal_batch_history = (function () {
                     html += '<tr><th class="text-nowrap bg-light" style="width:35%">Date received</th><td>' + historyFmtProductionDate(recvDate, nil) + '</td></tr>';
                     html += '<tr><th class="text-nowrap bg-light">Delivery note ref</th><td>' + fmt(recvRef) + '</td></tr>';
                     if (dlv) {
+                        html += '<tr><th class="text-nowrap bg-light">Consignment ref</th><td>' + fmt(dlvTr.consignment_ref) + '</td></tr>';
                         html += '<tr><th class="text-nowrap bg-light">Transporter</th><td>' + fmt(dlvTr.transporter_name) + '</td></tr>';
                         html += '<tr><th class="text-nowrap bg-light">Transport type</th><td>' + fmt(dlvTr.transport_type_name) + '</td></tr>';
                         html += '<tr><th class="text-nowrap bg-light">Rate</th><td>' + (dlvTr.rate_zar != null && dlvTr.rate_zar !== '' ? 'R ' + historyFmtKg(dlvTr.rate_zar, nil) : nil) + '</td></tr>';
