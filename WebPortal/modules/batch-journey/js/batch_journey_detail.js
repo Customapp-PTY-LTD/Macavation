@@ -839,9 +839,19 @@ var _batchJourneyDetail = (function () {
             w = Math.round(w * 100) / 100;
             seen[String(no)] = true;
             var base = isNew ? {} : (stored[String(no)] || {});
-            if (isNew || kgNum(base.weight_kg) !== w) touched.push(no);
+            var reweighed = isNew || kgNum(base.weight_kg) !== w;
+            if (reweighed) touched.push(no);
             // Keep every other key on the stored bag as it is; only description and weight are edited here.
-            bags.push(Object.assign({}, base, { no: no, description: desc, weight_kg: w }));
+            var bag = Object.assign({}, base, { no: no, description: desc, weight_kg: w });
+            // A typed weight is a real weight: an estimated bag (20261103090000) becomes weighed, keeping its
+            // old estimate the way the silo does (estimate_kg).
+            if (reweighed && !isNew && bag.estimated === true) {
+                bag.estimated = false;
+                bag.estimate_kg = kgNum(base.weight_kg);
+                bag.weighed_at = 'batch_page';
+                bag.weighed_on = new Date().toISOString();
+            }
+            bags.push(bag);
         });
         Object.keys(stored).forEach(function (no) { if (!seen[no]) touched.push(parseInt(no, 10)); });
         if (!bags.length) problems.push('Keep at least one bag');
