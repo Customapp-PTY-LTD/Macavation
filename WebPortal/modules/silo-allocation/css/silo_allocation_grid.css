@@ -405,3 +405,13 @@
 @media (max-width: 575.98px) { .silo-weigh-cards { grid-template-columns: 1fr; } }
 .silo-weigh-cards > div { display: flex; flex-direction: column; gap: 2px; background: var(--mac-bg-secondary); border-radius: var(--mac-radius-sm); padding: 0.5rem 0.75rem; }
 .silo-weigh-cards span, .silo-weigh-cards small { font-size: var(--mac-text-xs); color: var(--mac-text-secondary); }
+
+/* Allocate bags: bags as tiles in columns, so a whole delivery fits on one screen */
+.silo-bag-head { margin-bottom: 0.5rem; }
+.silo-bag-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0.5rem; }
+.silo-bag-tile { display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--mac-border); border-radius: var(--mac-radius-sm); padding: 0.5rem 0.625rem; background: var(--mac-bg-secondary); }
+.silo-bag-tile:has(.silo-bag-sel:checked) { border-color: var(--mac-green); background: var(--mac-green-light); }
+.silo-bag-tile-top { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.silo-bag-tile-top .form-check-input { margin: 0; flex: none; }
+.silo-bag-no { font-weight: 700; margin: 0; cursor: pointer; }
+.silo-bag-weighed { font-size: var(--mac-text-xs); color: var(--mac-text-secondary); text-align: right; padding: 0.25rem 0; }
