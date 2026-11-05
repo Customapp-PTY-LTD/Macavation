@@ -32,6 +32,8 @@ var _siloAllocationGrid = (function () {
         batchId: null,
         pickedKernel: null, // "Show a batch" on the Silos card: kernel_id, or null for all silos
         allocOpen: false,   // Allocate bags unfolded; remembered on this device
+        tallyOpen: false,   // Pre-sizer tally unfolded (folded each visit)
+        allocatedOpen: false, // "Allocated" bag list under Allocate bags unfolded (folded each visit)
         siloUnweighed: 'allow', // Kernel Pipeline Settings bag_weighing: an estimated bag may go in unweighed?
         realKg: {},         // real weights typed on the bag tiles, keyed kernel_id + ':' + bag no; prefill the weigh dialog
         timer: null
@@ -339,7 +341,7 @@ var _siloAllocationGrid = (function () {
     // allocating) folds away with it.
     function applyAllocOpen() {
         var open = !!state.allocOpen;
-        $('.silo-alloc-card').toggleClass('is-open', open);
+        $('#siloAllocToggle').closest('.card').toggleClass('is-open', open);
         $('#siloAllocToggle').attr('aria-expanded', open ? 'true' : 'false');
         $('#siloAllocToggleLabel').text(open ? 'Hide' : 'Show');
         $('#siloAllocBody').toggleClass('d-none', !open);
@@ -452,7 +454,10 @@ var _siloAllocationGrid = (function () {
 
         var allocated = (batch.bags || []).filter(function (b) { return b.silo_number != null; });
         if (allocated.length) {
-            h += '<div class="mt-3"><div class="small text-muted mb-1">Allocated:</div><ul class="list-unstyled mb-0 small">';
+            var allocKg = allocated.reduce(function (s, b) { return s + (Number(b.weight_kg) || 0); }, 0);
+            h += '<details class="mt-3 silo-allocated"' + (state.allocatedOpen ? ' open' : '') + '><summary class="small text-muted">' +
+                'Allocated: ' + esc(allocated.length) + ' bag' + (allocated.length === 1 ? '' : 's') + ' · ' + esc(kg(allocKg)) + ' kg' +
+                '</summary><ul class="list-unstyled mb-0 mt-1 small">';
             allocated.forEach(function (b) {
                 // Only bags still sitting in a silo can be undone; cracked ones are history.
                 var undo = (b.status === 'in_silo')
@@ -460,7 +465,7 @@ var _siloAllocationGrid = (function () {
                 h += '<li>bag ' + esc(b.no) + ' → silo ' + esc(b.silo_number) + ' · ' +
                     esc(kg(b.weight_kg)) + ' kg' + undo + '</li>';
             });
-            h += '</ul></div>';
+            h += '</ul></details>';
         }
         $body.html(h);
         updateAllocBtn();
@@ -502,8 +507,16 @@ var _siloAllocationGrid = (function () {
         if (state.batches === null || !batch || !state.allocOpen) { $card.addClass('d-none'); return; }
         $card.removeClass('d-none');
         $('#siloTallyTitle').text('Pre-sizer tally · ' + String(batch.batch_number || ''));
-        var $body = $('#siloTallyBody');
+        var open = !!state.tallyOpen;
+        $card.toggleClass('is-open', open);
+        $('#siloTallyToggle').attr('aria-expanded', open ? 'true' : 'false');
+        $('#siloTallyToggleLabel').text(open ? 'Hide' : 'Show');
+        var $body = $('#siloTallyBody').toggleClass('d-none', !open);
         var t = state.tally;
+        $('#siloTallySummary').text(t
+            ? kg(Number(t.total_removed_kg) || 0) + ' kg removed so far' +
+                ((t.waiting_bag_nos || []).length ? ' · ' + t.waiting_bag_nos.length + ' bag' + (t.waiting_bag_nos.length === 1 ? '' : 's') + ' still waiting' : '')
+            : '');
         if (!t) {
             $body.html('<div class="text-muted">Unavailable until Silo Allocation is set up.</div>');
             return;
@@ -1352,6 +1365,14 @@ var _siloAllocationGrid = (function () {
                 state.allocOpen = !state.allocOpen;
                 writeAllocOpen(state.allocOpen);
                 applyAllocOpen();
+            })
+            .on('click.siloAlloc', '#siloTallyToggle', function () {
+                state.tallyOpen = !state.tallyOpen;
+                renderTally();
+            })
+            // Remember the fold across redraws (allocating or undoing redraws the list).
+            .on('click.siloAlloc', '.silo-allocated > summary', function () {
+                state.allocatedOpen = !$(this).parent().prop('open');
             })
             // A chip or a silo's batch picks that batch; picking the shown batch again shows all.
             .on('click.siloAlloc', '.silo-batch-chip, .silo-batch-btn', function () {
