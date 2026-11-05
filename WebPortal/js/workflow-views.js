@@ -47,10 +47,13 @@ var _workflowViews = function () {
             // Role tasks (migration 20261027130000): a role's open tasks; super_user gets every role's.
             try {
                 if (typeof dataFunctions !== 'undefined' && dataFunctions.callFunction) {
-                    const res = await dataFunctions.callFunction('get_role_tasks', { p_role: userRole }, null, { useCache: false });
+                    // p_user_id: a person with users.sees_all_tasks gets every role's tasks too (migration 20261105090000).
+                    const userId = typeof Session !== 'undefined' && Session.getUserId ? Session.getUserId() : null;
+                    const res = await dataFunctions.callFunction('get_role_tasks', { p_role: userRole, p_user_id: userId }, null, { useCache: false });
                     const body = res && res.data !== undefined ? res.data : res;
                     if (body && body.success !== false && Array.isArray(body.tasks)) {
                         this._lastTasks = body.tasks;
+                        this._seesAllTasks = !!body.sees_all;
                         return body.tasks;
                     }
                 }
@@ -312,7 +315,7 @@ var _workflowViews = function () {
                     <div class="card mb-4 my-day-tasks-card${openCount ? ' has-tasks' : ''}">
                         <div class="card-header d-flex flex-wrap align-items-center gap-2">
                             <h4 class="mb-0"><i class="fas fa-list-check me-2"></i>Your tasks</h4>${countPill}
-                            <span class="small text-muted ms-auto">${this.getUserRole() && this.getUserRole() !== 'super_user' ? 'For the ' + this._esc(this.getUserRole()) + ' role. ' : ''}Things waiting for you to do. Each new one also shows in the bell.</span>
+                            <span class="small text-muted ms-auto">${this.getUserRole() && this.getUserRole() !== 'super_user' && !this._seesAllTasks ? 'For the ' + this._esc(this.getUserRole()) + ' role. ' : ''}Things waiting for you to do. Each new one also shows in the bell.</span>
                         </div>
                         <div class="card-body">
                             ${this.renderWorkflowTasks(tasks)}
@@ -405,14 +408,15 @@ var _workflowViews = function () {
 
         /**
          * Render workflow tasks. Every DB string goes through _esc. Transport-rate tasks are closed by
-         * entering the rate (no tick box). super_user sees every role's tasks, labelled with the role.
+         * entering the rate (no tick box). super_user (and anyone with users.sees_all_tasks) sees every
+         * role's tasks, labelled with the role.
          */
         renderWorkflowTasks: function (tasks) {
             if (!tasks || tasks.length === 0) {
                 return '<p class="text-muted text-center py-4">No tasks waiting. Great job!</p>';
             }
             var self = this, esc = this._esc.bind(this);
-            var isSuper = this.getUserRole() === 'super_user';
+            var isSuper = this.getUserRole() === 'super_user' || !!this._seesAllTasks;
 
             return '<div class="workflow-tasks">' + tasks.map(function (task) {
                 var id = esc(task.id);
