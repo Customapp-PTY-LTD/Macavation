@@ -43,8 +43,8 @@
 <div class="module-content">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <div>
-            <h1 class="h2 mb-1">Kernel Production Workflow</h1>
-            <p class="text-muted mb-0 small macavation-module-journey-subtitle" id="macavationModuleJourneySubtitle">Batches here: Awaiting production, In production, Awaiting test, Release ready</p>
+            <h1 class="h2 mb-1">Kernel Production</h1>
+            <p class="text-muted mb-0 small macavation-module-journey-subtitle" id="macavationModuleJourneySubtitle">Batches here: Ready to crack, In production, Waiting for end sample, Ready for stock</p>
         </div>
         <div class="btn-toolbar mb-2 mb-md-0 ms-auto gap-2 align-items-center">
             <a target="_blank" rel="noopener noreferrer" href="help/index.html#kernel-production-grid" class="btn btn-sm btn-outline-secondary macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
@@ -108,10 +108,10 @@
                     <label for="filterBatchStatus" class="form-label">Status</label>
                     <select class="form-select" id="filterBatchStatus">
                         <option value="">All Statuses</option>
-                        <option value="awaiting_production">Awaiting production</option>
+                        <option value="awaiting_production">Ready to crack</option>
                         <option value="in_production">In production</option>
-                        <option value="awaiting_test">Awaiting test</option>
-                        <option value="release_ready">Release ready</option>
+                        <option value="awaiting_test">Waiting for end sample</option>
+                        <option value="release_ready">Ready for stock</option>
                     </select>
                 </div>
                 <div class="col-6 col-lg-3">
@@ -153,7 +153,7 @@
                             <th>Supplier</th>
                             <th>Received Date</th>
                             <th title="Best Before Date (from Job Card when completed)">Best Before Date</th>
-                            <th>Wet NIS (kg)</th>
+                            <th>Weighed total (kg)</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>

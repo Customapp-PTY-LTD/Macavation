@@ -130,7 +130,7 @@ var _batchJourneyDetail = (function () {
         samples: 'Intake samples',
         production: 'Production days',
         jobcard: 'Job card',
-        qa: 'End sample (QA)',
+        qa: 'End sample',
         dispatch: 'Dispatch'
     };
 

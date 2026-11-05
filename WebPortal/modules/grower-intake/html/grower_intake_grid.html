@@ -2,7 +2,7 @@
 <div class="module-content">
     <div class="pt-3 pb-2 mb-3 border-bottom">
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
-            <h1 class="h2 mb-0">Grower Intake Management</h1>
+            <h1 class="h2 mb-0">Grower Intake</h1>
             <div class="btn-toolbar mb-2 mb-md-0 ms-auto gap-2 align-items-center">
                 <a target="_blank" rel="noopener noreferrer" href="help/index.html#grower-intake-grid" class="btn btn-sm btn-outline-secondary macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
 
@@ -19,7 +19,7 @@
                 </button>
             </div>
         </div>
-        <p class="text-muted mb-0 mt-2 small macavation-module-journey-subtitle" id="macavationModuleJourneySubtitle">Stage 1: Complete Receiving checklist for each batch (box becomes a tick); then Batch test / Batch sample (enabled after checklist). Release to production is only enabled once both forms are completed.</p>
+        <p class="text-muted mb-0 mt-2 small macavation-module-journey-subtitle" id="macavationModuleJourneySubtitle">Stage 1: Complete Receiving checklist for each batch (box becomes a tick); then Batch test / Batch sample (enabled after checklist). A batch with everything in spec goes straight to Ready to crack; anything out of spec waits under Needs a decision.</p>
     </div>
 
     <div class="gi-layout gi-layout-full">
@@ -38,9 +38,9 @@
                     <select class="form-select" id="filterIntakeBatchStatus">
                         <option value="">All Statuses</option>
                         <option value="receiving">Receiving</option>
-                        <option value="intake_received">Quality checks</option>
-                        <option value="quality_approved">Ready to release</option>
-                        <option value="released">Released &ndash; cracking</option>
+                        <option value="intake_received">Samples</option>
+                        <option value="quality_approved">Needs a decision</option>
+                        <option value="released">Ready to crack</option>
                     </select>
                 </div>
                 <div class="col-6 col-sm-auto">

@@ -25,8 +25,8 @@ var BatchStatus = (function () {
     };
 
     var MODULE_SUBTITLES = {
-        'grower-intake-grid': 'Book a truck in, do the checklist, take the sample, release. Open Bags on a batch to see and move where its bags are.',
-        'kernel-production-grid': 'Batches here: Awaiting production, In production, Awaiting test, Release ready',
+        'grower-intake-grid': 'Book a truck in, do the Receiving checklist and the Samples. A batch with everything in spec goes straight to Ready to crack; anything out of spec waits under Needs a decision. Open Bags on a batch to see and move where its bags are.',
+        'kernel-production-grid': 'Batches here: Ready to crack, In production, Waiting for end sample, Ready for stock',
         'stock-management-kernel': 'Finished kernel stock by style — batches with remaining stock on hand',
         'kernel-dispatch-grid': 'Dispatch baskets for kernel customers',
         'supplier-intake-grid': 'Oil ingredient batches: Awaiting tests, Ready for Oil Production',
@@ -68,7 +68,10 @@ var BatchStatus = (function () {
         return ['receiving', 'intake_received', 'quality_pending', 'quality_approved'].indexOf(st) >= 0;
     }
 
+    // A silo opened for the batch counts as production started, before the first run closes
+    // and its kg reach the cracking sheet (_hasOpenSiloRun is set by Kernel Production from get_silo_overview).
     function hasProductionActivity(batch, opts) {
+        if (batch._hasOpenSiloRun) return true;
         if (opts && opts.hasProductionData != null) return !!opts.hasProductionData;
         return (parseInt(batch.production_day_count, 10) || 0) > 0 || !!batch.has_job_card;
     }
@@ -89,28 +92,28 @@ var BatchStatus = (function () {
 
         if (st === 'complete' || st === 'in_finished_stock') {
             if (remainingKg <= 0.000001) {
-                return { value: 'complete', label: 'Complete', bucket: 'complete' };
+                return { value: 'complete', label: 'All dispatched', bucket: 'complete' };
             }
-            return { value: 'stock', label: 'Stock', bucket: 'stock' };
+            return { value: 'stock', label: 'In stock', bucket: 'stock' };
         }
 
         if (st === 'dispatch') {
             if (remainingKg <= 0.000001) {
-                return { value: 'complete', label: 'Complete', bucket: 'complete' };
+                return { value: 'complete', label: 'All dispatched', bucket: 'complete' };
             }
-            return { value: 'stock', label: 'Stock', bucket: 'stock' };
+            return { value: 'stock', label: 'In stock', bucket: 'stock' };
         }
 
         if (isGrowerIntakeStatus(batch)) {
             var col = getGrowerIntakeColumnKey(batch);
             if (col === 'intake_received') {
-                return { value: 'gi-intake-received', label: 'Intake received', bucket: 'grower' };
+                return { value: 'gi-intake-received', label: 'Samples', bucket: 'grower' };
             }
             if (col === 'quality_pending') {
-                return { value: 'gi-quality-pending', label: 'Quality pending', bucket: 'grower' };
+                return { value: 'gi-quality-pending', label: 'Samples', bucket: 'grower' };
             }
             if (col === 'quality_approved') {
-                return { value: 'gi-quality-approved', label: 'Quality approved', bucket: 'grower' };
+                return { value: 'gi-quality-approved', label: 'Needs a decision', bucket: 'grower' };
             }
             return { value: 'gi-receiving', label: 'Receiving', bucket: 'grower' };
         }
@@ -118,15 +121,15 @@ var BatchStatus = (function () {
         var inProductionPipeline = ['production', 'qa', 'awaiting_production', 'in_production', 'awaiting_test', 'release_ready', 'pending_release'].indexOf(st) >= 0;
         if (inProductionPipeline) {
             if (batch.production_finished_at && !batch.has_qa) {
-                return { value: 'awaiting-test', label: 'Awaiting test', bucket: 'awaiting-test' };
+                return { value: 'awaiting-test', label: 'Waiting for end sample', bucket: 'awaiting-test' };
             }
             if (batch.production_finished_at && batch.has_qa) {
-                return { value: 'release-ready', label: 'Release ready', bucket: 'production' };
+                return { value: 'release-ready', label: 'Ready for stock', bucket: 'production' };
             }
             if (hasProductionActivity(batch, opts)) {
                 return { value: 'in-production', label: 'In production', bucket: 'production' };
             }
-            return { value: 'awaiting-production', label: 'Awaiting production', bucket: 'production' };
+            return { value: 'awaiting-production', label: 'Ready to crack', bucket: 'production' };
         }
 
         return { value: 'gi-receiving', label: 'Receiving', bucket: 'grower' };
@@ -175,9 +178,9 @@ var BatchStatus = (function () {
             'awaiting-test': { route: 'kernel-production-grid', label: 'Open Kernel Production', searchInputId: 'searchBatchesInput' },
             'release-ready': { route: 'kernel-production-grid', label: 'Open Kernel Production', searchInputId: 'searchBatchesInput' },
             'stock': { route: 'stock-management-kernel', label: 'Open Stock (Kernel)', searchInputId: null },
-            'complete': { route: 'batch-journey', label: 'Find in Batch Journey', searchInputId: 'bjSearchInput' }
+            'complete': { route: 'batch-journey', label: 'Open in Find a batch', searchInputId: 'bjSearchInput' }
         };
-        return map[d.value] || { route: 'batch-journey', label: 'Find in Batch Journey', searchInputId: 'bjSearchInput' };
+        return map[d.value] || { route: 'batch-journey', label: 'Open in Find a batch', searchInputId: 'bjSearchInput' };
     }
 
     /** Oil supplier batch display status (simplified pipeline). */
