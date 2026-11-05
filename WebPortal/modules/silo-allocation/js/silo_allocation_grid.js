@@ -32,7 +32,10 @@ var _siloAllocationGrid = (function () {
         batchId: null,
         pickedKernel: null, // "Show a batch" on the Silos card: kernel_id, or null for all silos
         allocOpen: false,   // Allocate bags unfolded; remembered on this device
+        tallyOpen: false,   // Pre-sizer tally unfolded (folded each visit)
+        allocatedOpen: false, // "Allocated" bag list under Allocate bags unfolded (folded each visit)
         siloUnweighed: 'allow', // Kernel Pipeline Settings bag_weighing: an estimated bag may go in unweighed?
+        realKg: {},         // real weights typed on the bag tiles, keyed kernel_id + ':' + bag no; prefill the weigh dialog
         timer: null
     };
 
@@ -338,7 +341,7 @@ var _siloAllocationGrid = (function () {
     // allocating) folds away with it.
     function applyAllocOpen() {
         var open = !!state.allocOpen;
-        $('.silo-alloc-card').toggleClass('is-open', open);
+        $('#siloAllocToggle').closest('.card').toggleClass('is-open', open);
         $('#siloAllocToggle').attr('aria-expanded', open ? 'true' : 'false');
         $('#siloAllocToggleLabel').text(open ? 'Hide' : 'Show');
         $('#siloAllocBody').toggleClass('d-none', !open);
@@ -411,18 +414,29 @@ var _siloAllocationGrid = (function () {
         }
 
         if (un.length) {
-            h += '<div class="table-responsive"><table class="table align-middle mb-2"><thead><tr>' +
-                '<th class="silo-col" style="width:40px"><input type="checkbox" class="form-check-input" id="siloSelAll" aria-label="Select all"></th>' +
-                '<th class="silo-col">Bag No.</th><th class="silo-col text-end">Weight (kg)</th></tr></thead><tbody>';
+            // Bags as tiles in columns, so a whole delivery fits on one screen. An estimated bag gets a
+            // "Real kg" box: typing a weight ticks the bag and prefills the weigh dialog.
+            h += '<div class="silo-bag-head"><div class="form-check mb-0">' +
+                '<input type="checkbox" class="form-check-input" id="siloSelAll">' +
+                '<label class="form-check-label" for="siloSelAll">Select all ' + esc(un.length) + ' bags</label></div></div>';
+            h += '<div class="silo-bag-grid mb-3">';
             un.forEach(function (b) {
-                h += '<tr><td><input type="checkbox" class="form-check-input silo-bag-sel" value="' + esc(b.no) +
-                    '" data-kg="' + esc(Number(b.weight_kg) || 0) + '" aria-label="Bag ' + esc(b.no) +
-                    '"></td><td><strong>' + esc(b.no) +
-                    '</strong></td><td class="text-end">' + (b.estimated
-                        ? '<span class="silo-est" title="Estimated at New delivery: weigh it as it goes in">' + esc(kg(b.weight_kg)) + ' <span class="badge silo-est-badge">est.</span></span>'
-                        : esc(kg(b.weight_kg))) + '</td></tr>';
+                var id = 'siloBag' + esc(b.no);
+                var real = state.realKg[realKey(batch, b.no)];
+                h += '<div class="silo-bag-tile' + (b.estimated ? ' is-est' : '') + '">' +
+                    '<div class="silo-bag-tile-top"><input type="checkbox" class="form-check-input silo-bag-sel" id="' + id +
+                    '" value="' + esc(b.no) + '" data-kg="' + esc(Number(b.weight_kg) || 0) + '">' +
+                    '<label for="' + id + '" class="silo-bag-no">Bag ' + esc(b.no) + '</label>' +
+                    (b.estimated
+                        ? '<span class="silo-est ms-auto" title="Estimated at New delivery: weigh it as it goes in">' + esc(kg(b.weight_kg)) + ' <span class="badge silo-est-badge">est.</span></span>'
+                        : '<span class="ms-auto">' + esc(kg(b.weight_kg)) + '</span>') + '</div>' +
+                    (b.estimated
+                        ? '<input type="text" inputmode="decimal" class="form-control form-control-sm text-end js-kg-input silo-bag-real" data-no="' +
+                            esc(b.no) + '" placeholder="Real kg" aria-label="Real weight, bag ' + esc(b.no) + '" value="' + (real ? esc(kg(real)) : '') + '">'
+                        : '<div class="silo-bag-weighed">Weighed at intake</div>') +
+                    '</div>';
             });
-            h += '</tbody></table></div>';
+            h += '</div>';
             var opts = siloOptions(batch);
             var firstOk = opts.filter(function (o) { return o.ok; })[0];
             h += '<div class="silo-alloc-row"><label for="siloAllocSilo" class="form-label mb-0">Into silo</label>' +
@@ -440,7 +454,10 @@ var _siloAllocationGrid = (function () {
 
         var allocated = (batch.bags || []).filter(function (b) { return b.silo_number != null; });
         if (allocated.length) {
-            h += '<div class="mt-3"><div class="small text-muted mb-1">Allocated:</div><ul class="list-unstyled mb-0 small">';
+            var allocKg = allocated.reduce(function (s, b) { return s + (Number(b.weight_kg) || 0); }, 0);
+            h += '<details class="mt-3 silo-allocated"' + (state.allocatedOpen ? ' open' : '') + '><summary class="small text-muted">' +
+                'Allocated: ' + esc(allocated.length) + ' bag' + (allocated.length === 1 ? '' : 's') + ' · ' + esc(kg(allocKg)) + ' kg' +
+                '</summary><ul class="list-unstyled mb-0 mt-1 small">';
             allocated.forEach(function (b) {
                 // Only bags still sitting in a silo can be undone; cracked ones are history.
                 var undo = (b.status === 'in_silo')
@@ -448,9 +465,27 @@ var _siloAllocationGrid = (function () {
                 h += '<li>bag ' + esc(b.no) + ' → silo ' + esc(b.silo_number) + ' · ' +
                     esc(kg(b.weight_kg)) + ' kg' + undo + '</li>';
             });
-            h += '</ul></div>';
+            h += '</ul></details>';
         }
         $body.html(h);
+        updateAllocBtn();
+    }
+
+    function realKey(batch, no) {
+        return String(batch && batch.kernel_id) + ':' + String(no);
+    }
+
+    // Typing a real weight on a tile remembers it and ticks the bag; clearing it forgets it.
+    function onRealKgInput() {
+        var batch = currentBatch(), $in = $(this), no = $in.attr('data-no');
+        var raw = String($in.val() || '').trim(), v = _common.parseKg(raw);
+        $in.toggleClass('is-invalid', raw !== '' && !(v > 0));
+        if (v > 0) {
+            state.realKg[realKey(batch, no)] = v;
+            $in.closest('.silo-bag-tile').find('.silo-bag-sel').prop('checked', true);
+        } else {
+            delete state.realKg[realKey(batch, no)];
+        }
         updateAllocBtn();
     }
 
@@ -458,10 +493,10 @@ var _siloAllocationGrid = (function () {
     function updateAllocBtn() {
         var $btn = $('#siloAllocBtn');
         if (!$btn.length) { return; }
-        var n = 0, total = 0;
+        var n = 0, total = 0, batch = currentBatch();
         $('#siloAllocBody .silo-bag-sel:checked').each(function () {
             n++;
-            total += Number($(this).attr('data-kg')) || 0;
+            total += state.realKg[realKey(batch, this.value)] || Number($(this).attr('data-kg')) || 0;
         });
         $btn.text(n ? 'Allocate selected (' + n + ' bag' + (n === 1 ? '' : 's') + ' · ' + kg(total) + ' kg)' : 'Allocate selected');
     }
@@ -472,8 +507,16 @@ var _siloAllocationGrid = (function () {
         if (state.batches === null || !batch || !state.allocOpen) { $card.addClass('d-none'); return; }
         $card.removeClass('d-none');
         $('#siloTallyTitle').text('Pre-sizer tally · ' + String(batch.batch_number || ''));
-        var $body = $('#siloTallyBody');
+        var open = !!state.tallyOpen;
+        $card.toggleClass('is-open', open);
+        $('#siloTallyToggle').attr('aria-expanded', open ? 'true' : 'false');
+        $('#siloTallyToggleLabel').text(open ? 'Hide' : 'Show');
+        var $body = $('#siloTallyBody').toggleClass('d-none', !open);
         var t = state.tally;
+        $('#siloTallySummary').text(t
+            ? kg(Number(t.total_removed_kg) || 0) + ' kg removed so far' +
+                ((t.waiting_bag_nos || []).length ? ' · ' + t.waiting_bag_nos.length + ' bag' + (t.waiting_bag_nos.length === 1 ? '' : 's') + ' still waiting' : '')
+            : '');
         if (!t) {
             $body.html('<div class="text-muted">Unavailable until Silo Allocation is set up.</div>');
             return;
@@ -827,9 +870,11 @@ var _siloAllocationGrid = (function () {
         var block = state.siloUnweighed === 'block';
         var estKg = estBags.reduce(function (s, b) { return s + (Number(b.weight_kg) || 0); }, 0);
         var rows = estBags.map(function (b) {
+            var real = state.realKg[realKey(batch, b.no)];
             return '<tr data-no="' + esc(b.no) + '" data-est="' + esc(Number(b.weight_kg) || 0) + '"><td><strong>' + esc(b.no) + '</strong></td>' +
                 '<td class="text-end silo-est">' + esc(kg(b.weight_kg)) + '</td>' +
-                '<td><input type="text" inputmode="decimal" class="form-control form-control-sm text-end js-kg-input silo-weigh-in" placeholder="Not weighed" aria-label="Weighed now, bag ' + esc(b.no) + '"></td>' +
+                '<td><input type="text" inputmode="decimal" class="form-control form-control-sm text-end js-kg-input silo-weigh-in" placeholder="Not weighed" aria-label="Weighed now, bag ' + esc(b.no) + '"' +
+                    (real ? ' value="' + esc(kg(real)) + '"' : '') + '></td>' +
                 '<td class="small silo-weigh-diff"></td></tr>';
         }).join('');
         var others = nos.length - estBags.length;
@@ -896,7 +941,9 @@ var _siloAllocationGrid = (function () {
                     var next = $ins.eq($ins.index(this) + 1);
                     (next.length ? next : $('#siloPresizerKg')).trigger('focus');
                 });
-                $ins.first().trigger('focus');
+                // Weights typed on the tiles are already in: start at the first bag still blank.
+                var $blank = $ins.filter(function () { return !String(this.value || '').trim(); });
+                ($blank.length ? $blank.first() : $('#siloPresizerKg')).trigger('focus');
                 refresh();
             },
             preConfirm: function () {
@@ -1283,6 +1330,7 @@ var _siloAllocationGrid = (function () {
                 updateAllocBtn();
             })
             .on('change.siloAlloc', '.silo-bag-sel', updateAllocBtn)
+            .on('input.siloAlloc', '.silo-bag-real', onRealKgInput)
             .on('click.siloAlloc', '#siloAllocBtn', allocate)
             .on('click.siloAlloc', '.silo-undo', function (e) { e.preventDefault(); undo(Number($(this).data('no'))); })
             .on('click.siloAlloc', '.silo-open-btn', function () { openSiloNow(Number($(this).data('silo'))); })
@@ -1317,6 +1365,14 @@ var _siloAllocationGrid = (function () {
                 state.allocOpen = !state.allocOpen;
                 writeAllocOpen(state.allocOpen);
                 applyAllocOpen();
+            })
+            .on('click.siloAlloc', '#siloTallyToggle', function () {
+                state.tallyOpen = !state.tallyOpen;
+                renderTally();
+            })
+            // Remember the fold across redraws (allocating or undoing redraws the list).
+            .on('click.siloAlloc', '.silo-allocated > summary', function () {
+                state.allocatedOpen = !$(this).parent().prop('open');
             })
             // A chip or a silo's batch picks that batch; picking the shown batch again shows all.
             .on('click.siloAlloc', '.silo-batch-chip, .silo-batch-btn', function () {
