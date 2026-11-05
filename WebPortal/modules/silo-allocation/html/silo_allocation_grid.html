@@ -29,12 +29,16 @@
         <div class="card-body d-none" id="siloAllocBody"></div>
     </div>
 
-    <div class="card mb-3 d-none" id="siloTallyCard">
-        <div class="card-header d-flex justify-content-between flex-wrap gap-2 align-items-center">
-            <h2 class="h5 mb-0" id="siloTallyTitle">Pre-sizer tally</h2>
-            <span class="small text-muted">Running total for the whole batch</span>
-        </div>
-        <div class="card-body" id="siloTallyBody"></div>
+    <!-- Pre-sizer tally folds to its batch total; open it to see each allocation. -->
+    <div class="card mb-3 d-none silo-alloc-card" id="siloTallyCard">
+        <button type="button" class="card-header silo-alloc-toggle" id="siloTallyToggle"
+                aria-expanded="false" aria-controls="siloTallyBody">
+            <i class="fas fa-chevron-right silo-alloc-chevron" aria-hidden="true"></i>
+            <span class="h5 mb-0" id="siloTallyTitle">Pre-sizer tally</span>
+            <span class="small text-muted silo-alloc-summary" id="siloTallySummary"></span>
+            <span class="silo-alloc-toggle-label" id="siloTallyToggleLabel">Show</span>
+        </button>
+        <div class="card-body d-none" id="siloTallyBody"></div>
     </div>
 
     <div class="card mb-3">
