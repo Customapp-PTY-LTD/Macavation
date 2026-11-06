@@ -1108,23 +1108,42 @@ var _batchJourneyDetail = (function () {
             var co = obj(f.crack_out);
             var ft = obj(f.float_test);
             var un = obj(f.unsound);
-            h += '<div class="bjd-mini-grid mt-2">' +
-                '<div><div class="small text-muted">Sound kernel</div><div class="fw-semibold">' + gText(co.sound_kernel_g) + '</div></div>' +
-                '<div><div class="small text-muted">Unsound</div><div class="fw-semibold">' + gText(co.unsound_kernel_g) + '</div></div>' +
-                '<div><div class="small text-muted">Shell</div><div class="fw-semibold">' + gText(co.shell_g) + '</div></div></div>';
-            h += '<div class="small text-muted mt-2">Float test: ' + gText(ft.floating_g) + ' floating · ' + gText(ft.sinking_g) + ' sinking</div>';
-            // Final figures move the sinkers out of sound kernel into unsound (WebPortal/js/five-kg-sample.js).
+            // Headline is the final result: sinkers moved out of sound kernel into unsound (WebPortal/js/five-kg-sample.js).
             var fr = FiveKgSample.fromSaved(f);
-            if (fr.final_sound_kernel_g != null) {
-                h += '<div class="small mt-1"><span class="text-muted">Final after float test:</span> <strong>Sound ' + esc(fr.final_sound_kernel_pct.toFixed(2)) + '%</strong> (' + gText(fr.final_sound_kernel_g) + ') · ' +
-                    '<strong>Unsound ' + esc(fr.final_unsound_kernel_pct.toFixed(2)) + '%</strong> (' + gText(fr.final_unsound_kernel_g) + ')</div>';
-            }
+            h += '<div class="bjd-mini-grid mt-2">' + fiveKgTile('Sound kernel', fr.final_sound_kernel_g, fr.final_sound_kernel_pct) +
+                fiveKgTile('Unsound', fr.final_unsound_kernel_g, fr.final_unsound_kernel_pct) +
+                fiveKgTile('Shell', fr.final_shell_g, fr.final_shell_pct) + '</div>';
+            if (fr.final_sound_kernel_g == null) h += '<div class="small text-warning mt-1">Float test not complete, so Sound and Unsound kernel are not final.</div>';
+            h += '<div class="small text-muted mt-2">Before float test: sound ' + gText(co.sound_kernel_g) + ' · unsound ' + gText(fr.unsound_kernel_g) +
+                ' · float test (wet) ' + gText(ft.floating_g) + ' floating, ' + gText(ft.sinking_g) + ' sinking</div>';
             h += '<details class="small mt-2"><summary class="bjd-summary">Unsound breakdown (9 types)</summary><div class="bjd-mini-grid mt-2">';
             UNSOUND.forEach(function (u) { h += '<span class="text-muted">' + esc(u.label) + ' ' + gText(un[u.key]) + '</span>'; });
             h += '</div></details>';
         }
         h += '</div></div>';
         return h;
+    }
+
+    function fiveKgTile(label, g, pct) {
+        return '<div><div class="small text-muted">' + esc(label) + '</div><div class="fw-semibold">' +
+            (pct == null ? gText(g) : esc(pct.toFixed(2)) + '% <span class="small text-muted fw-normal">(' + gText(g) + ')</span>') + '</div></div>';
+    }
+
+    // Live final figures while the 5 kg sample is edited, same calculation as the sample dialog.
+    function fiveKgPreviewText() {
+        var d = read5kg();
+        var un = {};
+        UNSOUND.forEach(function (u) { un[u.key] = d['unsound_' + u.key]; });
+        var r = FiveKgSample.calc({
+            sound_kernel_g: d.crack_out_sound_kernel_g, unsound_kernel_g: d.crack_out_unsound_kernel_g, shell_g: d.crack_out_shell_g,
+            floating_g: d.float_floating_g, sinking_g: d.float_sinking_g, unsound: un
+        });
+        if (r.final_sound_kernel_g == null) return 'Final Sound / Unsound kernel: enter both float test weights.';
+        var t = 'Final: Sound ' + r.final_sound_kernel_pct.toFixed(2) + '% (' + _common.formatKg(r.final_sound_kernel_g) + ' g) · Unsound ' +
+            r.final_unsound_kernel_pct.toFixed(2) + '% (' + _common.formatKg(r.final_unsound_kernel_g) + ' g) · Shell ' +
+            (r.final_shell_pct == null ? '—' : r.final_shell_pct.toFixed(2) + '%');
+        if (r.wet_below_prefloat) t += '. Check the float test: total wet is less than the pre-float sound kernel.';
+        return t;
     }
 
     function numInput(id, value, opts) {
@@ -1152,7 +1171,7 @@ var _batchJourneyDetail = (function () {
 
         h += '<div class="bjd-subcard"><h4 class="h6">5 kg sample</h4><div class="row g-2">';
         [['crack_out_sound_kernel_g', 'Crack-out: sound kernel (g)', co.sound_kernel_g],
-            ['crack_out_unsound_kernel_g', 'Crack-out: unsound kernel (g), the breakdown total replaces it', co.unsound_kernel_g],
+            ['crack_out_unsound_kernel_g', 'Crack-out: unsound kernel (g), only used when the breakdown below is empty', co.unsound_kernel_g],
             ['crack_out_shell_g', 'Crack-out: shell (g)', co.shell_g],
             ['float_floating_g', 'Float test: floating (g)', ft.floating_g],
             ['float_sinking_g', 'Float test: sinking (g)', ft.sinking_g]].forEach(function (f5) {
@@ -1162,7 +1181,7 @@ var _batchJourneyDetail = (function () {
         UNSOUND.forEach(function (u) {
             h += '<div class="col-6 col-sm-4"><label class="form-label small mb-1" for="bjd5_unsound_' + u.key + '">' + esc(u.label) + '</label>' + numInput('bjd5_unsound_' + u.key, un[u.key]) + '</div>';
         });
-        h += '</div></div></div>';
+        h += '</div><div class="small fw-semibold mt-2" id="bjd5Final" aria-live="polite"></div></div></div>';
         h += '<p class="small text-muted mt-2 mb-0">Only a sample you change is saved. Saving a sample marks it completed today (that is how the sample save works everywhere). The batch does not move back a step.</p>';
         return h;
     }
@@ -1938,6 +1957,7 @@ var _batchJourneyDetail = (function () {
         }
         if (state.editing === 'receiving') updateItemsTotal();
         if (state.editing === 'delivery') updateBagsTotal();
+        if (state.editing === 'samples') $('#bjd5Final').text(fiveKgPreviewText());
         if (state.editing === 'jobcard') recalcJobCard();
         if (state.editing === 'stage' && state.openStage) recalcStage(state.openStage, true);
         $('#' + CONTAINER_ID + ' .bjd-runs-note[data-runs-date]').each(function () { loadRunsNote(this.getAttribute('data-runs-date')); });
@@ -2544,6 +2564,7 @@ var _batchJourneyDetail = (function () {
             var bad = c && String(this.value).toLowerCase() === c.bad.toLowerCase();
             $('#bjdChkCmt_' + key).toggleClass('d-none', !bad);
         });
+        $c.on('input change', 'input[id^="bjd5_"]', function () { $('#bjd5Final').text(fiveKgPreviewText()); });
         $c.on('input', '#bjdItemsBody input[data-item="quantity_kg"]', updateItemsTotal);
         $c.on('input', '#bjdBagsBody input[data-bag="weight_kg"]', updateBagsTotal);
         $c.on('change', '#bjdQaPdf', function () { uploadQaPdf(this); });

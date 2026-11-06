@@ -81,7 +81,7 @@ var _modal_grower_link_sample_to_batch = (function () {
 
     function fmtPct(part, whole) {
         if (!(whole > 0) || part == null) return '';
-        return (part / whole * 100).toFixed(1) + '%';
+        return (part / whole * 100).toFixed(2) + '%';
     }
 
     function showWarning(id, text) {
@@ -167,28 +167,31 @@ var _modal_grower_link_sample_to_batch = (function () {
         CRACK_OUT_IDS.forEach(function (id) {
             setText(id.replace(/G$/, '') + 'Pct', fmtPct(getFloat(id), crackTotal));
         });
-        setText('sampleCrackOutTotalPct', crackTotal > 0 ? '100.0%' : '');
+        setText('sampleCrackOutTotalPct', crackTotal > 0 ? '100.00%' : '');
 
-        // 5 kg warning: crack-out total vs 5,000 g +/- margin (never blocks save)
+        // 5 kg note: crack-out total vs 5,000 g +/- margin. Being off 5 kg is normal (QA, 6 Nov 2026), so this
+        // is a reminder to check the weights, never a block.
         var fiveKgMsg = '';
         if (crackTotal > 0 && Math.abs(crackTotal - FIVE_KG_TARGET_G) > FIVE_KG_MARGIN_G) {
             var diffG = Math.round(Math.abs(crackTotal - FIVE_KG_TARGET_G) * 100) / 100;
-            fiveKgMsg = 'Total crack-out is ' + fmtInt(crackTotal) + ' g, which is ' + fmtInt(diffG) + ' g '
+            fiveKgMsg = 'Crack-out total is ' + fmtInt(crackTotal) + ' g, ' + fmtInt(diffG) + ' g '
                 + (crackTotal > FIVE_KG_TARGET_G ? 'above' : 'below')
-                + ' the 5 kg (5,000 g) sample. You can still save, but check the sample.';
+                + ' 5 kg. That is fine if it is what was cracked out; just check the weights are right.';
         }
         showWarning('sampleFiveKgWarning', fiveKgMsg);
 
-        // Float test: % of wet and auto dry weight (dry = wet / total wet x Pre-Float weight)
-        var haveDry = floatTotal > 0 && soundG != null;
-        [['sampleFloatingKernelG', 'sampleFloatingPct', 'sampleFloatingDry'],
-         ['sampleSinkingKernelG', 'sampleSinkingPct', 'sampleSinkingDry']].forEach(function (r) {
-            var w = getFloat(r[0]);
-            setText(r[1], fmtPct(w, floatTotal));
-            setText(r[2], haveDry && w != null ? fmtG(w / floatTotal * soundG) : '');
-        });
-        setText('sampleFloatTotalPct', floatTotal > 0 ? '100.0%' : '');
+        // Float test: % of wet and dry weight (dry = wet / total wet x Pre-Float weight), once both weights are in
+        var haveDry = res.floating_dry_g != null;
+        setText('sampleFloatingPct', fmtPct(getFloat('sampleFloatingKernelG'), floatTotal));
+        setText('sampleSinkingPct', fmtPct(getFloat('sampleSinkingKernelG'), floatTotal));
+        setText('sampleFloatingDry', haveDry ? fmtG(res.floating_dry_g) : '');
+        setText('sampleSinkingDry', haveDry ? fmtG(res.sinking_dry_g) : '');
+        setText('sampleFloatTotalPct', floatTotal > 0 ? '100.00%' : '');
         setText('sampleFloatDryTotal', haveDry ? fmtG(soundG) : '');
+        showWarning('sampleFloatWarning', res.wet_below_prefloat
+            ? 'Total wet (' + fmtG(floatTotal) + ' g) is less than the Sound Kernel pre-float (' + fmtG(soundG) + ' g). '
+              + 'Wet kernel always weighs more, so please check these weights.'
+            : '');
         setText('sampleWaterG', res.water_g != null ? fmtG(res.water_g) : '');
         setText('sampleWaterPct', res.water_g != null ? fmtPct(res.water_g, soundG) : '');
 
@@ -200,19 +203,20 @@ var _modal_grower_link_sample_to_batch = (function () {
         setText('sampleSinkersG', sinkersG != null ? fmtG(sinkersG) : '');
         setText('sampleSinkersPct', fmtPct(sinkersG, crackTotal));
         setText('sampleSinkersOfUnsoundPct', fmtPct(sinkersG, unsoundTotal));
-        setText('sampleUnsoundTotalOfUnsoundPct', unsoundTotal > 0 ? '100%' : '—');
+        setText('sampleUnsoundTotalOfUnsoundPct', unsoundTotal > 0 ? '100.00%' : '—');
         setText('sampleUnsoundTotalPct', unsoundTotal > 0 ? fmtPct(unsoundTotal, crackTotal) : '');
 
-        // Final Sample Results (blank until the float test is in)
+        // Final Sample Results: Sound/Unsound need the float test; Shell and Total are known straight away
         var haveFinal = res.final_sound_kernel_g != null;
+        var haveTotal = res.final_total_g > 0;
         setText('sampleFinalSoundKernelG', haveFinal ? fmtG(res.final_sound_kernel_g) : '');
         setText('sampleFinalSoundKernelPct', haveFinal ? fmtPct(res.final_sound_kernel_g, res.final_total_g) : '');
         setText('sampleFinalUnsoundKernelG', haveFinal ? fmtG(res.final_unsound_kernel_g) : '');
         setText('sampleFinalUnsoundKernelPct', haveFinal ? fmtPct(res.final_unsound_kernel_g, res.final_total_g) : '');
-        setText('sampleFinalShellG', haveFinal && res.final_shell_g != null ? fmtG(res.final_shell_g) : '');
-        setText('sampleFinalShellPct', haveFinal ? fmtPct(res.final_shell_g, res.final_total_g) : '');
-        setText('sampleFinalTotalG', haveFinal ? fmtG(res.final_total_g) : '');
-        setText('sampleFinalTotalPct', haveFinal && res.final_total_g > 0 ? '100.0%' : '');
+        setText('sampleFinalShellG', res.final_shell_g != null ? fmtG(res.final_shell_g) : '');
+        setText('sampleFinalShellPct', haveTotal ? fmtPct(res.final_shell_g, res.final_total_g) : '');
+        setText('sampleFinalTotalG', haveTotal ? fmtG(res.final_total_g) : '');
+        setText('sampleFinalTotalPct', haveTotal ? '100.00%' : '');
 
         updateSpecColours();
     }
