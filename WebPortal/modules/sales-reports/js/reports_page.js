@@ -30,7 +30,8 @@ var _reportsPage = function () {
         allShown: false,
         openToken: 0,
         historyToken: 0,
-        initHostEl: null
+        initHostEl: null,
+        markupPromise: null
     };
 
     // ------------------------------------------------------------------
@@ -176,6 +177,18 @@ var _reportsPage = function () {
         });
     }
 
+    // The editor host is being emptied: drop the toolbar that was moved into the bar and unbind the
+    // editor, so the next open injects and binds everything afresh.
+    function clearEditor() {
+        state.openToken++;
+        state.markupPromise = null;
+        $('#reportsBarActions .js-reports-editor-toolbar').remove();
+        $('body > #reportWhatsappSendModal').remove();
+        if (typeof _reportEditor !== 'undefined' && _reportEditor.destroy) _reportEditor.destroy();
+        state.editorReady = false;
+        lastOpenedId = null;
+    }
+
     // Loads the current tab's history. opts.keepSelection leaves an already-selected report open;
     // otherwise (or if nothing valid is selected) the newest report is opened.
     function loadHistory(force, opts) {
@@ -199,9 +212,9 @@ var _reportsPage = function () {
                 state.selectedId = null;
                 renderHistory();
                 renderBar(null);
+                clearEditor();
                 $('#reportsEditorHost').empty().append($('<div class="alert alert-info mb-0">')
                     .text('There are no ' + type + ' reports yet. They are drafted automatically; use "Other period…" to make one now.'));
-                state.editorReady = false;
                 return;
             }
             state.selectedId = items[0].id;
@@ -213,8 +226,8 @@ var _reportsPage = function () {
             console.warn('[reports] listReportHistory failed', err);
             $list.empty().append($('<div class="alert alert-warning m-2" role="alert">')
                 .text('Could not load the report history. Try again with "Reload list".'));
+            clearEditor();
             showAlert($('#reportsEditorHost'), 'Could not load the report history: ' + (err && err.message ? err.message : 'unknown error') + '.');
-            state.editorReady = false;
         });
     }
 
@@ -236,8 +249,12 @@ var _reportsPage = function () {
     // Fetches the editor markup once, injects it into the host, and moves its toolbar into the bar.
     function ensureEditorMarkup() {
         if (state.editorReady && $('#reportEditorModule').length) return Promise.resolve(true);
-        return _appRouter.fetchHtml(basePath() + EDITOR_HTML).then(function (res) {
+        // Overlapping opens share one fetch + injection.
+        if (state.markupPromise) return state.markupPromise;
+        var p = _appRouter.fetchHtml(basePath() + EDITOR_HTML).then(function (res) {
             if (!res || !res.success) throw new Error('Could not load the report editor.');
+            // Markup is about to be replaced: unbind the old editor so openEmbedded re-inits fully.
+            if (typeof _reportEditor !== 'undefined' && _reportEditor.destroy) _reportEditor.destroy();
             // A previous visit may have left the editor's modal on <body> (it is moved there below).
             $('body > #reportWhatsappSendModal').remove();
             var $host = $('#reportsEditorHost').empty().html(res.data);
@@ -260,6 +277,10 @@ var _reportsPage = function () {
             state.editorReady = true;
             return true;
         });
+        state.markupPromise = p;
+        var clear = function () { if (state.markupPromise === p) state.markupPromise = null; };
+        p.then(clear, clear);
+        return p;
     }
 
     function openSelected() {
@@ -268,9 +289,9 @@ var _reportsPage = function () {
         var token = ++state.openToken;
         var $host = $('#reportsEditorHost');
         if (!canOpenEditor()) {
+            clearEditor();
             $host.empty().append($('<div class="alert alert-info mb-0" role="alert">')
                 .text('You can see that reports exist, but report editing has not been enabled for your role.'));
-            state.editorReady = false;
             return Promise.resolve();
         }
         if (typeof _reportEditor === 'undefined' || !_reportEditor.openEmbedded) {
@@ -387,6 +408,10 @@ var _reportsPage = function () {
             renderBar(findItem(id));
             openSelected();
         });
+        // A WhatsApp send finished: the history chips (Sent / Send failed) are now out of date.
+        $(document).on('reportWhatsappSend:completed.reportsPage', function () {
+            loadHistory(true, { keepSelection: true });
+        });
         $(document).on('click.reportsPage', '#refreshReportListBtn', function () {
             loadHistory(true, { keepSelection: true });
         });
@@ -414,7 +439,7 @@ var _reportsPage = function () {
 
         // History renders straight away; today's drafts are ensured in parallel and, if any were
         // created, the history is read again so they appear.
-        var shown = showTab(tab);
+        var shown = showTab(tab, { force: true });
         Promise.resolve().then(function () {
             return dataFunctions.ensureReportDrafts();
         }).then(function (res) {

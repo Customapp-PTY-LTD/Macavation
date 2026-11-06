@@ -149,8 +149,9 @@ var _reportsAllFigures = (function () {
 
     function renderK1(k, b) {
         var p = k && k.procurement;
-        if (!p) { M.setTiles('rafK1Tiles', [M.tile('NIS received', DASH, 'Not available')]); setNotice('rafK1Notice', 'Procurement figures are not available for this period.'); M.fillTable('rafTK1', [{ text: 'Grower' }], []); setGap('rafK1Gap', ''); chartEmpty('rafCK1'); return; }
+        if (!p) { M.setTiles('rafK1Tiles', [M.tile('NIS received', DASH, 'Not available')]); setNotice('rafK1Notice', 'Procurement figures are not available for this period.'); setNotice('rafK1Source', ''); M.fillTable('rafTK1', [{ text: 'Grower' }], []); setGap('rafK1Gap', ''); chartEmpty('rafCK1'); return; }
         setNotice('rafK1Notice', '');
+        setNotice('rafK1Source', 'From 16 Oct 2026 NIS received is read from Grower Intake; the monthly report still uses the data page, so the two can differ.');
         var tiles = [
             M.tile('NIS received', kgF(p.nis_kg), isNum(p.deliveries) ? M.num(p.deliveries) + ' deliveries' : ''),
             M.tile('Planned vs received', pctF(p.received_vs_plan_pct), isNum(p.planned_kg) ? 'of ' + kgF(p.planned_kg) + ' planned arrived' : 'of planned kg arrived'),
@@ -190,8 +191,8 @@ var _reportsAllFigures = (function () {
         var areas = st.by_area || [];
         hbar('rafCK2', areas.map(function (a) { return a.label || a.code; }), areas.map(function (a) { return num0(a.end_kg); }), 'kg', M.colors().green);
         var rows = areas.map(function (a) { return [a.label || a.code, kgPlain(a.in_kg), kgPlain(a.out_kg), kgPlain(a.end_kg)]; });
-        M.fillTable('rafTK2', [{ text: 'Area' }, { text: 'In (kg)', num: true }, { text: 'Out (kg)', num: true }, { text: 'At end (kg)', num: true }], rows,
-            rows.length ? ['Total', kgPlain(st.in_kg), kgPlain(st.out_kg), kgPlain(st.end_kg)] : null);
+        M.fillTable('rafTK2', [{ text: 'Area' }, { text: 'In incl. moves (kg)', num: true }, { text: 'Out incl. moves (kg)', num: true }, { text: 'At end (kg)', num: true }], rows,
+            rows.length ? ['Total (deliveries in / to cracking out)', kgPlain(st.in_kg), kgPlain(st.out_kg), kgPlain(st.end_kg)] : null);
     }
 
     function renderK3(k, b) {
@@ -302,15 +303,19 @@ var _reportsAllFigures = (function () {
         var r = o && o.raw_stock;
         var heads = [{ text: 'Material' }, { text: 'Opening (kg)', num: true }, { text: 'Received (kg)', num: true },
             { text: 'Used (kg)', num: true }, { text: 'Closing (kg)', num: true }];
-        if (!r || r.available === false) {
+        if (!r) {
             M.fillTable('rafTO2', heads, []);
-            setNotice('rafO2Notice', (r && r.note) || 'Raw material stock is not available for this period.');
+            setNotice('rafO2Notice', 'Raw material stock is not available for this period.');
             return;
         }
+        // The SQL note embeds ISO dates ("2026-10-26"); show them as "26 Oct 2026".
+        var note = r.note ? String(r.note).replace(/(d{4}-d{2}-d{2})/g, function (d) { return M.prettyDate(d); }) : '';
         var parts = [];
-        if (r.count_date) parts.push('Starts from the stock count on ' + M.prettyDate(r.count_date) + '.');
-        if (r.note) parts.push(r.note);
+        if (r.available !== false && r.count_date) parts.push('Starts from the stock count on ' + M.prettyDate(r.count_date) + '.');
+        if (note) parts.push(note);
+        else if (r.available === false) parts.push('Raw material stock is not available for this period.');
         setNotice('rafO2Notice', parts.join(' '));
+        // Rows are shown whenever present, even when stock is not fully available (null cells show a dash).
         M.fillTable('rafTO2', heads, (r.materials || []).map(function (m) {
             return [m.label || m.material, kgPlain(m.opening_kg), kgPlain(m.received_kg), kgPlain(m.used_kg), kgPlain(m.closing_kg)];
         }));
@@ -365,6 +370,7 @@ var _reportsAllFigures = (function () {
         }
         M.setTiles('rafO5Tiles', [line('Food grade oil', 'food_grade'), line('Crude oil', 'crude'), line('Protein powder', 'protein'), line('Oil cake', 'cake')]);
         var f = state.oilFilter;
+        // 'other' (anything outside the four product buttons) counts in "All products" only.
         var match = function (r) { return f === 'all' || r.product === f; };
         var cust = {};
         (s.by_customer || []).filter(match).forEach(function (r) { cust[r.customer] = (cust[r.customer] || 0) + num0(r.value_zar); });

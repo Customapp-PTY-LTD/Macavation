@@ -6619,6 +6619,7 @@ var _dataFunctions = function () {
             const result = await this.callFunction('create_report_instance', params, token, { useCache: false });
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
+            this.clearCachePattern('report_history_');
             return result;
         },
 
@@ -6653,6 +6654,7 @@ var _dataFunctions = function () {
             const result = await this.callFunction('override_report_metric_value', params, token, { useCache: false });
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
+            this.clearCachePattern('report_history_');
             return result;
         },
 
@@ -6665,6 +6667,7 @@ var _dataFunctions = function () {
             const result = await this.callFunction('clear_report_metric_override', params, token, { useCache: false });
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
+            this.clearCachePattern('report_history_');
             return result;
         },
 
@@ -6690,6 +6693,7 @@ var _dataFunctions = function () {
             });
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
+            this.clearCachePattern('report_history_');
             return result;
         },
 
@@ -6707,6 +6711,7 @@ var _dataFunctions = function () {
             });
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
+            this.clearCachePattern('report_history_');
             return result;
         },
 
@@ -6717,6 +6722,7 @@ var _dataFunctions = function () {
             const result = await this.callFunction('refresh_report_instance', params, token, { useCache: false });
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
+            this.clearCachePattern('report_history_');
             return result;
         },
 
@@ -6729,6 +6735,7 @@ var _dataFunctions = function () {
             const result = await this.callFunction('delete_report_instance', params, token, { useCache: false });
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
+            this.clearCachePattern('report_history_');
             return result;
         },
 
@@ -6744,6 +6751,7 @@ var _dataFunctions = function () {
             const result = await this.callFunction('publish_report_instance', params, token, { useCache: false });
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
+            this.clearCachePattern('report_history_');
             return result;
         },
 
@@ -6760,6 +6768,7 @@ var _dataFunctions = function () {
             const result = await this.callFunction('supersede_report_instance', params, token, { useCache: false });
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
+            this.clearCachePattern('report_history_');
             return result;
         },
 
