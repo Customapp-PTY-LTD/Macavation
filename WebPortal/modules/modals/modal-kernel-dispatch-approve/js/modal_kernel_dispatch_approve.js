@@ -6,7 +6,8 @@
  *   and Pete, and a short line flags the batch for a count (server side).
  * Approve mode (Pete): prices fill in from the customer's price list (or the standard list);
  *   a changed price can carry a reason. Confirming accepts any different-style substitute.
- * Invoice (Joslyn): once the truck is loaded, "Invoice sent" ticks step 5.
+ * Invoice (Joslyn): once the truck is loaded, "Invoice sent" ticks step 5. She types the customer's PO
+ *   number and our invoice number (both required) and can attach each; they show on the dispatch after.
  * Everyone else gets the same layout read-only; rand figures only with kernel_prices.view.
  */
 var _modal_kernel_dispatch_approve = (function () {
@@ -20,6 +21,9 @@ var _modal_kernel_dispatch_approve = (function () {
     var busy = false;
     var stockOptions = null;   // [{ kernel_id, batch_number, grower_name, style, left }] for substitutes
     var transporters = null;   // [{ id, name }] active transporters; null = list unavailable, use free text
+    var paperDocs = { po: [], inv: [] };   // step 5 files: [{ name, file_id, file_link }]
+    var paperUploads = 0;      // uploads still running
+    var paperGen = 0;          // bumped on each render so a late upload can't land on another dispatch
 
     function can(key) { return typeof window.hasAction === 'function' && !!window.hasAction(key); }
 
@@ -486,6 +490,83 @@ var _modal_kernel_dispatch_approve = (function () {
         });
     }
 
+    // ---------------- Step 5: customer PO and our invoice ----------------
+
+    var PAPER = {
+        po:  { files: '#kdaPoFiles',  error: '#kdaPoFileError',  input: '#kdaPoFileInput',  btn: '#kdaPoAttachBtn',  tag: 'po' },
+        inv: { files: '#kdaInvFiles', error: '#kdaInvFileError', input: '#kdaInvFileInput', btn: '#kdaInvAttachBtn', tag: 'inv' }
+    };
+    var PAPER_FOLDER = 'Macavation/KernelDispatch';
+
+    function docList(v) { return Array.isArray(v) ? v.filter(function (d) { return d && typeof d === 'object'; }) : []; }
+
+    function renderPaperFiles(kind) {
+        if (typeof DispatchFormShared === 'undefined') return;
+        DispatchFormShared.renderFileList($(PAPER[kind].files), paperDocs[kind], true, function (i) {
+            paperDocs[kind].splice(i, 1);
+            renderPaperFiles(kind);
+        });
+    }
+
+    /** Step 5 form. Undoing step 5 keeps the numbers and files, so they come back filled in. */
+    function renderInvoiceForm() {
+        var o = wf.order;
+        paperGen++;
+        paperUploads = 0;
+        paperDocs = { po: docList(o.po_documents).slice(), inv: docList(o.invoice_documents).slice() };
+        $('#kdaPoRef').val(o.po_reference || '');
+        $('#kdaInvRef').val(o.invoice_reference || '');
+        $('#kdaInvoiceNote').val('');
+        ['po', 'inv'].forEach(function (k) {
+            $(PAPER[k].error).addClass('d-none').text('');
+            $(PAPER[k].btn).prop('disabled', false);
+            renderPaperFiles(k);
+        });
+    }
+
+    async function uploadPaper(kind, files) {
+        var S = window.DispatchFormShared;
+        var $err = $(PAPER[kind].error).addClass('d-none').text('');
+        if (!S || !S.uploadOne) { $err.text('Attaching files is not available right now.').removeClass('d-none'); return; }
+        var gen = paperGen;
+        var errors = [];
+        var $btn = $(PAPER[kind].btn).prop('disabled', true);
+        for (var i = 0; i < files.length; i++) {
+            var file = files[i];
+            if (!S.fileAllowed(file)) { errors.push((file.name || 'file') + ': only PDFs and photos can be attached.'); continue; }
+            if (file.size > S.MAX_FILE_BYTES) { errors.push((file.name || 'file') + ': larger than 6 MB.'); continue; }
+            paperUploads++;
+            try {
+                var att = await S.uploadOne(file, PAPER_FOLDER, PAPER[kind].tag);
+                if (gen !== paperGen) return;
+                paperDocs[kind].push(att);
+            } catch (e) {
+                errors.push((file.name || 'file') + ': ' + (e && e.message ? e.message : 'Upload failed'));
+            } finally {
+                if (gen === paperGen) paperUploads--;
+            }
+        }
+        if (gen !== paperGen) return;
+        $btn.prop('disabled', false);
+        renderPaperFiles(kind);
+        if (errors.length) $err.text(errors.join(' ')).removeClass('d-none');
+    }
+
+    /** Read-only PO / invoice card, for everyone once step 5 is done. */
+    function renderPaper() {
+        var o = wf.order;
+        var show = isInvoiced() && mode !== 'invoice';
+        $('#kdaPaperWrap').toggleClass('d-none', !show);
+        if (!show) return;
+        $('#kdaPaperPoRef').text(o.po_reference || 'Not recorded');
+        $('#kdaPaperInvRef').text(o.invoice_reference || 'Not recorded');
+        if (typeof DispatchFormShared !== 'undefined') {
+            DispatchFormShared.renderFileList($('#kdaPaperPoFiles'), docList(o.po_documents), false);
+            DispatchFormShared.renderFileList($('#kdaPaperInvFiles'), docList(o.invoice_documents), false);
+        }
+        $('#kdaPaperNote').text(o.invoice_note ? 'Note: ' + o.invoice_note : '').toggleClass('d-none', !o.invoice_note);
+    }
+
     function lineFor($tr) {
         var idx = Number($tr.attr('data-index'));
         for (var i = 0; i < wf.lines.length; i++) if (Number(wf.lines[i].index) === idx) return wf.lines[i];
@@ -592,7 +673,8 @@ var _modal_kernel_dispatch_approve = (function () {
         $('#kdaPickNote').val('');
         $('#kdaPickNoteWrap').toggleClass('d-none', mode !== 'pick');
         $('#kdaInvoiceWrap').toggleClass('d-none', mode !== 'invoice');
-        $('#kdaInvoiceNote').val('');
+        if (mode === 'invoice') renderInvoiceForm();
+        renderPaper();
         $('#kdaApproveCards').toggleClass('d-none', mode !== 'approve');
         if (mode === 'approve') renderTransport();
         $('#kdaFootnote').toggleClass('d-none', !(mode === 'pick' || mode === 'approve'));
@@ -725,8 +807,22 @@ var _modal_kernel_dispatch_approve = (function () {
     }
 
     function submitInvoice() {
+        var poRef = String($('#kdaPoRef').val() || '').trim();
+        var invRef = String($('#kdaInvRef').val() || '').trim();
+        var problem = paperUploads > 0 ? 'A file is still uploading. Give it a moment, then try again.'
+            : (!poRef ? 'Enter the customer’s PO number.'
+            : (!invRef ? 'Enter our invoice number.' : null));
+        if (problem) {
+            if (typeof Swal !== 'undefined') Swal.fire('Not quite yet', problem, 'warning');
+            return;
+        }
         setBusy(true);
-        dataFunctions.markKernelDispatchInvoiceSent(wf.order.id, true, ($('#kdaInvoiceNote').val() || '').trim()).then(function (res) {
+        dataFunctions.markKernelDispatchInvoiceSent(wf.order.id, true, ($('#kdaInvoiceNote').val() || '').trim(), {
+            poReference: poRef,
+            invoiceReference: invRef,
+            poDocuments: paperDocs.po,
+            invoiceDocuments: paperDocs.inv
+        }).then(function (res) {
             setBusy(false);
             if (res && res.success !== false) done('Invoice marked as sent. All five steps are done.');
             else fail(res, 'Could not mark the invoice as sent.');
@@ -797,6 +893,14 @@ var _modal_kernel_dispatch_approve = (function () {
                 showTransporterError('');
             });
             $('#kdaTransporterAddSave').off('click.kda').on('click.kda', function () { addTransporter(); });
+            ['po', 'inv'].forEach(function (kind) {
+                $(PAPER[kind].btn).off('click.kda').on('click.kda', function () { $(PAPER[kind].input).trigger('click'); });
+                $(PAPER[kind].input).off('change.kda').on('change.kda', function () {
+                    var files = Array.prototype.slice.call(this.files || []);
+                    this.value = '';
+                    if (files.length) uploadPaper(kind, files);
+                });
+            });
         },
 
         show: function (orderId) {
