@@ -54,6 +54,7 @@ var _crmGrid = function () {
             // Tab switching
             $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
                 const contactType = $(e.target).data('contact-type');
+                if (!contactType) return; // tabs inside the contact modal are not list tabs
                 scope.currentContactType = contactType;
                 scope.loadContactsByType(contactType);
             });

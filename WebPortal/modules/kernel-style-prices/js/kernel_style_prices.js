@@ -17,7 +17,7 @@ var _kernelStylePrices = (function () {
         { key: 'per_dispatch', label: 'Set on each dispatch' }
     ];
     var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    var REM_DEFAULTS = { enabled: true, max_age_days: 30, frequency: 'weekly', scope: 'in_stock', remind_missing: true };
+    var REM_DEFAULTS = { enabled: true, max_age_days: 30, frequency: 'weekly', scope: 'in_stock', remind_missing: true, expiry_enabled: true, expiry_days: 60 };
     var FREQUENCIES = [
         { key: 'weekly', label: 'Every Monday' },
         { key: 'daily', label: 'Every day' },
@@ -46,6 +46,24 @@ var _kernelStylePrices = (function () {
         var now = new Date();
         var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         return Math.round((today - then) / 86400000);
+    }
+
+    // Whole days from today to a YYYY-MM-DD date (negative once passed; null when unreadable).
+    function daysUntil(v) {
+        var d = daysSince(v);
+        return d == null ? null : -d;
+    }
+
+    // Status pill for a customer's price on one style (from getKernelStylePrices' customer_status).
+    function statusPill(s) {
+        var st = s.customer_status;
+        if (st === 'ending') {
+            var n = daysUntil(s.customer_until);
+            var txt = n == null ? 'Ending soon' : (n <= 0 ? 'Ends today' : 'Ends in ' + n + ' day' + (n === 1 ? '' : 's'));
+            return el('span', 'ksp-flag ksp-flag-old', txt);
+        }
+        if (st === 'current') return el('span', 'ksp-flag ksp-flag-ok', 'Current');
+        return el('span', 'ksp-flag ksp-flag-std', 'Standard price');
     }
 
     function has(key) {
@@ -127,7 +145,9 @@ var _kernelStylePrices = (function () {
         }
         if (edit) {
             $right.append(el('label', 'ksp-inline', 'New prices apply from')
-                .append($('<input type="date" class="form-control" id="kspFrom">').val(todayStr())));
+                .append($('<input type="date" class="form-control ksp-from" id="kspFrom">').val(todayStr())));
+            $right.append(el('label', 'ksp-inline', state.customerId ? 'Valid until (optional)' : 'Ends (optional)')
+                .append($('<input type="date" class="form-control ksp-until" id="kspUntil">')));
         }
         $bar.append($right);
         $p.append($bar);
@@ -138,7 +158,10 @@ var _kernelStylePrices = (function () {
 
         var $t = el('table', 'table ksp-table');
         var $hr = $('<tr>');
-        [['Style'], ['Price per kg (excl. VAT)'], ['Per ' + (d.kg_per_carton || 11.34) + ' kg carton', 'ksp-r'], ['In stock', 'ksp-r'], ['Last changed']].forEach(function (h) {
+        var heads = [['Style'], ['Price per kg (excl. VAT)'], ['Per ' + (d.kg_per_carton || 11.34) + ' kg carton', 'ksp-r'], ['In stock', 'ksp-r']];
+        if (state.customerId) heads.push(['Valid from'], ['Valid until'], ['Status']);
+        else heads.push(['Last changed']);
+        heads.forEach(function (h) {
             $hr.append(el('th', 'ksp-th ' + (h[1] || ''), h[0]).attr('scope', 'col'));
         });
         $t.append($('<thead>').append($hr));
@@ -176,15 +199,26 @@ var _kernelStylePrices = (function () {
             var by = s.list_changed_by;
             var txt = from ? fmtDate(from) + (by && !state.customerId ? ' · ' + by : '') : 'Not set yet';
             var age = from ? daysSince(from) : null;
-            var $last = el('td');
-            if (missing) {
-                $last.append(el('span', 'ksp-flag ksp-flag-bad', 'No price yet'));
-            } else if (age != null && age > maxAgeDays()) {
-                $last.append(el('span', 'ksp-flag ksp-flag-old', 'Older than ' + maxAgeDays() + ' days'));
+            if (state.customerId) {
+                var own = s.customer_price != null && s.customer_price !== '';
+                $r.append(el('td', 'ksp-tiny', own ? fmtDate(s.customer_from) : ''));
+                $r.append(el('td', 'ksp-tiny', own ? (s.customer_until ? fmtDate(s.customer_until) : 'No end date') : ''));
+                var $st = el('td');
+                if (missing) $st.append(el('span', 'ksp-flag ksp-flag-bad', 'No price yet'));
+                else if (age != null && age > maxAgeDays() && own) $st.append(el('span', 'ksp-flag ksp-flag-old', 'Older than ' + maxAgeDays() + ' days'));
+                else $st.append(statusPill(s));
+                $r.append($st);
             } else {
-                $last.append(el('span', 'ksp-tiny', txt));
+                var $last = el('td');
+                if (missing) {
+                    $last.append(el('span', 'ksp-flag ksp-flag-bad', 'No price yet'));
+                } else if (age != null && age > maxAgeDays()) {
+                    $last.append(el('span', 'ksp-flag ksp-flag-old', 'Older than ' + maxAgeDays() + ' days'));
+                } else {
+                    $last.append(el('span', 'ksp-tiny', txt + (s.list_until ? ' · until ' + fmtDate(s.list_until) : '')));
+                }
+                $r.append($last);
             }
-            $r.append($last);
             $tb.append($r);
         });
         $t.append($tb);
@@ -208,13 +242,14 @@ var _kernelStylePrices = (function () {
         hist.forEach(function (h, i) {
             var $row = el('div', 'ksp-hist-row');
             var $l = el('span');
-            $l.append(el('strong', null, 'From ' + fmtDate(h.effective_from)));
+            $l.append(el('strong', null, 'From ' + fmtDate(h.effective_from) + (h.valid_until ? ' until ' + fmtDate(h.valid_until) : '')));
             $l.append(el('div', 'ksp-tiny', (h.customer_id ? (h.customer_name || 'Customer') : 'List price')));
             var n = h.styles_changed != null ? h.styles_changed : (h.prices || []).length;
             $l.append(el('div', 'ksp-tiny', n + ' style' + (n === 1 ? '' : 's') + ' changed' + (h.changed_by ? ' by ' + h.changed_by : '')));
             $row.append($l);
             var $r = el('span', 'd-flex flex-column align-items-end');
-            if (h.is_future) $r.append(el('span', 'ksp-chip ksp-chip-future', 'Starts ' + fmtDate(h.effective_from)));
+            if (h.is_ended) $r.append(el('span', 'ksp-chip ksp-chip-ended', 'Ended'));
+            else if (h.is_future) $r.append(el('span', 'ksp-chip ksp-chip-future', 'Starts ' + fmtDate(h.effective_from)));
             else if (i === currentIdx) $r.append(el('span', 'ksp-chip ksp-chip-current', 'Current'));
             var open = !!state.open[i];
             $r.append(el('button', 'ksp-link-btn ksp-view', open ? 'Hide' : 'View').attr({ type: 'button', 'data-i': i, 'aria-expanded': open ? 'true' : 'false' }));
@@ -265,6 +300,12 @@ var _kernelStylePrices = (function () {
             optionsHtml(SCOPES, r.scope) + '</select></label>'));
         $c.append($grid);
         $c.append($('<label class="ksp-check"><input type="checkbox" class="form-check-input" id="kspRemMissing"> Also remind when a style in stock has no price at all</label>'));
+        var $exp = el('div', 'ksp-rem-expiry');
+        $exp.append($('<label class="ksp-check form-switch"><input type="checkbox" class="form-check-input" role="switch" id="kspRemExpEnabled"> Remind me before a customer price ends</label>'));
+        $exp.append($('<label class="ksp-field">Remind me this many days before a customer price ends<span class="ksp-inline">' +
+            '<input type="number" min="1" max="365" step="1" class="form-control ksp-days" id="kspRemExpDays" aria-label="Days before a customer price ends">' +
+            '<span class="ksp-muted">days</span></span></label>'));
+        $c.append($exp);
         $c.append(el('div', 'ksp-tiny', 'Goes to the Sales Exec role (Pete). Saving prices clears the task once nothing counted is missing or old.'));
         if (edit) {
             $c.append($('<div class="ksp-actions">').append(
@@ -274,6 +315,8 @@ var _kernelStylePrices = (function () {
         $c.find('#kspRemEnabled').prop('checked', !!r.enabled);
         $c.find('#kspRemMissing').prop('checked', !!r.remind_missing);
         $c.find('#kspRemDays').val(r.max_age_days);
+        $c.find('#kspRemExpEnabled').prop('checked', r.expiry_enabled !== false);
+        $c.find('#kspRemExpDays').val(r.expiry_days);
         if (!edit) $c.find('input, select').prop('disabled', true);
         return $c;
     }
@@ -290,7 +333,14 @@ var _kernelStylePrices = (function () {
             _common.showErrorToast('Days must be a whole number from 1 to 365.');
             return;
         }
+        var expDays = Number($('#kspRemExpDays').val());
+        if (!Number.isInteger(expDays) || expDays < 1 || expDays > 365) {
+            _common.showErrorToast('Days before a price ends must be a whole number from 1 to 365.');
+            return;
+        }
         var settings = {
+            expiry_enabled: $('#kspRemExpEnabled').prop('checked'),
+            expiry_days: expDays,
             enabled: $('#kspRemEnabled').prop('checked'),
             max_age_days: days,
             frequency: $('#kspRemFreq').val(),
@@ -349,46 +399,67 @@ var _kernelStylePrices = (function () {
         });
     }
 
-    function changedRows() {
+    // Rows to send from the inputs under $root. Each carries valid_until ('' = no end date).
+    // renew = true (customer prices only): send every style that has a price, so Pete can renew
+    // unchanged prices just by changing the dates. Otherwise only changed prices go. null = bad number.
+    function collectRows($root, until, renew) {
         var rows = [], bad = false;
-        $('#ksp-body .ksp-val').each(function () {
+        $root.find('.ksp-val').each(function () {
             var $i = $(this);
             var v = String($i.val()).trim();
-            if (v === '' || v === $i.attr('data-orig')) return;
+            if (v === '') return;
+            var orig = $i.attr('data-orig');
             var n = Number(v);
             if (!isFinite(n) || n < 0) { bad = true; return; }
-            if ($i.attr('data-orig') !== '' && Number($i.attr('data-orig')) === n) return;
-            rows.push({ style_code: $i.attr('data-code'), price_per_kg: n });
+            if (!renew && (v === orig || (orig !== '' && Number(orig) === n))) return;
+            rows.push({ style_code: $i.attr('data-code'), price_per_kg: n, valid_until: until || '' });
         });
         return bad ? null : rows;
     }
 
-    function save() {
-        var from = $('#kspFrom').val() || todayStr();
-        var rows = changedRows();
+    // Validate, confirm and save. o: { customerId, who, from, until, rows, $btn, done }.
+    function confirmSave(o) {
+        var rows = o.rows;
         if (rows === null) { _common.showErrorToast('Prices must be numbers, zero or more.'); return; }
         if (!rows.length) { _common.showErrorToast('No prices have changed.'); return; }
-        var who = state.customerId
-            ? ((state.data.customers || []).filter(function (c) { return String(c.id) === String(state.customerId); })[0] || {}).name
-            : null;
+        if (o.until && o.until < o.from) { _common.showErrorToast('Valid until cannot be before the date the prices start.'); return; }
         Swal.fire({
             title: 'Save prices?',
-            text: rows.length + ' price' + (rows.length === 1 ? '' : 's') + ' change from ' + fmtDate(from) + (who ? ' for ' + who : '') + '.',
+            text: rows.length + ' price' + (rows.length === 1 ? '' : 's') + ' apply from ' + fmtDate(o.from) +
+                (o.until ? ' until ' + fmtDate(o.until) : '') + (o.who ? ' for ' + o.who : '') + '.',
             icon: 'question',
             showCancelButton: true,
             confirmButtonText: 'Save prices'
         }).then(function (r) {
             if (!r.isConfirmed) return;
-            $('#kspSave').prop('disabled', true);
-            dataFunctions.saveKernelStylePrices(from, rows, state.customerId || null).then(function (res) {
+            if (o.$btn) o.$btn.prop('disabled', true);
+            dataFunctions.saveKernelStylePrices(o.from, rows, o.customerId || null).then(function (res) {
                 if (res && res.success) {
                     _common.showSuccessToast('Prices saved.');
-                    reload();
+                    if (o.done) o.done();
                 } else {
                     _common.showErrorToast((res && res.error) ? String(res.error) : 'Could not save the prices.');
-                    $('#kspSave').prop('disabled', false);
+                    if (o.$btn) o.$btn.prop('disabled', false);
                 }
             });
+        });
+    }
+
+    function datesTouched($root) {
+        return $root.find('.ksp-from, .ksp-until').filter(function () { return $(this).data('touched'); }).length > 0;
+    }
+
+    function save() {
+        var $root = $('#ksp-body');
+        var from = $root.find('.ksp-from').val() || todayStr();
+        var until = $root.find('.ksp-until').val() || '';
+        var who = state.customerId
+            ? ((state.data.customers || []).filter(function (c) { return String(c.id) === String(state.customerId); })[0] || {}).name
+            : null;
+        confirmSave({
+            customerId: state.customerId, who: who, from: from, until: until,
+            rows: collectRows($root, until, !!state.customerId && datesTouched($root)),
+            $btn: $('#kspSave'), done: reload
         });
     }
 
@@ -422,6 +493,7 @@ var _kernelStylePrices = (function () {
         $m.on('click' + NS, '#kspSave', save);
         $m.on('click' + NS, '#kspRemSave', saveReminder);
         $m.on('change' + NS, '#kspCustomer', function () { state.customerId = $(this).val() || null; reload(); });
+        $m.on('change' + NS, '.ksp-from, .ksp-until', function () { $(this).data('touched', true); });
         $m.on('input' + NS, '.ksp-val', function () {
             var $i = $(this);
             var v = String($i.val()).trim();
@@ -449,6 +521,101 @@ var _kernelStylePrices = (function () {
         loadReminder().then(reload);
     }
 
-    return { init: init };
+    // ------------------------------------------------------------------
+    // Embedded customer price list (CRM contact screen). Same read, rules and save call as the
+    // Prices tab; mountCustomer renders into a container and owns nothing outside it.
+    // ------------------------------------------------------------------
+    function mountCustomer(container, customerId, opts) {
+        var $c = $(container).empty().addClass('ksp-embed');
+        var e = { data: null, editing: false };
+        opts = opts || {};
+
+        function draw() {
+            var d = e.data;
+            $c.empty();
+            if (!d || d.success === false) { $c.append(el('div', 'ksp-muted', 'Prices are not available yet.')); return; }
+            if (d.mode === 'single') {
+                $c.append(el('div', 'ksp-muted', 'Customer prices are switched off. Turn them on under Kernel Pipeline Settings, Prices tab (choose "Price per customer").'));
+                return;
+            }
+            var canEdit = has('kernel_prices.edit');
+            var $top = el('div', 'ksp-bar ksp-embed-bar');
+            $top.append(el('div', 'ksp-h2', 'Price per style for this customer'));
+            var $acts = el('div', 'd-flex flex-wrap gap-3 align-items-center');
+            if (e.editing) {
+                $acts.append(el('label', 'ksp-inline', 'Valid from').append($('<input type="date" class="form-control ksp-from">').val(todayStr())));
+                $acts.append(el('label', 'ksp-inline', 'Valid until (optional)').append($('<input type="date" class="form-control ksp-until">')));
+            } else if (canEdit) {
+                $acts.append(el('button', 'btn btn-primary ksp-btn', 'Edit prices').attr({ type: 'button', 'data-ksp': 'edit' }));
+            }
+            $top.append($acts);
+            $c.append($top);
+
+            var $t = el('table', 'table ksp-table ksp-embed-table');
+            var $hr = $('<tr>');
+            ['Style', 'Price per kg (excl. VAT)', 'Valid from', 'Valid until', 'Status'].forEach(function (h) {
+                $hr.append(el('th', 'ksp-th', h).attr('scope', 'col'));
+            });
+            $t.append($('<thead>').append($hr));
+            var $tb = $('<tbody>');
+            (d.styles || []).forEach(function (s) {
+                var own = s.customer_price != null && s.customer_price !== '';
+                var $r = $('<tr>');
+                $r.append($('<td>').append(el('strong', null, s.style_code)).append(document.createTextNode(' ')).append(el('span', 'ksp-tiny', s.label || '')));
+                var $cell = el('td');
+                if (e.editing) {
+                    var $in = $('<input type="number" class="form-control ksp-input ksp-val" min="0" step="0.01" inputmode="decimal">')
+                        .attr({ 'data-code': s.style_code, 'aria-label': 'Price per kg for ' + (s.label || s.style_code), 'data-orig': own ? String(s.customer_price) : '' })
+                        .val(own ? s.customer_price : '');
+                    if (s.list_price != null) $in.attr('placeholder', String(s.list_price));
+                    $cell.append(el('label', 'ksp-price').append(el('span', 'ksp-muted', 'R')).append($in));
+                    $cell.append(el('div', 'ksp-tiny', 'Standard price ' + (s.list_price == null ? 'not set' : money(s.list_price))));
+                } else {
+                    var shown = own ? s.customer_price : s.list_price;
+                    $cell.append(el('span', null, shown == null ? 'No price yet' : money(shown)));
+                }
+                $r.append($cell);
+                $r.append(el('td', 'ksp-tiny', own ? fmtDate(s.customer_from) : ''));
+                $r.append(el('td', 'ksp-tiny', own ? (s.customer_until ? fmtDate(s.customer_until) : 'No end date') : ''));
+                $r.append(el('td').append(statusPill(s)));
+                $tb.append($r);
+            });
+            $t.append($tb);
+            $c.append(el('div', 'ksp-embed-scroll').append($t));
+            if (e.editing) {
+                $c.append(el('div', 'ksp-tiny', 'Change the dates to renew prices that stay the same. A customer with no price here uses the standard list.'));
+                $c.append($('<div class="ksp-actions">')
+                    .append(el('button', 'btn btn-outline-secondary ksp-btn', 'Cancel').attr({ type: 'button', 'data-ksp': 'cancel' }))
+                    .append(el('button', 'btn btn-primary ksp-btn', 'Save prices').attr({ type: 'button', 'data-ksp': 'save' })));
+            }
+        }
+
+        function load() {
+            $c.empty().append(el('div', 'ksp-muted', 'Loading prices...'));
+            return dataFunctions.getKernelStylePrices(customerId, null).then(function (d) {
+                e.data = d; draw();
+            }, function () { e.data = null; draw(); });
+        }
+
+        $c.off(NS);
+        $c.on('change' + NS, '.ksp-from, .ksp-until', function () { $(this).data('touched', true); });
+        $c.on('click' + NS, '[data-ksp="edit"]', function () { e.editing = true; draw(); });
+        $c.on('click' + NS, '[data-ksp="cancel"]', function () { e.editing = false; draw(); });
+        $c.on('click' + NS, '[data-ksp="save"]', function () {
+            if (!has('kernel_prices.edit')) return;
+            var from = $c.find('.ksp-from').val() || todayStr();
+            var until = $c.find('.ksp-until').val() || '';
+            confirmSave({
+                customerId: customerId, who: opts.name || null, from: from, until: until,
+                rows: collectRows($c, until, datesTouched($c)), $btn: $(this),
+                done: function () { e.editing = false; load(); if (opts.onSaved) opts.onSaved(); }
+            });
+        });
+
+        if (!has('kernel_prices.view')) { $c.empty(); return Promise.resolve(); }
+        return load();
+    }
+
+    return { init: init, mountCustomer: mountCustomer };
 })();
 window._kernelStylePrices = _kernelStylePrices;
