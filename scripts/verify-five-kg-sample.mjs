@@ -85,6 +85,24 @@ check('no float test yet: no final figures, nothing invented', () => {
   near(r.unsound_kernel_g, 225, 'crack-out unsound still shown');
 });
 
+check('half-filled float test: no split until both weights are in', () => {
+  const r = F.calc({ ...workbook, floating_g: null, sinking_g: 111 });
+  assert.equal(r.final_sound_kernel_g, null, 'final SK waits for floating weight');
+  assert.equal(r.sinking_dry_g, null, 'sinkers wait for floating weight');
+  near(F.calc({ ...workbook, floating_g: 888, sinking_g: 0 }).final_sound_kernel_g, 850, 'no sinkers (0 typed) is valid');
+});
+
+check('wet below pre-float is flagged (all the kernel goes in the bath)', () => {
+  assert.equal(F.calc(workbook).wet_below_prefloat, false);
+  assert.equal(F.calc({ ...workbook, floating_g: 700, sinking_g: 100 }).wet_below_prefloat, true);
+});
+
+check('sample screen shows percentages to 2 decimals, like the workbook', () => {
+  const js = read('WebPortal/modules/modals/modal-grower-link-sample-to-batch/js/modal_grower_link_sample_to_batch.js');
+  assert.match(js, /\(part \/ whole \* 100\)\.toFixed\(2\)/, 'fmtPct uses 2 decimals');
+  assert.doesNotMatch(js, /toFixed\(1\)/, 'no 1-decimal percentages left');
+});
+
 check('older sample with no breakdown keeps its typed unsound weight', () => {
   const r = F.fromSaved({ crack_out: { sound_kernel_g: 850, unsound_kernel_g: 200, shell_g: 3000 }, float_test: {}, unsound: {} });
   near(r.unsound_kernel_g, 200, 'legacy unsound');

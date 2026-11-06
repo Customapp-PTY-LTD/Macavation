@@ -50,7 +50,8 @@
         var floating = num(s.floating_g);
         var sinking = num(s.sinking_g);
         var wetTotal = (floating || 0) + (sinking || 0);
-        var haveFloat = wetTotal > 0 && sound != null;
+        // Both float weights are needed (0 is fine): with one blank the split would put everything on one side.
+        var haveFloat = floating != null && sinking != null && wetTotal > 0 && sound != null;
 
         var floatingDry = haveFloat ? (floating || 0) / wetTotal * sound : null;
         var sinkingDry = haveFloat ? (sinking || 0) / wetTotal * sound : null;
@@ -65,6 +66,8 @@
             wet_total_g: wetTotal > 0 ? wetTotal : null,
             water_g: haveFloat ? wetTotal - sound : null,
             water_pct: haveFloat && sound > 0 ? (wetTotal - sound) / sound * 100 : null,
+            // All the pre-float sound kernel goes in the bath (QA, 6 Nov 2026), so wet below it is a typing slip.
+            wet_below_prefloat: haveFloat && wetTotal < sound,
             floating_dry_g: floatingDry,
             sinking_dry_g: sinkingDry,
             final_sound_kernel_g: finalSound,
