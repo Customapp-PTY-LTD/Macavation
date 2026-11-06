@@ -367,7 +367,7 @@ var _modal_kernel_job_card = (function () {
                 var s = typeof v === 'string' ? v : (v.toString && v.toString());
                 return s.indexOf('T') >= 0 ? s.split('T')[0] : s;
             };
-            scope.setJobCardField('jobCardBatchNumber', jc.batch_number);
+            scope.setJobCardField('jobCardBatchNumber', macBatchNo.format(jc.batch_number));
             scope.setJobCardField('jobCardReceivedDate', fmtDate(jc.received_date));
             if (jc.supplier_id != null && jc.supplier_id !== '') scope.setJobCardField('jobCardSupplier', jc.supplier_id);
             if (jc.total_weight_kg != null && jc.total_weight_kg !== '') scope.setJobCardField('jobCardTotalWeight', jc.total_weight_kg);
@@ -490,7 +490,7 @@ var _modal_kernel_job_card = (function () {
 
         showJobCardModal: () => {
             const scope = _modal_kernel_job_card;
-            $('#kernelJobCardModalLabel').text('Kernel Production Job Card');
+            $('#kernelJobCardModalLabel').text('Production Job Card');
             $('#jobCardId').val('');
             $('#jobCardProductionBatchId').val('');
             scope.clearJobCardForm();
@@ -518,7 +518,7 @@ var _modal_kernel_job_card = (function () {
             var openForBatch = function (b) {
             if (!b || !b.id) {
                 if (typeof Swal !== 'undefined') {
-                    Swal.fire('Error', 'Batch not found. On Stock (Kernel), use Send back to production, then refresh Kernel Production.', 'error');
+                    Swal.fire('Error', 'Batch not found. On Stock on Hand, use Send back to production, then refresh Production.', 'error');
                 }
                 return;
             }
@@ -526,7 +526,7 @@ var _modal_kernel_job_card = (function () {
             scope.clearJobCardForm();
             $('#jobCardId').val('');
             $('#jobCardProductionBatchId').val(batchId);
-            $('#jobCardBatchNumber').val(batch.batch_number || '');
+            $('#jobCardBatchNumber').val(macBatchNo.format(batch.batch_number || ''));
             scope.setJobCardField('jobCardReceivedDate', batch.received_date ? batch.received_date.toString().split('T')[0] : new Date().toISOString().split('T')[0]);
             // Receiving: Total Weight = Actual from grower intake; Removed Pre-Sizer and Balance filled when detail loads
             if (batch.actual_wet_nis_kg != null && batch.actual_wet_nis_kg !== '') {
@@ -842,7 +842,7 @@ var _modal_kernel_job_card = (function () {
             var getIntText = function (id) { var v = $('#' + id).text(); return v ? parseInt(v, 10) : null; };
             var getFloatText = function (id) { var v = $('#' + id).text(); return v ? _common.parseKg(v) : null; };
             var data = {
-                p_batch_number: getVal('jobCardBatchNumber'),
+                p_batch_number: macBatchNo.toStored(getVal('jobCardBatchNumber')),
                 p_received_date: getDateVal('jobCardReceivedDate'),
                 p_production_batch_id: getVal('jobCardProductionBatchId') || null,
                 p_total_weight_kg: getFloat('jobCardTotalWeight'),
@@ -921,7 +921,7 @@ var _modal_kernel_job_card = (function () {
                 dataFunctions.notifyRole({
                     role_name: 'Production Manager',
                     title: 'Job card approved',
-                    body: 'Batch ' + batchNum + ' job card was approved and is ready for release when complete.',
+                    body: 'Batch ' + macBatchNo.format(batchNum) + ' job card was approved and is ready for release when complete.',
                     severity: 'info',
                     link_route: 'kernel-production-grid'
                 }).catch(function () {});

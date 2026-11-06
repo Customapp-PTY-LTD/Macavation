@@ -42,10 +42,10 @@
       <h2>Kernel stream</h2>
       <ul>
         <li><a href="#crm">CRM (contacts)</a></li>
-        <li><a href="#grower-intake">Grower Intake</a></li>
-        <li><a href="#kernel-production">Kernel Production</a></li>
-        <li><a href="#stock-kernel">Stock (Kernel)</a></li>
-        <li><a href="#kernel-dispatch">Kernel Dispatch</a></li>
+        <li><a href="#grower-intake">Receiving</a></li>
+        <li><a href="#kernel-production">Production</a></li>
+        <li><a href="#stock-kernel">Stock on Hand</a></li>
+        <li><a href="#kernel-dispatch">Dispatch and Sales</a></li>
       </ul>
       <h2>Oil and protein stream</h2>
       <ul>
@@ -83,9 +83,9 @@
         <div class="process-mini">
           <p><strong>Kernel stream</strong></p>
           <ol>
-            <li>Grower Intake (wet NIS, receiving, samples)</li>
-            <li>Kernel Production (job cards, stages)</li>
-            <li>Stock (Kernel) and Kernel Dispatch</li>
+            <li>Receiving (wet NIS, receiving, samples)</li>
+            <li>Production (job cards, stages)</li>
+            <li>Stock on Hand and Dispatch and Sales</li>
           </ol>
           <p><strong>Oil and protein stream</strong></p>
           <ol>
@@ -200,11 +200,11 @@
       <article id="batch-journey" class="manual-chapter">
         <h2>Find a batch</h2>
         <span class="route-tag">batch-journey</span>
-        <p>Use <strong>Find a batch</strong> when you know a batch or grower but not which module currently owns the work. Search kernel batches across the full journey, or switch to the <strong>Oil &amp; Protein</strong> tab for supplier oil batches. Each row shows one status label and an <strong>Open</strong> button that takes you to the correct module (Grower Intake, Kernel Production, Stock, and so on).</p>
+        <p>Use <strong>Find a batch</strong> when you know a batch or grower but not which module currently owns the work. Search kernel batches across the full journey, or switch to the <strong>Oil &amp; Protein</strong> tab for supplier oil batches. Each row shows one status label and an <strong>Open</strong> button that takes you to the correct module (Receiving, Production, Stock, and so on).</p>
         <ol>
           <li>Search by batch, grower, or other supported fields.</li>
           <li>Filter and sort (for example by status or date) to shorten the list.</li>
-          <li>Click a kernel row to open its <strong>batch page</strong>. It shows the key figures, the journey (Received, Samples, Production, Job card, End sample, Dispatch) and a section per stage. Press <strong>Edit</strong> on a section, change any value, then <strong>Save</strong> — each section saves on its own. Delivery covers the bags and transport (bags already placed in a storage area or silo keep their weight). Cracking opens Kernel Production's own sheet, which is filled from the silo Cracking log. After job card approval, packed quantities change on the job card. The job card saves as a draft only (approve it on Kernel Production). Under Dispatch you can change this batch's cartons on orders not yet dispatched. <strong>Back to Find a batch</strong> returns to the list as you left it. Use <strong>Archive</strong> to send a batch to the historical archive and remove it from active lists. Restore from Stock → <strong>View archive</strong> when needed.</li>
+          <li>Click a kernel row to open its <strong>batch page</strong>. It shows the key figures, the journey (Received, Samples, Production, Job card, End sample, Dispatch) and a section per stage. Press <strong>Edit</strong> on a section, change any value, then <strong>Save</strong> — each section saves on its own. Delivery covers the bags and transport (bags already placed in a storage area or silo keep their weight). Cracking opens Production's own sheet, which is filled from the silo Cracking log. After job card approval, packed quantities change on the job card. The job card saves as a draft only (approve it on Production). Under Dispatch you can change this batch's cartons on orders not yet dispatched. <strong>Back to Find a batch</strong> returns to the list as you left it. Use <strong>Archive</strong> to send a batch to the historical archive and remove it from active lists. Restore from Stock → <strong>View archive</strong> when needed.</li>
         </ol>
         <p class="contextual-help"><a href="index.html#batch-journey-grid">Batch Journey topic</a></p>
       </article>
@@ -230,9 +230,9 @@
       </article>
 
       <article id="grower-intake" class="manual-chapter">
-        <h2>Grower Intake</h2>
+        <h2>Receiving</h2>
         <span class="route-tag">grower-intake-grid</span>
-        <p><strong>Grower Intake</strong> is the kernel-side receiving process: it includes a <strong>Procurement Calendar</strong> for planning expected deliveries, as well as receiving checklists, batch testing and samples, and creation of kernel batches before production.</p>
+        <p><strong>Receiving</strong> is the kernel-side receiving process: it includes a <strong>Procurement Calendar</strong> for planning expected deliveries, as well as receiving checklists, batch testing and samples, and creation of kernel batches before production.</p>
         <h3>Procurement Calendar</h3>
         <p>The collapsible <strong>Procurement Calendar</strong> sits above the search bar (it loads <strong>collapsed</strong>—expand the heading when scheduling). It lets the team schedule expected grower deliveries before they arrive, so purchasing intentions are visible to everyone in the portal.</p>
         <ul>
@@ -247,43 +247,43 @@
         <ul>
           <li><strong>Receiving checklist</strong> (stage 1) must be completed before batch test and sample actions unlock.</li>
           <li><strong>Create kernel batch</strong> registers a new intake record tied to a CRM grower/supplier. Each batch number must be unique among <strong>active</strong> kernel batches — you cannot create a second active batch with the same number while one is still in use.</li>
-          <li><strong>Release to production</strong> hands the batch to Kernel Production when quality and checklist rules are satisfied.</li>
+          <li><strong>Release to production</strong> hands the batch to Production when quality and checklist rules are satisfied.</li>
           <li><strong>Archive batch</strong> (row action) sends the batch to the historical archive and removes it from active intake/production lists. Restore from Stock → <strong>View archive</strong> when needed.</li>
         </ul>
         <h3>Typical tasks</h3>
         <ol>
-          <li>Open <strong>Grower Intake</strong>; use Board or Table view as preferred.</li>
+          <li>Open <strong>Receiving</strong>; use Board or Table view as preferred.</li>
           <li>Add expected deliveries on the Procurement Calendar so the team knows what is coming and when.</li>
           <li>When a delivery arrives, drag its calendar pill into the Receiving lane (or use <strong>Create kernel batch</strong> manually).</li>
           <li>Complete the receiving checklist, then batch test and sample steps.</li>
           <li>Release to production when all quality steps are satisfied.</li>
         </ol>
-        <p class="contextual-help"><a href="index.html#grower-intake-grid">Grower Intake</a> · <a href="index.html#modal-grower-receiving-checklist">Receiving checklist</a> · <a href="index.html#modal-grower-create-kernel-batch">Create kernel batch</a> · <a href="index.html#modal-grower-link-sample-to-batch">Link sample to batch</a></p>
+        <p class="contextual-help"><a href="index.html#grower-intake-grid">Receiving</a> · <a href="index.html#modal-grower-receiving-checklist">Receiving checklist</a> · <a href="index.html#modal-grower-create-kernel-batch">Create kernel batch</a> · <a href="index.html#modal-grower-link-sample-to-batch">Link sample to batch</a></p>
       </article>
 
       <article id="kernel-production" class="manual-chapter">
-        <h2>Kernel Production</h2>
+        <h2>Production</h2>
         <span class="route-tag">kernel-production-grid</span>
-        <p><strong>Kernel Production</strong> tracks batches through factory steps: job cards, production stages, batch summary, history, and hand-off toward stock. Use <strong>Production Calendar</strong> from the toolbar when you need day-by-day activity.</p>
+        <p><strong>Production</strong> tracks batches through factory steps: job cards, production stages, batch summary, history, and hand-off toward stock. Use <strong>Production Calendar</strong> from the toolbar when you need day-by-day activity.</p>
         <h3>Typical tasks</h3>
         <ol>
-          <li>Open <strong>Kernel Production</strong>; open <strong>Production Calendar</strong> if needed, then review filters.</li>
+          <li>Open <strong>Production</strong>; open <strong>Production Calendar</strong> if needed, then review filters.</li>
           <li>Open a batch card or row to manage job cards and production stages in order.</li>
           <li>Use Batch summary, Batch history, or view-only job card dialogs for audits and customer queries.</li>
           <li>Review the job card (production can prefill style lines). Press <strong>Save job card</strong> to keep edits; press <strong>Jobcard approved</strong> to commit stock quantities.</li>
           <li>Complete release to stock when the batch is release ready and the job card is approved.</li>
           <li><strong>Archive batch</strong> (row menu) sends the batch to the historical archive; restore from Stock → <strong>View archive</strong> when needed.</li>
         </ol>
-        <p class="contextual-help"><a href="index.html#kernel-production-grid">Kernel Production</a> · <a href="index.html#modal-kernel-job-card">Job card</a> · <a href="index.html#modal-production-stages">Production stages</a> · <a href="index.html#modal-batch-summary">Batch summary</a> · <a href="index.html#modal-batch-history">Batch history</a></p>
+        <p class="contextual-help"><a href="index.html#kernel-production-grid">Production</a> · <a href="index.html#modal-kernel-job-card">Job card</a> · <a href="index.html#modal-production-stages">Production stages</a> · <a href="index.html#modal-batch-summary">Batch summary</a> · <a href="index.html#modal-batch-history">Batch history</a></p>
       </article>
 
       <article id="stock-kernel" class="manual-chapter">
-        <h2>Stock (Kernel)</h2>
+        <h2>Stock on Hand</h2>
         <span class="route-tag">stock-management-kernel</span>
-        <p><strong>Stock (Kernel)</strong> shows kernel warehouse positions and movements. Per-style on hand comes from the <strong>job card after Jobcard approved</strong> (and release to stock), not from production packing sheets alone. Finished kernel stock that is eligible for sale is associated with the kernel finished location (your organisation may refer to this as KERNEL R YES versus raw NIS).</p>
+        <p><strong>Stock on Hand</strong> shows kernel warehouse positions and movements. Per-style on hand comes from the <strong>job card after Jobcard approved</strong> (and release to stock), not from production packing sheets alone. Finished kernel stock that is eligible for sale is associated with the kernel finished location (your organisation may refer to this as KERNEL R YES versus raw NIS).</p>
         <h3>Typical tasks</h3>
         <ol>
-          <li>Open <strong>Stock (Kernel)</strong> from the sidebar.</li>
+          <li>Open <strong>Stock on Hand</strong> from the sidebar.</li>
           <li>Filter by status, product type, and location; confirm the on-screen list matches the physical warehouse.</li>
           <li>Use <strong>Send to Dispatch</strong> when moving selected lines toward a kernel dispatch basket (quantities must match reality).</li>
           <li>On <strong>Kernel stock by style</strong>, use <strong>Edit</strong> to update batch details (number, grower, received date, wet NIS, FFA, best before) when your role allows. Turn on <strong>Adjust Stock</strong> to capture cartons or kg (the system calculates boxes before saving). A batch appears on <strong>By style</strong> only when at least one style still has remaining boxes (cartons or kg equivalent). FFA or historical production yield alone does not keep a batch on the grid — including in Adjust Stock. To restore or correct a batch with no remaining stock, use <strong>Add Batch</strong>, search by batch number, and click a match to bring it back. You can also fill supplier and styles there to create a <strong>new</strong> historical batch. Use <strong>Archive</strong> (batch row action) to send a batch to the historical archive — it records who archived it and when. Open <strong>View archive</strong> (toolbar) to search archived batches, see who archived them, and <strong>Restore</strong>. If the original batch number is already in use by another active batch, enter a new number when prompted. Batch numbers may be reused after archive, but not while another <strong>active</strong> batch holds the number. Use <strong>Send back to production</strong> when the batch should return to the production flow instead.</li>
@@ -298,11 +298,11 @@
       </article>
 
       <article id="kernel-dispatch" class="manual-chapter">
-        <h2>Kernel Dispatch</h2>
+        <h2>Dispatch and Sales</h2>
         <span class="route-tag">kernel-dispatch-grid</span>
-        <p><strong>Kernel Dispatch</strong> manages despatch baskets for kernel customers: inspection, dispatch paperwork, and basket lines. Baskets are built from stock movements and CRM kernel customers.</p>
+        <p><strong>Dispatch and Sales</strong> manages despatch baskets for kernel customers: inspection, dispatch paperwork, and basket lines. Baskets are built from stock movements and CRM kernel customers.</p>
         <ol>
-          <li>Open <strong>Kernel Dispatch</strong>; use Board or Table as preferred.</li>
+          <li>Open <strong>Dispatch and Sales</strong>; use Board or Table as preferred.</li>
           <li>Find a basket by typing in <strong>Search</strong> (buyer, linked CRM contact, grower on any line, or batch; a single letter uses starts-with on batches and start-of-word on names). Optionally set <strong>Supplier received</strong>. With both set, only baskets matching both are listed. Use <strong>Clear</strong> to show all baskets again.</li>
           <li>Review open baskets; open <strong>View sheet</strong> to see basket lines together with the full inspection and dispatch form (driver, vehicle checks, transport, signatures).</li>
           <li>Complete <strong>Dispatch</strong> and the same form for orders not yet dispatched.</li>
@@ -310,7 +310,7 @@
           <li>Review dispatched baskets for completed paperwork.</li>
         </ol>
         <p>If quantities are wrong, correct stock or the basket in <strong>Stock Management</strong> rather than dispatching incorrect loads.</p>
-        <p class="contextual-help"><a href="index.html#kernel-dispatch-grid">Kernel Dispatch</a> · <a href="index.html#modal-kernel-dispatch">Dispatch modal</a> · <a href="index.html#modal-kernel-dispatch-form">Dispatch form</a></p>
+        <p class="contextual-help"><a href="index.html#kernel-dispatch-grid">Dispatch and Sales</a> · <a href="index.html#modal-kernel-dispatch">Dispatch modal</a> · <a href="index.html#modal-kernel-dispatch-form">Dispatch form</a></p>
       </article>
 
       <article id="supplier-intake" class="manual-chapter">
@@ -518,11 +518,11 @@
               <tr><td><code>add-role-modal</code></td><td>Overlay</td><td>Admin Add Role Modal</td></tr>
               <tr><td><code>crm-grid</code></td><td>Route</td><td>Customer Relationship Management</td></tr>
               <tr><td><code>crm-contact-modal</code></td><td>Overlay</td><td>CRM Add/Edit Contact Modal</td></tr>
-              <tr><td><code>grower-intake-grid</code></td><td>Route</td><td>Grower Intake Management</td></tr>
+              <tr><td><code>grower-intake-grid</code></td><td>Route</td><td>Receiving Management</td></tr>
               <tr><td><code>supplier-intake-grid</code></td><td>Route</td><td>Supplier Intake - Oil &amp; Protein</td></tr>
               <tr><td><code>supplier-oil-batch-modal</code></td><td>Overlay</td><td>Supplier Intake - New oil batch (batches + oil table)</td></tr>
               <tr><td><code>supplier-receiver-checklist-modal</code></td><td>Overlay</td><td>Supplier Intake - Receiver checklist (create batches)</td></tr>
-              <tr><td><code>kernel-production-grid</code></td><td>Route</td><td>Kernel Production Workflow</td></tr>
+              <tr><td><code>kernel-production-grid</code></td><td>Route</td><td>Production Workflow</td></tr>
               <tr><td><code>kernel-job-card-modal</code></td><td>Overlay</td><td>Kernel Job Card Modal</td></tr>
               <tr><td><code>production-stages-modal</code></td><td>Overlay</td><td>Production Stages Modal</td></tr>
               <tr><td><code>batch-summary-modal</code></td><td>Overlay</td><td>Batch Summary Modal</td></tr>
@@ -531,23 +531,23 @@
               <tr><td><code>end-sample-modal</code></td><td>Overlay</td><td>End Sample Modal</td></tr>
               <tr><td><code>end-sample-view-modal</code></td><td>Overlay</td><td>End Sample View Modal</td></tr>
               <tr><td><code>batch-history-modal</code></td><td>Overlay</td><td>Batch History Modal</td></tr>
-              <tr><td><code>kernel-dispatch-grid</code></td><td>Route</td><td>Kernel Dispatch</td></tr>
-              <tr><td><code>kernel-dispatch-modal</code></td><td>Overlay</td><td>Kernel Dispatch batch modal</td></tr>
-              <tr><td><code>kernel-dispatch-form-modal</code></td><td>Overlay</td><td>Kernel Dispatch inspection and dispatch form</td></tr>
+              <tr><td><code>kernel-dispatch-grid</code></td><td>Route</td><td>Dispatch and Sales</td></tr>
+              <tr><td><code>kernel-dispatch-modal</code></td><td>Overlay</td><td>Dispatch and Sales batch modal</td></tr>
+              <tr><td><code>kernel-dispatch-form-modal</code></td><td>Overlay</td><td>Dispatch and Sales inspection and dispatch form</td></tr>
               <tr><td><code>oil-dispatch-grid</code></td><td>Route</td><td>Oil &amp; Protein Dispatch</td></tr>
               <tr><td><code>oil-dispatch-modal</code></td><td>Overlay</td><td>Oil Dispatch view basket modal</td></tr>
               <tr><td><code>oil-dispatch-form-modal</code></td><td>Overlay</td><td>Oil Dispatch inspection and dispatch form</td></tr>
               <tr><td><code>quality-assurance-grid</code></td><td>Route</td><td>Quality Assurance &amp; Food Safety</td></tr>
               <tr><td><code>quality-test-modal</code></td><td>Overlay</td><td>Quality Test Modal (New/Edit)</td></tr>
               <tr><td><code>stock-management-grid</code></td><td>Route</td><td>Stock Management</td></tr>
-              <tr><td><code>stock-management-kernel</code></td><td>Route</td><td>Stock (Kernel) - NIS = R NIL, KERNEL R YES</td></tr>
+              <tr><td><code>stock-management-kernel</code></td><td>Route</td><td>Stock on Hand - NIS = R NIL, KERNEL R YES</td></tr>
               <tr><td><code>stock-management-oil</code></td><td>Route</td><td>Stock (Oil &amp; Protein)</td></tr>
               <tr><td><code>oil-lot-modal</code></td><td>Overlay</td><td>Oil Stock Lot Modal</td></tr>
               <tr><td><code>import-oil-lots-modal</code></td><td>Overlay</td><td>Import Oil Lots Modal</td></tr>
               <tr><td><code>receiving-checklist-modal</code></td><td>Overlay</td><td>Receiving Checklist Modal</td></tr>
-              <tr><td><code>grower-receiving-checklist-modal</code></td><td>Overlay</td><td>Grower Intake Receiving Checklist Modal</td></tr>
-              <tr><td><code>grower-create-kernel-batch-modal</code></td><td>Overlay</td><td>Grower Intake Create Kernel Batch Modal</td></tr>
-              <tr><td><code>grower-link-sample-to-batch-modal</code></td><td>Overlay</td><td>Grower Intake Link Sample to Batch Modal</td></tr>
+              <tr><td><code>grower-receiving-checklist-modal</code></td><td>Overlay</td><td>Receiving Receiving Checklist Modal</td></tr>
+              <tr><td><code>grower-create-kernel-batch-modal</code></td><td>Overlay</td><td>Receiving Create Kernel Batch Modal</td></tr>
+              <tr><td><code>grower-link-sample-to-batch-modal</code></td><td>Overlay</td><td>Receiving Link Sample to Batch Modal</td></tr>
               <tr><td><code>raw-material-issued-modal</code></td><td>Overlay</td><td>Raw Material Issued Modal</td></tr>
               <tr><td><code>stock-take-modal</code></td><td>Overlay</td><td>Stock Take Modal</td></tr>
               <tr><td><code>send-to-dispatch-modal</code></td><td>Overlay</td><td>Send to Dispatch Modal</td></tr>

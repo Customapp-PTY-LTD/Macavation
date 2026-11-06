@@ -204,10 +204,12 @@
             "path": "crm",
             "html": "html/crm_grid.html",
             "js": [
-                "js/crm_grid.js"
+                "js/crm_grid.js",
+                "../kernel-style-prices/js/kernel_style_prices.js"
             ],
             "css": [
-                "css/crm_grid.css"
+                "css/crm_grid.css",
+                "../kernel-style-prices/css/kernel_style_prices.css"
             ]
         },
         "crm-contact-modal": {
@@ -397,7 +399,7 @@
             ]
         },
         "kernel-dispatch-grid": {
-            "description": "Kernel Dispatch",
+            "description": "Dispatch and Sales",
             "path": "kernel-dispatch",
             "html": "html/kernel_dispatch_grid.html",
             "js": [

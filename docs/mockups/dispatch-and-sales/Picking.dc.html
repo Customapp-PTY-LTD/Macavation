@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Confirm the pick</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#146c43}a:hover{color:#0f5132}
+.pg{font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.5;color:#1F1F1F;background:#F7F7F5;min-height:100%}
+.rib{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:8px 16px;background:#262622;color:#E9E9E4;font-size:13px}
+.rib b{letter-spacing:.06em;text-transform:uppercase;font-size:12px}
+.rib span{color:#B5B5AE}
+.main{max-width:1240px;padding:0 24px 40px}
+.hd{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;padding:16px 0 12px}
+.h1{font-size:24px;font-weight:600;margin:0}
+.sub{font-size:13px;color:#52524E}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid #D3D3D0;background:#fff;color:#1F1F1F;border-radius:8px;padding:7px 12px;font:inherit;font-size:13px;font-weight:500;cursor:pointer;min-height:36px}
+.btn.pri{background:#198754;border-color:#198754;color:#fff}
+.card{background:#fff;border:1px solid #E3E3E0;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-bottom:14px}
+.ch{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid #E3E3E0;font-weight:600}
+.cb{padding:14px 16px}
+.inp{width:72px;box-sizing:border-box;border:1px solid #D3D3D0;border-radius:8px;padding:6px 8px;font:inherit;background:#fff;text-align:center}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{background:#F0F0EE;font-weight:600;text-align:left;padding:8px;border-bottom:1px solid #E3E3E0;white-space:nowrap}
+td{padding:8px;border-bottom:1px solid #E3E3E0;vertical-align:middle}
+.c{text-align:center}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.bn{font-weight:600}
+.sup{display:block;font-size:11.5px;color:#6E6E68}
+.chg{outline:2px dashed #D6004F;outline-offset:2px;border-radius:6px}
+.cno{display:inline-block;margin-left:4px;padding:0 6px;border-radius:999px;background:#D6004F;color:#fff;font-size:10.5px;font-weight:700;line-height:17px;vertical-align:1px;font-style:normal}
+.stepper{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-bottom:16px}
+.sx{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;border:1px solid #E3E3E0;background:#fff;font-size:12.5px;font-weight:600;color:#52524E}
+.sx .bx{flex:none;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;box-sizing:border-box;font-size:11px}
+.sx.done .bx{background:#198754;color:#fff}
+.sx.now{border:2px solid #B07A00;background:rgba(212,167,44,.1);color:#1F1F1F}
+.sx.now .bx{border:2px solid #B07A00}
+.sx.todo .bx{border:2px solid #C9C9C4}
+.diff{display:inline-block;border-radius:999px;padding:1px 8px;font-size:12px;font-weight:700;background:rgba(212,167,44,.2);color:#6e550c}
+.chrow td{background:rgba(212,167,44,.08)}
+.subrow td{background:rgba(9,105,218,.06)}
+.subp{display:inline-block;border-radius:999px;padding:1px 8px;font-size:12px;font-weight:700;background:rgba(9,105,218,.12);color:#0b4f9e}
+.subtag{display:block;font-size:11px;font-weight:700;color:#0b4f9e;letter-spacing:.03em;text-transform:uppercase}
+.btn.sm{padding:4px 10px;min-height:30px;font-size:12.5px}
+.opt{border-top:1px solid #F0F0EE;padding:8px 0;font-size:12.5px;color:#52524E}
+.opt b{color:#1F1F1F}
+.alert{border:1px solid rgba(212,167,44,.5);background:rgba(212,167,44,.1);border-radius:10px;padding:12px 14px;font-size:13px}
+.note{border:1px solid #E3E3E0;border-radius:10px;padding:12px 14px;background:#fff}
+.note h4{margin:0 0 4px;font-size:13.5px}
+.note p{margin:0;font-size:12.5px;color:#52524E}
+.who{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.av{display:inline-flex;align-items:center;gap:6px;border:1px solid #E3E3E0;border-radius:999px;padding:2px 10px 2px 2px;font-size:12.5px;background:#F7F7F5}
+.av span{display:inline-flex;width:22px;height:22px;border-radius:50%;background:#198754;color:#fff;font-size:11px;font-weight:700;align-items:center;justify-content:center}
+@media (max-width:820px){.stepper{grid-template-columns:minmax(0,1fr)}}
+</style>
+</helmet>
+<div class="pg">
+  <div class="rib"><b>Mockup</b> Step 2 · Stock picked <span>Thando's screen, opened from her "Pick a dispatch" task. Sample data.</span></div>
+  <main class="main">
+    <div class="hd">
+      <div><h1 class="h1">Confirm the pick · Cape Roasters (Pty) Ltd</h1><div class="sub">Collection 10/11/2026 · created by Pete on 05/11/2026</div></div>
+    </div>
+    <div class="stepper chg" aria-label="Dispatch progress: step 2 of 5">
+      <div class="sx done"><span class="bx" aria-hidden="true">✓</span>Dispatch created</div>
+      <div class="sx now"><span class="bx" aria-hidden="true"></span>Stock picked</div>
+      <div class="sx todo"><span class="bx" aria-hidden="true"></span>Pricing confirmed</div>
+      <div class="sx todo"><span class="bx" aria-hidden="true"></span>Truck loaded</div>
+      <div class="sx todo"><span class="bx" aria-hidden="true"></span>Invoice sent<em class="cno">2b</em></div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:14px">
+      <div style="flex:999 1 620px;min-width:0">
+        <div class="card">
+          <div class="ch"><span>Requested vs picked</span><span style="font-weight:400;font-size:13px;color:#52524E">Change a number if you picked something different</span></div>
+          <div class="tw">
+            <table>
+              <thead><tr><th>Batch</th><th class="c">Style</th><th class="c">Requested</th><th class="c">Picked</th><th class="c">Difference</th><th></th></tr></thead>
+              <tbody>
+                <sc-for list="{{rows}}" as="l" hint-placeholder-count="5">
+                  <tr class="{{l.rowCls}}">
+                    <td><sc-if value="{{l.isSub}}" hint-placeholder-val="{{ false }}"><span class="subtag">↳ Substitute for the 2 not found</span></sc-if><span class="bn">{{l.bn}}</span><span class="sup">{{l.sup}}</span></td>
+                    <td class="c">{{l.style}}</td>
+                    <td class="c num">{{l.req}}</td>
+                    <td class="c"><input class="inp" aria-label="Cartons picked" value="{{l.pick}}"></td>
+                    <td class="c"><span class="{{l.diffCls}}">{{l.diff}}</span></td>
+                    <td class="c"><sc-if value="{{l.canSub}}" hint-placeholder-val="{{ false }}"><button class="btn sm chg" type="button">+ Substitute</button></sc-if></td>
+                  </tr>
+                </sc-for>
+                <tr><td colspan="2" style="font-weight:700;background:#F0F0EE">Total</td><td class="c num" style="font-weight:700;background:#F0F0EE">120</td><td class="c num" style="font-weight:700;background:#F0F0EE">120</td><td class="c" style="background:#F0F0EE"><span class="subp">2 swapped</span></td><td style="background:#F0F0EE"></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="cb">
+            <div class="alert chg">2 cartons of 1S were not on the shelf, so you picked 2 cartons of 1S from another batch instead. When you confirm, <b>Joslyn, Mike and Pete</b> are told what changed.<em class="cno">2c</em>
+              <div style="margin-top:8px"><label for="why" style="font-size:12.5px;font-weight:500">Reason (optional)</label><input id="why" value="BN.02.26.11 only had 8 cartons of 1S on the shelf" style="display:block;width:100%;box-sizing:border-box;border:1px solid #D3D3D0;border-radius:8px;padding:7px 10px;font:inherit;margin-top:4px;background:#fff"></div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
+              <button class="btn" type="button">Save for later</button>
+              <button class="btn pri" type="button">Confirm pick</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:1 1 300px;min-width:0">
+        <div class="note chg">
+          <div style="font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#6E6E68;margin-bottom:6px">What they get (bell + My Day)<em class="cno">2c</em></div>
+          <h4>Pick changed: Cape Roasters</h4>
+          <p>All 120 cartons picked, with 1 swap. Style 1S: 2 cartons not found in BN.02.26.11, so 2 cartons of 1S came from BN.03.26.09 (Lilje Farms) instead.</p>
+          <div class="who"><span class="av"><span>J</span>Joslyn</span><span class="av"><span>M</span>Mike</span><span class="av"><span>P</span>Pete</span></div>
+          <p style="margin-top:10px">No changes? Nobody is bothered: the dispatch just moves on to Pete for pricing.</p>
+        </div>
+
+        <div class="note chg" style="margin-top:14px">
+          <div style="font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#6E6E68;margin-bottom:6px">Can't find them all? Thando's choices</div>
+          <div class="opt" style="border-top:0"><b>Same style, other batch:</b> she taps + Substitute and picks the batch. Only batches with that style in stock are offered, oldest best-before first. The dispatch carries on as normal.</div>
+          <div class="opt"><b>Different style:</b> allowed, but marked "needs Pete's OK". At Pricing, Pete accepts it (that style's customer price is used) or sends it back to Thando.</div>
+          <div class="opt"><b>Nothing to swap:</b> she just picks fewer. The dispatch goes out short and the customer is billed for what is loaded.</div>
+          <div class="opt"><b>Stock check:</b> Stock on Hand said BN.02.26.11 had 10 cartons of 1S, and she found 8. The batch gets flagged "count needed" so someone checks it and uses Correct stock. The 2 missing cartons don't silently stay on the books.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var raw = [
+      ['BN.01.26.05', 'Amber Macs (Pty) Ltd', '1', 40, 40],
+      ['BN.01.26.05', 'Amber Macs (Pty) Ltd', '4L', 30, 30],
+      ['BN.02.26.11', 'Tamboti Agric (Pty) Ltd', '0', 18, 18],
+      ['BN.02.26.11', 'Tamboti Agric (Pty) Ltd', '1S', 10, 8],
+      ['BN.03.26.09', 'Lilje Farms (Pty) Ltd', '1S', null, 2, true],
+      ['BN.12.26.02', 'Cavalla Farming CC', '5', 22, 22]
+    ];
+    return { rows: raw.map(function (r) {
+      if (r[5]) {
+        return { isSub: true, canSub: false, bn: r[0], sup: r[1], style: r[2], req: '—', pick: String(r[4]), diff: '+' + r[4] + ' swap', diffCls: 'subp', rowCls: 'subrow' };
+      }
+      var d = r[4] - r[3];
+      return { isSub: false, canSub: d < 0, bn: r[0], sup: r[1], style: r[2], req: r[3], pick: String(r[4]), diff: d === 0 ? '—' : '−' + Math.abs(d) + ' not found', diffCls: d === 0 ? '' : 'diff', rowCls: d === 0 ? '' : 'chrow' };
+    }) };
+  }
+}
+</script>
+</body>
+</html>

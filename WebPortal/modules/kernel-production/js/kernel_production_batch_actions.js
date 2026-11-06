@@ -59,7 +59,7 @@ var _kernelProductionBatchActions = function () {
                 return;
             }
             var batch = (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch) ? _kernelProductionGrid.getBatch(batchId) : null;
-            var batchLabel = batch ? (batch.batch_number || 'this batch') : 'this batch';
+            var batchLabel = batch ? macBatchNo.format(batch.batch_number || 'this batch') : 'this batch';
             var scope = _kernelProductionBatchActions;
 
             function confirmAndRelease() {
@@ -139,7 +139,7 @@ var _kernelProductionBatchActions = function () {
                 return;
             }
             var batch = (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch) ? _kernelProductionGrid.getBatch(batchId) : null;
-            var batchLabel = batch ? (batch.batch_number || 'this batch') : 'this batch';
+            var batchLabel = batch ? macBatchNo.format(batch.batch_number || 'this batch') : 'this batch';
             Swal.fire({
                 title: 'Archive kernel batch?',
                 html: 'Send <strong>' + batchLabel + '</strong> to the archive? It will be removed from production lists. Restore later from Stock → <strong>View archive</strong>.',
@@ -177,7 +177,7 @@ var _kernelProductionBatchActions = function () {
             }
             (dataFunctions.getNextBatchNumber && dataFunctions.getNextBatchNumber(supplierId, year) || Promise.resolve(null))
                 .then(function (nextId) {
-                    $('#batchNumber').val(nextId || '').attr('placeholder', nextId ? '' : 'Will assign on save');
+                    $('#batchNumber').val(nextId ? macBatchNo.format(nextId) : '').attr('placeholder', nextId ? '' : 'Will assign on save');
                 })
                 .catch(function () { $('#batchNumber').val('').attr('placeholder', 'Will assign on save'); });
         },
@@ -320,7 +320,7 @@ var _kernelProductionBatchActions = function () {
             var batchNumRaw = $('#batchNumber').val();
             var batchNumTrim = batchNumRaw != null ? String(batchNumRaw).trim() : '';
             var batchData = {
-                batch_number:        batchNumTrim.length ? batchNumTrim : null,
+                batch_number:        batchNumTrim.length ? macBatchNo.toStored(batchNumTrim) : null,
                 received_date:       getVal('batchReceivedDate'),
                 wet_nis_received_kg: wetNisKg,
                 supplier_id:         getVal('batchSupplier') || null,

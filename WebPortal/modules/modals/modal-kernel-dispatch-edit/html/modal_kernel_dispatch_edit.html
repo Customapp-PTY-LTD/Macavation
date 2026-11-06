@@ -6,7 +6,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-            <p class="text-muted small mb-3">Change buyer, delivery dates, or carton quantities. You cannot edit an order after it has been dispatched.</p>
+            <p class="text-muted small mb-3">Change buyer, collection date, or carton quantities. You cannot edit an order after it has been dispatched.</p>
             <input type="hidden" id="kernelDispatchEditOrderId" value="">
             <div class="row g-2 mb-3">
                 <div class="col-md-6">
@@ -17,7 +17,8 @@
                     <label class="form-label" for="kernelDispatchEditCollection">Planned Collection Date</label>
                     <input type="text" class="form-control form-control-sm" id="kernelDispatchEditCollection" placeholder="dd/mm/yyyy">
                 </div>
-                <div class="col-md-3">
+                <!-- Planned Delivery Date retired 6 Nov 2026 (Mike): delivery_date follows the collection date. Kept hidden for older orders. -->
+                <div class="col-md-3 d-none">
                     <label class="form-label" for="kernelDispatchEditDelivery">Planned Delivery Date</label>
                     <input type="text" class="form-control form-control-sm" id="kernelDispatchEditDelivery" placeholder="dd/mm/yyyy">
                 </div>

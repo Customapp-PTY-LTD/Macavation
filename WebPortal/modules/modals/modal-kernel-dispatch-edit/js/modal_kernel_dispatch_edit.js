@@ -130,7 +130,7 @@ var _modal_kernel_dispatch_edit = (function () {
                 var canSendBack = typeof hasAction === 'function' && hasAction('kernel.dispatch.edit');
                 lines.forEach(function (line, idx) {
                     var kid = escapeHtml(line.kernel_id || '');
-                    var bn = escapeHtml(line.batch_number || '—');
+                    var bn = escapeHtml(line.batch_number ? (typeof macBatchNo !== 'undefined' ? macBatchNo.format(line.batch_number) : line.batch_number) : '—');
                     var stl = escapeHtml(line.style || '—');
                     var ct = line.cartons != null ? Number(line.cartons) : (line.quantity_kg != null ? Math.round(Number(line.quantity_kg) / 11.34) : 0);
                     if (isNaN(ct) || ct < 0) ct = 0;
@@ -269,11 +269,6 @@ var _modal_kernel_dispatch_edit = (function () {
             } else {
                 deliveryIso = isoFromDdMmYyyy($('#kernelDispatchEditDelivery').val() || '');
             }
-            if (!deliveryIso) {
-                if (typeof Swal !== 'undefined') Swal.fire('Validation', 'Please set a valid planned delivery date.', 'warning');
-                return;
-            }
-
             var collectionIso = null;
             if (_flatpickrCollection && _flatpickrCollection.selectedDates && _flatpickrCollection.selectedDates.length) {
                 var c = _flatpickrCollection.selectedDates[0];
@@ -286,9 +281,10 @@ var _modal_kernel_dispatch_edit = (function () {
                 if (typeof Swal !== 'undefined') Swal.fire('Validation', 'Choose a planned collection date (it can be changed but not removed).', 'warning');
                 return;
             }
-            // ISO dates compare correctly as strings. Empty collection (old orders) skips the check.
-            if (collectionIso && collectionIso > deliveryIso) {
-                if (typeof Swal !== 'undefined') Swal.fire('Validation', 'The planned collection date cannot be after the planned delivery date.', 'warning');
+            // No separate delivery date any more: it follows the collection date (older orders keep theirs).
+            if (collectionIso) deliveryIso = collectionIso;
+            if (!deliveryIso) {
+                if (typeof Swal !== 'undefined') Swal.fire('Validation', 'Please set the planned collection date.', 'warning');
                 return;
             }
 

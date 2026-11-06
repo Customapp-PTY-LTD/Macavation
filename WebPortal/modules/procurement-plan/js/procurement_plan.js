@@ -308,7 +308,7 @@ var _procurementPlan = (function () {
     function truckActions(d, today) {
         var $a = el('div', 'pp-row-acts');
         if (isReceived(d)) {
-            if (d.batch_number) $a.append(el('span', 'pp-muted', 'Batch ' + d.batch_number));
+            if (d.batch_number) $a.append(el('span', 'pp-muted', 'Batch ' + macBatchNo.format(d.batch_number)));
             return $a;
         }
         var dueNow = d.scheduled_date <= today;
