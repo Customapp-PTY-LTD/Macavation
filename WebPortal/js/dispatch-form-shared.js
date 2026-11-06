@@ -541,5 +541,9 @@
         return api;
     }
 
-    w.DispatchFormShared = { create: create, cartonLabel: cartonLabel, CHECKS: CHECKS };
+    w.DispatchFormShared = {
+        create: create, cartonLabel: cartonLabel, CHECKS: CHECKS,
+        // Upload helpers, also used by the dispatch workflow's step 5 (PO and invoice documents).
+        uploadOne: uploadOne, renderFileList: renderFileList, fileAllowed: fileAllowed, MAX_FILE_BYTES: MAX_FILE_BYTES
+    };
 }(window));

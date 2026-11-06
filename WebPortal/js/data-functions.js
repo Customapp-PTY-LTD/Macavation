@@ -2474,11 +2474,17 @@ var _dataFunctions = function () {
             }, token);
         },
 
-        /** Step 5. sent=false undoes it. */
-        markKernelDispatchInvoiceSent: async function (orderId, sent, note, token = null) {
+        /** Step 5. sent=false undoes it (the PO / invoice numbers and files are kept).
+         *  paper = { poReference, invoiceReference, poDocuments[], invoiceDocuments[] }; both numbers are required to tick it. */
+        markKernelDispatchInvoiceSent: async function (orderId, sent, note, paper, token = null) {
             this.clearCachePattern('kernel_dispatch_orders_list');
+            var p = paper || {};
             return this._rpcWrite('mark_kernel_dispatch_invoice_sent', {
-                p_order_id: orderId, p_sent: sent !== false, p_note: note || null
+                p_order_id: orderId, p_sent: sent !== false, p_note: note || null,
+                p_po_reference: p.poReference || null,
+                p_invoice_reference: p.invoiceReference || null,
+                p_po_documents: p.poDocuments || [],
+                p_invoice_documents: p.invoiceDocuments || []
             }, token);
         },
 
