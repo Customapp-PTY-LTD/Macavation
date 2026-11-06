@@ -25,6 +25,7 @@ var _modal_grower_link_sample_to_batch = (function () {
     var _ziplockSaved = false;
     var _fiveKgSaved  = false;
     var _autosaveTimerId = null;
+    var _savedUnsoundG = null;  // crack-out unsound as saved; used only while no breakdown weight is entered
 
     function getActiveSampleTab() {
         var pane5kg = document.getElementById('pane-5kg-sample');
@@ -129,10 +130,30 @@ var _modal_grower_link_sample_to_batch = (function () {
         updateSpecColours();
     }
 
+    // Final SK/USK after the float test (sinkers move to unsound): WebPortal/js/five-kg-sample.js.
+    function calcResults() {
+        var unsound = {};
+        UNSOUND_IDS.forEach(function (id, i) { unsound[FiveKgSample.UNSOUND_KEYS[i]] = getFloat(id); });
+        return FiveKgSample.calc({
+            sound_kernel_g: getFloat('sampleSoundKernelG'),
+            unsound_kernel_g: _savedUnsoundG,
+            shell_g: getFloat('sampleShellG'),
+            floating_g: getFloat('sampleFloatingKernelG'),
+            sinking_g: getFloat('sampleSinkingKernelG'),
+            unsound: unsound
+        });
+    }
+
     function updateTotals() {
+        var res = calcResults();
+        // Crack-out Unsound Kernel is the breakdown total (kept as typed on an older sample with no breakdown).
+        var crackUnsoundEl = document.getElementById('sampleUnsoundKernelG');
+        if (crackUnsoundEl) crackUnsoundEl.value = res.unsound_kernel_g != null ? Math.round(res.unsound_kernel_g * 100) / 100 : '';
+
         var crackTotal = sumInputs(CRACK_OUT_IDS);
         var floatTotal = sumInputs(FLOAT_IDS);
-        var unsoundTotal = sumInputs(UNSOUND_IDS);
+        var sinkersG = res.sinking_dry_g;
+        var unsoundTotal = sumInputs(UNSOUND_IDS) + (sinkersG || 0);
         var crackEl = document.getElementById('sampleCrackOutTotalG');
         var floatEl = document.getElementById('sampleFloatTotalG');
         var unsoundEl = document.getElementById('sampleUnsoundTotalG');
@@ -168,19 +189,30 @@ var _modal_grower_link_sample_to_batch = (function () {
         });
         setText('sampleFloatTotalPct', floatTotal > 0 ? '100.0%' : '');
         setText('sampleFloatDryTotal', haveDry ? fmtG(soundG) : '');
+        setText('sampleWaterG', res.water_g != null ? fmtG(res.water_g) : '');
+        setText('sampleWaterPct', res.water_g != null ? fmtPct(res.water_g, soundG) : '');
 
-        // Unsound breakdown: % of whole crack-out
+        // Unsound breakdown: % of whole crack-out; the sinkers are the last row
         UNSOUND_IDS.forEach(function (id) {
             setText(id + 'Pct', fmtPct(getFloat(id), crackTotal));
             setText(id + 'OfUnsoundPct', fmtPct(getFloat(id), unsoundTotal));
         });
+        setText('sampleSinkersG', sinkersG != null ? fmtG(sinkersG) : '');
+        setText('sampleSinkersPct', fmtPct(sinkersG, crackTotal));
+        setText('sampleSinkersOfUnsoundPct', fmtPct(sinkersG, unsoundTotal));
         setText('sampleUnsoundTotalOfUnsoundPct', unsoundTotal > 0 ? '100%' : '—');
         setText('sampleUnsoundTotalPct', unsoundTotal > 0 ? fmtPct(unsoundTotal, crackTotal) : '');
-        var crackUnsound = getFloat('sampleUnsoundKernelG') || 0;
-        var mismatch = unsoundTotal > 0 && Math.abs(unsoundTotal - crackUnsound) > 0.005;
-        showWarning('sampleBreakdownWarning', mismatch
-            ? 'Breakdown total (' + fmtG(unsoundTotal) + " g) doesn't match Unsound Kernel in the crack-out (" + fmtG(crackUnsound) + ' g).'
-            : '');
+
+        // Final Sample Results (blank until the float test is in)
+        var haveFinal = res.final_sound_kernel_g != null;
+        setText('sampleFinalSoundKernelG', haveFinal ? fmtG(res.final_sound_kernel_g) : '');
+        setText('sampleFinalSoundKernelPct', haveFinal ? fmtPct(res.final_sound_kernel_g, res.final_total_g) : '');
+        setText('sampleFinalUnsoundKernelG', haveFinal ? fmtG(res.final_unsound_kernel_g) : '');
+        setText('sampleFinalUnsoundKernelPct', haveFinal ? fmtPct(res.final_unsound_kernel_g, res.final_total_g) : '');
+        setText('sampleFinalShellG', haveFinal && res.final_shell_g != null ? fmtG(res.final_shell_g) : '');
+        setText('sampleFinalShellPct', haveFinal ? fmtPct(res.final_shell_g, res.final_total_g) : '');
+        setText('sampleFinalTotalG', haveFinal ? fmtG(res.final_total_g) : '');
+        setText('sampleFinalTotalPct', haveFinal && res.final_total_g > 0 ? '100.0%' : '');
 
         updateSpecColours();
     }
@@ -222,8 +254,7 @@ var _modal_grower_link_sample_to_batch = (function () {
             if (fk.crack_out) {
                 el = document.getElementById('sampleSoundKernelG');
                 if (el) el.value = fk.crack_out.sound_kernel_g != null ? fk.crack_out.sound_kernel_g : '';
-                el = document.getElementById('sampleUnsoundKernelG');
-                if (el) el.value = fk.crack_out.unsound_kernel_g != null ? fk.crack_out.unsound_kernel_g : '';
+                _savedUnsoundG = fk.crack_out.unsound_kernel_g != null ? Number(fk.crack_out.unsound_kernel_g) : null;
                 el = document.getElementById('sampleShellG');
                 if (el) el.value = fk.crack_out.shell_g != null ? fk.crack_out.shell_g : '';
             }
@@ -280,6 +311,7 @@ var _modal_grower_link_sample_to_batch = (function () {
             var el = document.getElementById(id);
             if (el && state[id] !== undefined) el.value = state[id] != null ? String(state[id]) : '';
         });
+        if (state.sampleUnsoundKernelG) _savedUnsoundG = getFloat('sampleUnsoundKernelG');
         updateTotals();
     }
 
@@ -311,6 +343,7 @@ var _modal_grower_link_sample_to_batch = (function () {
     }
 
     function clearForm() {
+        _savedUnsoundG = null;
         ALL_CHECKBOX_IDS.forEach(function (id) {
             var el = document.getElementById(id);
             if (el) el.checked = false;
@@ -461,7 +494,7 @@ var _modal_grower_link_sample_to_batch = (function () {
 
                 sampleData.sample_type                = '5kg';
                 sampleData.crack_out_sound_kernel_g   = getFloat('sampleSoundKernelG');
-                sampleData.crack_out_unsound_kernel_g = getFloat('sampleUnsoundKernelG');
+                sampleData.crack_out_unsound_kernel_g = calcResults().unsound_kernel_g;
                 sampleData.crack_out_shell_g          = getFloat('sampleShellG');
                 sampleData.float_floating_g           = getFloat('sampleFloatingKernelG');
                 sampleData.float_sinking_g            = getFloat('sampleSinkingKernelG');

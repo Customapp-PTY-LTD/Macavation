@@ -73,7 +73,7 @@
                             <thead class="table-light"><tr><th>Description</th><th class="text-end" style="width: 140px;">Weight (g)</th><th class="text-end" style="width: 140px;">% of crack-out</th></tr></thead>
                             <tbody>
                                 <tr><td>Sound Kernel (Pre-Float Test)</td><td><input type="number" class="form-control form-control-sm text-end" id="sampleSoundKernelG" step="0.01" min="0" placeholder=""></td><td class="text-end" id="sampleSoundKernelPct"></td></tr>
-                                <tr><td>Unsound Kernel</td><td><input type="number" class="form-control form-control-sm text-end" id="sampleUnsoundKernelG" step="0.01" min="0" placeholder=""></td><td class="text-end" id="sampleUnsoundKernelPct"></td></tr>
+                                <tr><td>Unsound Kernel <span class="text-muted small">(from the breakdown below)</span></td><td><input type="number" class="form-control form-control-sm text-end bg-light" id="sampleUnsoundKernelG" step="0.01" readonly placeholder=""></td><td class="text-end" id="sampleUnsoundKernelPct"></td></tr>
                                 <tr><td>Shell</td><td><input type="number" class="form-control form-control-sm text-end" id="sampleShellG" step="0.01" min="0" placeholder=""></td><td class="text-end" id="sampleShellPct"></td></tr>
                                 <tr><td><strong>Total</strong></td><td><input type="number" class="form-control form-control-sm text-end bg-light" id="sampleCrackOutTotalG" step="0.01" readonly placeholder=""></td><td class="text-end" id="sampleCrackOutTotalPct"></td></tr>
                             </tbody>
@@ -89,10 +89,11 @@
                                 <tr><td>Floating Kernel (Wet)</td><td><input type="number" class="form-control form-control-sm text-end" id="sampleFloatingKernelG" step="0.01" min="0" placeholder=""></td><td class="text-end" id="sampleFloatingPct"></td><td class="text-end" id="sampleFloatingDry"></td></tr>
                                 <tr><td>Sinking Kernel (Wet)</td><td><input type="number" class="form-control form-control-sm text-end" id="sampleSinkingKernelG" step="0.01" min="0" placeholder=""></td><td class="text-end" id="sampleSinkingPct"></td><td class="text-end" id="sampleSinkingDry"></td></tr>
                                 <tr><td><strong>Total (Wet)</strong></td><td><input type="number" class="form-control form-control-sm text-end bg-light" id="sampleFloatTotalG" step="0.01" readonly placeholder=""></td><td class="text-end" id="sampleFloatTotalPct"></td><td class="text-end" id="sampleFloatDryTotal"></td></tr>
+                                <tr><td>Water Weight</td><td class="text-end" id="sampleWaterG"></td><td class="text-end" id="sampleWaterPct" title="% of the Pre-Float Test weight"></td><td></td></tr>
                             </tbody>
                         </table>
                     </div>
-                    <p class="text-muted small mb-3">Dry weight = (wet &divide; total wet) &times; Pre-Float Test weight (Sound Kernel in the crack-out above). The dry total always equals the Pre-Float Test weight.</p>
+                    <p class="text-muted small mb-3">Dry weight = (wet &divide; total wet) &times; Pre-Float Test weight (Sound Kernel in the crack-out above). The dry total always equals the Pre-Float Test weight. Water weight = total wet &minus; Pre-Float Test weight.</p>
 
                     <h6 class="text-uppercase text-dark border-bottom pb-1 mb-2 mt-3">Unsound Kernel Breakdown</h6>
                     <div class="table-responsive mb-3">
@@ -108,11 +109,25 @@
                                 <tr><td>Immature Split</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleImmatureSplitG" step="0.01" min="0" placeholder=""></td><td class="text-end" id="sampleImmatureSplitGPct"></td><td class="text-end" id="sampleImmatureSplitGOfUnsoundPct"></td></tr>
                                 <tr><td>Shrivelled</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleShrivelledG" step="0.01" min="0" placeholder=""></td><td class="text-end" id="sampleShrivelledGPct"></td><td class="text-end" id="sampleShrivelledGOfUnsoundPct"></td></tr>
                                 <tr><td>Nut Borer</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleNutBorerG" step="0.01" min="0" placeholder=""></td><td class="text-end" id="sampleNutBorerGPct"></td><td class="text-end" id="sampleNutBorerGOfUnsoundPct"></td></tr>
+                                <tr><td>Sinkers <span class="text-muted small">(dry, from the float test)</span></td><td class="text-end" id="sampleSinkersG"></td><td class="text-end" id="sampleSinkersPct"></td><td class="text-end" id="sampleSinkersOfUnsoundPct"></td></tr>
                                 <tr><td><strong>Total</strong></td><td><input type="number" class="form-control form-control-sm text-end bg-light" id="sampleUnsoundTotalG" step="0.01" readonly placeholder=""></td><td class="text-end" id="sampleUnsoundTotalPct"></td><td class="text-end" id="sampleUnsoundTotalOfUnsoundPct"></td></tr>
                             </tbody>
                         </table>
                     </div>
-                    <div class="alert alert-warning small d-none" id="sampleBreakdownWarning" role="alert"></div>
+
+                    <h6 class="text-uppercase text-dark border-bottom pb-1 mb-2 mt-3">Final Sample Results</h6>
+                    <div class="table-responsive mb-2">
+                        <table class="table align-middle table-bordered sample-form-table">
+                            <thead class="table-light"><tr><th>Description</th><th class="text-end" style="width: 140px;">Weight (g)</th><th class="text-end" style="width: 140px;">Yield (%)</th></tr></thead>
+                            <tbody>
+                                <tr><td>Sound Kernel</td><td class="text-end" id="sampleFinalSoundKernelG"></td><td class="text-end fw-semibold" id="sampleFinalSoundKernelPct"></td></tr>
+                                <tr><td>Unsound Kernel</td><td class="text-end" id="sampleFinalUnsoundKernelG"></td><td class="text-end fw-semibold" id="sampleFinalUnsoundKernelPct"></td></tr>
+                                <tr><td>Shell</td><td class="text-end" id="sampleFinalShellG"></td><td class="text-end" id="sampleFinalShellPct"></td></tr>
+                                <tr><td><strong>Total</strong></td><td class="text-end" id="sampleFinalTotalG"></td><td class="text-end" id="sampleFinalTotalPct"></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-muted small mb-0">Sound Kernel = floating kernel (dry). Unsound Kernel = the breakdown plus the sinkers, which move out of Sound Kernel after the float test. Enter the float test to see these.</p>
                 </div>
             </div>
         </div>
