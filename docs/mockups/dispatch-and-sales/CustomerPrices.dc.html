@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Customer price list</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#146c43}a:hover{color:#0f5132}
+.pg{font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.5;color:#1F1F1F;background:#F7F7F5;min-height:100%}
+.rib{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:8px 16px;background:#262622;color:#E9E9E4;font-size:13px}
+.rib b{letter-spacing:.06em;text-transform:uppercase;font-size:12px}
+.rib span{color:#B5B5AE}
+.main{max-width:1240px;padding:0 24px 40px}
+.crumb{font-size:12.5px;color:#52524E;padding-top:14px}
+.hd{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;padding:4px 0 10px}
+.h1{font-size:26px;font-weight:600;margin:0}
+.tabs{display:flex;gap:4px;border-bottom:1px solid #E3E3E0;margin-bottom:16px}
+.tab{padding:9px 14px;font-weight:500;color:#52524E;border-bottom:2px solid transparent;text-decoration:none}
+.tab.on{color:#146c43;border-bottom-color:#198754;font-weight:600}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid #D3D3D0;background:#fff;color:#1F1F1F;border-radius:8px;padding:7px 12px;font:inherit;font-size:13px;font-weight:500;cursor:pointer;min-height:36px}
+.btn.sm{padding:4px 10px;min-height:30px;font-size:12.5px}
+.btn.pri{background:#198754;border-color:#198754;color:#fff}
+.card{background:#fff;border:1px solid #E3E3E0;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-bottom:14px}
+.ch{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid #E3E3E0;font-weight:600}
+.cb{padding:14px 16px}
+.lbl{display:block;font-size:13px;font-weight:500;margin-bottom:4px}
+.inp{width:100%;box-sizing:border-box;border:1px solid #D3D3D0;border-radius:8px;padding:8px 10px;font:inherit;background:#fff}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{background:#F0F0EE;font-weight:600;text-align:left;padding:8px;border-bottom:1px solid #E3E3E0;white-space:nowrap}
+td{padding:8px;border-bottom:1px solid #E3E3E0;vertical-align:middle}
+.r{text-align:right}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.chg{outline:2px dashed #D6004F;outline-offset:2px;border-radius:6px}
+.cno{display:inline-block;margin-left:4px;padding:0 6px;border-radius:999px;background:#D6004F;color:#fff;font-size:10.5px;font-weight:700;line-height:17px;vertical-align:1px;font-style:normal}
+.pill{display:inline-block;border-radius:999px;padding:1px 8px;font-size:12px;font-weight:600;white-space:nowrap}
+.ok{background:rgba(45,164,78,.12);color:#1A7F37}
+.warn{background:rgba(212,167,44,.18);color:#6e550c}
+.std{background:#F0F0EE;color:#52524E}
+.grid2{display:flex;flex-wrap:wrap;gap:14px}
+.grid2 > *{min-width:0}
+.task{border:1px solid #E3E3E0;border-radius:10px;padding:12px 14px;background:#fff}
+.task h4{margin:0 0 2px;font-size:14px}
+.task p{margin:0;font-size:12.5px;color:#52524E}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#D6004F;margin-right:6px;vertical-align:1px}
+</style>
+</helmet>
+<div class="pg">
+  <div class="rib"><b>Mockup</b> Customer price list <span>Contacts › Kernel customers › one customer · Prices tab. Sample prices.</span></div>
+  <main class="main">
+    <div class="crumb">Contacts › Kernel customers</div>
+    <div class="hd">
+      <h1 class="h1">Cape Roasters (Pty) Ltd</h1>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button">Edit details</button></div>
+    </div>
+    <div class="tabs" role="tablist">
+      <a class="tab" href="#" role="tab" aria-selected="false">Details</a>
+      <a class="tab on chg" href="#" role="tab" aria-selected="true">Prices<em class="cno">2d-i-1</em></a>
+      <a class="tab" href="#" role="tab" aria-selected="false">Dispatches</a>
+    </div>
+
+    <div class="grid2">
+      <div style="flex:999 1 620px">
+        <div class="card">
+          <div class="ch"><span>Price per style for this customer</span><button class="btn pri sm" type="button">+ Add or update a price</button></div>
+          <div class="tw">
+            <table>
+              <thead><tr><th>Style</th><th class="r">Price per kg</th><th>Valid from</th><th class="chg">Valid until<em class="cno">2d-i-2</em></th><th>Status</th><th></th></tr></thead>
+              <tbody>
+                <sc-for list="{{rows}}" as="p" hint-placeholder-count="10">
+                  <tr>
+                    <td><b>{{p.style}}</b></td>
+                    <td class="r num">{{p.price}}</td>
+                    <td class="num">{{p.from}}</td>
+                    <td class="num">{{p.until}}</td>
+                    <td><span class="{{p.cls}}">{{p.status}}</span></td>
+                    <td class="r"><button class="btn sm" type="button">History</button></td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+          <p style="margin:0;padding:10px 16px 14px;font-size:12.5px;color:#52524E">No price for this customer? The standard price list is used, as it is today. Old prices stay in History so a past dispatch keeps the price of its day.</p>
+        </div>
+      </div>
+
+      <div style="flex:1 1 320px;display:flex;flex-direction:column;gap:14px">
+        <div class="card chg" style="margin:0">
+          <div class="ch"><span>Add or update a price</span></div>
+          <div class="cb" style="display:flex;flex-direction:column;gap:10px">
+            <div><label class="lbl" for="st">Style</label><input id="st" class="inp" value="1"></div>
+            <div><label class="lbl" for="pr">Price per kg (R)</label><input id="pr" class="inp" value="[NEW PRICE]"></div>
+            <div style="display:flex;gap:10px">
+              <div style="flex:1"><label class="lbl" for="vf">Valid from</label><input id="vf" class="inp" value="01/01/2027"></div>
+              <div style="flex:1"><label class="lbl" for="vu">Valid until<em class="cno">2d-i-2</em></label><input id="vu" class="inp" value="30/06/2027"></div>
+            </div>
+            <button class="btn pri" type="button" style="align-self:flex-start">Save price</button>
+          </div>
+        </div>
+
+        <div class="card chg" style="margin:0">
+          <div class="ch"><span>Price reminders<em class="cno">2d-i-2</em></span></div>
+          <div class="cb" style="display:flex;flex-direction:column;gap:10px">
+            <div><label class="lbl" for="rd">Remind me this many days before a price ends</label><input id="rd" class="inp" value="60" style="max-width:120px"></div>
+            <p style="margin:0;font-size:12.5px;color:#52524E">Pete gets a My Day task and a bell notification. Saving new prices closes the task.</p>
+            <div class="task">
+              <h4><span class="dot" aria-hidden="true"></span>Prices ending soon: Cape Roasters</h4>
+              <p>4 prices end on 31/12/2026 (in 56 days). Tell the customer about any price changes, then add the new prices.</p>
+              <div style="margin-top:8px"><button class="btn sm" type="button">Open price list</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":980}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var soon = { cls: 'pill warn', status: 'Ends in 56 days' };
+    var ok = { cls: 'pill ok', status: 'Current' };
+    var raw = [
+      ['SP', 'R 210.00', '01/10/2026', '31/03/2027', ok],
+      ['0', 'R 195.00', '01/10/2026', '31/03/2027', ok],
+      ['1', 'R 185.00', '01/07/2026', '31/12/2026', soon],
+      ['1S', 'R 178.00', '01/07/2026', '31/12/2026', soon],
+      ['4L', 'R 160.00', '01/10/2026', '31/03/2027', ok],
+      ['5', 'R 150.00', '01/07/2026', '31/12/2026', soon],
+      ['6', 'R 120.00', '01/07/2026', '31/12/2026', soon],
+      ['7/8', 'R 95.00', '01/10/2026', '31/03/2027', ok],
+      ['Butter HO', 'R 70.00', '01/10/2026', '31/03/2027', ok],
+      ['Butter LO', 'R 65.00', '—', '—', { cls: 'pill std', status: 'Standard price' }]
+    ];
+    return { rows: raw.map(function (r) { return { style: r[0], price: r[1], from: r[2], until: r[3], cls: r[4].cls, status: r[4].status }; }) };
+  }
+}
+</script>
+</body>
+</html>

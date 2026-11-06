@@ -2460,6 +2460,36 @@ var _dataFunctions = function () {
             return this._rpcWrite('confirm_kernel_dispatch_pick', { p_order_id: orderId, p_picked: picked || [], p_note: note || null }, token);
         },
 
+        /** picked = [{ index, cartons }] for the requested lines;
+         *  substitutes = [{ for_index, kernel_id, batch_number, style, cartons }]. Replaces any earlier substitutes. */
+        confirmKernelDispatchPickWithSubstitutes: async function (orderId, picked, substitutes, note, token = null) {
+            this.clearCachePattern('kernel_dispatch_orders_list');
+            this.clearCachePattern('kernel_batches');
+            return this._rpcWrite('confirm_kernel_dispatch_pick_with_substitutes', {
+                p_order_id: orderId, p_picked: picked || [], p_substitutes: substitutes || [], p_note: note || null
+            }, token);
+        },
+
+        /** Step 5. sent=false undoes it. */
+        markKernelDispatchInvoiceSent: async function (orderId, sent, note, token = null) {
+            this.clearCachePattern('kernel_dispatch_orders_list');
+            return this._rpcWrite('mark_kernel_dispatch_invoice_sent', {
+                p_order_id: orderId, p_sent: sent !== false, p_note: note || null
+            }, token);
+        },
+
+        /** Open "count needed" flags: { success, flags: [{ id, kernel_id, batch_number, style, asked_cartons, found_cartons, ... }] } */
+        getKernelStockCountFlags: async function (token = null) {
+            return this._rpcRead('get_kernel_stock_count_flags', {}, token);
+        },
+
+        /** Clears the open flags on one batch (style null = every style). */
+        clearKernelStockCountFlags: async function (kernelId, style, note, token = null) {
+            return this._rpcWrite('clear_kernel_stock_count_flags', {
+                p_kernel_id: kernelId, p_style: style || null, p_note: note || null
+            }, token);
+        },
+
         sendBackKernelDispatch: async function (orderId, note, token = null) {
             return this._rpcWrite('send_back_kernel_dispatch', { p_order_id: orderId, p_note: note || null }, token);
         },
