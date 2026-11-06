@@ -6564,6 +6564,46 @@ var _dataFunctions = function () {
             });
         },
 
+        // Reports tabs (migrations/20261106180000 + 20261106180200). The function names contain none of
+        // create/update/delete/deactivate, so callFunction's offline queue never captures them (the
+        // queue decides by those substrings at the isWriteOperation check) - offline they simply fail.
+        // ensureReportDrafts writes (it creates this week's / month's draft) but is idempotent.
+        ensureReportDrafts: async function () {
+            const params = { p_actor_user_id: this.getCurrentUserId() || undefined };
+            const result = await this.callFunction('ensure_report_drafts', params, null, { useCache: false });
+            this.clearCachePattern('report_list_');
+            this.clearCachePattern('report_history_');
+            this.clearCachePattern('report_instance_');
+            return result;
+        },
+
+        listReportHistory: async function (periodType, limit = 26, forceRefresh = false) {
+            const pt = (periodType != null ? String(periodType) : '').trim();
+            if (!pt) throw new Error('listReportHistory: periodType is required.');
+            const params = { p_period_type: pt, p_limit: limit || 26 };
+            const cacheKey = 'report_history_' + params.p_period_type + '_' + params.p_limit;
+            return await this.callFunction('list_report_history', params, null, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        getReportsAllFigures: async function (fromDate, toDate, forceRefresh = false) {
+            const from = (fromDate != null ? String(fromDate) : '').trim();
+            const to = (toDate != null ? String(toDate) : '').trim();
+            if (!from || !to) throw new Error('getReportsAllFigures: fromDate and toDate are required.');
+            const params = { p_from: from, p_to: to };
+            const cacheKey = 'report_figures_' + from + '_' + to;
+            return await this.callFunction('get_reports_all_figures', params, null, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
         createReportInstance: async function (templateId, periodDate, token = null) {
             const tid = (templateId != null ? String(templateId) : '').trim();
             const pdate = (periodDate != null ? String(periodDate) : '').trim();

@@ -31,6 +31,18 @@ var _reportEditor = function () {
         selfTestPhone: null
     };
 
+    // Embedded mode: the editor lives inside the Management reports tab (reports_page.js) rather
+    // than on its own route. Off for the standalone 'sales-report-editor' route, so that route
+    // behaves exactly as before. Reset by destroy().
+    var embedded = false;
+    var embeddedOnChange = null;
+
+    function notifyChange() {
+        if (embedded && typeof embeddedOnChange === 'function') {
+            try { embeddedOnChange({ reportId: state.reportId }); } catch (e) { console.warn('[sales-reports] onChange failed', e); }
+        }
+    }
+
     // In-flight guards, keyed by metric_key / section_key. A Map (not a plain object) so a
     // payload string can never collide with a prototype property.
     var pendingOverrides = new Map();
@@ -91,6 +103,7 @@ var _reportEditor = function () {
     }
 
     function routeBackToList() {
+        if (embedded) return;
         if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) {
             _appRouter.routeTo('sales-forecasting-grid', true);
         }
@@ -828,6 +841,12 @@ var _reportEditor = function () {
         $summary.val(summaryVal);
         $summary.data('lastValue', summaryVal);
         $summary.prop('disabled', !isEditable);
+        // New drafts copy the previous report's summary (create_report_instance), so a draft can
+        // carry last period's wording. Embedded only: remind the editor to check it.
+        $('#reportEditorSummaryHint').toggleClass('d-none', !(embedded && statusDraft));
+        if (embedded) {
+            $('#reportEditorPublishBtn').html('<i class="fas fa-paper-plane me-1"></i>Publish &amp; send');
+        }
 
         $('#reportEditorRefreshFiguresBtn').prop('disabled', !statusDraft);
         // Export is available for any loaded report, draft or published — unlike refresh, it
@@ -945,7 +964,9 @@ var _reportEditor = function () {
         Swal.fire({
             icon: 'question',
             title: 'Publish this report?',
-            text: 'Figures will be locked. Corrections after this create a new version.',
+            text: embedded
+                ? 'Figures will be locked and you can then choose who it goes to on WhatsApp. Corrections after this create a new version.'
+                : 'Figures will be locked. Corrections after this create a new version.',
             showCancelButton: true
         }).then(function (confirmed) {
             if (!confirmed.isConfirmed) return;
@@ -955,7 +976,13 @@ var _reportEditor = function () {
                     Swal.fire({ icon: 'error', title: 'Could not publish', text: rpcError(rpcResult, 'Could not publish this report.') });
                     return;
                 }
-                return reloadAfterLockChange();
+                return reloadAfterLockChange().then(function () {
+                    notifyChange();
+                    // Embedded "Publish & send": go straight to the existing send dialog.
+                    if (embedded && state.payload && state.payload.status === 'published') {
+                        handleSendWhatsapp();
+                    }
+                });
             });
         }).catch(function (err) {
             console.warn('[sales-reports] publishReportInstance failed', err);
@@ -995,7 +1022,7 @@ var _reportEditor = function () {
                 }
                 if (typeof Session !== 'undefined' && Session.set) Session.set('currentReportId', newId);
                 state.reportId = newId;
-                return reloadAfterLockChange();
+                return reloadAfterLockChange().then(notifyChange);
             });
         }).catch(function (err) {
             console.warn('[sales-reports] supersedeReportInstance failed', err);
@@ -1157,6 +1184,7 @@ var _reportEditor = function () {
                 var row = firstRpcRow(result);
                 var count = Number(row && row.metrics_refreshed) || 0;
                 return reloadAndRerender().then(function () {
+                    notifyChange();
                     Swal.fire({ icon: 'success', title: 'Figures refreshed', text: count + ' metric' + (count === 1 ? '' : 's') + ' refreshed.' });
                 });
             }
@@ -1385,7 +1413,29 @@ var _reportEditor = function () {
             load();
         },
 
+        // Embedded entry used by reports_page.js. The first call runs the normal init() (binds
+        // events, loads the report from Session 'currentReportId'); later calls just switch report.
+        // opts.onChange({reportId}) fires after refresh / publish / re-issue so the host can
+        // reload its history list.
+        openEmbedded: function (id, opts) {
+            if (!isReportUuid(id)) return false;
+            try { if (typeof Session !== 'undefined' && Session.set) Session.set('currentReportId', id); } catch (e) { /* ignore */ }
+            if (embedded) {
+                embeddedOnChange = (opts && opts.onChange) || null;
+                state.reportId = id;
+                load();
+                return true;
+            }
+            _reportEditor.init();   // calls destroy(), which resets the embedded flags
+            embedded = true;
+            embeddedOnChange = (opts && opts.onChange) || null;
+            $('#reportEditorBackBtn').addClass('d-none');
+            return true;
+        },
+
         destroy: function () {
+            embedded = false;
+            embeddedOnChange = null;
             // Chart.js keeps a live reference to its canvas and to resize listeners; leaving one
             // behind would keep redrawing into a canvas belonging to whichever module loads next.
             destroyKernelStockCharts();
