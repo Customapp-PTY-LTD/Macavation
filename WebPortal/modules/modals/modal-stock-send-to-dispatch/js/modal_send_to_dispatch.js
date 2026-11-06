@@ -146,6 +146,18 @@ var _modal_stock_send_to_dispatch = (function () {
             $(document).off('change.dispatchModalDetails', '#dispatchBuyerContact').on('change.dispatchModalDetails', '#dispatchBuyerContact', function () {
                 api.renderCustomerDetails(this.value);
             });
+            $(document).off('click.dispatchCustEdit', '#dispatchCustomerEditBtn').on('click.dispatchCustEdit', '#dispatchCustomerEditBtn', function (e) {
+                e.preventDefault();
+                api.showCustomerEdit();
+            });
+            $(document).off('click.dispatchCustEdit', '#dispatchCustEditCancelBtn').on('click.dispatchCustEdit', '#dispatchCustEditCancelBtn', function (e) {
+                e.preventDefault();
+                api.hideCustomerEdit();
+            });
+            $(document).off('click.dispatchCustEdit', '#dispatchCustEditSaveBtn').on('click.dispatchCustEdit', '#dispatchCustEditSaveBtn', function (e) {
+                e.preventDefault();
+                api.saveCustomerEdit();
+            });
             $(document).off('change.dispatchModalValid', '#dispatchBuyerContact').on('change.dispatchModalValid', '#dispatchBuyerContact', function () {
                 $(this).removeClass('is-invalid');
             });
@@ -485,6 +497,7 @@ var _modal_stock_send_to_dispatch = (function () {
             var box = document.getElementById('dispatchCustomerDetails');
             var list = document.getElementById('dispatchCustomerDetailsList');
             if (!box || !list) return;
+            api.hideCustomerEdit();
             list.innerHTML = '';
             var c = contactId ? _contactsById[String(contactId)] : null;
             if (!c) { box.style.display = 'none'; return; }
@@ -514,6 +527,75 @@ var _modal_stock_send_to_dispatch = (function () {
                 list.appendChild(col);
             });
             box.style.display = '';
+        },
+
+        /** Edit in place: the card's fields as inputs, filled with what Contacts has now. */
+        showCustomerEdit: function () {
+            var id = (document.getElementById('dispatchBuyerContact') || {}).value;
+            var c = id ? _contactsById[String(id)] : null;
+            if (!c) return;
+            var v = function (x) { return x == null ? '' : String(x); };
+            var set = function (elId, val) { var el = document.getElementById(elId); if (el) el.value = val; };
+            set('dispatchCustEditPerson', v(c.primary_contact_name));
+            set('dispatchCustEditMobile', v(c.primary_contact_mobile) || v(c.primary_contact_phone));
+            set('dispatchCustEditEmail', v(c.primary_contact_email));
+            set('dispatchCustEditVat', v(c.vat_number));
+            set('dispatchCustEditAddress', v(c.physical_address_line1));
+            set('dispatchCustEditArea', v(c.physical_area));
+            set('dispatchCustEditCity', v(c.physical_city));
+            set('dispatchCustEditProvince', v(c.physical_province));
+            set('dispatchCustEditPostal', v(c.physical_postal_code));
+            var err = document.getElementById('dispatchCustEditError');
+            if (err) { err.style.display = 'none'; err.textContent = ''; }
+            $('#dispatchCustomerDetailsList, #dispatchCustomerEditBtn').hide();
+            $('#dispatchCustomerDetailsHint').text('Saves straight to Contacts.');
+            $('#dispatchCustomerEditForm').show();
+            setTimeout(function () { var f = document.getElementById('dispatchCustEditPerson'); if (f) f.focus(); }, 30);
+        },
+
+        hideCustomerEdit: function () {
+            $('#dispatchCustomerEditForm').hide();
+            $('#dispatchCustomerDetailsList, #dispatchCustomerEditBtn').show();
+            $('#dispatchCustomerDetailsHint').text('From Contacts.');
+        },
+
+        saveCustomerEdit: function () {
+            var id = (document.getElementById('dispatchBuyerContact') || {}).value;
+            var err = document.getElementById('dispatchCustEditError');
+            var btn = document.getElementById('dispatchCustEditSaveBtn');
+            var val = function (elId) { var el = document.getElementById(elId); return el ? el.value.trim() : ''; };
+            var showErr = function (msg) { if (err) { err.textContent = msg; err.style.display = 'block'; } };
+            if (!id) return;
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.updateDispatchCustomerDetails) {
+                showErr('Saving is not available. Please refresh the page.');
+                return;
+            }
+            var email = val('dispatchCustEditEmail');
+            if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+                showErr('That email address does not look right.');
+                return;
+            }
+            if (btn) btn.disabled = true;
+            dataFunctions.updateDispatchCustomerDetails(id, {
+                contactPerson: val('dispatchCustEditPerson'),
+                mobile: val('dispatchCustEditMobile'),
+                email: email,
+                vatNumber: val('dispatchCustEditVat'),
+                addressLine1: val('dispatchCustEditAddress'),
+                area: val('dispatchCustEditArea'),
+                city: val('dispatchCustEditCity'),
+                province: val('dispatchCustEditProvince'),
+                postalCode: val('dispatchCustEditPostal')
+            }).then(function (res) {
+                if (btn) btn.disabled = false;
+                if (!res || res.success === false) {
+                    showErr((res && res.error) || 'Could not save. Please try again.');
+                    return;
+                }
+                if (res.contact) _contactsById[String(id)] = Object.assign({}, _contactsById[String(id)] || {}, res.contact);
+                api.renderCustomerDetails(id);
+                if (typeof Swal !== 'undefined') Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Customer details saved to Contacts', showConfirmButton: false, timer: 2200 });
+            });
         },
 
         showAddBuyerForm: function () {

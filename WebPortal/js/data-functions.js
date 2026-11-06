@@ -2868,6 +2868,26 @@ var _dataFunctions = function () {
             return result;
         },
 
+        /** Send to Dispatch "Edit" on the Customer details card. d = { contactPerson, mobile, email, addressLine1,
+         *  area, city, province, postalCode, vatNumber }; an empty value clears that field. Returns { success, contact }. */
+        updateDispatchCustomerDetails: async function (contactId, d, token = null) {
+            var res = await this._rpcWrite('update_dispatch_customer_details', {
+                p_contact_id: contactId,
+                p_contact_person: d.contactPerson || null,
+                p_mobile: d.mobile || null,
+                p_email: d.email || null,
+                p_address_line1: d.addressLine1 || null,
+                p_area: d.area || null,
+                p_city: d.city || null,
+                p_province: d.province || null,
+                p_postal_code: d.postalCode || null,
+                p_vat_number: d.vatNumber || null
+            }, token);
+            this.clearCache(`contact_${contactId}`);
+            this.clearCachePattern('contacts');
+            return res;
+        },
+
         deleteContact: async function (contactId, token = null) {
             const result = await this.callFunction('deactivate_contact', { p_contact_id: contactId }, token, { useCache: false });
             this.clearCache(`contact_${contactId}`);
