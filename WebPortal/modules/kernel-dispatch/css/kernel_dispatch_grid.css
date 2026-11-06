@@ -33,3 +33,14 @@
 .kd-mini-steps { display: flex; gap: 4px; margin: 6px 0 2px; }
 .kd-mini-steps .kd-box { width: 18px; height: 18px; font-size: 10px; }
 .kd-step-of { font-size: 12px; color: var(--mac-text-secondary); white-space: nowrap; }
+
+/* Done and current boxes are buttons (6 Nov 2026): green shows the step's details, amber opens the step. */
+button.kd-box { padding: 0; cursor: pointer; font: inherit; line-height: 1; }
+button.kd-box-done { border: 0; }
+button.kd-box:hover { box-shadow: var(--mac-shadow-md); transform: translateY(-1px); }
+button.kd-box:focus-visible { outline: 2px solid var(--mac-green); outline-offset: 2px; }
+.kd-step-info { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.kd-step-info-row { display: flex; gap: 10px; border-bottom: 1px solid var(--mac-border); padding-bottom: 6px; }
+.kd-step-info-row:last-child { border-bottom: 0; }
+.kd-step-info-label { flex: 0 0 40%; color: var(--mac-text-secondary); }
+.kd-step-info-value { flex: 1 1 auto; font-weight: 500; }
