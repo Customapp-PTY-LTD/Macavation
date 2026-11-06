@@ -5,13 +5,54 @@
 var _modal_crm_contact = (function () {
     'use strict';
 
+    var PRICE_TYPES = ['kernel_customer', 'customer', 'both'];
+    var PRICES_SCRIPT = 'modules/kernel-style-prices/js/kernel_style_prices.js';
+
+    // The Prices module is loaded with the CRM route; this is a fallback if it is not on the page.
+    function ensurePricesModule() {
+        if (typeof _kernelStylePrices !== 'undefined' && _kernelStylePrices.mountCustomer) return Promise.resolve(true);
+        return new Promise(function (resolve) {
+            var sc = document.createElement('script');
+            sc.src = PRICES_SCRIPT;
+            sc.onload = function () { resolve(typeof _kernelStylePrices !== 'undefined' && !!_kernelStylePrices.mountCustomer); };
+            sc.onerror = function () { resolve(false); };
+            document.head.appendChild(sc);
+        });
+    }
+
     var api = {
+        priceContact: null,
+
+        /** Prices tab: only for a saved kernel customer, only for people who may see prices. */
+        setupPricesTab: function (contact) {
+            if (typeof $ === 'undefined') return;
+            var ok = !!(contact && contact.id && PRICE_TYPES.indexOf(contact.contact_type) >= 0 &&
+                typeof window.hasAction === 'function' && window.hasAction('kernel_prices.view'));
+            api.priceContact = ok ? contact : null;
+            $('#crmPricesTabItem').toggleClass('d-none', !ok);
+            $('#crmPricesBody').empty();
+            // Always open on Details so a Prices tab left open never shows for another contact.
+            var d = document.getElementById('details-tab');
+            if (d && typeof bootstrap !== 'undefined' && bootstrap.Tab) bootstrap.Tab.getOrCreateInstance(d).show();
+        },
+
+        loadPrices: async function () {
+            var c = api.priceContact;
+            var $b = $('#crmPricesBody');
+            if (!c) return;
+            $b.text('Loading prices...');
+            var ok = await ensurePricesModule();
+            if (!ok) { $b.text('Prices could not be loaded. Please refresh the page.'); return; }
+            _kernelStylePrices.mountCustomer($b[0], c.id, { name: c.company_name || c.trading_name || null });
+        },
+
         init: function () {
             var saveBtn = document.getElementById('saveContactBtn');
             if (saveBtn) saveBtn.addEventListener('click', function (e) { e.preventDefault(); api.save(); });
             var modalEl = document.getElementById('contactModal');
             if (modalEl && typeof $ !== 'undefined') {
-                $(modalEl).on('hidden.bs.modal', function () { api.clearForm(); });
+                $(modalEl).on('hidden.bs.modal', function () { api.clearForm(); api.priceContact = null; });
+                $(modalEl).on('shown.bs.tab', '#prices-tab', function () { api.loadPrices(); });
                 $(modalEl).on('shown.bs.modal', function () { api.ensureContactModalScrollable(); });
             }
             if (typeof $ !== 'undefined') {
@@ -49,6 +90,7 @@ var _modal_crm_contact = (function () {
             var title = document.getElementById('contactModalLabel');
             if (title) title.textContent = contact ? 'Edit Contact' : 'Add New Contact';
             api.clearForm();
+            api.setupPricesTab(contact);
             if (contact) {
                 api.populateForm(contact);
             } else if (defaultContactType && typeof $ !== 'undefined') {
