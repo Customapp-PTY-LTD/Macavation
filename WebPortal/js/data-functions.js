@@ -2122,6 +2122,10 @@ var _dataFunctions = function () {
             if (openedAt) { params.p_opened_at = openedAt; }
             return this._kpUnwrap(await this.callFunction('open_silo', params, token, { useCache: false }));
         },
+        /** Undo a silo opened by mistake: removes the open run, the bags stay in the silo. */
+        cancelSiloOpen: async function (siloNumber, token = null) {
+            return this._kpUnwrap(await this.callFunction('cancel_silo_open', { p_silo_number: siloNumber }, token, { useCache: false }));
+        },
         /** Stop cracking: leftKg = kg still in the silo (0 = silo empty). openedAt / closedAt: ISO strings, only when changed. */
         closeSilo: async function (siloNumber, leftKg = 0, openedAt = null, closedAt = null, token = null) {
             const params = { p_silo_number: siloNumber, p_left_kg: leftKg != null ? Number(leftKg) : 0 };
@@ -3584,6 +3588,10 @@ var _dataFunctions = function () {
                 p_silo_number: Number(siloNumber), p_opened_at: openedAt, p_closed_at: closedAt,
                 p_left_kg: leftKg != null ? Number(leftKg) : 0
             }, token, { useCache: false }));
+        },
+        /** Undo the latest finished run on a silo: its kg go back into the bags. */
+        undoSiloRun: async function (runId, token = null) {
+            return this._kpUnwrap(await this.callFunction('undo_silo_run', { p_run_id: runId }, token, { useCache: false }));
         },
         updateSiloRunTimes: async function (runId, openedAt, closedAt, token = null) {
             return this._kpUnwrap(await this.callFunction('update_silo_run_times', {
