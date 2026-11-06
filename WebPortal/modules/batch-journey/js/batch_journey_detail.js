@@ -1113,6 +1113,12 @@ var _batchJourneyDetail = (function () {
                 '<div><div class="small text-muted">Unsound</div><div class="fw-semibold">' + gText(co.unsound_kernel_g) + '</div></div>' +
                 '<div><div class="small text-muted">Shell</div><div class="fw-semibold">' + gText(co.shell_g) + '</div></div></div>';
             h += '<div class="small text-muted mt-2">Float test: ' + gText(ft.floating_g) + ' floating · ' + gText(ft.sinking_g) + ' sinking</div>';
+            // Final figures move the sinkers out of sound kernel into unsound (WebPortal/js/five-kg-sample.js).
+            var fr = FiveKgSample.fromSaved(f);
+            if (fr.final_sound_kernel_g != null) {
+                h += '<div class="small mt-1"><span class="text-muted">Final after float test:</span> <strong>Sound ' + esc(fr.final_sound_kernel_pct.toFixed(2)) + '%</strong> (' + gText(fr.final_sound_kernel_g) + ') · ' +
+                    '<strong>Unsound ' + esc(fr.final_unsound_kernel_pct.toFixed(2)) + '%</strong> (' + gText(fr.final_unsound_kernel_g) + ')</div>';
+            }
             h += '<details class="small mt-2"><summary class="bjd-summary">Unsound breakdown (9 types)</summary><div class="bjd-mini-grid mt-2">';
             UNSOUND.forEach(function (u) { h += '<span class="text-muted">' + esc(u.label) + ' ' + gText(un[u.key]) + '</span>'; });
             h += '</div></details>';
@@ -1146,7 +1152,7 @@ var _batchJourneyDetail = (function () {
 
         h += '<div class="bjd-subcard"><h4 class="h6">5 kg sample</h4><div class="row g-2">';
         [['crack_out_sound_kernel_g', 'Crack-out: sound kernel (g)', co.sound_kernel_g],
-            ['crack_out_unsound_kernel_g', 'Crack-out: unsound kernel (g)', co.unsound_kernel_g],
+            ['crack_out_unsound_kernel_g', 'Crack-out: unsound kernel (g), the breakdown total replaces it', co.unsound_kernel_g],
             ['crack_out_shell_g', 'Crack-out: shell (g)', co.shell_g],
             ['float_floating_g', 'Float test: floating (g)', ft.floating_g],
             ['float_sinking_g', 'Float test: sinking (g)', ft.sinking_g]].forEach(function (f5) {
@@ -2119,6 +2125,10 @@ var _batchJourneyDetail = (function () {
             out[k] = numOrNull($('#bjd5_' + k).val());
         });
         UNSOUND.forEach(function (u) { out['unsound_' + u.key] = numOrNull($('#bjd5_unsound_' + u.key).val()); });
+        // Crack-out unsound is the breakdown total whenever a breakdown weight is entered, as on the sample modal.
+        var un = {};
+        UNSOUND.forEach(function (u) { un[u.key] = out['unsound_' + u.key]; });
+        out.crack_out_unsound_kernel_g = FiveKgSample.calc({ unsound_kernel_g: out.crack_out_unsound_kernel_g, unsound: un }).unsound_kernel_g;
         return out;
     }
 
