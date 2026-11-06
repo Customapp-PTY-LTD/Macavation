@@ -137,6 +137,14 @@ var _kernelDispatchGrid = function () {
                     var id = $(this).data('order-id');
                     scope.confirmRevertDispatchOrder(id);
                 });
+                $(document).on('click', '.js-kd-step', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var id = $(this).data('order-id');
+                    var step = Number($(this).data('step'));
+                    if ($(this).data('state') === 'done') scope.onStepDone(id, step);
+                    else scope.onStepNow(id, step);
+                });
                 $(document).on('click', '.js-kd-invoice-undo', function () {
                     scope.undoInvoiceSent($(this).data('order-id'));
                 });
@@ -262,27 +270,141 @@ var _kernelDispatchGrid = function () {
             return ['legacy', 'picking', 'approval', 'truck', 'invoice', 'done'][this.stepsDone(o)];
         },
 
-        /** Five tick boxes (one per step) as <td> cells, or one cell saying "Older order". Static markup only. */
+        /** One step box. Done (green) and current (amber) are buttons: done shows what happened,
+         *  current opens the action when the user may do it. Steps still to come are plain boxes. */
+        stepBox: function (o, i, n) {
+            var name = STEP_NAMES[i];
+            var state = i < n ? 'done' : (i === n ? 'now' : 'todo');
+            var cls = 'kd-box kd-box-' + state;
+            if (state === 'todo') return '<span class="' + cls + '" role="img" aria-label="' + name + ': not yet" title="' + name + ': not yet"></span>';
+            var label = state === 'done' ? name + ': done. Show details' : name + ': waiting. ' + (this.canDoStep(o, i + 1) ? 'Do this step' : 'Who is it waiting on?');
+            return '<button type="button" class="' + cls + ' js-kd-step" data-order-id="' + escHtml(o.id || '') + '" data-step="' + (i + 1) + '" data-state="' + state + '"'
+                + ' aria-label="' + escHtml(label) + '" title="' + escHtml(label) + '">'
+                + (state === 'done' ? '<i class="fas fa-check" aria-hidden="true"></i>' : '') + '</button>';
+        },
+
+        /** Five tick boxes (one per step) as <td> cells, or one cell saying "Older order". */
         stepCells: function (o) {
+            var scope = this;
             var n = this.stepsDone(o);
             if (!n) return '<td colspan="5" class="text-center kd-older">Older order (before the five steps)</td>';
             return STEP_NAMES.map(function (name, i) {
-                var cls = i < n ? 'kd-box-done' : (i === n ? 'kd-box-now' : 'kd-box-todo');
-                var label = name + (i < n ? ': done' : (i === n ? ': waiting' : ': not yet'));
-                return '<td class="text-center"><span class="kd-box ' + cls + '" role="img" aria-label="' + label + '" title="' + label + '">'
-                    + (i < n ? '<i class="fas fa-check" aria-hidden="true"></i>' : '') + '</span></td>';
+                return '<td class="text-center">' + scope.stepBox(o, i, n) + '</td>';
             }).join('');
         },
 
         /** Small row of boxes for kanban cards. */
         miniSteps: function (o) {
+            var scope = this;
             var n = this.stepsDone(o);
             if (!n) return '';
-            var boxes = STEP_NAMES.map(function (name, i) {
-                var cls = i < n ? 'kd-box-done' : (i === n ? 'kd-box-now' : 'kd-box-todo');
-                return '<span class="kd-box ' + cls + '" title="' + name + '">' + (i < n ? '<i class="fas fa-check" aria-hidden="true"></i>' : '') + '</span>';
-            }).join('');
-            return '<div class="kd-mini-steps" role="img" aria-label="Step ' + Math.min(n + 1, 5) + ' of 5">' + boxes + '</div>';
+            var boxes = STEP_NAMES.map(function (name, i) { return scope.stepBox(o, i, n); }).join('');
+            return '<div class="kd-mini-steps" aria-label="Step ' + Math.min(n + 1, 5) + ' of 5">' + boxes + '</div>';
+        },
+
+        /** May this user do step (1-5)? Step 4 (truck form) has no permission of its own today. */
+        canDoStep: function (o, step) {
+            if (step === 2) return can('kernel_dispatch.pick');
+            if (step === 3) return can('kernel_dispatch.approve');
+            if (step === 4) return true;
+            if (step === 5) return can('kernel_dispatch.invoice');
+            return false;
+        },
+
+        /** Amber box: open the step's action, or say who it is waiting on. */
+        onStepNow: function (id, step) {
+            var o = this.orders.filter(function (x) { return String(x.id) === String(id); })[0] || { id: id };
+            if (!this.canDoStep(o, step)) {
+                var who = { 2: 'the Production Manager (picking)', 3: 'the Sales Exec (pricing)', 5: 'the Palladium Manager (invoice)' }[step] || 'someone else';
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'info', title: STEP_NAMES[step - 1] + ': waiting', text: 'This step is waiting on ' + who + '. You don\u2019t have permission to do it.' });
+                }
+                return;
+            }
+            if (step === 4) { this.openDispatch(id); return; }
+            if (typeof _modal_kernel_dispatch_approve !== 'undefined' && _modal_kernel_dispatch_approve.show) _modal_kernel_dispatch_approve.show(id);
+        },
+
+        /** Green tick: what happened at that step, with a way into the full details. */
+        onStepDone: function (id, step) {
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.getKernelDispatchWorkflow || typeof Swal === 'undefined') return;
+            var when = function (v) {
+                if (!v) return '';
+                var d = new Date(v);
+                if (isNaN(d.getTime())) return '';
+                return d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }) + ' ' +
+                    d.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
+            };
+            var rand = function (n) { return 'R ' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+            dataFunctions.getKernelDispatchWorkflow(id).then(function (wf) {
+                if (!wf || !wf.order) { Swal.fire('Not available', 'Could not load this dispatch. Please refresh.', 'error'); return; }
+                var o = wf.order;
+                var lines = Array.isArray(wf.lines) ? wf.lines : [];
+                var rows = [];   // [label, value] pairs, rendered as text
+                var add = function (k, v) { if (v !== null && v !== undefined && String(v).trim() !== '') rows.push([k, String(v)]); };
+                var cartons = lines.reduce(function (t, l) { return t + (Number(l.cartons) || 0); }, 0);
+                if (step === 1) {
+                    add('Created', when(o.created_at));
+                    add('By', o.created_by_label);
+                    add('Customer', o.buyer_name);
+                    add('Collection date', formatDate(o.planned_collection_date || o.delivery_date));
+                    var asked = lines.filter(function (l) { return !l.substitute_for; });
+                    add('Asked for', asked.reduce(function (t, l) { return t + (Number(l.requested_cartons != null ? l.requested_cartons : l.cartons) || 0); }, 0) + ' cartons on ' + asked.length + (asked.length === 1 ? ' line' : ' lines'));
+                } else if (step === 2) {
+                    add('Picked', when(o.picked_at));
+                    add('By', o.picked_by_label);
+                    add('Cartons picked', cartons);
+                    lines.forEach(function (l) {
+                        if (l.substitute_for) {
+                            add('Substitute', l.cartons + ' of ' + l.style + ' from ' + fmtBatch(l.batch_number) + ' instead of '
+                                + fmtBatch(l.substitute_for.batch_number) + ' ' + (l.substitute_for.style || '') + (l.needs_approval ? ' (different style)' : ''));
+                        } else if (l.requested_cartons != null && Number(l.requested_cartons) !== Number(l.cartons)) {
+                            add('Short', fmtBatch(l.batch_number) + ' ' + l.style + ': ' + l.requested_cartons + ' asked, ' + l.cartons + ' found');
+                        }
+                    });
+                    add('Note', o.pick_note);
+                } else if (step === 3) {
+                    add('Pricing confirmed', when(o.approved_at));
+                    add('By', o.approved_by_label);
+                    if (can('kernel_prices.view')) add('Sale value (excl. VAT)', o.sale_value_zar != null ? rand(o.sale_value_zar) : '');
+                    add('Transport paid by', o.transport_payer === 'customer' ? 'Customer collects' : (o.transport_payer === 'macavation' ? 'Macavation' : ''));
+                    if (can('kernel_prices.view')) {
+                        lines.forEach(function (l) {
+                            if (l.price_per_kg != null && l.list_price != null && Math.abs(Number(l.price_per_kg) - Number(l.list_price)) > 0.004) {
+                                add('Changed price', l.style + ' ' + fmtBatch(l.batch_number) + ': ' + rand(l.price_per_kg) + '/kg (list ' + rand(l.list_price) + ')' + (l.price_note ? ', "' + l.price_note + '"' : ''));
+                            }
+                        });
+                    }
+                } else if (step === 4) {
+                    add('Truck loaded', when(o.dispatched_at));
+                    add('Transport company', o.transport_company);
+                    add('Delivery note / invoice number', o.delivery_note_number);
+                    add('Cartons', cartons);
+                } else if (step === 5) {
+                    add('Invoice sent', when(o.invoice_sent_at));
+                    add('By', o.invoice_sent_by_label);
+                    add('Note', o.invoice_note);
+                }
+                if (!rows.length) rows.push(['', 'Done.']);
+                var $box = $('<div class="kd-step-info text-start"></div>');
+                rows.forEach(function (r) {
+                    var $row = $('<div class="kd-step-info-row"></div>');
+                    if (r[0]) $row.append($('<span class="kd-step-info-label"></span>').text(r[0]));
+                    $row.append($('<span class="kd-step-info-value"></span>').text(r[1]));
+                    $box.append($row);
+                });
+                Swal.fire({
+                    title: '\u2713 ' + STEP_NAMES[step - 1],
+                    html: $box[0],
+                    showCancelButton: true,
+                    confirmButtonText: step === 4 ? 'Open the truck sheet' : 'Open full details',
+                    cancelButtonText: 'Close'
+                }).then(function (r) {
+                    if (!r.isConfirmed) return;
+                    if (step === 4 && typeof _modal_kernel_dispatch_form !== 'undefined' && _modal_kernel_dispatch_form.show) _modal_kernel_dispatch_form.show(id);
+                    else if (typeof _modal_kernel_dispatch_approve !== 'undefined' && _modal_kernel_dispatch_approve.show) _modal_kernel_dispatch_approve.show(id);
+                });
+            });
         },
 
         /** Orders after the stage chip filter. */
