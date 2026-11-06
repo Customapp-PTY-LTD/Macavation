@@ -631,14 +631,23 @@
             "css": []
         },
         "sales-forecasting-grid": {
-            "description": "Sales &amp; Production Reports",
+            "description": "Management reports",
             "path": "sales-reports",
             "html": "html/report_list.html",
             "js": [
+                "js/report-metric-line.js",
+                "js/report-pdf-builder.js",
+                "js/report-whatsapp-send.js",
+                "js/report-whatsapp-history.js",
+                "js/report_editor.js",
+                "../management-dashboard/js/mgmt_dashboard_common.js",
+                "js/reports_page.js",
+                "js/reports_all_figures.js",
                 "js/report_list_grid.js"
             ],
             "css": [
-                "css/sales_reports.css"
+                "css/sales_reports.css",
+                "css/reports_all_figures.css"
             ]
         },
         "sales-report-editor": {
