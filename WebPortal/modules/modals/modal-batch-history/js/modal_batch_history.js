@@ -854,6 +854,12 @@ var _modal_batch_history = (function () {
                     html += '<tr><th class="text-nowrap bg-light">Crack out — shell</th><td>' + gCell(co.shell_g) + '</td></tr>';
                     html += '<tr><th class="text-nowrap bg-light">Float test — floating</th><td>' + gCell(ft.floating_g) + '</td></tr>';
                     html += '<tr><th class="text-nowrap bg-light">Float test — sinking</th><td>' + gCell(ft.sinking_g) + '</td></tr>';
+                    // Final figures move the sinkers out of sound kernel into unsound (WebPortal/js/five-kg-sample.js).
+                    var fr = FiveKgSample.fromSaved(kg5);
+                    if (fr.final_sound_kernel_g != null) {
+                        html += '<tr><th class="text-nowrap bg-light">Final — sound kernel</th><td>' + gCell(Math.round(fr.final_sound_kernel_g * 100) / 100) + ' (' + fr.final_sound_kernel_pct.toFixed(2) + '%)</td></tr>';
+                        html += '<tr><th class="text-nowrap bg-light">Final — unsound kernel</th><td>' + gCell(Math.round(fr.final_unsound_kernel_g * 100) / 100) + ' (' + fr.final_unsound_kernel_pct.toFixed(2) + '%)</td></tr>';
+                    }
                     html += '</tbody></table></div>';
                     entries.push({ type: 'sample', title: '5kg sample', bodyHtml: html, date: kg5.completed_at ? String(kg5.completed_at).split('T')[0] : null });
                 }
