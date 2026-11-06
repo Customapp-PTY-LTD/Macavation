@@ -41,24 +41,42 @@
                             <label class="kda-radio" for="kdaPayerCust"><input type="radio" name="kdaPayer" id="kdaPayerCust" value="customer">Customer collects</label>
                         </fieldset>
                         <div class="row g-3 mt-0">
+                            <div class="col-12">
+                                <label class="form-label" for="kdaTransporterSelect">Transporter</label>
+                                <div class="d-flex gap-2">
+                                    <select class="form-select" id="kdaTransporterSelect"><option value="">Select transporter</option></select>
+                                    <input type="text" class="form-control d-none" id="kdaTransportCompany" maxlength="200" placeholder="Transporter name">
+                                    <button type="button" class="btn btn-outline-primary flex-shrink-0" id="kdaTransporterAddBtn" title="Add transporter" aria-label="Add transporter">+</button>
+                                </div>
+                                <div class="input-group input-group-sm mt-1 d-none" id="kdaTransporterAddForm">
+                                    <input type="text" class="form-control" id="kdaTransporterAddName" maxlength="200" placeholder="New transporter name" aria-label="New transporter name">
+                                    <button type="button" class="btn btn-primary" id="kdaTransporterAddSave">Add</button>
+                                    <button type="button" class="btn btn-outline-secondary" id="kdaTransporterAddCancel">Cancel</button>
+                                </div>
+                                <div class="text-danger small d-none" id="kdaTransporterAddError"></div>
+                            </div>
                             <div class="col-6">
-                                <label class="form-label" for="kdaTransportCost">Transport cost (R)</label>
+                                <label class="form-label" for="kdaTransportCost">Total Cost (Excl. VAT)</label>
                                 <input type="number" class="form-control" id="kdaTransportCost" min="0" step="0.01" inputmode="decimal">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label" for="kdaTransportCostInc">Total Cost (Inc. VAT)</label>
+                                <input type="text" class="form-control" id="kdaTransportCostInc" readonly tabindex="-1" placeholder="Adds 15% VAT">
                             </div>
                             <div class="col-6">
                                 <label class="form-label" for="kdaPallets">Pallets</label>
                                 <input type="number" class="form-control" id="kdaPallets" min="0" step="1" inputmode="numeric">
                             </div>
-                            <div class="col-12">
-                                <label class="form-label" for="kdaTransportCompany">Transport company</label>
-                                <input type="text" class="form-control" id="kdaTransportCompany" maxlength="200" placeholder="From the dispatch form">
+                            <div class="col-6">
+                                <label class="form-label" for="kdaCostPerPallet">Cost per pallet (Excl. VAT)</label>
+                                <input type="text" class="form-control" id="kdaCostPerPallet" readonly tabindex="-1" placeholder="Cost ÷ pallets">
                             </div>
                         </div>
                     </div>
                     <div class="kda-card">
                         <h2 class="kda-card-title">Sale summary</h2>
                         <div class="kda-sum-row"><span>Goods (excl. VAT)</span><span id="kdaSumGoods">R 0.00</span></div>
-                        <div class="kda-sum-row d-none" id="kdaSumTransportRow"><span>Transport, paid by Macavation</span><span id="kdaSumTransport">- R 0.00</span></div>
+                        <div class="kda-sum-row d-none" id="kdaSumTransportRow"><span>Transport (excl. VAT), paid by Macavation</span><span id="kdaSumTransport">- R 0.00</span></div>
                         <div class="kda-sum-row kda-sum-net"><span>Net to Macavation</span><span id="kdaSumNet">R 0.00</span></div>
                         <div class="kda-sum-tiles">
                             <div class="kda-sum-tile"><div class="kda-sum-tile-label">Per kg</div><div class="kda-sum-tile-value" id="kdaSumPerKg">-</div></div>

@@ -13,11 +13,13 @@ var _modal_kernel_dispatch_approve = (function () {
     'use strict';
 
     var KG_PER_CARTON = 11.34;
+    var VAT_RATE = 0.15;
     var MODAL_ID = 'kernelDispatchApproveModal';
     var wf = null;       // last loaded workflow
     var mode = 'view';   // 'pick' | 'approve' | 'invoice' | 'view'
     var busy = false;
     var stockOptions = null;   // [{ kernel_id, batch_number, grower_name, style, left }] for substitutes
+    var transporters = null;   // [{ id, name }] active transporters; null = list unavailable, use free text
 
     function can(key) { return typeof window.hasAction === 'function' && !!window.hasAction(key); }
 
@@ -416,7 +418,72 @@ var _modal_kernel_dispatch_approve = (function () {
         $('#kdaPayerCust').prop('checked', payer === 'customer');
         $('#kdaTransportCost').val(o.transport_cost_zar != null ? Number(o.transport_cost_zar) : '');
         $('#kdaPallets').val(o.pallets != null ? Number(o.pallets) : '');
-        $('#kdaTransportCompany').val(o.transport_company || '');
+        $('#kdaTransporterAddForm').addClass('d-none');
+        showTransporterError('');
+        renderTransporterSelect(o.transport_company || '');
+    }
+
+    /** Loads active transporters (same list as the dispatch form). Failure leaves the free-text box. Never rejects. */
+    function loadTransporters() {
+        if (typeof dataFunctions === 'undefined' || !dataFunctions.getKernelPipelineConfig) {
+            transporters = null;
+            return Promise.resolve();
+        }
+        return Promise.resolve(dataFunctions.getKernelPipelineConfig()).then(function (cfg) {
+            if (!cfg || cfg.success === false || !Array.isArray(cfg.transporters)) throw new Error('config unavailable');
+            transporters = cfg.transporters.filter(function (t) { return t && t.id && t.is_active !== false; });
+        }).catch(function (err) {
+            console.warn('[Dispatch] Transporter list not available, using free text:', err);
+            transporters = null;
+        });
+    }
+
+    /** Fills the Transporter dropdown and selects `name`; a name not on the list is kept as its own option. */
+    function renderTransporterSelect(name) {
+        var useSelect = Array.isArray(transporters);
+        var $sel = $('#kdaTransporterSelect').toggleClass('d-none', !useSelect);
+        $('#kdaTransporterAddBtn').toggleClass('d-none', !useSelect);
+        $('#kdaTransportCompany').toggleClass('d-none', useSelect).val(name || '');
+        if (!useSelect) return;
+        $sel.empty().append(el('option', null, 'Select transporter').attr('value', ''));
+        var found = false;
+        transporters.forEach(function (t) {
+            $sel.append(el('option', null, t.name).attr('value', t.name));
+            if (name && String(t.name).toLowerCase() === String(name).toLowerCase()) { found = true; name = t.name; }
+        });
+        if (name && !found) $sel.append(el('option', null, name).attr('value', name));
+        $sel.val(name || '');
+    }
+
+    function transporterName() {
+        var v = Array.isArray(transporters) ? $('#kdaTransporterSelect').val() : $('#kdaTransportCompany').val();
+        return String(v || '').trim();
+    }
+
+    function showTransporterError(msg) {
+        $('#kdaTransporterAddError').text(msg || '').toggleClass('d-none', !msg);
+    }
+
+    function addTransporter() {
+        var name = String($('#kdaTransporterAddName').val() || '').trim();
+        if (!name) { showTransporterError('Enter the transporter name.'); return; }
+        if (typeof dataFunctions === 'undefined' || !dataFunctions.upsertTransporter) { showTransporterError('Could not add the transporter.'); return; }
+        showTransporterError('');
+        var $btn = $('#kdaTransporterAddSave').prop('disabled', true);
+        Promise.resolve(dataFunctions.upsertTransporter(name)).then(function (res) {
+            if (!res || res.success === false || !res.id) throw new Error((res && res.error) || 'Could not add the transporter.');
+            var saved = res.name || name;
+            if (!transporters.some(function (t) { return String(t.id) === String(res.id); })) {
+                transporters.push({ id: res.id, name: saved, is_active: true });
+            }
+            renderTransporterSelect(saved);
+            $('#kdaTransporterAddName').val('');
+            $('#kdaTransporterAddForm').addClass('d-none');
+        }).catch(function (e) {
+            showTransporterError(e && e.message ? e.message : 'Could not add the transporter.');
+        }).then(function () {
+            $btn.prop('disabled', false);
+        });
     }
 
     function lineFor($tr) {
@@ -474,13 +541,16 @@ var _modal_kernel_dispatch_approve = (function () {
         var transport = payer === 'macavation' && !isNaN(cost) ? cost : 0;
         var pallets = parseInt($('#kdaPallets').val(), 10);
         var net = goods - transport;
+        var hasCost = payer === 'macavation' && !isNaN(cost);
+        var hasPallets = !isNaN(pallets) && pallets > 0;
         $('#kdaTransportCost').prop('disabled', payer === 'customer');
+        $('#kdaTransportCostInc').val(hasCost ? fmtRand(Math.round(cost * (1 + VAT_RATE) * 100) / 100) : '');
+        $('#kdaCostPerPallet').val(hasCost && hasPallets ? fmtRand(cost / pallets) : '');
         $('#kdaSumGoods').text(fmtRand(goods));
         $('#kdaSumTransportRow').toggleClass('d-none', payer !== 'macavation');
         $('#kdaSumTransport').text('- ' + fmtRand(transport));
         $('#kdaSumNet').text(fmtRand(net));
         $('#kdaSumPerKg').text(totKg > 0 ? fmtRand(net / totKg) : '-');
-        var hasPallets = !isNaN(pallets) && pallets > 0;
         $('#kdaSumPerPalletTile').toggleClass('d-none', !hasPallets);
         $('#kdaSumPerPallet').text(hasPallets ? fmtRand(net / pallets) : '-');
     }
@@ -622,7 +692,7 @@ var _modal_kernel_dispatch_approve = (function () {
                 transportPayer: payer,
                 transportCostZar: payer === 'macavation' ? cost : null,
                 pallets: $('#kdaPallets').val(),
-                transportCompany: ($('#kdaTransportCompany').val() || '').trim()
+                transportCompany: transporterName()
             }
         };
     }
@@ -717,6 +787,16 @@ var _modal_kernel_dispatch_approve = (function () {
                 e.preventDefault();
                 if (!busy && wf && mode === 'approve') submitSendBack();
             });
+            $('#kdaTransporterAddBtn').off('click.kda').on('click.kda', function () {
+                $('#kdaTransporterAddForm').toggleClass('d-none');
+                showTransporterError('');
+                $('#kdaTransporterAddName').trigger('focus');
+            });
+            $('#kdaTransporterAddCancel').off('click.kda').on('click.kda', function () {
+                $('#kdaTransporterAddForm').addClass('d-none');
+                showTransporterError('');
+            });
+            $('#kdaTransporterAddSave').off('click.kda').on('click.kda', function () { addTransporter(); });
         },
 
         show: function (orderId) {
@@ -727,7 +807,7 @@ var _modal_kernel_dispatch_approve = (function () {
                 if (data && data.order && Array.isArray(data.lines)) {
                     wf = data;
                     var needStock = (wf.order.workflow_stage || '') === 'picking' && can('kernel_dispatch.pick');
-                    (needStock ? loadStockOptions() : Promise.resolve()).then(function () {
+                    Promise.all([needStock ? loadStockOptions() : Promise.resolve(), loadTransporters()]).then(function () {
                         render();
                         openModal();
                     });
