@@ -5013,7 +5013,7 @@ var _dataFunctions = function () {
                 p_kernel_id: uuidRe.test(kid) ? kid : null
             });
             if (!params.p_batch_number && !params.p_kernel_id) {
-                throw new Error('Batch reference missing. Refresh Stock (Kernel) and try again.');
+                throw new Error('Batch reference missing. Refresh Stock on Hand and try again.');
             }
             const raw = await scope.callFunction(
                 'return_kernel_from_stock_to_production',
