@@ -3589,6 +3589,10 @@ var _dataFunctions = function () {
                 p_left_kg: leftKg != null ? Number(leftKg) : 0
             }, token, { useCache: false }));
         },
+        /** Undo the latest finished run on a silo: its kg go back into the bags. */
+        undoSiloRun: async function (runId, token = null) {
+            return this._kpUnwrap(await this.callFunction('undo_silo_run', { p_run_id: runId }, token, { useCache: false }));
+        },
         updateSiloRunTimes: async function (runId, openedAt, closedAt, token = null) {
             return this._kpUnwrap(await this.callFunction('update_silo_run_times', {
                 p_run_id: runId, p_opened_at: openedAt, p_closed_at: closedAt
