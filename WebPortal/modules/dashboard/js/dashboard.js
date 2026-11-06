@@ -303,8 +303,8 @@ var _dashboard = function () {
                         trend: null,
                         trendPeriod: 'vs. last month',
                         icon: 'bi-check-circle',
-                        color: qualityRate >= qualityTarget ? 'success' : qualityRate >= (qualityTarget * 0.84) ? 'warning' : 'danger',
-                        actionUrl: 'quality-assurance-grid'
+                        // No link: Quality Assurance was taken out of the portal (6 Nov 2026).
+                        color: qualityRate >= qualityTarget ? 'success' : qualityRate >= (qualityTarget * 0.84) ? 'warning' : 'danger'
                     },
                     {
                         title: 'Total Production',
@@ -371,13 +371,6 @@ var _dashboard = function () {
             color: 'info'
         },
         {
-            icon: 'bi-clipboard-data',
-            label: 'Quality Test',
-            route: 'quality-assurance-grid',
-            action: 'add',
-            color: 'warning'
-        },
-        {
             icon: 'bi-arrow-left-right',
             label: 'Stock Movement',
             route: 'stock-management-grid',
@@ -387,8 +380,9 @@ var _dashboard = function () {
         {
             icon: 'bi-file-earmark-text',
             label: 'Upload Document',
+            // Documents is now a tab of Find a batch and mounts after the page loads, so just open it.
             route: 'document-management-grid',
-            action: 'add',
+            action: 'open',
             color: 'dark'
         }
             ];

@@ -16,6 +16,10 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link" type="button" data-stream="oil" role="tab">Oil &amp; Protein</button>
         </li>
+        <!-- Documents moved here from the Support menu (6 Nov 2026); shown only to roles with document-management-grid. -->
+        <li class="nav-item d-none" role="presentation" id="bjDocsTabItem">
+            <button class="nav-link" type="button" data-stream="documents" role="tab">Documents</button>
+        </li>
     </ul>
 
     <div id="bjKernelPanel">
@@ -156,6 +160,11 @@
                 </table>
             </div>
         </div>
+    </div>
+
+    <!-- Documents: the document-management module's markup, fetched and mounted here on first open. -->
+    <div id="bjDocsPanel" class="bj-docs-panel" style="display:none">
+        <div class="text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading&hellip;</div>
     </div>
 
     <!-- Kernel batch page: filled by js/batch_journey_detail.js when a kernel row is clicked. The list

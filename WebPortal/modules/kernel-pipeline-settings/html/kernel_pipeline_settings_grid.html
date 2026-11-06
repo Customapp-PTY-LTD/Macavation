@@ -17,4 +17,54 @@
             </div>
         </div>
     </div>
+    <!-- Stock alerts: the stock-alert-rules module (moved here from the Support menu, 6 Nov 2026). -->
+    <div id="kpsPaneAlerts" class="kps-pane d-none">
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+            <div class="ksp-tab-intro mb-0 me-auto">Red-flag thresholds for kernel and oil stock on hand.</div>
+            <a target="_blank" rel="noopener noreferrer" href="help/index.html#stock-alert-rules-grid" class="btn btn-sm btn-outline-secondary macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+            <button type="button" class="btn btn-outline-secondary" id="refreshStockAlertRulesBtn">
+                <i class="fas fa-sync-alt me-1"></i>Refresh
+            </button>
+            <button type="button" class="btn btn-primary" id="addStockAlertRuleBtn">
+                <i class="fas fa-plus me-1"></i>Add Rule
+            </button>
+        </div>
+
+        <div class="alert alert-info py-2 px-3 small mb-3">
+            <i class="fas fa-circle-info me-1"></i>
+            When stock on hand falls at or below the minimum, a dashboard alert is raised (once per day per rule).
+            <strong>Rules are checked when somebody opens Stock Management</strong> &mdash; not on a timer.
+            A quiet week on that screen means no alerts that week.
+        </div>
+
+        <div class="alert alert-warning py-2 px-3 small mb-3 d-none" id="stockAlertRulesBadStyleWarning">
+            <i class="fas fa-triangle-exclamation me-1"></i>
+            <span id="stockAlertRulesBadStyleText"></span>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle table-hover align-middle mb-0" id="stockAlertRulesTable">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th style="min-width:190px">Style</th>
+                                <th style="width:120px">Alert below</th>
+                                <th style="width:110px">Unit</th>
+                                <th>Severity</th>
+                                <th>Active</th>
+                                <th style="width:120px" class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stockAlertRulesTableBody">
+                            <tr><td colspan="7" class="text-center text-muted py-4">
+                                <i class="fas fa-spinner fa-spin me-2"></i>Loading rules...
+                            </td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
