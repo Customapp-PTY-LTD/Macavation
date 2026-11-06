@@ -199,7 +199,7 @@ var _siloAllocationGrid = (function () {
     }
 
     function batchLabel(b) {
-        var s = String(b.batch_number || '');
+        var s = macBatchNo.format(b.batch_number || '');
         if (b.grower_name) { s += ' · ' + b.grower_name; }
         return s;
     }
@@ -362,9 +362,9 @@ var _siloAllocationGrid = (function () {
             var label, ok = true;
             if (other) {
                 ok = false;
-                label = 'Silo ' + s.silo_number + ' · holds ' + other.batch_number + ' — other batch, can’t mix';
+                label = 'Silo ' + s.silo_number + ' · holds ' + macBatchNo.format(other.batch_number) + ' — other batch, can’t mix';
             } else if (mine) {
-                label = 'Silo ' + s.silo_number + ' · already holds ' + mine.batch_number + ' · ' + room;
+                label = 'Silo ' + s.silo_number + ' · already holds ' + macBatchNo.format(mine.batch_number) + ' · ' + room;
             } else {
                 label = 'Silo ' + s.silo_number + ' · empty · ' + kg(free, 0) + ' kg free';
             }
@@ -506,7 +506,7 @@ var _siloAllocationGrid = (function () {
         var batch = currentBatch();
         if (state.batches === null || !batch || !state.allocOpen) { $card.addClass('d-none'); return; }
         $card.removeClass('d-none');
-        $('#siloTallyTitle').text('Pre-sizer tally · ' + String(batch.batch_number || ''));
+        $('#siloTallyTitle').text('Pre-sizer tally · ' + macBatchNo.format(batch.batch_number || ''));
         var open = !!state.tallyOpen;
         $card.toggleClass('is-open', open);
         $('#siloTallyToggle').attr('aria-expanded', open ? 'true' : 'false');
@@ -572,14 +572,14 @@ var _siloAllocationGrid = (function () {
                 var b = spread[k], on = picked === k;
                 ch += '<button type="button" class="silo-batch-chip' + (on ? ' is-active' : '') + '" data-kernel="' +
                     esc(k) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
-                    esc(b.batch_number + (b.supplier ? ' · ' + b.supplier : '') + ' (' + b.silos.length + ')') + '</button>';
+                    esc(macBatchNo.format(b.batch_number) + (b.supplier ? ' · ' + b.supplier : '') + ' (' + b.silos.length + ')') + '</button>';
             });
             $chips.html(ch);
         }
         if (picked) {
             var p = spread[picked];
             $spread.html('<div class="silo-batch-spread"><i class="fas fa-magnifying-glass" aria-hidden="true"></i>' +
-                '<strong>' + esc(p.batch_number + (p.supplier ? ' (' + p.supplier + ')' : '')) + '</strong>' +
+                '<strong>' + esc(macBatchNo.format(p.batch_number) + (p.supplier ? ' (' + p.supplier + ')' : '')) + '</strong>' +
                 '<span>is in ' + esc(p.silos.length) + ' silo' + (p.silos.length === 1 ? '' : 's') + ': <strong>' +
                 esc(p.silos.join(', ')) + '</strong></span>' +
                 '<span class="text-muted">· ' + esc(kg(p.kg, 0)) + ' kg still in silos</span></div>');
@@ -601,7 +601,7 @@ var _siloAllocationGrid = (function () {
                 if (picked === k) { mine = true; }
                 return '<button type="button" class="silo-batch-btn" data-kernel="' + esc(k) + '">' +
                     (supplier ? '<span class="silo-supplier">' + esc(supplier) + '</span>' : '') +
-                    '<span class="silo-meta">' + esc(c.batch_number) +
+                    '<span class="silo-meta">' + esc(macBatchNo.format(c.batch_number)) +
                     ((c.bags && c.bags.length) ? ' (bags ' + esc(c.bags.join(', ')) + ')' : '') + '</span>' +
                     '<span class="silo-spread">' + (others > 0
                         ? 'Also in ' + esc(others) + ' other silo' + (others === 1 ? '' : 's')
@@ -749,7 +749,7 @@ var _siloAllocationGrid = (function () {
             var long = Number(r.minutes) > LONG_RUN_MINUTES;
             var check = long ? ' <span class="silo-check-pill">Check times</span>' : '';
             h += '<tr' + (long ? ' class="silo-run-long"' : '') + '><td class="silo-col">' + esc(localDate(when)) + '</td><td>' +
-                esc(r.silo_number) + '</td><td>' + esc(batches) + '</td><td>' + (growers ? esc(growers) : '&mdash;') +
+                esc(r.silo_number) + '</td><td>' + esc(String(batches).split(',').map(function (x) { return macBatchNo.format(x.trim()); }).join(', ')) + '</td><td>' + (growers ? esc(growers) : '&mdash;') +
                 '</td><td class="text-end">' + esc(kg(r.volume_kg)) + '</td><td class="text-end">' +
                 (r.left_kg == null || Number(r.left_kg) === 0 ? 'Empty' : esc(kg(r.left_kg))) + '</td><td class="text-end silo-col">' +
                 esc(localTime(r.opened_at)) + '–' + esc(localTime(r.closed_at)) + ' <span class="' + (long ? 'fw-bold' : 'text-muted small') + '">(' +
@@ -818,7 +818,7 @@ var _siloAllocationGrid = (function () {
         Swal.fire({
             title: 'Removed pre-sizer',
             html: '<p class="text-start mb-3">You put <strong>' + esc(nos.length + ' bag' + (nos.length === 1 ? '' : 's') +
-                ' (' + kg(totalKg) + ' kg)') + '</strong> of ' + esc(batch.batch_number) + ' into <strong>Silo ' + esc(silo) +
+                ' (' + kg(totalKg) + ' kg)') + '</strong> of ' + esc(macBatchNo.format(batch.batch_number)) + ' into <strong>Silo ' + esc(silo) +
                 '</strong>. How many kg were taken out at the pre-sizer for these bags?</p>' +
                 '<div class="text-start"><label for="siloPresizerKg" class="form-label fw-semibold">Removed pre-sizer (kg)</label>' +
                 '<input type="text" inputmode="decimal" id="siloPresizerKg" class="form-control js-kg-input" style="max-width:180px">' +
@@ -882,7 +882,7 @@ var _siloAllocationGrid = (function () {
             title: 'Allocate ' + nos.length + ' bag' + (nos.length === 1 ? '' : 's') + ' to Silo ' + silo,
             width: 760,
             html: '<div class="text-start">' +
-                '<div class="small text-muted mb-2">' + esc(batch.batch_number) + (batch.grower_name ? ' · ' + esc(batch.grower_name) : '') + '</div>' +
+                '<div class="small text-muted mb-2">' + esc(macBatchNo.format(batch.batch_number)) + (batch.grower_name ? ' · ' + esc(batch.grower_name) : '') + '</div>' +
                 '<div class="silo-weigh-note mb-2">' + (estBags.length === 1 ? 'This bag was' : 'These ' + estBags.length + ' bags were') +
                     ' <strong>estimated</strong> at intake. Weigh each one now. Enter jumps to the next bag.' +
                     (others ? ' The other ' + others + ' ' + (others === 1 ? 'bag was' : 'bags were') + ' weighed at intake.' : '') + '</div>' +
@@ -990,7 +990,7 @@ var _siloAllocationGrid = (function () {
     function openSiloNow(no) {
         var silo = siloByNumber(no);
         var held = silo ? Number(silo.filled_kg) || 0 : 0;
-        var batches = silo ? (silo.contents || []).map(function (c) { return c.batch_number; }).join(', ') : '';
+        var batches = silo ? (silo.contents || []).map(function (c) { return macBatchNo.format(c.batch_number); }).join(', ') : '';
         var d0 = todayStr(), t0 = nowTimeStr();
         Swal.fire({
             title: 'Open silo ' + no,
@@ -1112,7 +1112,7 @@ var _siloAllocationGrid = (function () {
         var stopD0 = todayStr(), stopT0 = nowTimeStr();
         var who = silo ? (silo.contents || []).map(function (c) {
             var g = supplierOf(c);
-            return c.batch_number + (g ? ' · ' + g : '');
+            return macBatchNo.format(c.batch_number) + (g ? ' · ' + g : '');
         }).join(', ') : '';
         var check;
 
@@ -1396,7 +1396,7 @@ var _siloAllocationGrid = (function () {
             if (r.volume_kg != null && Number(r.volume_kg) > 0) { tags.push({ text: fmtKg(r.volume_kg), tone: 'grey' }); }
             tags.push({ text: localTime(r.opened_at) + (r.closed_at ? '–' + localTime(r.closed_at) : ''), tone: 'grey' });
             if (r.closed_at && r.left_kg != null && Number(r.left_kg) > 0) { tags.push({ text: fmtKg(r.left_kg) + ' left', tone: 'amber' }); }
-            return { date: date, title: 'Silo ' + r.silo_number, subtitle: r.batch_numbers || '', tags: tags };
+            return { date: date, title: 'Silo ' + r.silo_number, subtitle: String(r.batch_numbers || '').split(',').map(function (x) { return macBatchNo.format(x.trim()); }).join(', '), tags: tags };
         };
         MacActivityCalendar.create({
             mountId: 'siloActivityCalendarMount',
@@ -1415,7 +1415,7 @@ var _siloAllocationGrid = (function () {
                         var tags = [{ text: 'Allocated to silo ' + a.silo_number }];
                         tags.push({ text: bags.length + ' bag' + (bags.length === 1 ? '' : 's') + ' · ' + fmtKg(a.bag_kg), tone: 'grey' });
                         if (Number(a.removed_kg) > 0) { tags.push({ text: 'Pre-sizer ' + fmtKg(a.removed_kg), tone: 'amber' }); }
-                        entries.push({ date: a.day, title: a.batch_number || 'Batch', subtitle: a.grower_name || '', tags: tags });
+                        entries.push({ date: a.day, title: macBatchNo.format(a.batch_number || 'Batch'), subtitle: a.grower_name || '', tags: tags });
                     });
                     (r.runs || []).forEach(function (run) { entries.push(runEntry(run, run.day)); });
                     return entries;

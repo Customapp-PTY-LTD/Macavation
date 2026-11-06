@@ -141,7 +141,7 @@
             },
             {
                 label: '<label class="form-label">Batch number <span class="text-danger">*</span></label>',
-                html: '<input id="' + p + 'Bn" class="form-control mb-1" value="' + escapeHtml(batch.batch_number || '') + '" autocomplete="off"' + (bnLocked ? ' readonly' : '') + '>' +
+                html: '<input id="' + p + 'Bn" class="form-control mb-1" value="' + escapeHtml(macBatchNo.format(batch.batch_number || '')) + '" autocomplete="off"' + (bnLocked ? ' readonly' : '') + '>' +
                     '<div id="' + p + 'BnHint" class="small text-muted mb-2">' + (bnLocked
                         ? '🔒 Auto-generated. Your role cannot change it.'
                         : 'Auto-generated. Your role is allowed to change it. Changing the grower suggests a new number (Bn [grower #] [year] [seq]).') + '</div>'
@@ -200,7 +200,7 @@
         if (!supplierEl || !numberEl || supplierEl.disabled) return;
 
         var originalSupplierId = supplierIdFromBatch(batch);
-        var originalNumber = (batch.batch_number || '').toString();
+        var originalNumber = macBatchNo.format((batch.batch_number || '').toString());
         var userEditedNumber = false;
 
         numberEl.addEventListener('input', function () { userEditedNumber = true; });
@@ -211,7 +211,7 @@
             // Back to the batch's own supplier: restore its number rather than allocating a new one.
             if (!chosen || String(chosen) === String(originalSupplierId)) {
                 numberEl.value = originalNumber;
-                if (hintEl) hintEl.textContent = 'Changing the supplier suggests a new number (Bn [supplier #] [year] [seq]). You can still type your own.';
+                if (hintEl) hintEl.textContent = 'Changing the supplier suggests a new number (BN.[supplier #].[year].[seq]). You can still type your own.';
                 return;
             }
             if (typeof dataFunctions === 'undefined' || !dataFunctions.getNextBatchNumber) return;
@@ -221,7 +221,7 @@
             dataFunctions.getNextBatchNumber(chosen, year).then(function (nextId) {
                 if (userEditedNumber) return;
                 if (nextId) {
-                    numberEl.value = nextId;
+                    numberEl.value = macBatchNo.format(nextId);
                     if (hintEl) hintEl.textContent = 'Suggested for the new supplier. Edit it if you need a different number.';
                 } else if (hintEl) {
                     hintEl.textContent = 'Could not suggest a number — check it matches the new supplier before saving.';
@@ -239,7 +239,7 @@
      */
     function collectForm(batch, suppliers, prefix) {
         var p = prefix || DIALOG_PREFIX;
-        var batchNumber = valueOf(p + 'Bn').trim();
+        var batchNumber = macBatchNo.toStored(valueOf(p + 'Bn').trim());
         if (!batchNumber) return { error: 'Batch number is required' };
         var wetRaw = valueOf(p + 'Wet').trim();
         var wet = wetRaw === '' ? null : _common.parseKg(wetRaw);

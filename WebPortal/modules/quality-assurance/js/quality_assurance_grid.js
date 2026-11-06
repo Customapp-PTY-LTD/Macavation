@@ -79,7 +79,7 @@ var _qualityAssuranceGrid = function () {
             scope.filteredTests = scope.tests.filter(function (test) {
                 var matchesSearch = !searchTerm ||
                     (test.test_number && test.test_number.toLowerCase().includes(searchTerm)) ||
-                    (test.batch_number && test.batch_number.toLowerCase().includes(searchTerm)) ||
+                    (test.batch_number && (test.batch_number.toLowerCase().includes(searchTerm) || macBatchNo.matches(test.batch_number, searchTerm))) ||
                     (test.overall_result && test.overall_result.toLowerCase().includes(searchTerm));
                 var matchesType = !typeFilter || test.test_type === typeFilter;
                 var matchesResult = !resultFilter || test.overall_result === resultFilter;
@@ -118,7 +118,7 @@ var _qualityAssuranceGrid = function () {
             }
             scope.filteredTests.forEach(function (test) {
                 var badgeClass = test.overall_result === 'pass' ? 'bg-success' : (test.overall_result === 'fail' ? 'bg-danger' : 'bg-warning');
-                var row = '<tr><td>' + scope.escapeHtml(test.test_number || 'N/A') + '</td><td>' + scope.escapeHtml(test.test_type || 'N/A') + '</td><td>' + scope.escapeHtml(test.product_type || 'N/A') + '</td><td>' + scope.escapeHtml(test.batch_number || 'N/A') + '</td><td>' + scope.escapeHtml(test.test_date || 'N/A') + '</td><td><span class="badge ' + badgeClass + '">' + scope.escapeHtml(test.overall_result || 'pending') + '</span></td><td class="mac-table-actions-col">' + MacTableActions.render({
+                var row = '<tr><td>' + scope.escapeHtml(test.test_number || 'N/A') + '</td><td>' + scope.escapeHtml(test.test_type || 'N/A') + '</td><td>' + scope.escapeHtml(test.product_type || 'N/A') + '</td><td>' + scope.escapeHtml(macBatchNo.format(test.batch_number || 'N/A')) + '</td><td>' + scope.escapeHtml(test.test_date || 'N/A') + '</td><td><span class="badge ' + badgeClass + '">' + scope.escapeHtml(test.overall_result || 'pending') + '</span></td><td class="mac-table-actions-col">' + MacTableActions.render({
                     items: [{ label: 'View', className: 'js-view-qa-test', icon: 'fas fa-eye', dataAttrs: { 'test-id': test.id || '' } }]
                 }) + '</td></tr>';
                 tbody.append(row);

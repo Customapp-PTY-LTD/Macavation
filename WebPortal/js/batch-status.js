@@ -169,15 +169,15 @@ var BatchStatus = (function () {
     function getKernelRouteForStatus(displayStatus) {
         var d = displayStatus && displayStatus.value ? displayStatus : getDisplayStatus(displayStatus);
         var map = {
-            'gi-receiving': { route: 'grower-intake-grid', label: 'Open Grower Intake', searchInputId: 'searchIntakeBatchesInput' },
-            'gi-intake-received': { route: 'grower-intake-grid', label: 'Open Grower Intake', searchInputId: 'searchIntakeBatchesInput' },
-            'gi-quality-pending': { route: 'grower-intake-grid', label: 'Open Grower Intake', searchInputId: 'searchIntakeBatchesInput' },
-            'gi-quality-approved': { route: 'grower-intake-grid', label: 'Open Grower Intake', searchInputId: 'searchIntakeBatchesInput' },
-            'awaiting-production': { route: 'kernel-production-grid', label: 'Open Kernel Production', searchInputId: 'searchBatchesInput' },
-            'in-production': { route: 'kernel-production-grid', label: 'Open Kernel Production', searchInputId: 'searchBatchesInput' },
-            'awaiting-test': { route: 'kernel-production-grid', label: 'Open Kernel Production', searchInputId: 'searchBatchesInput' },
-            'release-ready': { route: 'kernel-production-grid', label: 'Open Kernel Production', searchInputId: 'searchBatchesInput' },
-            'stock': { route: 'stock-management-kernel', label: 'Open Stock (Kernel)', searchInputId: null },
+            'gi-receiving': { route: 'grower-intake-grid', label: 'Open Receiving', searchInputId: 'searchIntakeBatchesInput' },
+            'gi-intake-received': { route: 'grower-intake-grid', label: 'Open Receiving', searchInputId: 'searchIntakeBatchesInput' },
+            'gi-quality-pending': { route: 'grower-intake-grid', label: 'Open Receiving', searchInputId: 'searchIntakeBatchesInput' },
+            'gi-quality-approved': { route: 'grower-intake-grid', label: 'Open Receiving', searchInputId: 'searchIntakeBatchesInput' },
+            'awaiting-production': { route: 'kernel-production-grid', label: 'Open Production', searchInputId: 'searchBatchesInput' },
+            'in-production': { route: 'kernel-production-grid', label: 'Open Production', searchInputId: 'searchBatchesInput' },
+            'awaiting-test': { route: 'kernel-production-grid', label: 'Open Production', searchInputId: 'searchBatchesInput' },
+            'release-ready': { route: 'kernel-production-grid', label: 'Open Production', searchInputId: 'searchBatchesInput' },
+            'stock': { route: 'stock-management-kernel', label: 'Open Stock on Hand', searchInputId: null },
             'complete': { route: 'batch-journey', label: 'Open in Find a batch', searchInputId: 'bjSearchInput' }
         };
         return map[d.value] || { route: 'batch-journey', label: 'Open in Find a batch', searchInputId: 'bjSearchInput' };
