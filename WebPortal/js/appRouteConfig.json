@@ -131,15 +131,6 @@
             ],
             "css": []
         },
-        "stock-alert-rules-grid": {
-            "description": "Stock Alert Rules",
-            "path": "stock-alert-rules",
-            "html": "html/stock_alert_rules_grid.html",
-            "js": [
-                "js/stock_alert_rules_grid.js"
-            ],
-            "css": []
-        },
         "messaging-compose-grid": {
             "description": "Send Message",
             "path": "messaging-compose",
@@ -682,7 +673,8 @@
             "html": "html/kernel_pipeline_settings_grid.html",
             "js": [
                 "js/kernel_pipeline_settings_grid.js",
-                "../kernel-style-prices/js/kernel_style_prices.js"
+                "../kernel-style-prices/js/kernel_style_prices.js",
+                "../stock-alert-rules/js/stock_alert_rules_grid.js"
             ],
             "css": [
                 "css/kernel_pipeline_settings_grid.css",
@@ -873,10 +865,12 @@
             "html": "html/batch_journey_grid.html",
             "js": [
                 "js/batch_journey_grid.js",
-                "js/batch_journey_detail.js"
+                "js/batch_journey_detail.js",
+                "../document-management/js/document_management_grid.js"
             ],
             "css": [
-                "css/batch_journey_grid.css"
+                "css/batch_journey_grid.css",
+                "../document-management/css/document_management_grid.css"
             ]
         }
     }

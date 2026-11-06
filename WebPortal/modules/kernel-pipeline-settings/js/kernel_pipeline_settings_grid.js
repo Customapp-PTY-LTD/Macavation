@@ -17,10 +17,10 @@ var _kernelPipelineSettingsGrid = (function () {
     var SILO_COUNT = 12;
     var STAGE_LABELS = { washing: 'Washing', sorting: 'Sorting' };
 
-    var TAB_LABELS = { intake: 'Intake & quality', plant: 'Plant', prices: 'Prices' };
-    var PANES = { intake: '#kpsPaneIntake', plant: '#kpsPanePlant', prices: '#kpsPanePrices' };
+    var TAB_LABELS = { intake: 'Intake & quality', plant: 'Plant', prices: 'Prices', alerts: 'Stock alerts' };
+    var PANES = { intake: '#kpsPaneIntake', plant: '#kpsPanePlant', prices: '#kpsPanePrices', alerts: '#kpsPaneAlerts' };
 
-    var state = { cfg: null, roles: null, actions: null, roleActions: null, roleAccessOk: false, tab: null, tabs: [], pricesInit: false };
+    var state = { cfg: null, roles: null, actions: null, roleActions: null, roleAccessOk: false, tab: null, tabs: [], pricesInit: false, alertsInit: false };
 
     function esc(v) {
         return (typeof _common !== 'undefined' && _common.escapeHtml)
@@ -39,10 +39,16 @@ var _kernelPipelineSettingsGrid = (function () {
         return typeof window.hasAction === 'function' && window.hasAction('kernel_prices.view');
     }
 
+    // Stock alerts keeps the access it had as its own menu item (the stock-alert-rules-grid feature).
+    function canAlerts() {
+        return typeof roleMenuConfig !== 'undefined' && roleMenuConfig.hasAccess('stock-alert-rules-grid');
+    }
+
     function visibleTabs() {
         var t = [];
         if (canSettings()) { t.push('intake'); t.push('plant'); }
         if (canPrices()) t.push('prices');
+        if (canAlerts()) t.push('alerts');
         return t;
     }
 
@@ -338,6 +344,14 @@ var _kernelPipelineSettingsGrid = (function () {
                 $('#ksp-body').html('<div class="alert alert-warning">Prices could not be loaded. Please refresh the page.</div>');
             }
         }
+        if (k === 'alerts' && !state.alertsInit) {
+            state.alertsInit = true;
+            if (typeof _stockAlertRulesGrid !== 'undefined' && _stockAlertRulesGrid.init) {
+                _stockAlertRulesGrid.init();
+            } else {
+                $('#stockAlertRulesTableBody').html('<tr><td colspan="7" class="text-center text-warning py-4">Stock alerts could not be loaded. Please refresh the page.</td></tr>');
+            }
+        }
     }
 
     // ------------------------------------------------------------------
@@ -575,6 +589,7 @@ var _kernelPipelineSettingsGrid = (function () {
             _kernelPipelineSettingsGrid.destroy();
             bind();
             state.pricesInit = false;
+            state.alertsInit = false;
             state.tabs = visibleTabs();
             if (!state.tabs.length) {
                 $('#kpsTabs').empty();

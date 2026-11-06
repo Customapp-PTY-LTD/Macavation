@@ -396,8 +396,8 @@ var _roleMenuConfig = function () {
                 route: 'kernel-production-forecast-grid',
                 icon: 'fas fa-clipboard-list',
                 label: 'Kernel forecast',
-                category: 'business',
-                parent: 'businessCollapse'
+                category: 'forecasting',
+                parent: 'forecastingCollapse'
             },
             'stock-management-kernel': {
                 route: 'stock-management-kernel',
@@ -417,8 +417,8 @@ var _roleMenuConfig = function () {
                 route: 'oil-production-forecast-grid',
                 icon: 'fas fa-clipboard-list',
                 label: 'Oil forecast',
-                category: 'business',
-                parent: 'businessCollapse'
+                category: 'forecasting',
+                parent: 'forecastingCollapse'
             },
             'supplier-intake-grid': {
                 route: 'supplier-intake-grid',
@@ -467,15 +467,15 @@ var _roleMenuConfig = function () {
                 route: 'sales-forecasting-grid',
                 icon: 'fas fa-file-invoice',
                 label: 'Sales & Production Reports',
-                category: 'business',
-                parent: 'businessCollapse'
+                category: 'reports',
+                parent: 'reportsCollapse'
             },
             'financial-management-grid': {
                 route: 'financial-management-grid',
                 icon: 'fas fa-money-bill-wave',
                 label: 'Financial Management',
-                category: 'business',
-                parent: 'businessCollapse'
+                category: 'budgets',
+                parent: 'budgetsCollapse'
             },
             'document-management-grid': {
                 route: 'document-management-grid',
@@ -502,15 +502,15 @@ var _roleMenuConfig = function () {
                 route: 'report-targets-grid',
                 icon: 'fas fa-bullseye',
                 label: 'Targets',
-                category: 'business',
-                parent: 'businessCollapse'
+                category: 'reports',
+                parent: 'reportsCollapse'
             },
             'stock-alert-rules-grid': {
                 route: 'stock-alert-rules-grid',
                 icon: 'fas fa-flag',
                 label: 'Stock Alert Rules',
-                category: 'business',
-                parent: 'businessCollapse'
+                category: 'kernel',
+                parent: 'kernelCollapse'
             }
         },
 

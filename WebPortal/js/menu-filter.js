@@ -128,8 +128,9 @@ var _menuFilter = function () {
                 'oilCollapse',
                 'supportCollapse',
                 'crmCollapse',
-                'qualityCollapse',
-                'businessCollapse',
+                'reportsCollapse',
+                'forecastingCollapse',
+                'budgetsCollapse',
                 'userManagementCollapse'
             ];
 

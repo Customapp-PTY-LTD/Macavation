@@ -144,6 +144,16 @@ var _appRouter = function () {
                 routeName = 'kernel-pipeline-settings';
                 if (!_appRouter.handoff) _appRouter.handoff = { route: routeName, params: { tab: 'prices' } };
             }
+            // Stock Alert Rules moved to a tab of Kernel Pipeline Settings (6 Nov 2026); old links land there.
+            if (routeName === 'stock-alert-rules-grid') {
+                routeName = 'kernel-pipeline-settings';
+                if (!_appRouter.handoff) _appRouter.handoff = { route: routeName, params: { tab: 'alerts' } };
+            }
+            // Documents moved to a tab of Find a batch (6 Nov 2026); old links land there.
+            if (routeName === 'document-management-grid') {
+                routeName = 'batch-journey';
+                if (!_appRouter.handoff) _appRouter.handoff = { route: routeName, params: { tab: 'documents' } };
+            }
 
             console.info("appRouter.loadContent", routeName);
 
