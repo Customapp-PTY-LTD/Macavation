@@ -1,0 +1,152 @@
+<div id="rafRoot" class="raf">
+    <div class="raf-period" id="rafPeriodBar">
+        <div class="raf-chips" id="rafModeChips" role="group" aria-label="Period">
+            <button type="button" class="btn btn-sm" data-mode="day">Day</button>
+            <button type="button" class="btn btn-sm" data-mode="week">Week</button>
+            <button type="button" class="btn btn-sm active" data-mode="month">Month</button>
+            <button type="button" class="btn btn-sm" data-mode="quarter">Quarter</button>
+            <button type="button" class="btn btn-sm" data-mode="year">Financial year</button>
+        </div>
+        <div class="raf-stepper">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="rafPrev" title="Previous" aria-label="Previous period">&lsaquo;</button>
+            <div class="raf-label"><span id="rafLabel"></span><span class="raf-range" id="rafRange"></span></div>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="rafNext" title="Next" aria-label="Next period">&rsaquo;</button>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="rafToday">Today</button>
+        <span class="raf-loading d-none" id="rafLoading" role="status"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Loading&hellip;</span>
+    </div>
+    <div id="rafAlert" class="d-none"></div>
+    <div class="raf-jump"><b>Kernel:</b>
+        <a href="#rafK1" data-jump="rafK1">Procurement</a><a href="#rafK2" data-jump="rafK2">Storage</a><a href="#rafK3" data-jump="rafK3">Production</a><a href="#rafK4" data-jump="rafK4">Finished stock</a><a href="#rafK5" data-jump="rafK5">Sales</a>
+    </div>
+    <div class="raf-jump raf-jump-oil"><b>Oil:</b>
+        <a href="#rafO1" data-jump="rafO1">Procurement</a><a href="#rafO2" data-jump="rafO2">Raw material stock</a><a href="#rafO3" data-jump="rafO3">Production</a><a href="#rafO4" data-jump="rafO4">Finished stock</a><a href="#rafO5" data-jump="rafO5">Sales</a>
+    </div>
+
+    <div class="raf-stream raf-stream-kernel"><h2>Kernel processing</h2><span>From nut-in-shell bought to kernel sold</span></div>
+    <section class="raf-block" id="rafK1">
+        <h3 class="raf-h3"><span class="raf-num">1.</span> Procurement <span class="raf-src">Grower Intake deliveries and the Procurement plan</span></h3>
+        <div class="raf-notice d-none" id="rafK1Notice"></div>
+        <div class="raf-body">
+            <div class="raf-tiles" id="rafK1Tiles"></div>
+            <div class="small text-muted mb-2 d-none" id="rafK1Source"></div>
+            <div class="raf-grid raf-grid-2">
+                <div class="raf-card"><h4>NIS received vs planned (kg)</h4><div class="raf-chart raf-ts"><canvas id="rafCK1"></canvas></div></div>
+                <div class="raf-card"><h4>By grower</h4><div class="raf-table-wrap"><table class="raf-table" id="rafTK1"></table></div></div>
+            </div>
+            <div class="raf-gap d-none" id="rafK1Gap"></div>
+        </div>
+    </section>
+    <section class="raf-block" id="rafK2">
+        <h3 class="raf-h3"><span class="raf-num">2.</span> Storage <span class="raf-src">Silos &amp; storage areas, bag movements</span></h3>
+        <div class="raf-notice d-none" id="rafK2Notice"></div>
+        <div class="raf-body">
+            <div class="raf-tiles" id="rafK2Tiles"></div>
+            <div class="raf-grid raf-grid-2">
+                <div class="raf-card"><h4>Where the NIS is at period end (kg)</h4><div class="raf-chart "><canvas id="rafCK2"></canvas></div></div>
+                <div class="raf-card"><h4>In and out during the period</h4><div class="raf-table-wrap"><table class="raf-table" id="rafTK2"></table></div></div>
+            </div>
+        </div>
+    </section>
+    <section class="raf-block" id="rafK3">
+        <h3 class="raf-h3"><span class="raf-num">3.</span> Production <span class="raf-src">Cracking log (silo runs) and packing sheets</span></h3>
+        <div class="raf-notice d-none" id="rafK3Notice"></div>
+        <div class="raf-body">
+            <div class="raf-tiles" id="rafK3Tiles"></div>
+            <div class="raf-grid raf-grid-2">
+                <div class="raf-card"><h4>NIS cracked (kg)</h4><div class="raf-chart raf-ts"><canvas id="rafCK3a"></canvas></div></div>
+                <div class="raf-card"><h4>Kernel packed by style (kg)</h4><div class="raf-chart "><canvas id="rafCK3b"></canvas></div></div>
+            </div>
+            <div class="raf-grid raf-grid-1">
+                <div class="raf-card"><h4>By-products</h4><div class="raf-table-wrap"><table class="raf-table" id="rafTK3"></table></div></div>
+            </div>
+        </div>
+    </section>
+    <section class="raf-block" id="rafK4">
+        <h3 class="raf-h3"><span class="raf-num">4.</span> Finished goods stock on hand <span class="raf-src">Kernel stock on hand, by style</span></h3>
+        <div class="raf-notice d-none" id="rafK4Notice"></div>
+        <div class="raf-body">
+            <div class="raf-tiles" id="rafK4Tiles"></div>
+            <div class="raf-grid raf-grid-1">
+                <div class="raf-card"><h4>By style</h4><div class="raf-table-wrap"><table class="raf-table" id="rafTK4"></table></div></div>
+            </div>
+        </div>
+    </section>
+    <section class="raf-block" id="rafK5">
+        <h3 class="raf-h3"><span class="raf-num">5.</span> Sales <span class="raf-src">Dispatch and Sales (priced at step 3)</span></h3>
+        <div class="raf-notice d-none" id="rafK5Notice"></div>
+        <div class="raf-body">
+            <div class="raf-tiles" id="rafK5Tiles"></div>
+            <div class="raf-grid raf-grid-3">
+                <div class="raf-card"><h4>Sales value by customer (R)</h4><div class="raf-chart "><canvas id="rafCK5a"></canvas></div></div>
+                <div class="raf-card"><h4>Volume by style (kg)</h4><div class="raf-chart "><canvas id="rafCK5b"></canvas></div></div>
+                <div class="raf-card"><h4>Sales value over the period (R)</h4><div class="raf-chart raf-ts"><canvas id="rafCK5c"></canvas></div></div>
+            </div>
+            <div class="raf-grid raf-grid-1">
+                <div class="raf-card"><h4>By customer and style</h4><div class="raf-table-wrap"><table class="raf-table" id="rafTK5"></table></div></div>
+            </div>
+            <div class="raf-fine">All Rand figures are excluding VAT.</div>
+        </div>
+    </section>
+    <div class="raf-stream raf-stream-oil"><h2>Oil processing</h2><span>From oil raws bought to oil, protein and cake sold</span></div>
+    <section class="raf-block" id="rafO1">
+        <h3 class="raf-h3"><span class="raf-num">1.</span> Procurement <span class="raf-src">Supplier Intake (oil raws in)</span></h3>
+        <div class="raf-notice d-none" id="rafO1Notice"></div>
+        <div class="raf-body">
+            <div class="raf-tiles" id="rafO1Tiles"></div>
+            <div class="raf-grid raf-grid-2">
+                <div class="raf-card"><h4>Raws received by material (kg)</h4><div class="raf-chart raf-ts"><canvas id="rafCO1"></canvas></div></div>
+                <div class="raf-card"><h4>By supplier</h4><div class="raf-table-wrap"><table class="raf-table" id="rafTO1"></table></div></div>
+            </div>
+            <div class="raf-gap d-none" id="rafO1Gap"></div>
+        </div>
+    </section>
+    <section class="raf-block" id="rafO2">
+        <h3 class="raf-h3"><span class="raf-num">2.</span> Raw material stock on hand <span class="raf-src">Last stock count + received &minus; used in production</span></h3>
+        <div class="raf-notice d-none" id="rafO2Notice"></div>
+        <div class="raf-body">
+            <div class="raf-grid raf-grid-1">
+                <div class="raf-card"><h4>Raw material stock</h4><div class="raf-table-wrap"><table class="raf-table" id="rafTO2"></table></div></div>
+            </div>
+        </div>
+    </section>
+    <section class="raf-block" id="rafO3">
+        <h3 class="raf-h3"><span class="raf-num">3.</span> Production <span class="raf-src">Oil Production, protein bins, oil cake</span></h3>
+        <div class="raf-notice d-none" id="rafO3Notice"></div>
+        <div class="raf-body">
+            <div class="raf-tiles" id="rafO3Tiles"></div>
+            <div class="raf-grid raf-grid-1">
+                <div class="raf-card"><h4>Production over the period (kg)</h4><div class="raf-chart raf-ts"><canvas id="rafCO3"></canvas></div></div>
+            </div>
+        </div>
+    </section>
+    <section class="raf-block" id="rafO4">
+        <h3 class="raf-h3"><span class="raf-num">4.</span> Finished goods stock on hand <span class="raf-src">Oil &amp; protein stock, oil cake</span></h3>
+        <div class="raf-notice d-none" id="rafO4Notice"></div>
+        <div class="raf-body">
+            <div class="raf-grid raf-grid-1">
+                <div class="raf-card"><h4>By product</h4><div class="raf-table-wrap"><table class="raf-table" id="rafTO4"></table></div></div>
+            </div>
+        </div>
+    </section>
+    <section class="raf-block" id="rafO5">
+        <h3 class="raf-h3"><span class="raf-num">5.</span> Sales <span class="raf-src">Food grade, crude, protein powder and oil cake</span></h3>
+        <div class="raf-notice d-none" id="rafO5Notice"></div>
+        <div class="raf-body">
+            <div class="raf-tiles" id="rafO5Tiles"></div>
+            <div class="raf-chips raf-subtabs" id="rafOilFilter" role="group" aria-label="Product filter">
+                <button type="button" class="btn btn-sm active" data-product="all">All products</button>
+                <button type="button" class="btn btn-sm" data-product="food_grade">Food grade</button>
+                <button type="button" class="btn btn-sm" data-product="crude">Crude</button>
+                <button type="button" class="btn btn-sm" data-product="protein">Protein powder</button>
+                <button type="button" class="btn btn-sm" data-product="cake">Oil cake</button>
+            </div>
+            <div class="raf-grid raf-grid-3">
+                <div class="raf-card"><h4>Sales value by customer (R)</h4><div class="raf-chart "><canvas id="rafCO5a"></canvas></div></div>
+                <div class="raf-card"><h4>Value by product (R)</h4><div class="raf-chart "><canvas id="rafCO5b"></canvas></div></div>
+                <div class="raf-card"><h4>Sales value over the period (R)</h4><div class="raf-chart raf-ts"><canvas id="rafCO5c"></canvas></div></div>
+            </div>
+            <div class="raf-gap d-none" id="rafO5Gap"></div>
+        </div>
+    </section>
+</div>

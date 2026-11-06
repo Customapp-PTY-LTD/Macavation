@@ -466,7 +466,7 @@ var _roleMenuConfig = function () {
             'sales-forecasting-grid': {
                 route: 'sales-forecasting-grid',
                 icon: 'fas fa-file-invoice',
-                label: 'Sales & Production Reports',
+                label: 'Management reports',
                 category: 'reports',
                 parent: 'reportsCollapse'
             },

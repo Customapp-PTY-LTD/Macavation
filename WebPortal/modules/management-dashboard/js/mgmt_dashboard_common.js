@@ -436,7 +436,137 @@ var MgmtDashboard = (function () {
         t.appendChild(tbody);
     }
 
+    // ------------------------------------------------------------------
+    // Period picker maths (Day / Week / Month / Quarter / Financial year) - used by All figures.
+    // Same rules as production_log.js: weeks run Mon-Sun, quarters and "year" follow the Apr-Mar FY.
+    // ------------------------------------------------------------------
+
+    var period = (function () {
+        var DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        var MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August',
+            'September', 'October', 'November', 'December'];
+
+        function parse(s) { var p = String(s).split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+        function todayStr() { return isoOf(today()); }
+        function addDays(s, n) { var d = parse(s); d.setDate(d.getDate() + n); return isoOf(d); }
+        function addMonths(s, n) { var d = parse(s); return isoOf(new Date(d.getFullYear(), d.getMonth() + n, 1)); }
+        function mondayOf(s) { return addDays(s, -((parse(s).getDay() + 6) % 7)); }
+        function monthEnd(s) { var d = parse(s); return isoOf(new Date(d.getFullYear(), d.getMonth() + 1, 0)); }
+        function fmtDay(s) { var d = parse(s); return DAY_NAMES[d.getDay()] + ' ' + pad(d.getDate()) + ' ' + MONTHS[d.getMonth()]; }
+        function fyQuarterOf(s) { return { fy: fyOf(parse(s)), q: quarterOfMonthKey(s.slice(0, 7)) }; }
+
+        // The picked period as { from, to } (inclusive ISO dates).
+        function range(mode, anchor) {
+            var a = anchor || todayStr();
+            if (mode === 'day') return { from: a, to: a };
+            if (mode === 'week') { var m = mondayOf(a); return { from: m, to: addDays(m, 6) }; }
+            if (mode === 'month') { var f = a.slice(0, 8) + '01'; return { from: f, to: monthEnd(f) }; }
+            var fq = fyQuarterOf(a);
+            if (mode === 'quarter') { var q = quarterRange(fq.fy, fq.q); return { from: q.from, to: q.to }; }
+            return fyRange(fq.fy);
+        }
+
+        // New anchor one period back (dir -1) or forward (dir 1); never later than today.
+        function step(mode, anchor, dir) {
+            var r = range(mode, anchor), next;
+            if (mode === 'day') next = addDays(r.from, dir);
+            else if (mode === 'week') next = addDays(r.from, 7 * dir);
+            else next = addMonths(r.from, dir * ({ month: 1, quarter: 3, year: 12 }[mode] || 1));
+            return next > todayStr() ? todayStr() : next;
+        }
+
+        function label(mode, anchor) {
+            var r = range(mode, anchor);
+            if (mode === 'day') return fmtDay(r.from) + ' ' + r.from.slice(0, 4) + (r.from === todayStr() ? ' (today)' : '');
+            if (mode === 'week') return 'Week of ' + fmtDay(r.from) + ' – ' + fmtDay(r.to);
+            if (mode === 'month') return MONTH_NAMES[+r.from.slice(5, 7) - 1] + ' ' + r.from.slice(0, 4);
+            var fq = fyQuarterOf(r.from);
+            if (mode === 'quarter') {
+                return 'Q' + fq.q + ' of FY ' + fq.fy + ' (' + MONTHS[+r.from.slice(5, 7) - 1] + ' – ' +
+                    MONTHS[+r.to.slice(5, 7) - 1] + ' ' + r.to.slice(0, 4) + ')';
+            }
+            return fyLabel(fq.fy);
+        }
+
+        // Chart buckets [{key, label, from, to}]: week -> days, month -> weeks, quarter/year -> months,
+        // day -> [] (a single day has no time series).
+        function buckets(mode, from, to) {
+            var out = [], s;
+            if (mode === 'week') {
+                for (s = from; s <= to; s = addDays(s, 1)) out.push({ key: s, label: fmtDay(s).split(' ').slice(0, 2).join(' '), from: s, to: s });
+            } else if (mode === 'month') {
+                for (s = mondayOf(from); s <= to; s = addDays(s, 7)) {
+                    var a = s < from ? from : s, b = addDays(s, 6) > to ? to : addDays(s, 6);
+                    out.push({ key: a, label: fmtDay(a).split(' ').slice(1).join(' '), from: a, to: b });
+                }
+            } else if (mode === 'quarter' || mode === 'year') {
+                var fq = fyQuarterOf(from);
+                var ms = mode === 'year' ? fyMonths(fq.fy) : quarterRange(fq.fy, fq.q).months;
+                ms.forEach(function (m) {
+                    var f = m + '-01';
+                    out.push({ key: m, label: MONTHS[+m.slice(5, 7) - 1], from: f, to: monthEnd(f) });
+                });
+            }
+            return out;
+        }
+
+        return { range: range, step: step, label: label, buckets: buckets, todayStr: todayStr };
+    }());
+
+    // Doughnut (share of a whole). unit: 'kg' | 'R'. Colours cycle through the design tokens.
+    function drawDoughnut(canvasId, labels, data, unit) {
+        var canvas = document.getElementById(canvasId);
+        if (!canvas || typeof Chart === 'undefined') return;
+        unEmptyBox(canvasId);
+        destroyChart(canvasId);
+        var c = colors();
+        var palette = [c.green, c.tan, c.info, c.greenSoft, c.tanSoft, c.grid, c.text];
+        var fmt = unit === 'R' ? rand : kg;
+        charts[canvasId] = new Chart(canvas, {
+            type: 'doughnut',
+            data: { labels: labels, datasets: [{ data: data, borderColor: c.surface, borderWidth: 2,
+                backgroundColor: data.map(function (_, i) { return palette[i % palette.length]; }) }] },
+            options: {
+                maintainAspectRatio: false, animation: false, cutout: '58%',
+                plugins: {
+                    legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, boxHeight: 6, color: c.text } },
+                    tooltip: { callbacks: { label: function (ctx) { return ' ' + ctx.label + ': ' + fmt(ctx.parsed); } } }
+                }
+            }
+        });
+    }
+
+    // Several series side by side or stacked, by category. series: [{label, data, color}].
+    function drawGrouped(canvasId, labels, series, unit, stacked) {
+        var canvas = document.getElementById(canvasId);
+        if (!canvas || typeof Chart === 'undefined') return;
+        unEmptyBox(canvasId);
+        destroyChart(canvasId);
+        var c = colors();
+        var fmt = valueFormatter(unit);
+        charts[canvasId] = new Chart(canvas, {
+            type: 'bar',
+            data: { labels: labels, datasets: series.map(function (d) {
+                return { label: d.label, data: d.data, backgroundColor: d.color || c.green, borderRadius: 3, maxBarThickness: 34 };
+            }) },
+            options: {
+                maintainAspectRatio: false, animation: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    x: { stacked: !!stacked, grid: { display: false }, border: { display: false }, ticks: { color: c.text, autoSkip: true } },
+                    y: { stacked: !!stacked, beginAtZero: true, grid: { color: c.grid, drawTicks: false }, border: { display: false },
+                        ticks: { color: c.text, padding: 6, callback: axisFormatter(unit) } }
+                },
+                plugins: {
+                    legend: { position: 'top', align: 'end', labels: { usePointStyle: true, boxWidth: 8, boxHeight: 6, color: c.text } },
+                    tooltip: { callbacks: { label: function (ctx) { return ' ' + ctx.dataset.label + ': ' + fmt(ctx.parsed.y); } } }
+                }
+            }
+        });
+    }
+
     return {
+        period: period, drawDoughnut: drawDoughnut, drawGrouped: drawGrouped, destroyChart: destroyChart,
         MONTHS: MONTHS, today: today, isoOf: isoOf, fyOf: fyOf, fyRange: fyRange, fyLabel: fyLabel,
         fyMonths: fyMonths, quarterRange: quarterRange, quarterOfMonthKey: quarterOfMonthKey,
         currentMonthKey: currentMonthKey, monthLabel: monthLabel, prettyDate: prettyDate, daysSince: daysSince,
