@@ -609,7 +609,7 @@ var _reportListGrid = function () {
         });
         $(document).on('click.salesReports', '.js-report-delete', function (e) {
             e.preventDefault();
-            confirmDeleteReport(String($(this).data('report-id') || ''));
+            confirmDeleteReport(String($(this).attr('data-report-id') || ''));
         });
         $(document).on('change.salesReports', 'input[name="newReportPeriodType"]', function () {
             refreshTemplateAvailability();

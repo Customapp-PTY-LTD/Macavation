@@ -17,7 +17,8 @@
 -- report_deliveries.status only holds pending | sent | failed (20260822090000); 'delivered' and
 -- 'read' are accepted too in case receipts are ever folded into status (20260910090000 keeps
 -- receipts in their own columns). The table has no status_updated_at, so the send time is
--- coalesce(completed_at, created_at).
+-- coalesce(completed_at, created_at). "Test send to me" rows (no recipient, display_name 'Test send')
+-- are left out, so a test to yourself does not mark a report as sent.
 --
 -- Same model as the other report functions: SECURITY DEFINER RPCs, tables closed to anon.
 -- Down: SELECT cron.unschedule('ensure-report-drafts');
@@ -191,6 +192,8 @@ BEGIN
                   FROM public.report_instances sib
                   JOIN public.report_deliveries rd ON rd.report_instance_id = sib.id
                  WHERE sib.template_id = ri.template_id AND sib.period_start = ri.period_start
+                   -- "Test send to me" rows (report_editor.js) are not a distribution: no recipient, fixed name.
+                   AND NOT (rd.recipient_id IS NULL AND rd.display_name = 'Test send')
             ) d ON true
            WHERE ri.period_type = p_period_type
              AND ri.status <> 'superseded'

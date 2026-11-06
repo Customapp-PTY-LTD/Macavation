@@ -889,6 +889,8 @@ var _reportEditor = function () {
         }
         state.reportId = id;
         dataFunctions.getReportInstance(id).then(function (payload) {
+            // A slower earlier request must not render over the report now selected.
+            if (id !== state.reportId) return;
             if (!payload) {
                 showEmptyState('fa-file-invoice', 'Report not found', 'This report could not be found. It may have been deleted.');
                 return;
@@ -896,6 +898,7 @@ var _reportEditor = function () {
             state.payload = payload;
             renderPayload(payload);
         }).catch(function (err) {
+            if (id !== state.reportId) return;
             console.warn('[sales-reports] getReportInstance failed', err);
             showEmptyState('fa-file-invoice', 'This report cannot be loaded', 'The report-builder migrations have not been applied to this database.');
         });
@@ -905,7 +908,9 @@ var _reportEditor = function () {
     // discard what is already on screen (deliverable 5) — just log and leave the DOM as-is.
     function reloadAndRerender() {
         if (!state.reportId) return Promise.resolve();
-        return dataFunctions.getReportInstance(state.reportId, null, true).then(function (fresh) {
+        var reqId = state.reportId;
+        return dataFunctions.getReportInstance(reqId, null, true).then(function (fresh) {
+            if (reqId !== state.reportId) return;
             if (!fresh) {
                 showEmptyState('fa-file-invoice', 'Report not found', 'This report could not be found. It may have been deleted.');
                 return;
@@ -980,7 +985,11 @@ var _reportEditor = function () {
                     notifyChange();
                     // Embedded "Publish & send": go straight to the existing send dialog.
                     if (embedded && state.payload && state.payload.status === 'published') {
-                        handleSendWhatsapp();
+                        if (typeof hasAction === 'function' && hasAction('reports.report.send')) {
+                            handleSendWhatsapp();
+                        } else {
+                            Swal.fire({ icon: 'success', title: "Published. You don't have permission to send it.", toast: true, position: 'top-end', timer: 4000, showConfirmButton: false });
+                        }
                     }
                 });
             });
@@ -1420,7 +1429,7 @@ var _reportEditor = function () {
         openEmbedded: function (id, opts) {
             if (!isReportUuid(id)) return false;
             try { if (typeof Session !== 'undefined' && Session.set) Session.set('currentReportId', id); } catch (e) { /* ignore */ }
-            if (embedded) {
+            if (embedded && $('#reportEditorModule').length) {
                 embeddedOnChange = (opts && opts.onChange) || null;
                 state.reportId = id;
                 load();
