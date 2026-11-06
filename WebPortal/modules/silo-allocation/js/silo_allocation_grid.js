@@ -1270,6 +1270,33 @@ var _siloAllocationGrid = (function () {
         });
     }
 
+    // Undo a finished run logged by mistake: its kg go back into the bags it cracked.
+    function undoRun(run) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Undo this run on silo ' + run.silo_number + '?',
+            html: '<p class="text-start mb-0">The ' + esc(kg(run.volume_kg)) + ' kg cracked' +
+                (run.batch_numbers ? ' (' + esc(run.batch_numbers) + ')' : '') +
+                ' go back into silo ' + esc(run.silo_number) + ' and come off the cracking log and the batch ' +
+                'cracking sheet, as if the silo was never opened.</p>',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, undo the run',
+            cancelButtonText: 'Keep it'
+        }).then(function (c) {
+            if (!c.isConfirmed) { return; }
+            return dataFunctions.undoSiloRun(run.id).then(function (r) {
+                if (!isOk(r)) {
+                    Swal.fire({ icon: 'error', text: errText(r, 'Could not undo the run.') });
+                } else {
+                    Swal.fire({ icon: 'success', text: 'Run undone. ' + kg(run.volume_kg) + ' kg are back in silo ' + run.silo_number + '.' });
+                }
+                return load();
+            });
+        }).catch(function (e) {
+            Swal.fire({ icon: 'error', text: 'Could not undo the run: ' + String(e) });
+        });
+    }
+
     // Correct the start / stop time of a finished run.
     function editTimes(runId) {
         var run = (state.periodRuns || []).concat(state.runs || []).filter(function (r) { return String(r.id) === String(runId); })[0];
@@ -1302,7 +1329,9 @@ var _siloAllocationGrid = (function () {
                 '<div id="siloEtLong"></div>' +
                 '<div class="silo-summary-strip mt-3"><span>Ran for</span><strong id="siloEtRan">—</strong></div>',
             showCancelButton: true,
+            showDenyButton: true,
             confirmButtonText: 'Save',
+            denyButtonText: 'Undo this run',
             cancelButtonText: 'Cancel',
             focusConfirm: false,
             didOpen: function () {
@@ -1332,6 +1361,7 @@ var _siloAllocationGrid = (function () {
                 return { s: s, e: e };
             }
         }).then(function (c) {
+            if (c.isDenied) { return undoRun(run); }
             if (!c.isConfirmed) { return; }
             return dataFunctions.updateSiloRunTimes(run.id, c.value.s, c.value.e).then(function (r) {
                 if (!isOk(r)) { Swal.fire({ icon: 'error', text: errText(r, 'Could not save the times.') }); }
