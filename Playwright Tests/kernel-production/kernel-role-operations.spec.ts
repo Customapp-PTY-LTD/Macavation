@@ -3,16 +3,16 @@ import { navigateToModule } from '../helpers/navigation.helper';
 
 /**
  * Kernel-only E2E: role-based access and operations for Kernel modules.
- * Each role can access: Grower Intake, Kernel Production, Stock (Kernel), Kernel Dispatch.
+ * Each role can access: Receiving, Production, Stock on Hand, Dispatch and Sales.
  * Operations: no Access Denied, Send to Dispatch modal + buyer select where applicable.
  * Users have password1 (created in Supabase for E2E).
  */
 
 const KERNEL_MODULES: { route: string; name: string; contentSelector: string }[] = [
-  { route: 'grower-intake-grid', name: 'Grower Intake', contentSelector: '.module-content, #growerIntakeGrid' },
-  { route: 'kernel-production-grid', name: 'Kernel Production', contentSelector: '#kpKanbanBoard, #kpTableCard, .module-content' },
-  { route: 'stock-management-kernel', name: 'Stock (Kernel)', contentSelector: '#kernelBatchJourneyCard, #stockManagementTitle, .module-content' },
-  { route: 'kernel-dispatch-grid', name: 'Kernel Dispatch', contentSelector: '#kdKanbanBoard, #kdTableCards, .module-content' },
+  { route: 'grower-intake-grid', name: 'Receiving', contentSelector: '.module-content, #growerIntakeGrid' },
+  { route: 'kernel-production-grid', name: 'Production', contentSelector: '#kpKanbanBoard, #kpTableCard, .module-content' },
+  { route: 'stock-management-kernel', name: 'Stock on Hand', contentSelector: '#kernelBatchJourneyCard, #stockManagementTitle, .module-content' },
+  { route: 'kernel-dispatch-grid', name: 'Dispatch and Sales', contentSelector: '#kdKanbanBoard, #kdTableCards, .module-content' },
 ];
 
 function noAccessDenied(page: import('@playwright/test').Page) {
@@ -32,14 +32,14 @@ test.describe('Kernel role operations - General Manager @kernel @rbac', () => {
     }
   });
 
-  test('General Manager: Stock (Kernel) - Send to Dispatch buyer dropdown', async ({ testData, loginAsGeneralManager }) => {
+  test('General Manager: Dispatch and Sales - Send to Dispatch buyer dropdown', async ({ testData, loginAsGeneralManager }) => {
     test.skip(!testData.users.generalManager?.email || !testData.users.generalManager?.password, 'Set GENERAL_MANAGER_EMAIL and GENERAL_MANAGER_PASSWORD');
     const page = await loginAsGeneralManager();
     await page.waitForLoadState('networkidle');
-    await navigateToModule(page, 'stock-management-kernel');
+    await navigateToModule(page, 'kernel-dispatch-grid');
     await page.waitForTimeout(1500);
     await noAccessDenied(page);
-    await page.locator('#sendToDispatchBtn').click();
+    await page.locator('#kdSendToDispatchBtn').click();
     await expect(page.locator('#sendToDispatchModal')).toBeVisible({ timeout: 8000 });
     const buyerSelect = page.locator('#dispatchBuyerContact');
     await expect(buyerSelect).toBeVisible({ timeout: 5000 });
@@ -77,14 +77,14 @@ test.describe('Kernel role operations - QA Supervisor @kernel @rbac', () => {
     }
   });
 
-  test('QA Supervisor: Stock (Kernel) - Send to Dispatch modal opens', async ({ testData, loginAsQASupervisor }) => {
+  test('QA Supervisor: Dispatch and Sales - Send to Dispatch modal opens', async ({ testData, loginAsQASupervisor }) => {
     test.skip(!testData.users.qaSupervsor?.email || !testData.users.qaSupervsor?.password, 'Set QA_SUPERVISOR_EMAIL and QA_SUPERVISOR_PASSWORD');
     const page = await loginAsQASupervisor();
     await page.waitForLoadState('networkidle');
-    await navigateToModule(page, 'stock-management-kernel');
+    await navigateToModule(page, 'kernel-dispatch-grid');
     await page.waitForTimeout(1500);
     await noAccessDenied(page);
-    await page.locator('#sendToDispatchBtn').click();
+    await page.locator('#kdSendToDispatchBtn').click();
     await expect(page.locator('#sendToDispatchModal')).toBeVisible({ timeout: 8000 });
     await page.locator('#sendToDispatchModal .btn-close, [data-bs-dismiss="modal"]').first().click().catch(() => {});
   });

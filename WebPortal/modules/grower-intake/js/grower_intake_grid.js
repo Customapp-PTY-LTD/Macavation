@@ -297,7 +297,7 @@ var _growerIntakeGrid = function () {
             const released = (typeof _giBags !== 'undefined') ? _giBags.releasedBatches() : [];
             scope.filteredIntakeBatches = scope.intakeBatches.concat(released).filter((b) => {
                 const matchesSearch = !searchTerm ||
-                    (b.batch_number && b.batch_number.toLowerCase().indexOf(searchTerm) >= 0) ||
+                    (b.batch_number && (b.batch_number.toLowerCase().indexOf(searchTerm) >= 0 || macBatchNo.matches(b.batch_number, searchTerm))) ||
                     (b.grower_name && b.grower_name.toLowerCase().indexOf(searchTerm) >= 0);
                 var matchesStatus = !statusFilter;
                 if (statusFilter === 'released') {
@@ -403,6 +403,7 @@ var _growerIntakeGrid = function () {
                 const canRelease = checklistDone && sampleDone;
                 var batchNum = (b.batch_number || '').toString();
                 var batchNumEscaped = batchNum.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                var batchNumDisplayEscaped = macBatchNo.format(batchNum).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
                 /* Stage 1: show only one option per workflow — Receiving checklist first, then New batch sample, then complete */
                 var stage1Btn;
@@ -430,7 +431,7 @@ var _growerIntakeGrid = function () {
                     ' data-batch-id="' + b.id + '"' +
                     ' data-has-checklist="' + (checklistDone ? '1' : '0') + '"' +
                     ' data-sample-done="' + (sampleDone ? '1' : '0') + '">' +
-                    batchNumEscaped + '</a>';
+                    batchNumDisplayEscaped + '</a>';
 
                 var suppliedVal = b.wet_nis_received_kg != null ? _common.formatKg(b.wet_nis_received_kg) : '';
                 var actualVal = b.actual_wet_nis_kg != null ? _common.formatKg(b.actual_wet_nis_kg) : '';
@@ -451,7 +452,7 @@ var _growerIntakeGrid = function () {
                     // Released to production with bags still waiting: read-only here, no stage steps.
                     stage1Cell = '<span class="text-muted small">In production</span>';
                     actionsCell = '';
-                    batchNumberCell = batchNumEscaped;
+                    batchNumberCell = batchNumDisplayEscaped;
                 }
                 const row = '<tr class="js-intake-batch-row" data-batch-id="' + b.id + '">' +
                     '<td class="intake-col-expand">' + (gib ? gib.tableToggle(b.id) : '') + '</td>' +
@@ -518,7 +519,7 @@ var _growerIntakeGrid = function () {
 
                 // Collapsed card: number and tonnes, grower, one bag line, the next step. The column is the status.
                 var html = '<div class="kanban-card js-intake-batch-row gi-card' + (b._released ? ' gi-card-released' : '') + '" data-batch-id="' + b.id + '">';
-                html += '<div class="gi-card-head"><span class="kanban-card-title">' + esc(batchNum) + '</span>' +
+                html += '<div class="gi-card-head"><span class="kanban-card-title">' + esc(macBatchNo.format(batchNum)) + '</span>' +
                     (tonnesLabel ? '<span class="gi-card-t" title="' + (b.actual_wet_nis_kg != null ? 'Weighed total' : "Supplier's declared") + (receivedDate ? ' · received ' + esc(receivedDate) : '') + '">' + esc(tonnesLabel) + '</span>' : '') + '</div>';
                 if (b.grower_name) html += '<div class="kanban-card-meta"><div class="kanban-card-meta-item" title="Grower / supplier"><i class="fas fa-user"></i> ' + esc(b.grower_name) + '</div></div>';
                 if (gib) html += gib.cardSummary(b.id, !!b._released);
@@ -568,7 +569,7 @@ var _growerIntakeGrid = function () {
             }
             relHtml += '<p class="mb-0 text-muted">The pre-sizer figure is now entered when bags are allocated to a silo.</p>';
             const confirmRes = await Swal.fire({
-                title: 'Release ' + _common.escapeHtml(relNumber) + ' to production',
+                title: 'Release ' + _common.escapeHtml(macBatchNo.format(relNumber)) + ' to production',
                 html: relHtml,
                 showCancelButton: true,
                 confirmButtonText: 'Release',
@@ -583,7 +584,7 @@ var _growerIntakeGrid = function () {
                     if (typeof HandoffDialog !== 'undefined' && HandoffDialog.showKernelReleaseToProduction) {
                         await HandoffDialog.showKernelReleaseToProduction(batch || { batch_number: batchId });
                     } else if (typeof Swal !== 'undefined') {
-                        Swal.fire({ icon: 'success', title: 'Released to production', text: 'Batch is now in Kernel Production. Start production, then complete and run tests to release to stock.', timer: 2500, showConfirmButton: false });
+                        Swal.fire({ icon: 'success', title: 'Released to production', text: 'Batch is now in Production. Start production, then complete and run tests to release to stock.', timer: 2500, showConfirmButton: false });
                     }
                 } else {
                     throw new Error(result && result.error ? result.error : 'Release failed');
@@ -602,7 +603,7 @@ var _growerIntakeGrid = function () {
                 return;
             }
             const batch = scope.intakeBatches.find((b) => String(b.id) === String(batchId));
-            const batchLabel = batch ? (batch.batch_number || 'this batch') : 'this batch';
+            const batchLabel = batch ? macBatchNo.format(batch.batch_number || 'this batch') : 'this batch';
             Swal.fire({
                 title: 'Archive kernel batch?',
                 html: 'Send <strong>' + batchLabel + '</strong> to the archive? It will be removed from intake and production lists. Restore later from Stock → <strong>View archive</strong>.',
@@ -738,7 +739,7 @@ var _growerIntakeGrid = function () {
                         if (status) tags.push({ text: NOW_AT[status] || ('Now: ' + status), tone: 'blue' });
                         return {
                             date: String(b.received_date).slice(0, 10),
-                            title: b.batch_number || 'Batch',
+                            title: macBatchNo.format(b.batch_number || 'Batch'),
                             subtitle: b.grower_name || '',
                             tags: tags
                         };

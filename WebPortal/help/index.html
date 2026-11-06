@@ -97,7 +97,7 @@
       <li>Type in the search field (batch, grower, etc.); set <strong>Status</strong> and <strong>Sort</strong> (newest, by status, by grower, weight, moisture) to shorten the list.</li>
       <li>Read the <strong>Status</strong> column for Intake, Receiving, Production, QA, Dispatch, or Complete.</li>
       <li>On the <strong>Kernel</strong> tab, click a row to open the <strong>batch page</strong>: key figures (wet NIS, moisture, cracked so far, packed, dispatched), where the batch is in its journey, and one section per stage — Batch details, Receiving, Intake samples, Production days, Job card, End sample (QA) and Dispatch.</li>
-      <li>Press <strong>Edit</strong> on a section, change the values, then <strong>Save</strong> that section — only that section is saved. Delivery: change the delivery note, consignment ref, transporter, rate, collection points and bags (a bag already placed in a storage area or silo keeps its weight until it is taken out on Grower Intake). Production days: pick a day, then edit Washing or Sorting here; Cracking opens Kernel Production's own sheet (it is filled from the silo Cracking log, and a note shows when the two differ). Once the job card is approved, packed quantities are changed on the job card. The job card is saved as a draft only (it can be started early, with a warning). Dispatch: change this batch's cartons on any order that has not been dispatched.</li>
+      <li>Press <strong>Edit</strong> on a section, change the values, then <strong>Save</strong> that section — only that section is saved. Delivery: change the delivery note, consignment ref, transporter, rate, collection points and bags (a bag already placed in a storage area or silo keeps its weight until it is taken out on Receiving). Production days: pick a day, then edit Washing or Sorting here; Cracking opens Production's own sheet (it is filled from the silo Cracking log, and a note shows when the two differ). Once the job card is approved, packed quantities are changed on the job card. The job card is saved as a draft only (it can be started early, with a warning). Dispatch: change this batch's cartons on any order that has not been dispatched.</li>
       <li>Use <strong>Back to Find a batch</strong> to return to the list with your search, filter and sort as you left them, or <strong>Open in …</strong> to jump to the module that owns the batch's next step.</li>
     </ol>
     <figure class="guide-shot">
@@ -405,7 +405,7 @@
   </section>
 
   <section id="grower-intake-grid" class="guide-section" data-guide-id="grower-intake-grid">
-    <h2>Grower Intake (module)</h2>
+    <h2>Receiving (module)</h2>
 <p class="guide-lead">Kernel-side intake: receiving checklists, batch testing, and creating kernel batches before production.</p>
     <p class="guide-how">Work delivery-by-delivery: complete receiving checklists, capture samples if required, then create or link kernel batches so production can start.</p>
     <figure class="guide-flow">
@@ -417,7 +417,7 @@
       <li>Use <strong>Search</strong>, <strong>Status</strong>, and <strong>Clear</strong> to find the batch; switch <strong>Board</strong> vs <strong>Table</strong> to match how you like to work.</li>
       <li>For each delivery: complete the <strong>Receiving checklist</strong> (Stage 1) from the batch card or row actions—both batch test and batch sample unlock only after the checklist is done.</li>
       <li>Use <strong>Create kernel batch</strong> when you need a new intake record; use <strong>Export</strong> for a spreadsheet snapshot when auditing.</li>
-      <li>When quality steps are satisfied, use <strong>Release to production</strong> so Kernel Production can receive the batch.</li>
+      <li>When quality steps are satisfied, use <strong>Release to production</strong> so Production can receive the batch.</li>
     </ol>
     <figure class="guide-shot">
       <img src="./assets/screenshots/grower-intake-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
@@ -486,7 +486,7 @@
   </section>
 
   <section id="modal-kernel-dispatch" class="guide-section" data-guide-id="modal-kernel-dispatch">
-    <h2>Kernel Dispatch (dialog)</h2>
+    <h2>Dispatch and Sales (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
 
     <h3 class="guide-subhead">How to use this screen</h3>
@@ -501,7 +501,7 @@
   </section>
 
   <section id="kernel-dispatch-grid" class="guide-section" data-guide-id="kernel-dispatch-grid">
-    <h2>Kernel Dispatch (module)</h2>
+    <h2>Dispatch and Sales (module)</h2>
 <p class="guide-lead">Kernel finished goods: board/table views, dispatch basket, and inspection forms before despatch.</p>
     <p class="guide-how">Build the dispatch basket from approved stock, complete inspections, then finalise documents. Fixes to stock usually happen in Stock Management, not here.</p>
 
@@ -520,7 +520,7 @@
   </section>
 
   <section id="modal-kernel-dispatch-edit" class="guide-section" data-guide-id="modal-kernel-dispatch-edit">
-    <h2>Kernel Dispatch Edit (dialog)</h2>
+    <h2>Dispatch and Sales Edit (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
 
     <h3 class="guide-subhead">How to use this screen</h3>
@@ -530,7 +530,7 @@
       <li>Fill the form using dropdowns, dates, and lookups where offered so values match what the database expects.</li>
       <li>Click the primary <strong>Save</strong> / <strong>Submit</strong> button to apply changes, or <strong>Cancel</strong> / close (×) to discard.</li>
       <li>If validation errors appear, fix the highlighted fields and submit again before leaving the dialog.</li>
-      <li><strong>Send back to stock</strong> on a line removes that line from the order and returns its cartons to Stock (Kernel) immediately — it does not wait for <strong>Save changes</strong>. Sending back the only remaining line cancels the whole order.</li>
+      <li><strong>Send back to stock</strong> on a line removes that line from the order and returns its cartons to Stock on Hand immediately — it does not wait for <strong>Save changes</strong>. Sending back the only remaining line cancels the whole order.</li>
     </ol>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-kernel-dispatch-edit.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
@@ -538,7 +538,7 @@
   </section>
 
   <section id="modal-kernel-dispatch-form" class="guide-section" data-guide-id="modal-kernel-dispatch-form">
-    <h2>Kernel Dispatch Form (dialog)</h2>
+    <h2>Dispatch and Sales Form (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
 
     <h3 class="guide-subhead">How to use this screen</h3>
@@ -569,7 +569,7 @@
   </section>
 
   <section id="kernel-production-grid" class="guide-section" data-guide-id="kernel-production-grid">
-    <h2>Kernel Production (module)</h2>
+    <h2>Production (module)</h2>
 <p class="guide-lead">Production workflow: job cards, production stages, batch summaries, and QA hand-offs.</p>
     <p class="guide-how">Drive job cards through stages; use board or list views as your site prefers. QA and stock hand-offs depend on accurate stage completion.</p>
     <figure class="guide-flow">

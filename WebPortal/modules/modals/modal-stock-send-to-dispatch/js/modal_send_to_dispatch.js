@@ -1,7 +1,9 @@
 /**
- * Modal: Send to Dispatch.
- * Step 1: Pick customer + planned collection and delivery dates.
+ * Modal: Send to Dispatch (opened from Dispatch and Sales since 6 Nov 2026).
+ * Step 1: Pick customer (their Contacts details show underneath) + planned collection date.
+ *         There is no separate delivery date any more: delivery_date is sent as the collection date.
  * Step 2: Shopping cart — browse kernel batches by style, pick quantities, then send.
+ *         Loads its own finished batches, so it works without the Stock on Hand page.
  */
 var _modal_stock_send_to_dispatch = (function () {
     'use strict';
@@ -28,6 +30,32 @@ var _modal_stock_send_to_dispatch = (function () {
     }
     var _dispatchLines = [];
     var _pendingDetails = null;
+    /** Finished kernel batches with stock (loaded by show()); contacts by id for the details card. */
+    var _batches = [];
+    var _contactsById = {};
+
+    function fmtBatch(v) {
+        return (typeof macBatchNo !== 'undefined') ? macBatchNo.format(v) : String(v == null ? '' : v);
+    }
+
+    function loadBatches() {
+        var df = (typeof dataFunctions !== 'undefined' && dataFunctions && dataFunctions.getKernelBatches) ? dataFunctions : null;
+        if (!df) {
+            _batches = (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.kernelFinishedBatches) ? _stockManagementGrid.kernelFinishedBatches : [];
+            return Promise.resolve(_batches);
+        }
+        return df.getKernelBatches(null, true, { status: 'complete' }).then(function (all) {
+            _batches = (all || []).filter(function (b) {
+                var st = b && b.status != null ? String(b.status).trim() : '';
+                return (st === 'complete' || st === 'in_finished_stock') && b.is_active !== false;
+            });
+            return _batches;
+        }).catch(function (e) {
+            console.warn('[Dispatch Modal] could not load batches:', e);
+            _batches = [];
+            return _batches;
+        });
+    }
     var DEFAULT_BB_BANDS = { green: 12, yellow: 6 };
     var _bbBands = DEFAULT_BB_BANDS;
 
@@ -115,6 +143,21 @@ var _modal_stock_send_to_dispatch = (function () {
             $(document).off('input.dispatchModalValid', '#sendToDispatchStep1 .is-invalid').on('input.dispatchModalValid', '#sendToDispatchStep1 .is-invalid', function () {
                 $(this).removeClass('is-invalid');
             });
+            $(document).off('change.dispatchModalDetails', '#dispatchBuyerContact').on('change.dispatchModalDetails', '#dispatchBuyerContact', function () {
+                api.renderCustomerDetails(this.value);
+            });
+            $(document).off('click.dispatchCustEdit', '#dispatchCustomerEditBtn').on('click.dispatchCustEdit', '#dispatchCustomerEditBtn', function (e) {
+                e.preventDefault();
+                api.showCustomerEdit();
+            });
+            $(document).off('click.dispatchCustEdit', '#dispatchCustEditCancelBtn').on('click.dispatchCustEdit', '#dispatchCustEditCancelBtn', function (e) {
+                e.preventDefault();
+                api.hideCustomerEdit();
+            });
+            $(document).off('click.dispatchCustEdit', '#dispatchCustEditSaveBtn').on('click.dispatchCustEdit', '#dispatchCustEditSaveBtn', function (e) {
+                e.preventDefault();
+                api.saveCustomerEdit();
+            });
             $(document).off('change.dispatchModalValid', '#dispatchBuyerContact').on('change.dispatchModalValid', '#dispatchBuyerContact', function () {
                 $(this).removeClass('is-invalid');
             });
@@ -139,7 +182,7 @@ var _modal_stock_send_to_dispatch = (function () {
             // Flatpickr init when modal opens
             if (typeof $ !== 'undefined') {
                 $(document).on('shown.bs.modal', '#sendToDispatchModal', function () {
-                    ['dispatchCollectionDate', 'dispatchDeliveryDate'].forEach(function (id) {
+                    ['dispatchCollectionDate'].forEach(function (id) {
                         var el = document.getElementById(id);
                         if (el && !el._flatpickr && typeof flatpickr !== 'undefined') {
                             flatpickr(el, FLATPICKR_DDMMYYYY);
@@ -179,12 +222,18 @@ var _modal_stock_send_to_dispatch = (function () {
             var d = details || _pendingDetails || {};
             var buyerLabelEl = document.getElementById('sendToDispatchStep2BuyerLabel');
             var collectionLabelEl = document.getElementById('sendToDispatchStep2CollectionLabel');
-            var deliveryLabelEl = document.getElementById('sendToDispatchStep2DeliveryLabel');
             if (buyerLabelEl) buyerLabelEl.textContent = d.buyer_name || '—';
             if (collectionLabelEl) collectionLabelEl.textContent = (d.planned_collection_date ? deliveryDateFromISO(d.planned_collection_date) : '') || '—';
-            if (deliveryLabelEl) deliveryLabelEl.textContent = (d.delivery_date ? deliveryDateFromISO(d.delivery_date) : '') || '—';
             api.renderShoppingTable();
             api.renderBasket();
+            // The batches load when the modal opens; draw again once they are in.
+            if (api._batchesLoading) {
+                api._batchesLoading.then(function () {
+                    var active = document.activeElement;
+                    var typing = active && active.classList && active.classList.contains('js-dispatch-qty-input');
+                    if (!typing) api.renderShoppingTable();
+                });
+            }
             // Bands may still be loading: re-render once they arrive, unless the user is already typing in the table.
             loadBands().then(function (changed) {
                 var active = document.activeElement;
@@ -194,7 +243,7 @@ var _modal_stock_send_to_dispatch = (function () {
         },
 
         renderShoppingTable: function () {
-            var source = (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.kernelFinishedBatches) ? _stockManagementGrid.kernelFinishedBatches : [];
+            var source = _batches || [];
             // Order a COPY (oldest best-before first, undated last): the source array is shared with the Stock grid.
             var batches = source.slice().sort(function (a, b) {
                 var da = toISODate(a && a.best_before_date), db = toISODate(b && b.best_before_date);
@@ -233,8 +282,16 @@ var _modal_stock_send_to_dispatch = (function () {
                 var tr = document.createElement('tr');
 
                 var tdBatch = document.createElement('td');
-                tdBatch.className = 'fw-semibold';
-                tdBatch.textContent = (b.batch_number || '').toString();
+                var bn = document.createElement('div');
+                bn.className = 'fw-semibold text-nowrap';
+                bn.textContent = fmtBatch(b.batch_number || '');
+                tdBatch.appendChild(bn);
+                if (b.grower_name) {
+                    var sup = document.createElement('div');
+                    sup.className = 'small text-muted';
+                    sup.textContent = String(b.grower_name);
+                    tdBatch.appendChild(sup);
+                }
                 tr.appendChild(tdBatch);
 
                 var bbISO = toISODate(b.best_before_date);
@@ -284,7 +341,7 @@ var _modal_stock_send_to_dispatch = (function () {
                     input.title = 'Type how many boxes (up to ' + cartonsAvail + ')';
                     input.setAttribute('inputmode', 'numeric');
                     input.setAttribute('pattern', '[0-9]*');
-                    input.setAttribute('aria-label', 'Cartons of style ' + k + ', batch ' + (b.batch_number || '') + ' (max ' + cartonsAvail + ')');
+                    input.setAttribute('aria-label', 'Cartons of style ' + k + ', batch ' + fmtBatch(b.batch_number || '') + ' (max ' + cartonsAvail + ')');
                     input.setAttribute('data-batch-id', batchId);
                     input.setAttribute('data-style', k);
                     input.setAttribute('data-max-qty', String(cartonsAvail));
@@ -384,7 +441,7 @@ var _modal_stock_send_to_dispatch = (function () {
                 var tr = document.createElement('tr');
                 var tdB = document.createElement('td');
                 tdB.className = 'fw-semibold';
-                tdB.textContent = line.batch_number || '—';
+                tdB.textContent = line.batch_number ? fmtBatch(line.batch_number) : '—';
                 var tdS = document.createElement('td');
                 tdS.textContent = (line.style !== undefined && line.style !== null) ? line.style : '—';
                 var tdQ = document.createElement('td');
@@ -420,7 +477,9 @@ var _modal_stock_send_to_dispatch = (function () {
                 var contacts = Array.isArray(raw) ? raw : (raw && raw.get_contacts ? raw.get_contacts : (raw && raw.data ? raw.data : []));
                 if (!Array.isArray(contacts)) return;
                 var kernelCustomers = contacts.filter(function (c) { return c.contact_type === 'kernel_customer'; });
+                _contactsById = {};
                 kernelCustomers.forEach(function (c) {
+                    if (c && c.id != null) _contactsById[String(c.id)] = c;
                     // Dispatch buyer_name: company name, falling back to trading name
                     var name = c.company_name || c.trading_name || c.primary_contact_name || c.id;
                     if (!name) return;
@@ -431,6 +490,112 @@ var _modal_stock_send_to_dispatch = (function () {
                     buyerSelect.appendChild(opt);
                 });
             }).catch(function () {});
+        },
+
+        /** The chosen customer's Contacts details under the picker (Mike, 5 Nov 2026). */
+        renderCustomerDetails: function (contactId) {
+            var box = document.getElementById('dispatchCustomerDetails');
+            var list = document.getElementById('dispatchCustomerDetailsList');
+            if (!box || !list) return;
+            api.hideCustomerEdit();
+            list.innerHTML = '';
+            var c = contactId ? _contactsById[String(contactId)] : null;
+            if (!c) { box.style.display = 'none'; return; }
+            var clean = function (v) { return v == null ? '' : String(v).trim(); };
+            var address = [c.physical_address_line1, c.physical_address_line2, c.physical_area, c.physical_city, c.physical_province, c.physical_postal_code]
+                .map(clean).filter(Boolean).join(', ');
+            var second = [clean(c.secondary_contact_name), clean(c.secondary_contact_mobile) || clean(c.secondary_contact_phone)].filter(Boolean).join(' · ');
+            var rows = [
+                ['Contact person', clean(c.primary_contact_name)],
+                ['Cell / phone', clean(c.primary_contact_mobile) || clean(c.primary_contact_phone)],
+                ['Email', clean(c.primary_contact_email)],
+                ['Delivery address', address],
+                ['VAT number', clean(c.vat_number)]
+            ];
+            if (second) rows.push(['Second contact', second]);
+            rows.forEach(function (r) {
+                var col = document.createElement('div');
+                col.className = 'col-sm-6';
+                var dt = document.createElement('dt');
+                dt.className = 'text-muted fw-normal';
+                dt.textContent = r[0];
+                var dd = document.createElement('dd');
+                dd.className = 'mb-0' + (r[1] ? '' : ' text-warning-emphasis');
+                dd.textContent = r[1] || 'Not in Contacts yet';
+                col.appendChild(dt);
+                col.appendChild(dd);
+                list.appendChild(col);
+            });
+            box.style.display = '';
+        },
+
+        /** Edit in place: the card's fields as inputs, filled with what Contacts has now. */
+        showCustomerEdit: function () {
+            var id = (document.getElementById('dispatchBuyerContact') || {}).value;
+            var c = id ? _contactsById[String(id)] : null;
+            if (!c) return;
+            var v = function (x) { return x == null ? '' : String(x); };
+            var set = function (elId, val) { var el = document.getElementById(elId); if (el) el.value = val; };
+            set('dispatchCustEditPerson', v(c.primary_contact_name));
+            set('dispatchCustEditMobile', v(c.primary_contact_mobile) || v(c.primary_contact_phone));
+            set('dispatchCustEditEmail', v(c.primary_contact_email));
+            set('dispatchCustEditVat', v(c.vat_number));
+            set('dispatchCustEditAddress', v(c.physical_address_line1));
+            set('dispatchCustEditArea', v(c.physical_area));
+            set('dispatchCustEditCity', v(c.physical_city));
+            set('dispatchCustEditProvince', v(c.physical_province));
+            set('dispatchCustEditPostal', v(c.physical_postal_code));
+            var err = document.getElementById('dispatchCustEditError');
+            if (err) { err.style.display = 'none'; err.textContent = ''; }
+            $('#dispatchCustomerDetailsList, #dispatchCustomerEditBtn').hide();
+            $('#dispatchCustomerDetailsHint').text('Saves straight to Contacts.');
+            $('#dispatchCustomerEditForm').show();
+            setTimeout(function () { var f = document.getElementById('dispatchCustEditPerson'); if (f) f.focus(); }, 30);
+        },
+
+        hideCustomerEdit: function () {
+            $('#dispatchCustomerEditForm').hide();
+            $('#dispatchCustomerDetailsList, #dispatchCustomerEditBtn').show();
+            $('#dispatchCustomerDetailsHint').text('From Contacts.');
+        },
+
+        saveCustomerEdit: function () {
+            var id = (document.getElementById('dispatchBuyerContact') || {}).value;
+            var err = document.getElementById('dispatchCustEditError');
+            var btn = document.getElementById('dispatchCustEditSaveBtn');
+            var val = function (elId) { var el = document.getElementById(elId); return el ? el.value.trim() : ''; };
+            var showErr = function (msg) { if (err) { err.textContent = msg; err.style.display = 'block'; } };
+            if (!id) return;
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.updateDispatchCustomerDetails) {
+                showErr('Saving is not available. Please refresh the page.');
+                return;
+            }
+            var email = val('dispatchCustEditEmail');
+            if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+                showErr('That email address does not look right.');
+                return;
+            }
+            if (btn) btn.disabled = true;
+            dataFunctions.updateDispatchCustomerDetails(id, {
+                contactPerson: val('dispatchCustEditPerson'),
+                mobile: val('dispatchCustEditMobile'),
+                email: email,
+                vatNumber: val('dispatchCustEditVat'),
+                addressLine1: val('dispatchCustEditAddress'),
+                area: val('dispatchCustEditArea'),
+                city: val('dispatchCustEditCity'),
+                province: val('dispatchCustEditProvince'),
+                postalCode: val('dispatchCustEditPostal')
+            }).then(function (res) {
+                if (btn) btn.disabled = false;
+                if (!res || res.success === false) {
+                    showErr((res && res.error) || 'Could not save. Please try again.');
+                    return;
+                }
+                if (res.contact) _contactsById[String(id)] = Object.assign({}, _contactsById[String(id)] || {}, res.contact);
+                api.renderCustomerDetails(id);
+                if (typeof Swal !== 'undefined') Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Customer details saved to Contacts', showConfirmButton: false, timer: 2200 });
+            });
         },
 
         showAddBuyerForm: function () {
@@ -504,6 +669,8 @@ var _modal_stock_send_to_dispatch = (function () {
                         }
                         buyerSelect.value = id;
                         buyerSelect.classList.remove('is-invalid');
+                        if (!_contactsById[String(id)]) _contactsById[String(id)] = Object.assign({ id: id }, payload);
+                        api.renderCustomerDetails(id);
                     });
                     if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Customer added', timer: 1500, showConfirmButton: false });
                 } else {
@@ -524,7 +691,9 @@ var _modal_stock_send_to_dispatch = (function () {
             api.showStep1();
             var buyerSelect = document.getElementById('dispatchBuyerContact');
             if (buyerSelect) buyerSelect.classList.remove('is-invalid');
-            ['dispatchCollectionDate', 'dispatchDeliveryDate'].forEach(function (id) {
+            api.renderCustomerDetails(null);
+            api._batchesLoading = loadBatches();
+            ['dispatchCollectionDate'].forEach(function (id) {
                 var el = document.getElementById(id);
                 if (!el) return;
                 el.classList.remove('is-invalid');
@@ -543,7 +712,6 @@ var _modal_stock_send_to_dispatch = (function () {
         onNextSelectBoxes: function () {
             var buyerSelect = document.getElementById('dispatchBuyerContact');
             var collectionInput = document.getElementById('dispatchCollectionDate');
-            var deliveryInput = document.getElementById('dispatchDeliveryDate');
             function warn(msg) {
                 if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire('Validation', msg, 'warning');
             }
@@ -561,24 +729,12 @@ var _modal_stock_send_to_dispatch = (function () {
                 warn('Please select the planned collection date.');
                 return;
             }
-            var deliveryDisplay = deliveryInput && deliveryInput.value ? deliveryInput.value.trim() : null;
-            var deliveryDateISO = deliveryDisplay ? deliveryDateToISO(deliveryDisplay) : null;
-            if (!deliveryDateISO) {
-                if (deliveryInput) deliveryInput.classList.add('is-invalid');
-                warn('Please select the planned delivery date.');
-                return;
-            }
-            // ISO dates compare correctly as strings
-            if (deliveryDateISO < collectionISO) {
-                if (deliveryInput) deliveryInput.classList.add('is-invalid');
-                warn('The planned delivery date cannot be before the planned collection date.');
-                return;
-            }
+            // No separate delivery date: the server keeps delivery_date equal to the collection date.
             _pendingDetails = {
                 buyer_name: buyerName,
                 buyer_contact_id: buyerSelect.value,
                 planned_collection_date: collectionISO,
-                delivery_date: deliveryDateISO
+                delivery_date: collectionISO
             };
             api.showStep2(_pendingDetails);
         },
@@ -609,7 +765,7 @@ var _modal_stock_send_to_dispatch = (function () {
                 lines: lines
             }).then(function (result) {
                 if (result && result.success !== false) {
-                    var batchLabel = (lines[0] && lines[0].batch_number) ? lines[0].batch_number : '';
+                    var batchLabel = (lines[0] && lines[0].batch_number) ? fmtBatch(lines[0].batch_number) : '';
                     if (typeof HandoffDialog !== 'undefined' && HandoffDialog.showSendToDispatch) {
                         HandoffDialog.showSendToDispatch('kernel', batchLabel);
                     } else if (typeof Swal !== 'undefined' && Swal.fire) {
@@ -624,9 +780,10 @@ var _modal_stock_send_to_dispatch = (function () {
                     } else if (typeof $ !== 'undefined' && $.fn.modal) {
                         $('#sendToDispatchModal').modal('hide');
                     }
-                    if (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.loadKernelBatches) {
+                    if (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.loadKernelBatches && document.getElementById('kernelStockByStyleTable')) {
                         setTimeout(function () { _stockManagementGrid.loadKernelBatches(true); }, 300);
                     }
+                    if (typeof $ !== 'undefined') $(document).trigger('kernelDispatch:changed');
                 } else {
                     throw new Error(result && result.error ? result.error : 'Failed to create dispatch order');
                 }

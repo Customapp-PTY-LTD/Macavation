@@ -1,21 +1,21 @@
 import { test, expect } from '../fixtures';
-import { navigateToStockKernel } from '../helpers/navigation.helper';
+import { navigateToStockKernel, navigateToModule } from '../helpers/navigation.helper';
 
 /**
- * Stock (Kernel) Module Tests
- * QA Blueprint: Playwright Tests/{module-name}/ — Stock (Kernel) variant.
+ * Stock on Hand Module Tests
+ * QA Blueprint: Playwright Tests/{module-name}/ — Stock on Hand variant.
  * Grid View, Kernel batch journey, By style / Weekly / Overview, Send to Dispatch, Refresh.
  */
 
-test.describe('Stock (Kernel) @stock-kernel', () => {
+test.describe('Stock on Hand @stock-kernel', () => {
 
   test.beforeEach(async ({ authenticatedPage }) => {
     await navigateToStockKernel(authenticatedPage);
   });
 
-  test('TC-SK-001: Stock (Kernel) title and module load', async ({ authenticatedPage }) => {
+  test('TC-SK-001: Stock on Hand title and module load', async ({ authenticatedPage }) => {
     await authenticatedPage.waitForTimeout(500);
-    const title = authenticatedPage.locator('#stockManagementTitle:has-text("Stock (Kernel)")');
+    const title = authenticatedPage.locator('#stockManagementTitle:has-text("Stock on Hand")');
     await expect(title).toBeVisible({ timeout: 10000 });
     const moduleContent = authenticatedPage.locator('.module-content, #content-area').first();
     await expect(moduleContent).toBeVisible({ timeout: 10000 });
@@ -54,10 +54,11 @@ test.describe('Stock (Kernel) @stock-kernel', () => {
     await expect(byStyleBtn).toHaveClass(/active/);
   });
 
-  test('TC-SK-005: Send to Dispatch button visible', async ({ authenticatedPage }) => {
-    const sendBtn = authenticatedPage.locator('#sendToDispatchBtn');
-    await expect(sendBtn).toBeVisible({ timeout: 10000 });
-    await expect(sendBtn).toContainText(/Send to Dispatch|Dispatch/);
+  test('TC-SK-005: Add Batch button in the top toolbar, Send to Dispatch moved to Dispatch and Sales', async ({ authenticatedPage }) => {
+    const addBtn = authenticatedPage.locator('#kernelAdjustModeAddBatchBtn');
+    await expect(addBtn).toBeVisible({ timeout: 10000 });
+    await expect(addBtn).toContainText(/Add Batch/);
+    await expect(authenticatedPage.locator('#sendToDispatchBtn')).toHaveCount(0);
   });
 
   test('TC-SK-006: Refresh Kernel Stock button when present', async ({ authenticatedPage }) => {
@@ -88,12 +89,13 @@ test.describe('Stock (Kernel) @stock-kernel', () => {
  */
 test.describe('Kernel - Form Operations: Send to Dispatch @kernel', () => {
 
+  // Send to Dispatch now lives on the Dispatch and Sales page (button #kdSendToDispatchBtn).
   test.beforeEach(async ({ authenticatedPage }) => {
-    await navigateToStockKernel(authenticatedPage);
+    await navigateToModule(authenticatedPage, 'kernel-dispatch-grid');
   });
 
   test('TC-SD-001: Send to Dispatch modal opens with customer and dates', async ({ authenticatedPage }) => {
-    await authenticatedPage.locator('#sendToDispatchBtn').click();
+    await authenticatedPage.locator('#kdSendToDispatchBtn').click();
     await expect(authenticatedPage.locator('#sendToDispatchModal')).toBeVisible({ timeout: 10000 });
     // Buyer free-text field was removed: the Customer dropdown is the only buyer input
     await expect(authenticatedPage.locator('#dispatchBuyer')).toHaveCount(0);
@@ -105,7 +107,7 @@ test.describe('Kernel - Form Operations: Send to Dispatch @kernel', () => {
   });
 
   test('TC-SD-002: Buyer dropdown is populated (kernel customers)', async ({ authenticatedPage }) => {
-    await authenticatedPage.locator('#sendToDispatchBtn').click();
+    await authenticatedPage.locator('#kdSendToDispatchBtn').click();
     await expect(authenticatedPage.locator('#sendToDispatchModal')).toBeVisible({ timeout: 10000 });
     // Wait for get_contacts to load: dropdown has placeholder + at least one kernel customer from DB
     await expect(authenticatedPage.locator('#dispatchBuyerContact option').nth(1)).toBeAttached({ timeout: 10000 });
@@ -114,7 +116,7 @@ test.describe('Kernel - Form Operations: Send to Dispatch @kernel', () => {
   });
 
   test('TC-SD-003: Select buyer and date then Next shows step 2', async ({ authenticatedPage }) => {
-    await authenticatedPage.locator('#sendToDispatchBtn').click();
+    await authenticatedPage.locator('#kdSendToDispatchBtn').click();
     await expect(authenticatedPage.locator('#sendToDispatchModal')).toBeVisible({ timeout: 10000 });
     // Wait for kernel customers to load from DB (placeholder + at least one option)
     await expect(authenticatedPage.locator('#dispatchBuyerContact option').nth(1)).toBeAttached({ timeout: 10000 });
@@ -131,7 +133,7 @@ test.describe('Kernel - Form Operations: Send to Dispatch @kernel', () => {
   });
 
   test('TC-SD-004: Back from step 2 returns to step 1', async ({ authenticatedPage }) => {
-    await authenticatedPage.locator('#sendToDispatchBtn').click();
+    await authenticatedPage.locator('#kdSendToDispatchBtn').click();
     await expect(authenticatedPage.locator('#sendToDispatchModal')).toBeVisible({ timeout: 10000 });
     await expect(authenticatedPage.locator('#dispatchBuyerContact option').nth(1)).toBeAttached({ timeout: 10000 });
     await authenticatedPage.locator('#dispatchBuyerContact').selectOption({ index: 1 });
@@ -146,7 +148,7 @@ test.describe('Kernel - Form Operations: Send to Dispatch @kernel', () => {
   });
 
   test('TC-SD-005: Cancel closes modal', async ({ authenticatedPage }) => {
-    await authenticatedPage.locator('#sendToDispatchBtn').click();
+    await authenticatedPage.locator('#kdSendToDispatchBtn').click();
     await expect(authenticatedPage.locator('#sendToDispatchModal')).toBeVisible({ timeout: 10000 });
     await authenticatedPage.locator('#sendToDispatchModal .btn-close, #sendToDispatchModal [data-bs-dismiss="modal"]').first().click();
     await authenticatedPage.waitForTimeout(500);

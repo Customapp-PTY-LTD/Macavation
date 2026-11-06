@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Truck loaded and invoice</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#146c43}a:hover{color:#0f5132}
+.pg{font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.5;color:#1F1F1F;background:#F7F7F5;min-height:100%}
+.rib{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:8px 16px;background:#262622;color:#E9E9E4;font-size:13px}
+.rib b{letter-spacing:.06em;text-transform:uppercase;font-size:12px}
+.rib span{color:#B5B5AE}
+.main{max-width:1240px;padding:0 24px 40px}
+.cols{display:flex;flex-wrap:wrap;gap:20px;padding-top:18px}
+.col{flex:1 1 480px;min-width:0}
+.h2{font-size:18px;font-weight:600;margin:0 0 4px}
+.sub{font-size:13px;color:#52524E;margin-bottom:12px}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid #D3D3D0;background:#fff;color:#1F1F1F;border-radius:8px;padding:7px 12px;font:inherit;font-size:13px;font-weight:500;cursor:pointer;min-height:36px}
+.btn.pri{background:#198754;border-color:#198754;color:#fff}
+.card{background:#fff;border:1px solid #E3E3E0;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-bottom:14px}
+.ch{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid #E3E3E0;font-weight:600}
+.cb{padding:14px 16px}
+.lbl{display:block;font-size:12.5px;font-weight:500;margin-bottom:3px}
+.inp{width:100%;box-sizing:border-box;border:1px solid #D3D3D0;border-radius:8px;padding:7px 10px;font:inherit;background:#fff}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px;padding:5px 0;border-bottom:1px solid #F0F0EE}
+.tick{display:inline-flex;width:18px;height:18px;border-radius:4px;background:#198754;color:#fff;align-items:center;justify-content:center;font-size:11px;flex:none}
+.same{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11.5px;font-weight:700;background:#F0F0EE;color:#52524E}
+.chg{outline:2px dashed #D6004F;outline-offset:2px;border-radius:10px}
+.cno{display:inline-block;margin-left:4px;padding:0 6px;border-radius:999px;background:#D6004F;color:#fff;font-size:10.5px;font-weight:700;line-height:17px;vertical-align:1px;font-style:normal}
+.task{border:1px solid #E3E3E0;border-left-width:1px;border-radius:12px;background:#fff;padding:14px 16px}
+.task h4{margin:0 0 4px;font-size:15px}
+.task p{margin:0;font-size:13px;color:#52524E}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:13px;border-bottom:1px solid #F0F0EE}
+.docs{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.doc{display:flex;align-items:center;gap:8px;font-size:13px}
+.box{display:inline-block;width:16px;height:16px;border:2px solid #9A9A93;border-radius:4px;box-sizing:border-box;flex:none}
+.bell{display:flex;gap:10px;align-items:flex-start;border:1px solid #E3E3E0;border-radius:10px;padding:10px 12px;background:#fff;font-size:13px}
+.dot{width:8px;height:8px;border-radius:50%;background:#D6004F;margin-top:6px;flex:none}
+.stepper{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.sx{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:8px;border:1px solid #E3E3E0;background:#fff;font-size:11.5px;font-weight:600;color:#52524E}
+.sx .bx{flex:none;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;box-sizing:border-box;font-size:10px}
+.sx.done .bx{background:#198754;color:#fff}
+.sx.now{border:2px solid #B07A00;background:rgba(212,167,44,.1);color:#1F1F1F}
+.sx.now .bx{border:2px solid #B07A00}
+@media (max-width:640px){.g2,.stepper{grid-template-columns:minmax(0,1fr)}}
+</style>
+</helmet>
+<div class="pg">
+  <div class="rib"><b>Mockup</b> Steps 4–5 · Truck loaded, then Joslyn sends the invoice <span>Sample data.</span></div>
+  <main class="main">
+    <div class="cols">
+      <section class="col" aria-labelledby="s4">
+        <h2 class="h2" id="s4">4 · Truck loaded<em class="cno">2e</em></h2>
+        <div class="sub">When the truck arrives. This is the truck details and checks form that is already in the portal <span class="same">no change to the form</span></div>
+        <div class="card">
+          <div class="ch"><span>Durban Nut Co. · 200 cartons</span><span style="font-weight:400;font-size:13px;color:#52524E">07/11/2026</span></div>
+          <div class="cb">
+            <div class="g2">
+              <div><label class="lbl" for="tr">Transport company</label><input id="tr" class="inp" value="[Transport company]"></div>
+              <div><label class="lbl" for="rg">Truck Registration</label><input id="rg" class="inp" value="[Registration]"></div>
+              <div><label class="lbl" for="dr">Driver's Name</label><input id="dr" class="inp" value="[Driver]"></div>
+              <div><label class="lbl" for="at">Delivery note / Invoice number</label><input id="at" class="inp" value="[Number]"></div>
+            </div>
+            <div style="margin-top:12px;font-size:12.5px;font-weight:600">Inspection of Vehicle (all six answered)</div>
+            <div class="chk"><span class="tick" aria-hidden="true">✓</span>Is the vehicle clean? Yes</div>
+            <div class="chk"><span class="tick" aria-hidden="true">✓</span>Vehicle fully enclosed? Yes</div>
+            <div class="chk"><span class="tick" aria-hidden="true">✓</span>Any hazard substances noted on truck? No</div>
+            <div class="chk"><span class="tick" aria-hidden="true">✓</span>Any signs of pest infestations? No</div>
+            <div class="chk"><span class="tick" aria-hidden="true">✓</span>Pallets loaded are in good condition and identified: Yes</div>
+            <div class="chk" style="border-bottom:0"><span class="tick" aria-hidden="true">✓</span>Truck bin locked before departing? Yes</div>
+            <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn pri" type="button">Save: truck loaded</button></div>
+          </div>
+        </div>
+        <p style="font-size:12.5px;color:#52524E;margin:0">Pressing Truck loaded ticks step 4 and sends Joslyn her task (right).</p>
+      </section>
+
+      <section class="col" aria-labelledby="s5">
+        <h2 class="h2" id="s5">5 · Invoice sent<em class="cno">2f</em></h2>
+        <div class="sub">Joslyn's My Day, the moment the truck is loaded</div>
+        <div class="bell chg" style="margin-bottom:12px"><span class="dot" aria-hidden="true"></span><div><b>Truck loaded: Durban Nut Co.</b><br>Send the invoice and documents to the customer. · just now</div></div>
+        <div class="task chg">
+          <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><h4>Send invoice and documents</h4><span style="font-size:12px;color:#52524E">My Day · Joslyn</span></div>
+          <p>Durban Nut Co. · truck loaded 07/11/2026 14:20</p>
+          <div style="margin:10px 0" class="stepper" aria-label="Dispatch progress: step 5 of 5">
+            <div class="sx done"><span class="bx" aria-hidden="true">✓</span>Created</div>
+            <div class="sx done"><span class="bx" aria-hidden="true">✓</span>Picked</div>
+            <div class="sx done"><span class="bx" aria-hidden="true">✓</span>Priced</div>
+            <div class="sx done"><span class="bx" aria-hidden="true">✓</span>Loaded</div>
+            <div class="sx now"><span class="bx" aria-hidden="true"></span>Invoice</div>
+          </div>
+          <div class="kv"><span>Customer email</span><b>[accounts@customer.co.za]</b></div>
+          <div class="kv"><span>Cartons / kg</span><b>200 / 2,268.00 kg</b></div>
+          <div class="kv"><span>Total (confirmed by Pete)</span><b>[R total]</b></div>
+          <div class="docs">
+            <div class="doc"><span class="box" aria-hidden="true"></span>Invoice</div>
+            <div class="doc"><span class="box" aria-hidden="true"></span>Certificate of analysis</div>
+            <div class="doc"><span class="box" aria-hidden="true"></span>Dispatch note (signed)</div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;flex-wrap:wrap">
+            <button class="btn" type="button">Open dispatch</button>
+            <button class="btn pri" type="button">Mark invoice sent</button>
+          </div>
+        </div>
+        <p style="font-size:12.5px;color:#52524E;margin:10px 0 0">Mark invoice sent ticks step 5, closes her task, and the dispatch moves to "Dispatched and invoiced".</p>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -126,8 +126,8 @@
                 <button type="button" class="btn btn-outline-secondary btn-sm" id="importHistoricalKernelBtn" data-action-perm="stock.import_batch" title="Load historical batches from Macadamia Kernel Statistics Excel">
                     <i class="fas fa-file-import me-1"></i>Import historical
                 </button>
-                <button type="button" class="btn btn-primary" id="sendToDispatchBtn">
-                    <i class="fas fa-truck me-1"></i>Send to Dispatch
+                <button type="button" class="btn btn-primary" id="kernelAdjustModeAddBatchBtn" data-action-perm="stock.import_batch">
+                    <i class="fas fa-plus me-1"></i>Add Batch
                 </button>
             </div>
         </div>
@@ -197,16 +197,16 @@
                         </tr>
                         <tr id="kernelStockByStyleTotalsRow" class="table-light fw-bold">
                             <td>Total</td>
-                            <td class="text-end kernel-style-col" data-style="SP" title="Sound Kernel SP — premium SP grade. Remaining cartons (or carton equivalent from kg).">0</td>
-                            <td class="text-end kernel-style-col" data-style="0" title="Sound kernel — style 0. Remaining cartons (or carton equivalent from kg).">0</td>
-                            <td class="text-end kernel-style-col" data-style="1" title="Sound kernel — style 1. Remaining cartons (or carton equivalent from kg).">0</td>
-                            <td class="text-end kernel-style-col" data-style="1S" title="Sound kernel — style 1S. Remaining cartons (or carton equivalent from kg).">0</td>
-                            <td class="text-end kernel-style-col" data-style="4L" title="Sound kernel — style 4L. Remaining cartons (or carton equivalent from kg).">0</td>
-                            <td class="text-end kernel-style-col" data-style="5" title="Sound kernel — style 5. Remaining cartons (or carton equivalent from kg).">0</td>
-                            <td class="text-end kernel-style-col" data-style="6" title="Sound kernel — style 6. Remaining cartons (or carton equivalent from kg).">0</td>
-                            <td class="text-end kernel-style-col" data-style="7/8" title="Butter — style 7/8. Remaining cartons (or carton equivalent from kg).">0</td>
-                            <td class="text-end kernel-style-col" data-style="Butter High Oil" title="Butter High Oil grade. Remaining cartons (or carton equivalent from kg).">0</td>
-                            <td class="text-end kernel-style-col" data-style="Butter Low Oil" title="Butter Low Oil grade. Remaining cartons (or carton equivalent from kg).">0</td>
+                            <td class="text-center kernel-style-col" data-style="SP" title="Sound Kernel SP — premium SP grade. Remaining cartons (or carton equivalent from kg).">0</td>
+                            <td class="text-center kernel-style-col" data-style="0" title="Sound kernel — style 0. Remaining cartons (or carton equivalent from kg).">0</td>
+                            <td class="text-center kernel-style-col" data-style="1" title="Sound kernel — style 1. Remaining cartons (or carton equivalent from kg).">0</td>
+                            <td class="text-center kernel-style-col" data-style="1S" title="Sound kernel — style 1S. Remaining cartons (or carton equivalent from kg).">0</td>
+                            <td class="text-center kernel-style-col" data-style="4L" title="Sound kernel — style 4L. Remaining cartons (or carton equivalent from kg).">0</td>
+                            <td class="text-center kernel-style-col" data-style="5" title="Sound kernel — style 5. Remaining cartons (or carton equivalent from kg).">0</td>
+                            <td class="text-center kernel-style-col" data-style="6" title="Sound kernel — style 6. Remaining cartons (or carton equivalent from kg).">0</td>
+                            <td class="text-center kernel-style-col" data-style="7/8" title="Butter — style 7/8. Remaining cartons (or carton equivalent from kg).">0</td>
+                            <td class="text-center kernel-style-col" data-style="Butter High Oil" title="Butter High Oil grade. Remaining cartons (or carton equivalent from kg).">0</td>
+                            <td class="text-center kernel-style-col" data-style="Butter Low Oil" title="Butter Low Oil grade. Remaining cartons (or carton equivalent from kg).">0</td>
                             <td></td><td></td><td></td>
                             <td></td>
                         </tr>
@@ -215,11 +215,6 @@
                 </table>
             </div>
             <div class="d-flex flex-wrap align-items-center gap-4 mt-3 small" id="kernelStockLegend"></div>
-                    <div class="d-flex justify-content-end mt-3" id="kernelAdjustModeAddBatchRow" style="display: none;">
-                        <button type="button" class="btn btn-primary" id="kernelAdjustModeAddBatchBtn" data-action-perm="stock.import_batch">
-                            <i class="fas fa-plus me-1"></i>Add Batch
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>

@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Confirm pricing</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#146c43}a:hover{color:#0f5132}
+.pg{font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.5;color:#1F1F1F;background:#F7F7F5;min-height:100%}
+.rib{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:8px 16px;background:#262622;color:#E9E9E4;font-size:13px}
+.rib b{letter-spacing:.06em;text-transform:uppercase;font-size:12px}
+.rib span{color:#B5B5AE}
+.main{max-width:1240px;padding:0 24px 40px}
+.hd{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;padding:16px 0 12px}
+.h1{font-size:24px;font-weight:600;margin:0}
+.sub{font-size:13px;color:#52524E}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid #D3D3D0;background:#fff;color:#1F1F1F;border-radius:8px;padding:7px 12px;font:inherit;font-size:13px;font-weight:500;cursor:pointer;min-height:36px}
+.btn.pri{background:#198754;border-color:#198754;color:#fff}
+.card{background:#fff;border:1px solid #E3E3E0;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-bottom:14px}
+.ch{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid #E3E3E0;font-weight:600}
+.cb{padding:14px 16px}
+.inp{width:110px;box-sizing:border-box;border:1px solid #D3D3D0;border-radius:8px;padding:6px 8px;font:inherit;background:#fff;text-align:right}
+.inp.ov{border:2px solid #B07A00;background:rgba(212,167,44,.08)}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{background:#F0F0EE;font-weight:600;text-align:left;padding:8px;border-bottom:1px solid #E3E3E0;white-space:nowrap}
+td{padding:8px;border-bottom:1px solid #E3E3E0;vertical-align:middle}
+.c{text-align:center}
+.r{text-align:right}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.chg{outline:2px dashed #D6004F;outline-offset:2px;border-radius:6px}
+.cno{display:inline-block;margin-left:4px;padding:0 6px;border-radius:999px;background:#D6004F;color:#fff;font-size:10.5px;font-weight:700;line-height:17px;vertical-align:1px;font-style:normal}
+.src{font-size:11.5px;color:#6E6E68;display:block}
+.pill{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11.5px;font-weight:700}
+.ovp{background:rgba(212,167,44,.2);color:#6e550c}
+.lp{background:rgba(45,164,78,.12);color:#1A7F37}
+.subp{background:rgba(9,105,218,.12);color:#0b4f9e}
+.tot td{background:#F0F0EE;font-weight:700}
+.stepper{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-bottom:16px}
+.sx{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;border:1px solid #E3E3E0;background:#fff;font-size:12.5px;font-weight:600;color:#52524E}
+.sx .bx{flex:none;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;box-sizing:border-box;font-size:11px}
+.sx.done .bx{background:#198754;color:#fff}
+.sx.now{border:2px solid #B07A00;background:rgba(212,167,44,.1);color:#1F1F1F}
+.sx.now .bx{border:2px solid #B07A00}
+.sx.todo .bx{border:2px solid #C9C9C4}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid #F0F0EE;font-size:13px}
+.kv:last-child{border-bottom:0}
+@media (max-width:820px){.stepper{grid-template-columns:minmax(0,1fr)}}
+</style>
+</helmet>
+<div class="pg">
+  <div class="rib"><b>Mockup</b> Step 3 · Pricing confirmed <span>Pete's screen, opened from his "Confirm pricing" task. Sample prices, 11.34 kg per carton.</span></div>
+  <main class="main">
+    <div class="hd">
+      <div><h1 class="h1">Confirm pricing · Cape Roasters (Pty) Ltd</h1><div class="sub">120 cartons picked by Thando on 06/11/2026 (2 cartons of 1S swapped to another batch, same style) · collection 10/11/2026</div></div>
+    </div>
+    <div class="stepper" aria-label="Dispatch progress: step 3 of 5">
+      <div class="sx done"><span class="bx" aria-hidden="true">✓</span>Dispatch created</div>
+      <div class="sx done"><span class="bx" aria-hidden="true">✓</span>Stock picked</div>
+      <div class="sx now"><span class="bx" aria-hidden="true"></span>Pricing confirmed</div>
+      <div class="sx todo"><span class="bx" aria-hidden="true"></span>Truck loaded</div>
+      <div class="sx todo"><span class="bx" aria-hidden="true"></span>Invoice sent</div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:14px">
+      <div style="flex:999 1 640px;min-width:0">
+        <div class="card">
+          <div class="ch"><span>Price per style</span><span class="chg" style="font-weight:400;font-size:13px;color:#52524E;padding:0 4px">Filled in from Cape Roasters' price list<em class="cno">2d-i</em></span></div>
+          <div class="tw">
+            <table>
+              <thead><tr><th>Style</th><th class="c">Cartons</th><th class="r">kg</th><th class="r">Price per kg</th><th></th><th class="r">Line total</th></tr></thead>
+              <tbody>
+                <sc-for list="{{rows}}" as="l" hint-placeholder-count="5">
+                  <tr>
+                    <td><b>{{l.style}}</b></td>
+                    <td class="c num">{{l.ctn}}</td>
+                    <td class="r num">{{l.kg}}</td>
+                    <td class="r"><input class="{{l.inpCls}}" aria-label="Price per kg" value="{{l.price}}"><span class="src">{{l.src}}</span></td>
+                    <td><span class="{{l.tagCls}}">{{l.tag}}</span></td>
+                    <td class="r num">{{l.total}}</td>
+                  </tr>
+                </sc-for>
+                <tr class="tot"><td>Total</td><td class="c num">120</td><td class="r num">1,360.80</td><td></td><td></td><td class="r num">R 234,057.60</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="cb">
+            <div class="chg" style="padding:10px 12px;border-radius:10px;background:rgba(212,167,44,.08);font-size:13px">Pete changed 1 price for this dispatch only<em class="cno">2d-i-3</em> (4L: list R 160.00 → R 155.00). The customer's price list stays as it is.
+              <div style="margin-top:8px"><label for="why" style="font-size:12.5px;font-weight:500">Reason (optional)</label><input id="why" value="Volume deal agreed by phone" style="display:block;width:100%;box-sizing:border-box;border:1px solid #D3D3D0;border-radius:8px;padding:7px 10px;font:inherit;margin-top:4px;background:#fff"></div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;flex-wrap:wrap">
+              <button class="btn" type="button">Send back to Thando</button>
+              <button class="btn pri" type="button">Confirm pricing</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1 1 280px;min-width:0">
+        <div class="card">
+          <div class="ch"><span>Where the prices come from</span></div>
+          <div class="cb">
+            <div class="kv"><span>Customer price list</span><b>4 styles</b></div>
+            <div class="kv"><span>Changed by Pete</span><b>1 style</b></div>
+            <div class="kv"><span>Standard price (no customer price)</span><b>0 styles</b></div>
+            <p style="margin:10px 0 0;font-size:12.5px;color:#52524E">Prices use the price that is valid on the collection date. Confirming moves the dispatch to Truck loaded.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var list = { cls: 'pill lp', tag: 'Price list' };
+    var raw = [
+      ['0', 18, '204.12', '195.00', 'valid until 31/03/2027', list, 'R 39,803.40', false],
+      ['1', 40, '453.60', '185.00', 'valid until 31/12/2026', list, 'R 83,916.00', false],
+      ['1S', 10, '113.40', '178.00', 'valid until 31/12/2026', { cls: 'pill subp', tag: '2 swapped' }, 'R 20,185.20', false],
+      ['4L', 30, '340.20', '155.00', 'list price R 160.00', { cls: 'pill ovp', tag: 'Changed' }, 'R 52,731.00', true],
+      ['5', 22, '249.48', '150.00', 'valid until 31/12/2026', list, 'R 37,422.00', false]
+    ];
+    return { rows: raw.map(function (r) {
+      return { style: r[0], ctn: r[1], kg: r[2], price: 'R ' + r[3], src: r[4], tagCls: r[5].cls, tag: r[5].tag, total: r[6], inpCls: r[7] ? 'inp ov' : 'inp' };
+    }) };
+  }
+}
+</script>
+</body>
+</html>

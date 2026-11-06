@@ -73,7 +73,7 @@ var _amandaDashboard = function () {
                 html += `<div class="list-group-item ${severityClass}">
                     <h6 class="mb-1">${alert.alert_title || 'Alert'}</h6>
                     <p class="mb-1">${alert.alert_message || ''}</p>
-                    <small>Batch: ${alert.batch_number || 'N/A'}</small>
+                    <small>Batch: ${macBatchNo.format(alert.batch_number || 'N/A')}</small>
                 </div>`;
             });
             html += '</div>';
@@ -93,7 +93,7 @@ var _amandaDashboard = function () {
                 const card = `<div class="col-md-6 col-lg-4 mb-4">
                     <div class="card h-100">
                         <div class="card-header">
-                            <h6 class="mb-0">${batch.batch_number || 'N/A'}</h6>
+                            <h6 class="mb-0">${macBatchNo.format(batch.batch_number || 'N/A')}</h6>
                         </div>
                         <div class="card-body">
                             <p><strong>Grower:</strong> ${batch.grower_name || 'N/A'}</p>

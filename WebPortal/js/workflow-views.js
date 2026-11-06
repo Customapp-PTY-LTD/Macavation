@@ -47,10 +47,13 @@ var _workflowViews = function () {
             // Role tasks (migration 20261027130000): a role's open tasks; super_user gets every role's.
             try {
                 if (typeof dataFunctions !== 'undefined' && dataFunctions.callFunction) {
-                    const res = await dataFunctions.callFunction('get_role_tasks', { p_role: userRole }, null, { useCache: false });
+                    // p_user_id: a person with users.sees_all_tasks gets every role's tasks too (migration 20261105090000).
+                    const userId = typeof Session !== 'undefined' && Session.getUserId ? Session.getUserId() : null;
+                    const res = await dataFunctions.callFunction('get_role_tasks', { p_role: userRole, p_user_id: userId }, null, { useCache: false });
                     const body = res && res.data !== undefined ? res.data : res;
                     if (body && body.success !== false && Array.isArray(body.tasks)) {
                         this._lastTasks = body.tasks;
+                        this._seesAllTasks = !!body.sees_all;
                         return body.tasks;
                     }
                 }
@@ -312,7 +315,7 @@ var _workflowViews = function () {
                     <div class="card mb-4 my-day-tasks-card${openCount ? ' has-tasks' : ''}">
                         <div class="card-header d-flex flex-wrap align-items-center gap-2">
                             <h4 class="mb-0"><i class="fas fa-list-check me-2"></i>Your tasks</h4>${countPill}
-                            <span class="small text-muted ms-auto">${this.getUserRole() && this.getUserRole() !== 'super_user' ? 'For the ' + this._esc(this.getUserRole()) + ' role. ' : ''}Things waiting for you to do. Each new one also shows in the bell.</span>
+                            <span class="small text-muted ms-auto">${this.getUserRole() && this.getUserRole() !== 'super_user' && !this._seesAllTasks ? 'For the ' + this._esc(this.getUserRole()) + ' role. ' : ''}Things waiting for you to do. Each new one also shows in the bell.</span>
                         </div>
                         <div class="card-body">
                             ${this.renderWorkflowTasks(tasks)}
@@ -405,14 +408,15 @@ var _workflowViews = function () {
 
         /**
          * Render workflow tasks. Every DB string goes through _esc. Transport-rate tasks are closed by
-         * entering the rate (no tick box). super_user sees every role's tasks, labelled with the role.
+         * entering the rate (no tick box). super_user (and anyone with users.sees_all_tasks) sees every
+         * role's tasks, labelled with the role.
          */
         renderWorkflowTasks: function (tasks) {
             if (!tasks || tasks.length === 0) {
                 return '<p class="text-muted text-center py-4">No tasks waiting. Great job!</p>';
             }
             var self = this, esc = this._esc.bind(this);
-            var isSuper = this.getUserRole() === 'super_user';
+            var isSuper = this.getUserRole() === 'super_user' || !!this._seesAllTasks;
 
             return '<div class="workflow-tasks">' + tasks.map(function (task) {
                 var id = esc(task.id);
@@ -459,7 +463,8 @@ var _workflowViews = function () {
 
         // ---- Kinded tasks (procurement / dispatch / price / NIS), migration 20261028120000 ----
         _KIND_LABELS: {
-            dispatch_pick: 'Pick a dispatch', dispatch_approve: 'Approve a dispatch', truck_due: 'Truck due today',
+            dispatch_pick: 'Pick a dispatch', dispatch_approve: 'Confirm dispatch pricing', truck_due: 'Truck due today',
+            dispatch_invoice: 'Send a dispatch invoice', customer_prices_expiring: 'Customer prices ending',
             truck_late: 'Truck is late', truck_unconfirmed: 'Truck not confirmed', style_prices_stale: 'Style prices need a look',
             nis_runway_low: 'Nut in shell runs out soon', nis_unplaced: 'Nut in shell not placed',
             oil_ffa_decision: 'Oil raw FFA out of spec'
@@ -475,7 +480,9 @@ var _workflowViews = function () {
                 case 'truck_unconfirmed': return { label: 'Open in plan', route: 'procurement-plan', params: { focusProcurementId: sid } };
                 case 'nis_runway_low': return { label: 'Open the plan', route: 'procurement-plan', params: { section: 'runway' } };
                 case 'style_prices_stale': return { label: 'Update prices', route: 'kernel-pipeline-settings', params: { tab: 'prices' } };
-                case 'dispatch_approve': return { label: 'Price and approve', panel: true, route: 'kernel-dispatch-grid', params: { openOrderId: sid } };
+                case 'dispatch_approve': return { label: 'Confirm pricing', panel: true, route: 'kernel-dispatch-grid', params: { openOrderId: sid } };
+                case 'dispatch_invoice': return { label: 'Open the dispatch', route: 'kernel-dispatch-grid', params: { openOrderId: sid } };
+                case 'customer_prices_expiring': return { label: 'Update prices', route: 'kernel-pipeline-settings', params: { tab: 'prices', customerId: sid } };
             }
             return null;
         },
@@ -586,15 +593,24 @@ var _workflowViews = function () {
             this._panels[taskId] = wf;
             var o = wf.order;
             var asked = function (l) { return l.requested_cartons != null ? Number(l.requested_cartons) : Number(l.cartons) || 0; };
-            var changed = wf.lines.filter(function (l) { return l.requested_cartons != null && Number(l.requested_cartons) !== Number(l.cartons); });
+            var fmtB = function (v) { return (typeof macBatchNo !== 'undefined') ? macBatchNo.format(v) : String(v == null ? '' : v); };
+            var changed = wf.lines.filter(function (l) { return !l.substitute_for && l.requested_cartons != null && Number(l.requested_cartons) !== Number(l.cartons); });
+            var subs = wf.lines.filter(function (l) { return !!l.substitute_for; });
+            var toOk = subs.filter(function (l) { return l.needs_approval && !l.substitute_accepted; });
             var who = o.picked_by_label || 'The picker';
             var h = '';
-            if (changed.length || o.pick_note) {
+            if (changed.length || subs.length || o.pick_note) {
                 h += '<div class="wv-approve-flag"><i class="fas fa-triangle-exclamation me-2 mt-1" aria-hidden="true"></i><div>';
                 if (changed.length) {
-                    h += '<strong>' + esc(who) + ' changed ' + changed.length + (changed.length === 1 ? ' line' : ' lines') + ':</strong> ' +
-                        changed.map(function (l) { return 'Style ' + esc(l.style_code || l.style || '') + ' asked ' + asked(l) + ', picked ' + esc(l.cartons); }).join('; ') + '.';
+                    h += '<strong>' + esc(who) + ' found less on ' + changed.length + (changed.length === 1 ? ' line' : ' lines') + ':</strong> ' +
+                        changed.map(function (l) { return esc(fmtB(l.batch_number)) + ' ' + esc(l.style_code || l.style || '') + ' asked ' + asked(l) + ', found ' + esc(l.cartons); }).join('; ') + '.';
                 }
+                if (subs.length) {
+                    h += ' <strong>Substitutes:</strong> ' + subs.map(function (l) {
+                        return esc(l.cartons) + ' of ' + esc(l.style) + ' from ' + esc(fmtB(l.batch_number)) + (l.needs_approval ? ' (different style)' : '');
+                    }).join('; ') + '.';
+                }
+                if (toOk.length) h += ' Confirming the pricing accepts the different style.';
                 if (o.pick_note) h += ' Note: "' + esc(o.pick_note) + '".';
                 h += '</div></div>';
             }
@@ -602,7 +618,8 @@ var _workflowViews = function () {
                 '<th scope="col" class="text-end">Kg</th><th scope="col">Price per kg</th><th scope="col" class="text-end">Line value</th></tr></thead><tbody>';
             wf.lines.forEach(function (l, i) {
                 var pre = l.price_per_kg != null ? l.price_per_kg : l.list_price;
-                h += '<tr data-i="' + i + '"><td><strong>' + esc(l.style_code || l.style || '-') + '</strong></td>' +
+                h += '<tr data-i="' + i + '"><td><strong>' + esc(l.style_code || l.style || '-') + '</strong>' + (l.substitute_for ? ' <span class="badge bg-info text-dark">substitute</span>' : '') +
+                    '<div class="small text-muted">' + esc(l.price_source === 'customer' ? 'Customer price' : (l.price_source === 'list' ? 'Standard price' : 'No price set')) + '</div></td>' +
                     '<td class="text-end">' + esc(l.cartons) + ' ctn</td>' +
                     '<td class="text-end">' + self._fmtNum((Number(l.cartons) || 0) * 11.34, 2) + '</td>' +
                     '<td><span class="wv-price-wrap">R <input type="number" min="0" step="0.01" inputmode="decimal" class="form-control wv-price" placeholder="No list price" ' +
@@ -615,8 +632,8 @@ var _workflowViews = function () {
                 '<div class="d-flex flex-wrap gap-2">' +
                 '<button type="button" class="btn btn-outline-secondary" onclick="workflowViews.runTaskAction(\'' + tid + '\')">Open full dispatch</button>' +
                 '<button type="button" class="btn btn-outline-danger" onclick="workflowViews.sendBackFromPanel(\'' + tid + '\')">Send back to Thando</button>' +
-                '<button type="button" class="btn btn-primary" onclick="workflowViews.approveFromPanel(\'' + tid + '\')">Approve and record sale</button></div>' +
-                '<div class="small text-muted mt-2">Send back reopens Thando\'s "Pick a dispatch" task. Approving closes this task for Mike too.</div>';
+                '<button type="button" class="btn btn-primary" onclick="workflowViews.approveFromPanel(\'' + tid + '\')">Confirm pricing</button></div>' +
+                '<div class="small text-muted mt-2">Send back reopens Thando\'s "Pick a dispatch" task. To give a reason for a changed price, use Open full dispatch.</div>';
             panel.innerHTML = h;
             this.recalcApprovePanel(taskId);
         },
@@ -663,9 +680,9 @@ var _workflowViews = function () {
                 return;
             }
             var r = await Swal.fire({
-                title: 'Record a sale of R ' + this._fmtNum(sale.goods, 2) + ' to ' + (o.buyer_name || 'the buyer') + '?',
-                text: 'The sale shows on the Kernel Dashboard straight away.',
-                icon: 'question', showCancelButton: true, confirmButtonText: 'Record sale', cancelButtonText: 'Cancel'
+                title: 'Confirm pricing of R ' + this._fmtNum(sale.goods, 2) + ' for ' + (o.buyer_name || 'the customer') + '?',
+                text: 'The sale shows on the Kernel Dashboard straight away. Next step: load the truck.',
+                icon: 'question', showCancelButton: true, confirmButtonText: 'Confirm pricing', cancelButtonText: 'Cancel'
             });
             if (!r.isConfirmed) return;
             var res = await dataFunctions.approveKernelDispatchSale(o.id, {
@@ -676,7 +693,7 @@ var _workflowViews = function () {
                 transportCompany: o.transport_company || ''
             });
             if (res && res.success !== false) {
-                this._wvToast('Approved. The sale is recorded.');
+                this._wvToast('Pricing confirmed. The truck can be loaded.');
                 if (window.$) $(document).trigger('kernelDispatch:changed');
                 await this.refreshMyDay();
             } else {

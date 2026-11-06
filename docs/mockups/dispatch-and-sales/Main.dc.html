@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Stock on Hand</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#146c43}a:hover{color:#0f5132}
+.pg{font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.5;color:#1F1F1F;background:#F7F7F5;min-height:100%}
+.rib{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:8px 16px;background:#262622;color:#E9E9E4;font-size:13px}
+.rib b{letter-spacing:.06em;text-transform:uppercase;font-size:12px}
+.rib span{color:#B5B5AE}
+.shell{display:flex;flex-wrap:wrap}
+.side{flex:0 1 230px;background:#fff;border-right:1px solid #E3E3E0;padding:14px 10px 24px}
+.logo{font-weight:700;font-size:18px;letter-spacing:.5px;color:#D6004F;padding:2px 10px 12px}
+.sep{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6E6E68;padding:12px 10px 4px}
+.nl{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:10px;color:#52524E;font-weight:500;font-size:13.5px;text-decoration:none}
+.nl.on{background:rgba(25,135,84,.1);color:#146c43}
+.nn{display:inline-block;width:18px;height:18px;border-radius:50%;background:#F0F0EE;color:#52524E;font-size:11px;font-weight:700;text-align:center;line-height:18px;flex:none}
+.on .nn{background:#198754;color:#fff}
+.old{color:#6E6E68;text-decoration:line-through;font-weight:400;font-size:12px}
+.main{flex:999 1 640px;min-width:0;padding:0 24px 40px}
+.hd{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;padding:16px 0 10px;margin-bottom:14px;border-bottom:1px solid #E3E3E0}
+.h1{font-size:26px;font-weight:600;margin:0}
+.tb{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid #D3D3D0;background:#fff;color:#1F1F1F;border-radius:8px;padding:7px 12px;font:inherit;font-size:13px;font-weight:500;cursor:pointer;min-height:36px}
+.btn.sm{padding:4px 10px;min-height:30px;font-size:12.5px}
+.btn.pri{background:#198754;border-color:#198754;color:#fff}
+.card{background:#fff;border:1px solid #E3E3E0;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-bottom:14px}
+.ch{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid #E3E3E0;font-weight:600}
+.cb{padding:14px 16px}
+.lbl{display:block;font-size:13px;font-weight:500;margin-bottom:4px}
+.inp{width:100%;box-sizing:border-box;border:1px solid #D3D3D0;border-radius:8px;padding:8px 10px;font:inherit;background:#fff}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{background:#F0F0EE;font-weight:600;text-align:left;padding:8px;border:1px solid #E3E3E0;white-space:nowrap}
+td{padding:7px 8px;border:1px solid #E3E3E0;vertical-align:middle}
+.c{text-align:center}
+.r{text-align:right}
+.num{font-variant-numeric:tabular-nums}
+.tot td{background:#F0F0EE;font-weight:700}
+.chg{outline:2px dashed #D6004F;outline-offset:2px;border-radius:6px}
+.cno{display:inline-block;margin-left:4px;padding:0 6px;border-radius:999px;background:#D6004F;color:#fff;font-size:10.5px;font-weight:700;line-height:17px;vertical-align:1px;font-style:normal}
+.bn{font-weight:600;white-space:nowrap}
+.sup{display:block;font-size:11.5px;color:#6E6E68;font-weight:400;line-height:1.3}
+.pill{display:inline-block;border-radius:999px;padding:1px 8px;font-size:12px;font-weight:600}
+.ok{background:rgba(45,164,78,.12);color:#1A7F37}
+.warn{background:rgba(212,167,44,.16);color:#7a5f0e}
+.bad{background:rgba(207,34,46,.1);color:#B4232D}
+.gone{border:1px dashed #B4B4AE;border-radius:8px;padding:6px 10px;font-size:12.5px;color:#6E6E68}
+.gone s{color:#6E6E68}
+</style>
+</helmet>
+<div class="pg">
+  <div class="rib"><b>Mockup</b> Stock on Hand <span>Pink dashed = changes. Tags match Mike's email (1a, 1b…). Sample data.</span></div>
+  <div class="shell">
+    <nav class="side" aria-label="Main menu">
+      <div class="logo">MACAVATION</div>
+      <a class="nl" href="#">My Day</a>
+      <a class="nl" href="#">Dashboard</a>
+      <div class="sep">Kernel</div>
+      <div class="chg" style="display:flex;flex-direction:column;gap:2px;padding:2px 0">
+        <a class="nl" href="#"><span class="nn">1</span><span>Receiving<em class="cno">note a</em><span class="old" style="display:block">Grower Intake</span></span></a>
+        <a class="nl" href="#"><span class="nn">2</span><span>Silo Holding<em class="cno">note b</em><span class="old" style="display:block">Silos</span></span></a>
+        <a class="nl" href="#"><span class="nn">3</span><span>Production<em class="cno">note c</em><span class="old" style="display:block">Kernel Production</span></span></a>
+        <a class="nl on" href="#"><span class="nn">4</span><span>Stock on Hand<em class="cno">1</em><span class="old" style="display:block">Stock (Kernel)</span></span></a>
+        <a class="nl" href="#"><span class="nn">5</span><span>Dispatch and Sales<em class="cno">2</em><span class="old" style="display:block">Kernel Dispatch</span></span></a>
+      </div>
+      <div class="sep">Oil</div>
+      <a class="nl" href="#">Supplier Intake</a>
+      <a class="nl" href="#">Oil Production</a>
+      <div class="sep">Admin</div>
+      <a class="nl" href="#">Contacts</a>
+      <a class="nl" href="#">Settings</a>
+    </nav>
+    <main class="main">
+      <div class="hd">
+        <h1 class="h1"><span class="chg" style="padding:0 4px">Stock on Hand<em class="cno">1</em></span></h1>
+        <div class="tb">
+          <button class="btn" type="button">Help</button>
+          <button class="btn" type="button">History</button>
+          <button class="btn" type="button">Export</button>
+          <button class="btn" type="button">Import historical</button>
+          <span class="gone"><s>Send to Dispatch</s> moved to Dispatch and Sales<em class="cno">1a</em></span>
+          <button class="btn pri chg" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add Batch<em class="cno">1a</em></button>
+        </div>
+      </div>
+
+      <div class="card"><div class="cb" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
+        <div style="flex:1 1 260px;max-width:420px"><label class="lbl" for="q">Search</label><input id="q" class="inp" placeholder="Batch number or supplier…"></div>
+        <button class="btn" type="button">Clear</button>
+      </div></div>
+
+      <div class="card">
+        <div class="ch"><span>Kernel stock by style</span>
+          <div class="tb"><button class="btn sm" type="button">Correct stock</button><button class="btn sm" type="button">View archive</button><button class="btn sm" type="button">Refresh</button></div>
+        </div>
+        <div class="cb">
+          <p style="margin:0 0 10px;color:#52524E;font-size:13px">Finished kernel batches · cartons per style · oldest best-before first</p>
+          <div class="tw">
+            <table>
+              <thead>
+                <tr>
+                  <th>Batch <em class="cno">1b 1d</em></th>
+                  <th class="c">SP</th><th class="c">0</th><th class="c">1</th><th class="c">1S</th><th class="c">4L</th><th class="c">5</th><th class="c">6</th><th class="c">7/8</th><th class="c">Butter HO</th><th class="c">Butter LO</th>
+                  <th class="c">FFA</th><th class="c">Best Before</th><th class="c">Time Left</th><th class="c">Batch action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="tot"><td>Total</td><td class="c num">25</td><td class="c num">125</td><td class="c num">304</td><td class="c num">73</td><td class="c num">238</td><td class="c num">113</td><td class="c num">44</td><td class="c num">26</td><td class="c num">6</td><td class="c num">10</td><td></td><td></td><td></td><td></td></tr>
+                <sc-for list="{{rows}}" as="b" hint-placeholder-count="6">
+                  <tr style="{{b.bg}}">
+                    <td><span class="bn">{{b.bn}}</span><span class="sup">{{b.sup}}</span></td>
+                    <td class="c num">{{b.s0}}</td><td class="c num">{{b.s1}}</td><td class="c num">{{b.s2}}</td><td class="c num">{{b.s3}}</td><td class="c num">{{b.s4}}</td><td class="c num">{{b.s5}}</td><td class="c num">{{b.s6}}</td><td class="c num">{{b.s7}}</td><td class="c num">{{b.s8}}</td><td class="c num">{{b.s9}}</td>
+                    <td class="c"><span class="{{b.ffaCls}}">{{b.ffa}}</span></td>
+                    <td class="c num">{{b.bb}}</td>
+                    <td class="c"><span class="{{b.tlCls}}">{{b.tl}}</span></td>
+                    <td class="c"><button class="btn sm" type="button">History</button></td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:12px;font-size:12.5px;color:#52524E">
+            <span><em class="cno">1b</em> BN.01.26.05 instead of Bn 01 26 05</span>
+            <span><em class="cno">1c</em> cartons centred, every other row light grey</span>
+            <span><em class="cno">1d</em> supplier's name in small print under the batch</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":980}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var raw = [
+      ['BN.04.26.02', 'Senekal Familie Boerdery', [0,12,33,9,0,15,6,3,1,1], '1.8', 'warn', '18/04/2027', '5 mo', 'bad'],
+      ['BN.08.26.07', "Perry's Bridge Citrus Estate (Pty) Ltd", [0,0,52,18,40,0,7,5,2,3], '1.1', 'ok', '10/12/2027', '13 mo', 'ok'],
+      ['BN.03.26.09', 'Lilje Farms (Pty) Ltd', [8,25,0,14,38,20,9,0,0,2], '0.9', 'ok', '21/01/2028', '14 mo', 'ok'],
+      ['BN.01.26.05', 'Amber Macs (Pty) Ltd', [12,40,85,22,60,30,0,8,0,4], '0.4', 'ok', '14/03/2028', '16 mo', 'ok'],
+      ['BN.02.26.11', 'Tamboti Agric (Pty) Ltd', [0,18,64,10,45,26,12,6,3,0], '0.6', 'ok', '02/05/2028', '18 mo', 'ok'],
+      ['BN.12.26.02', 'Cavalla Farming CC', [5,30,70,0,55,22,10,4,0,0], '0.5', 'ok', '30/06/2028', '19 mo', 'ok']
+    ];
+    var rows = raw.map(function (r, i) {
+      var o = { bn: r[0], sup: r[1], ffa: r[3], ffaCls: 'pill ' + r[4], bb: r[5], tl: r[6], tlCls: 'pill ' + r[7], bg: i % 2 === 0 ? 'background:#F3F3F1' : 'background:#FFFFFF' };
+      r[2].forEach(function (v, k) { o['s' + k] = v ? v : '—'; });
+      return o;
+    });
+    return { rows: rows };
+  }
+}
+</script>
+</body>
+</html>

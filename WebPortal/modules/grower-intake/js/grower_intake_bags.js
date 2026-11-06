@@ -328,7 +328,7 @@ var _giBags = (function () {
         if (!confirmed && list.length > b.bags.length / 2) {
             var ok = await Swal.fire({
                 title: 'Move ' + list.length + ' bags?',
-                text: 'That is ' + list.length + ' of the ' + b.bags.length + ' bags of ' + b.batch_number + ' going to ' + label + '.',
+                text: 'That is ' + list.length + ' of the ' + b.bags.length + ' bags of ' + macBatchNo.format(b.batch_number) + ' going to ' + label + '.',
                 showCancelButton: true, confirmButtonText: 'Move them', cancelButtonText: 'Cancel'
             });
             if (!ok.isConfirmed) return;
@@ -343,7 +343,7 @@ var _giBags = (function () {
         state.sel[b.kernel_id] = {};
         state.anchor[b.kernel_id] = null;
         await api.load();
-        toastUndo(plural(list.length, 'bag', 'bags') + ' of ' + b.batch_number + ' moved to ' + label + '.', async function () {
+        toastUndo(plural(list.length, 'bag', 'bags') + ' of ' + macBatchNo.format(b.batch_number) + ' moved to ' + label + '.', async function () {
             var keys = Object.keys(before);
             for (var i = 0; i < keys.length; i++) {
                 var r = await dataFunctions.moveNisBags(b.kernel_id, before[keys[i]], keys[i] || null);
@@ -362,7 +362,7 @@ var _giBags = (function () {
         var html = '<div class="text-start gib-dialog">' +
             '<label class="form-label small mb-1" for="gibDlgBatch">Batch</label>' +
             '<select class="form-select mb-3" id="gibDlgBatch">' + list.map(function (b) {
-                return '<option value="' + esc(b.kernel_id) + '">' + esc(b.batch_number) + ' · ' + esc(b.grower_name || '') + ' · ' + plural(here(b).length, 'bag', 'bags') + ' here</option>';
+                return '<option value="' + esc(b.kernel_id) + '">' + esc(macBatchNo.format(b.batch_number)) + ' · ' + esc(b.grower_name || '') + ' · ' + plural(here(b).length, 'bag', 'bags') + ' here</option>';
             }).join('') + '</select>' +
             '<div class="gib-dlg-range mb-3"><span>Bags</span><input type="text" inputmode="numeric" class="form-control gib-num" id="gibDlgFrom" aria-label="From bag">' +
             '<span>to</span><input type="text" inputmode="numeric" class="form-control gib-num" id="gibDlgTo" aria-label="To bag"></div>' +
@@ -491,7 +491,7 @@ var _giBags = (function () {
             return '<li class="gib-mrow">' +
                 '<span class="gib-mwhen">' + esc(when) + '</span>' +
                 '<span class="badge ' + chip[1] + '">' + esc(chip[0]) + '</span>' +
-                '<span class="gib-mwhat"><strong>' + esc(m.batch_number || '—') + '</strong> · ' + esc(where) +
+                '<span class="gib-mwhat"><strong>' + esc(macBatchNo.format(m.batch_number || '—')) + '</strong> · ' + esc(where) +
                     (m.note ? ' <span class="text-muted">· ' + esc(m.note) + '</span>' : '') + '</span>' +
                 '<span class="gib-mkg">' + esc(tonnes(m.kg)) + '</span>' +
                 '<span class="gib-mby text-muted">' + esc(m.by_label || '') + '</span></li>';
@@ -528,7 +528,7 @@ var _giBags = (function () {
             if (!nos.length) return;
             total += nos.length;
             var status = b.status === 'production' ? 'Ready to crack' : 'At intake';
-            rows.push('<div class="gib-drow"><span class="gib-dn">' + esc(b.batch_number) + '</span>' +
+            rows.push('<div class="gib-drow"><span class="gib-dn">' + esc(macBatchNo.format(b.batch_number)) + '</span>' +
                 '<span>' + esc(b.grower_name || '') + ' <span class="text-muted">· bags ' + esc(ranges(nos)) + (code === 'silos' ? ' · ' + esc(Object.keys(silos).join(', ')) : '') + '</span></span>' +
                 '<span class="badge ' + (b.status === 'production' ? 'bg-success' : 'bg-secondary') + '">' + status + '</span>' +
                 '<span class="gib-dr">' + plural(nos.length, 'bag', 'bags') + ' · ' + esc(tonnes(kgSum)) +

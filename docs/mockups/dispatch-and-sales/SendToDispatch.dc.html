@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Send to Dispatch</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#146c43}a:hover{color:#0f5132}
+.pg{font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.5;color:#1F1F1F;background:#5E5E5A;min-height:100%}
+.rib{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:8px 16px;background:#262622;color:#E9E9E4;font-size:13px}
+.rib b{letter-spacing:.06em;text-transform:uppercase;font-size:12px}
+.rib span{color:#B5B5AE}
+.wrap{padding:36px 16px 48px;display:flex;justify-content:center}
+.modal{width:100%;max-width:860px;background:#fff;border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.25);overflow:hidden}
+.mh{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px 18px;background:#198754;color:#fff}
+.mh h2{margin:0;font-size:18px;font-weight:600}
+.mh .sl{font-size:13px;color:rgba(255,255,255,.85)}
+.mb{padding:18px}
+.mf{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid #E3E3E0;background:#FAFAF8}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid #D3D3D0;background:#fff;color:#1F1F1F;border-radius:8px;padding:7px 12px;font:inherit;font-size:13px;font-weight:500;cursor:pointer;min-height:36px}
+.btn.pri{background:#198754;border-color:#198754;color:#fff}
+.lbl{display:block;font-size:13px;font-weight:500;margin-bottom:4px}
+.req{color:#B4232D}
+.inp{width:100%;box-sizing:border-box;border:1px solid #D3D3D0;border-radius:8px;padding:8px 10px;font:inherit;background:#fff}
+.help{font-size:12.5px;color:#52524E;margin-top:4px}
+.chg{outline:2px dashed #D6004F;outline-offset:3px;border-radius:8px}
+.cno{display:inline-block;margin-left:4px;padding:0 6px;border-radius:999px;background:#D6004F;color:#fff;font-size:10.5px;font-weight:700;line-height:17px;vertical-align:1px;font-style:normal}
+.info{border:1px solid #E3E3E0;background:#F7F7F5;border-radius:10px;padding:14px 16px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 24px}
+.info dt{font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#6E6E68;margin:0}
+.info dd{margin:2px 0 0;font-size:13.5px}
+.miss{color:#8a6d14}
+.gone{border:1px dashed #B4B4AE;border-radius:8px;padding:8px 12px;font-size:12.5px;color:#6E6E68}
+@media (max-width:640px){.info{grid-template-columns:minmax(0,1fr)}}
+</style>
+</helmet>
+<div class="pg">
+  <div class="rib"><b>Mockup</b> Step 1 · Send to Dispatch <span>Opened from the new button on Dispatch and Sales. Sample customer.</span></div>
+  <div class="wrap">
+    <div class="modal" role="dialog" aria-labelledby="mt">
+      <div class="mh">
+        <h2 id="mt">Send to Dispatch</h2><span class="sl">Step 1 of 2 · customer and collection</span>
+        <span style="margin-left:auto"></span>
+        <button class="btn" type="button" aria-label="Close" style="background:transparent;border-color:rgba(255,255,255,.5);color:#fff;min-height:32px;padding:4px 10px">Close</button>
+      </div>
+      <div class="mb" style="display:flex;flex-direction:column;gap:18px">
+        <div>
+          <label class="lbl" for="cu">Customer <span class="req">*</span></label>
+          <div style="display:flex;gap:8px"><input id="cu" class="inp" value="Cape Roasters (Pty) Ltd"><button class="btn" type="button" aria-label="Add a new customer">+</button></div>
+          <div class="help">Kernel customers from the CRM. Use + to add a new customer.</div>
+        </div>
+
+        <div class="chg">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+            <span style="font-weight:600">Customer details<em class="cno">2a-i</em></span>
+            <a href="#" style="font-size:13px">Edit in Contacts</a>
+          </div>
+          <dl class="info" style="margin:0">
+            <div><dt>Contact person</dt><dd>[Contact name]</dd></div>
+            <div><dt>Cell / phone</dt><dd class="miss">Not in Contacts yet · <a href="#">add</a></dd></div>
+            <div><dt>Email</dt><dd>[orders@customer.co.za]</dd></div>
+            <div><dt>Delivery address</dt><dd>[Street], Brackenfell, Western Cape</dd></div>
+            <div><dt>VAT number</dt><dd>[VAT no.]</dd></div>
+            <div><dt>Price list</dt><dd>Customer prices · 4 end 31/12/2026</dd></div>
+          </dl>
+          <div class="help" style="margin-top:8px">Shown as soon as a customer is picked, straight from Contacts. Anything missing shows "Not in Contacts yet" with a link to add it.</div>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+          <div class="chg" style="flex:1 1 260px;max-width:360px">
+            <label class="lbl" for="pc">Planned Collection Date <span class="req">*</span><em class="cno">2a-ii</em></label>
+            <input id="pc" class="inp" value="10/11/2026">
+          </div>
+          <div class="gone" style="flex:1 1 260px;max-width:360px"><s>Planned Delivery Date</s> removed<em class="cno">2a-ii</em></div>
+        </div>
+      </div>
+      <div class="mf">
+        <button class="btn" type="button">Cancel</button>
+        <button class="btn pri" type="button">Next: choose stock</button>
+      </div>
+    </div>
+  </div>
+  <p style="margin:0 auto;max-width:860px;padding:0 16px 32px;color:#E9E9E4;font-size:13px">Step 2 (choosing cartons per batch and style) stays as it is today, with the new BN.01.26.05 batch numbers and supplier names from Stock on Hand.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -281,7 +281,7 @@ var _roleMenuConfig = function () {
             'nis-storage': {
                 route: 'nis-storage',
                 icon: 'fas fa-boxes',
-                label: 'Silos',
+                label: 'Silo Holding',
                 category: 'kernel',
                 parent: 'kernelCollapse'
             },
@@ -367,7 +367,7 @@ var _roleMenuConfig = function () {
             'grower-intake-grid': {
                 route: 'grower-intake-grid',
                 icon: 'fas fa-truck-loading',
-                label: 'Grower Intake',
+                label: 'Receiving',
                 category: 'kernel',
                 parent: 'kernelCollapse'
             },
@@ -388,7 +388,7 @@ var _roleMenuConfig = function () {
             'kernel-production-grid': {
                 route: 'kernel-production-grid',
                 icon: 'fas fa-cogs',
-                label: 'Kernel Production',
+                label: 'Production',
                 category: 'kernel',
                 parent: 'kernelCollapse'
             },
@@ -402,14 +402,14 @@ var _roleMenuConfig = function () {
             'stock-management-kernel': {
                 route: 'stock-management-kernel',
                 icon: 'fas fa-warehouse',
-                label: 'Stock (Kernel)',
+                label: 'Stock on Hand',
                 category: 'kernel',
                 parent: 'kernelCollapse'
             },
             'kernel-dispatch-grid': {
                 route: 'kernel-dispatch-grid',
                 icon: 'fas fa-box',
-                label: 'Kernel Dispatch',
+                label: 'Dispatch and Sales',
                 category: 'kernel',
                 parent: 'kernelCollapse'
             },

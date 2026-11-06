@@ -69,9 +69,9 @@ export const CAPTURE_OVERRIDES: Record<string, CaptureAction> = {
     modalSelector: '#createKernelBatchModal',
   },
   'modal-send-to-dispatch': {
-    route: 'stock-management-kernel',
+    route: 'kernel-dispatch-grid',
     kind: 'modal',
-    openSelector: '#sendToDispatchBtn',
+    openSelector: '#kdSendToDispatchBtn',
     modalSelector: '#sendToDispatchModal',
   },
   'modal-send-to-dispatch-oil': {

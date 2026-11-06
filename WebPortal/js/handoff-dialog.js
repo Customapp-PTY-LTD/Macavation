@@ -82,7 +82,7 @@ var HandoffDialog = (function () {
             if (opts.primaryRoute) navigateToRoute(opts.primaryRoute, opts.searchText, opts.searchInputId);
             return Promise.resolve({ isConfirmed: true });
         }
-        var batchLabel = escapeHtml(opts.batchLabel || 'Batch');
+        var batchLabel = escapeHtml(macBatchNo.format(opts.batchLabel || 'Batch'));
         var statusLabel = escapeHtml(opts.statusLabel || '');
         var dest = escapeHtml(opts.destinationModule || '');
         var html = '<p class="mb-2">Batch <strong>' + batchLabel + '</strong> moved to <strong>' + dest + '</strong>'
@@ -111,11 +111,11 @@ var HandoffDialog = (function () {
     function showKernelReleaseToProduction(batch) {
         var label = (batch && batch.batch_number) ? batch.batch_number : 'Batch';
         var d = typeof BatchStatus !== 'undefined' ? BatchStatus.getDisplayStatus(batch) : { label: 'Ready to crack' };
-        var route = typeof BatchStatus !== 'undefined' ? BatchStatus.getKernelRouteForStatus(d) : { route: 'kernel-production-grid', label: 'Open Kernel Production', searchInputId: 'searchBatchesInput' };
+        var route = typeof BatchStatus !== 'undefined' ? BatchStatus.getKernelRouteForStatus(d) : { route: 'kernel-production-grid', label: 'Open Production', searchInputId: 'searchBatchesInput' };
         return show({
             batchLabel: label,
             statusLabel: d.label,
-            destinationModule: 'Kernel Production',
+            destinationModule: 'Production',
             primaryRoute: route.route,
             primaryLabel: route.label,
             searchText: label,
@@ -128,9 +128,9 @@ var HandoffDialog = (function () {
         return show({
             batchLabel: label,
             statusLabel: 'Stock',
-            destinationModule: 'Stock (Kernel)',
+            destinationModule: 'Stock on Hand',
             primaryRoute: 'stock-management-kernel',
-            primaryLabel: 'Open Stock (Kernel)',
+            primaryLabel: 'Open Stock on Hand',
             searchText: label,
             searchInputId: null
         });
@@ -154,9 +154,9 @@ var HandoffDialog = (function () {
         return show({
             batchLabel: batchLabel || 'Selection',
             statusLabel: 'Dispatch basket',
-            destinationModule: isOil ? 'Oil & Protein Dispatch' : 'Kernel Dispatch',
+            destinationModule: isOil ? 'Oil & Protein Dispatch' : 'Dispatch and Sales',
             primaryRoute: isOil ? 'oil-dispatch-grid' : 'kernel-dispatch-grid',
-            primaryLabel: isOil ? 'Open Oil Dispatch' : 'Open Kernel Dispatch',
+            primaryLabel: isOil ? 'Open Oil Dispatch' : 'Open Dispatch and Sales',
             searchText: batchLabel || '',
             searchInputId: isOil ? null : 'kdFilterBatch'
         });
