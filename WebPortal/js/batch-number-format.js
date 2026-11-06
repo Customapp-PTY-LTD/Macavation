@@ -7,7 +7,7 @@
  *   - save:   macBatchNo.toStored(typed)       'BN.01.26.05' -> 'Bn 01 26 05'
  *   - search: macBatchNo.searchKey(text)       both forms    -> '012605'
  * Anything that is not a kernel batch number (oil lots, free text) is returned unchanged.
- * Same rule as public._fmt_batch_number in migrations/20261106090000_dispatch_and_sales_five_steps.sql.
+ * Same rule as public._fmt_batch_number in migrations/20261106120000_dispatch_and_sales_five_steps.sql.
  */
 (function (window) {
     'use strict';
