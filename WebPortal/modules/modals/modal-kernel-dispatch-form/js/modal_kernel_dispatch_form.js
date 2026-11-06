@@ -203,7 +203,7 @@ var _modal_kernel_dispatch_form = (function () {
                 var qtyDisplay = (line.cartons != null && line.cartons >= 0)
                     ? ('<strong>' + DispatchFormShared.cartonLabel(line.cartons) + '</strong> · ' + (qtyKg != null ? Number(qtyKg).toFixed(2) : '—') + ' kg')
                     : (qtyKg != null ? qtyKg + ' kg' : '—');
-                tr.innerHTML = '<td>' + escapeHtml(line.batch_number || '—') + '</td><td>' + escapeHtml(line.style || '—') + '</td><td class="text-end">' + qtyDisplay + '</td>';
+                tr.innerHTML = '<td>' + escapeHtml(line.batch_number ? (typeof macBatchNo !== 'undefined' ? macBatchNo.format(line.batch_number) : line.batch_number) : '—') + '</td><td>' + escapeHtml(line.style || '—') + '</td><td class="text-end">' + qtyDisplay + '</td>';
                 tbody.appendChild(tr);
             });
         },
@@ -356,7 +356,7 @@ var _modal_kernel_dispatch_form = (function () {
 
             dataFunctions.saveKernelDispatchRecord(payload).then(function (result) {
                 if (result && result.success !== false) {
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Dispatched', text: 'Dispatch record saved. Order marked as dispatched.', timer: 2000, showConfirmButton: false });
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Truck loaded', text: 'Step 4 is done. Joslyn has a task to send the invoice.', timer: 2500, showConfirmButton: false });
                     var modalEl = document.getElementById('kernelDispatchFormModal');
                     if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
                         var modal = bootstrap.Modal.getInstance(modalEl);

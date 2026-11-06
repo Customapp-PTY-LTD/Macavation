@@ -52,7 +52,7 @@ var _modal_kernel_dispatch = (function () {
                 var statusEl = document.getElementById('kernelDispatchOrderStatus');
                 var tbody = document.getElementById('kernelDispatchOrderLinesBody');
                 if (buyerEl) buyerEl.textContent = order.buyer_name || '—';
-                if (deliveryEl) deliveryEl.textContent = formatDate(order.delivery_date);
+                if (deliveryEl) deliveryEl.textContent = formatDate(order.planned_collection_date || order.delivery_date);
                 if (collectionEl) collectionEl.textContent = formatDate(order.planned_collection_date) || '—';
                 if (statusEl) statusEl.textContent = order.status || '—';
                 if (tbody) {
@@ -66,7 +66,7 @@ var _modal_kernel_dispatch = (function () {
                         var qtyDisplay = (line.cartons != null && line.cartons >= 0)
                             ? (DispatchFormShared.cartonLabel(line.cartons) + ' · ' + (qtyKg != null ? qtyKg : '—') + ' kg')
                             : (qtyKg != null ? qtyKg + ' kg' : '—');
-                        [line.batch_number || '—', line.style || '—', qtyDisplay].forEach(function (v, ci) {
+                        [line.batch_number ? (typeof macBatchNo !== 'undefined' ? macBatchNo.format(line.batch_number) : line.batch_number) : '—', line.style || '—', qtyDisplay].forEach(function (v, ci) {
                             var td = document.createElement('td');
                             if (ci === 2) td.className = 'text-end';
                             td.textContent = String(v);

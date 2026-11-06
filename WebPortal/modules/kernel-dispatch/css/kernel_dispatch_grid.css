@@ -19,3 +19,17 @@
 .kd-step-2 .kd-step-title { color: var(--mac-danger); }
 .kd-step-3 .kd-step-title { color: var(--mac-green); }
 .kd-step-text { font-size: 13px; color: var(--mac-text-secondary); }
+
+/* Five steps (Mike, 5 Nov 2026): tick boxes per dispatch. */
+.kd-steps-5 { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.kd-step-4 .kd-step-title { color: var(--mac-info); }
+.kd-step-5 .kd-step-title { color: var(--mac-text); }
+.kd-step-th { font-size: 12px; line-height: 1.25; width: 82px; white-space: normal; }
+.kd-box { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 5px; box-sizing: border-box; font-size: 12px; }
+.kd-box-done { background: var(--mac-green); color: var(--mac-bg-secondary); }
+.kd-box-now { border: 2px solid var(--mac-warning); background: var(--mac-warning-light); }
+.kd-box-todo { border: 2px solid var(--mac-border-strong); background: var(--mac-bg-secondary); }
+.kd-older { font-size: 12px; color: var(--mac-text-secondary); }
+.kd-mini-steps { display: flex; gap: 4px; margin: 6px 0 2px; }
+.kd-mini-steps .kd-box { width: 18px; height: 18px; font-size: 10px; }
+.kd-step-of { font-size: 12px; color: var(--mac-text-secondary); white-space: nowrap; }

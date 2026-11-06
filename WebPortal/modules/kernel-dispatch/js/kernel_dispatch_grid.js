@@ -1,6 +1,9 @@
 /**
- * Kernel Dispatch - INV from KERNEL R YES → KERNEL CUSTOMERS → DEBTORS.
- * Lists dispatch orders (baskets) created from Stock (Kernel). View sheet opens the full dispatch form with lines and record.
+ * Dispatch and Sales (was Kernel Dispatch) - INV from KERNEL R YES → KERNEL CUSTOMERS → DEBTORS.
+ * Mike, 5 Nov 2026: every dispatch shows five steps as tick boxes:
+ *   1 Dispatch created  2 Stock picked  3 Pricing confirmed  4 Truck loaded  5 Invoice sent
+ * Steps come from get_kernel_dispatch_stages (workflow_stage, status, invoice_sent_at); orders made
+ * before the workflow have no stage and show "Older order". Send to Dispatch starts a dispatch here.
  */
 var _kernelDispatchGrid = function () {
     'use strict';
@@ -24,13 +27,17 @@ var _kernelDispatchGrid = function () {
     var can = function (key) { return typeof window.hasAction === 'function' && !!window.hasAction(key); };
     var escHtml = function (v) { return (typeof _common !== 'undefined' && _common.escapeHtml) ? _common.escapeHtml(v) : String(v == null ? '' : v).replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
 
+    var fmtBatch = function (v) { return (typeof macBatchNo !== 'undefined') ? macBatchNo.format(v) : String(v == null ? '' : v); };
+    var STEP_NAMES = ['Dispatch created', 'Stock picked', 'Pricing confirmed', 'Truck loaded', 'Invoice sent'];
+
     return {
         orders: [],
-        /** Approval-workflow state by order id: { workflow_stage, picked_by_label, has_pick_changes }. Legacy orders have no entry. */
+        /** Workflow state by order id: { workflow_stage, status, invoice_sent_at, picked_by_label, has_pick_changes,
+         *  substitutes, needs_approval }. Legacy orders have no entry. */
         stages: {},
         _handlersBound: false,
-        currentView: 'kanban',
-        /** Stage filter chip: 'all' | 'picking' | 'approval' | 'approved' | 'legacy'. */
+        currentView: 'table',
+        /** Stage filter chip: 'all' | 'picking' | 'approval' | 'truck' | 'invoice' | 'done' | 'legacy'. */
         stageFilter: 'all',
         _pendingOpenOrderId: null,
         /** Active list filters (applied on server via get_kernel_dispatch_orders). */
@@ -69,13 +76,17 @@ var _kernelDispatchGrid = function () {
         init: async () => {
             const scope = _kernelDispatchGrid;
             var handoff = (typeof _appRouter !== 'undefined' && _appRouter.takeHandoff) ? _appRouter.takeHandoff('kernel-dispatch-grid') : null;
-            scope.stageFilter = (handoff && ['picking', 'approval', 'approved', 'legacy'].indexOf(handoff.stage) >= 0) ? handoff.stage : 'all';
+            var handoffStage = handoff && handoff.stage === 'approved' ? 'truck' : (handoff && handoff.stage);
+            scope.stageFilter = (handoffStage && ['picking', 'approval', 'truck', 'invoice', 'done', 'legacy'].indexOf(handoffStage) >= 0) ? handoffStage : 'all';
             scope._pendingOpenOrderId = (handoff && handoff.openOrderId) || null;
             $('#kdStageChips').off('click.kdStage').on('click.kdStage', '[data-stage]', function () {
                 scope.stageFilter = String($(this).data('stage'));
                 scope.render();
             });
             $('#kernelDispatchRefreshBtn').off('click').on('click', function () { scope.loadOrders(true); });
+            $('#kdSendToDispatchBtn').toggleClass('d-none', !can('kernel.dispatch.create')).off('click').on('click', function () {
+                if (typeof _modal_stock_send_to_dispatch !== 'undefined' && _modal_stock_send_to_dispatch.show) _modal_stock_send_to_dispatch.show();
+            });
             scope.initActivityCalendar();
 
             $('#kdFilterBatch').off('input.kdFilter').on('input.kdFilter', function () {
@@ -126,6 +137,9 @@ var _kernelDispatchGrid = function () {
                     var id = $(this).data('order-id');
                     scope.confirmRevertDispatchOrder(id);
                 });
+                $(document).on('click', '.js-kd-invoice-undo', function () {
+                    scope.undoInvoiceSent($(this).data('order-id'));
+                });
                 $(document).on('click', '.js-kd-clear-filters', function (e) {
                     e.preventDefault();
                     if (scope._kdFilterDebounce) clearTimeout(scope._kdFilterDebounce);
@@ -150,6 +164,7 @@ var _kernelDispatchGrid = function () {
                 if (typeof _modal_kernel_dispatch_form !== 'undefined' && _modal_kernel_dispatch_form.init) _modal_kernel_dispatch_form.init();
                 if (typeof _modal_kernel_dispatch_edit !== 'undefined' && _modal_kernel_dispatch_edit.init) _modal_kernel_dispatch_edit.init();
                 if (typeof _modal_kernel_dispatch_approve !== 'undefined' && _modal_kernel_dispatch_approve.init) _modal_kernel_dispatch_approve.init();
+                if (typeof _modal_stock_send_to_dispatch !== 'undefined' && _modal_stock_send_to_dispatch.init) _modal_stock_send_to_dispatch.init();
             }).catch(function (err) {
                 console.error('[Kernel Dispatch] Error loading modal:', err);
                 if (typeof _modal_kernel_dispatch !== 'undefined' && _modal_kernel_dispatch.init) _modal_kernel_dispatch.init();
@@ -222,10 +237,52 @@ var _kernelDispatchGrid = function () {
             return st && st.workflow_stage ? String(st.workflow_stage).toLowerCase() : '';
         },
 
-        /** Stage key for filtering: picking | approval | approved | legacy (no workflow stage). */
-        stageKey: function (o) {
+        isDispatched: function (o) {
+            var st = o && this.stages[o.id];
+            return String((st && st.status) || (o && o.status) || '').toLowerCase() === 'dispatched';
+        },
+
+        isInvoiced: function (o) {
+            var st = o && this.stages[o.id];
+            return !!(st && st.invoice_sent_at);
+        },
+
+        /** Steps done (1-5), or 0 for an older order with no workflow. */
+        stepsDone: function (o) {
             var st = this.stageOf(o);
-            return (st === 'picking' || st === 'approval' || st === 'approved') ? st : 'legacy';
+            if (!st) return 0;
+            if (st === 'picking') return 1;
+            if (st === 'approval') return 2;
+            if (!this.isDispatched(o)) return 3;
+            return this.isInvoiced(o) ? 5 : 4;
+        },
+
+        /** Stage key for filtering: picking | approval | truck | invoice | done | legacy (no workflow stage). */
+        stageKey: function (o) {
+            return ['legacy', 'picking', 'approval', 'truck', 'invoice', 'done'][this.stepsDone(o)];
+        },
+
+        /** Five tick boxes (one per step) as <td> cells, or one cell saying "Older order". Static markup only. */
+        stepCells: function (o) {
+            var n = this.stepsDone(o);
+            if (!n) return '<td colspan="5" class="text-center kd-older">Older order (before the five steps)</td>';
+            return STEP_NAMES.map(function (name, i) {
+                var cls = i < n ? 'kd-box-done' : (i === n ? 'kd-box-now' : 'kd-box-todo');
+                var label = name + (i < n ? ': done' : (i === n ? ': waiting' : ': not yet'));
+                return '<td class="text-center"><span class="kd-box ' + cls + '" role="img" aria-label="' + label + '" title="' + label + '">'
+                    + (i < n ? '<i class="fas fa-check" aria-hidden="true"></i>' : '') + '</span></td>';
+            }).join('');
+        },
+
+        /** Small row of boxes for kanban cards. */
+        miniSteps: function (o) {
+            var n = this.stepsDone(o);
+            if (!n) return '';
+            var boxes = STEP_NAMES.map(function (name, i) {
+                var cls = i < n ? 'kd-box-done' : (i === n ? 'kd-box-now' : 'kd-box-todo');
+                return '<span class="kd-box ' + cls + '" title="' + name + '">' + (i < n ? '<i class="fas fa-check" aria-hidden="true"></i>' : '') + '</span>';
+            }).join('');
+            return '<div class="kd-mini-steps" role="img" aria-label="Step ' + Math.min(n + 1, 5) + ' of 5">' + boxes + '</div>';
         },
 
         /** Orders after the stage chip filter. */
@@ -239,21 +296,31 @@ var _kernelDispatchGrid = function () {
         waitingOn: function (o) {
             var key = this.stageKey(o);
             var info = this.stages[o.id] || {};
-            if (key === 'picking') return 'Production Manager';
-            if (key === 'approval') return 'Sales Exec' + (info.has_pick_changes ? ' <span class="text-muted">&middot; lines changed</span>' : '');
-            if (key === 'approved') return '<span class="text-muted">Nobody &middot; sale recorded</span>';
-            return '<span class="text-muted">Before approvals started</span>';
+            var n = this.stepsDone(o);
+            var of = n && n < 5 ? '<div class="kd-step-of">Step ' + (n + 1) + ' of 5</div>' : '';
+            if (key === 'picking') return 'Production Manager <span class="text-muted">&middot; pick the stock</span>' + of;
+            if (key === 'approval') {
+                return 'Sales Exec <span class="text-muted">&middot; confirm pricing</span>'
+                    + (info.needs_approval ? ' <span class="badge bg-warning text-dark">different style to OK</span>'
+                        : (info.has_pick_changes ? ' <span class="text-muted">&middot; pick changed</span>' : '')) + of;
+            }
+            if (key === 'truck') return 'Truck <span class="text-muted">&middot; load and check</span>' + of;
+            if (key === 'invoice') return 'Palladium Manager <span class="text-muted">&middot; send the invoice</span>' + of;
+            if (key === 'done') return '<span class="text-muted">Done</span>';
+            return '<span class="text-muted">Before the five steps</span>';
         },
 
         renderStageChips: function () {
             var scope = this;
-            var counts = { all: scope.orders.length, picking: 0, approval: 0, approved: 0, legacy: 0 };
+            var counts = { all: scope.orders.length, picking: 0, approval: 0, truck: 0, invoice: 0, done: 0, legacy: 0 };
             scope.orders.forEach(function (o) { counts[scope.stageKey(o)]++; });
             var defs = [
                 ['all', 'All', 'kd-chip-all'],
                 ['picking', 'Waiting for picking', 'kd-chip-picking'],
                 ['approval', 'Waiting for pricing', 'kd-chip-approval'],
-                ['approved', 'Approved', 'kd-chip-approved'],
+                ['truck', 'Waiting for the truck', 'kd-chip-approved'],
+                ['invoice', 'Waiting for the invoice', 'kd-chip-approved'],
+                ['done', 'Done', 'kd-chip-legacy'],
                 ['legacy', 'Older orders', 'kd-chip-legacy']
             ];
             var $box = $('#kdStageChips').empty();
@@ -272,23 +339,26 @@ var _kernelDispatchGrid = function () {
             var map = {
                 picking: ['Waiting for picking', 'bg-warning text-dark'],
                 approval: ['Waiting for pricing', 'bg-info text-dark'],
-                approved: ['Approved – sale recorded', 'bg-success']
+                truck: ['Priced · waiting for the truck', 'bg-success'],
+                invoice: ['Loaded · waiting for the invoice', 'bg-success'],
+                done: ['Invoice sent', 'bg-secondary']
             };
-            var m = map[stage];
+            var m = map[this.stageKey(o)];
             if (!m) return '';
             var html = '<div class="mt-1"><span class="badge ' + m[1] + '">' + escHtml(m[0]) + '</span>';
             if (stage === 'approval' && info.has_pick_changes) html += ' <span class="badge bg-warning text-dark" title="The picker changed some cartons">changed</span>';
-            return html + '</div>';
+            return html + '</div>' + this.miniSteps(o);
         },
 
         /** { label, icon } of the workflow button for this row, or null (legacy orders). */
         stageAction: function (o) {
             var stage = this.stageOf(o);
             if (!stage) return null;
-            if (stage === 'picking' && can('kernel_dispatch.pick')) return { label: 'Confirm picking', icon: 'fas fa-clipboard-check' };
-            if ((stage === 'approval' || stage === 'approved') && can('kernel_dispatch.approve')) {
-                return stage === 'approved' ? { label: 'View sale', icon: 'fas fa-receipt' } : { label: 'Price & approve', icon: 'fas fa-tags' };
-            }
+            var key = this.stageKey(o);
+            if (key === 'picking' && can('kernel_dispatch.pick')) return { label: 'Confirm picking', icon: 'fas fa-clipboard-check' };
+            if (key === 'approval' && can('kernel_dispatch.approve')) return { label: 'Confirm pricing', icon: 'fas fa-tags' };
+            if (key === 'truck' && can('kernel_dispatch.approve')) return { label: 'View pricing', icon: 'fas fa-receipt' };
+            if (key === 'invoice' && can('kernel_dispatch.invoice')) return { label: 'Invoice sent', icon: 'fas fa-file-invoice' };
             return { label: 'Progress', icon: 'fas fa-list-check' };
         },
 
@@ -303,23 +373,35 @@ var _kernelDispatchGrid = function () {
             return '<button type="button" class="btn btn-sm btn-outline-primary js-kd-open-approve me-1" data-order-id="' + escHtml(o.id || '') + '"><i class="' + a.icon + ' me-1"></i>' + escHtml(a.label) + '</button>';
         },
 
-        /** Dispatch form, after a heads-up when Pete has not approved (and so no sale is recorded). Never blocks. */
+        /** Truck form (step 4). Blocked until pricing is confirmed; the server refuses it too. */
         openDispatch: function (id) {
             if (!id || typeof _modal_kernel_dispatch_form === 'undefined' || !_modal_kernel_dispatch_form.show) return;
             var stage = this.stageOf({ id: id });
-            if ((stage === 'picking' || stage === 'approval') && typeof Swal !== 'undefined') {
-                Swal.fire({
-                    title: 'Not approved yet',
-                    text: 'Pete has not approved this dispatch yet, so it is not recorded as a sale. Dispatch anyway?',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Continue',
-                    cancelButtonText: 'Cancel',
-                    focusCancel: true
-                }).then(function (res) { if (res.isConfirmed) _modal_kernel_dispatch_form.show(id); });
+            if (stage === 'picking' || stage === 'approval') {
+                var msg = stage === 'picking'
+                    ? 'The stock has not been picked yet. The truck can be loaded once the picking and the pricing are confirmed.'
+                    : 'Pete has not confirmed the pricing yet. The truck can be loaded once he has.';
+                if (typeof Swal !== 'undefined') Swal.fire({ title: 'Not ready for the truck', text: msg, icon: 'info' });
+                else window.alert(msg);
                 return;
             }
             _modal_kernel_dispatch_form.show(id);
+        },
+
+        undoInvoiceSent: function (id) {
+            const scope = _kernelDispatchGrid;
+            if (!id || typeof dataFunctions === 'undefined' || !dataFunctions.markKernelDispatchInvoiceSent) return;
+            var run = function () {
+                dataFunctions.markKernelDispatchInvoiceSent(id, false).then(function (res) {
+                    if (res && res.success !== false) scope.loadOrders(true);
+                    else if (typeof Swal !== 'undefined') Swal.fire('Could not save', (res && res.error) || 'Please try again.', 'error');
+                });
+            };
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({ title: 'Undo "Invoice sent"?', text: 'Step 5 goes back to waiting, and the invoice task opens again.', icon: 'warning',
+                    showCancelButton: true, confirmButtonText: 'Undo', cancelButtonText: 'Cancel', focusCancel: true })
+                    .then(function (r) { if (r.isConfirmed) run(); });
+            } else if (window.confirm('Undo "Invoice sent"?')) run();
         },
 
         loadOrders: async (forceRefresh) => {
@@ -397,35 +479,36 @@ var _kernelDispatchGrid = function () {
                 return;
             }
             var shown = scope.visibleOrders();
-            var pending = shown.filter(function (o) { return o.status !== 'dispatched'; });
-            var dispatched = shown.filter(function (o) { return o.status === 'dispatched'; });
+            // Open = not yet through all five steps. Done = invoiced, or an older order that has gone out.
+            var isDone = function (o) { var k = scope.stageKey(o); return k === 'done' || (k === 'legacy' && o.status === 'dispatched'); };
+            var pending = shown.filter(function (o) { return !isDone(o); });
+            var dispatched = shown.filter(isDone);
 
             var pendingTbody = $('#kernelDispatchTableBody');
             pendingTbody.empty();
             if (!pending.length) {
                 var pendingMsg = scope.listFiltersActive()
-                    ? 'No baskets match your search in <strong>Ready to dispatch</strong>. Try buyer name, batch #, or supplier received date, or clear search.'
-                    : 'No orders ready to dispatch. Go to Stock (Kernel), select styles for batches, then Send to Dispatch to create an order.';
-                pendingTbody.html('<tr><td colspan="9" class="text-center text-muted py-4">' + pendingMsg + '</td></tr>');
+                    ? 'No dispatches match your search. Try customer name, batch number, or supplier received date, or clear search.'
+                    : 'No open dispatches. Use Send to Dispatch above to start one.';
+                pendingTbody.html('<tr><td colspan="10" class="text-center text-muted py-4">' + pendingMsg + '</td></tr>');
             } else {
                 pending.forEach(function (o) {
-                    var buyer = (o.buyer_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') || '—';
-                    var deliveryStr = formatDate(o.delivery_date);
-                    var collectionStr = formatDate(o.planned_collection_date) || '—';
-                    var createdStr = formatDate(o.created_at);
+                    var buyer = escHtml(o.buyer_name || '') || '—';
+                    var collectionStr = formatDate(o.planned_collection_date || o.delivery_date) || '—';
                     var lineCount = o.line_count != null ? o.line_count : 0;
                     var totalKg = o.total_kg != null ? Number(o.total_kg) : 0;
-                    var statusBadge = KanbanHelper.statusBadge(o.status || 'confirmed', 'first') + scope.stageBadge(o);
-                    var actions = MacTableActions.render({
-                        id: 'kdPendingActions' + (o.id || ''),
-                        items: [
-                            { label: 'View sheet', className: 'js-view-dispatch-order', icon: 'fas fa-clipboard-list', dataAttrs: { 'order-id': o.id || '' } }
-                        ].concat(scope.stageMenuItem(o), [
-                            { label: 'Edit', className: 'js-edit-dispatch-order', dataAttrs: { 'order-id': o.id || '' } },
-                            { label: 'Dispatch', className: 'js-dispatch-order', icon: 'fas fa-truck', dataAttrs: { 'order-id': o.id || '' } }
-                        ])
-                    });
-                    pendingTbody.append('<tr><td>' + buyer + '</td><td>' + collectionStr + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + _common.formatKg(totalKg) + ' kg</td><td>' + statusBadge + '</td><td>' + scope.waitingOn(o) + '</td><td class="mac-table-actions-col">' + actions + '</td></tr>');
+                    var key = scope.stageKey(o);
+                    var items = [
+                        { label: 'View sheet', className: 'js-view-dispatch-order', icon: 'fas fa-clipboard-list', dataAttrs: { 'order-id': o.id || '' } }
+                    ].concat(scope.stageMenuItem(o));
+                    if (o.status !== 'dispatched') {
+                        items.push({ label: 'Edit', className: 'js-edit-dispatch-order', dataAttrs: { 'order-id': o.id || '' } });
+                        if (key === 'truck' || key === 'legacy') items.push({ label: 'Truck loaded', className: 'js-dispatch-order', icon: 'fas fa-truck', dataAttrs: { 'order-id': o.id || '' } });
+                    } else {
+                        items.push({ label: 'Undo truck loaded', className: 'js-edit-dispatched-basket', dataAttrs: { 'order-id': o.id || '' } });
+                    }
+                    var actions = MacTableActions.render({ id: 'kdPendingActions' + (o.id || ''), items: items });
+                    pendingTbody.append('<tr><td><strong>' + buyer + '</strong><div class="kd-step-of">' + lineCount + ' line' + (lineCount === 1 ? '' : 's') + '</div></td><td>' + collectionStr + '</td><td class="text-end">' + _common.formatKg(totalKg) + ' kg</td>' + scope.stepCells(o) + '<td>' + scope.waitingOn(o) + '</td><td class="mac-table-actions-col">' + actions + '</td></tr>');
                 });
             }
 
@@ -433,26 +516,24 @@ var _kernelDispatchGrid = function () {
             dispatchedTbody.empty();
             if (!dispatched.length) {
                 var dispMsg = scope.listFiltersActive()
-                    ? 'No baskets match your search in <strong>Dispatched</strong>. Adjust search or clear it.'
-                    : 'No baskets marked as dispatched yet. Use the Dispatch button above to complete an order.';
-                dispatchedTbody.html('<tr><td colspan="9" class="text-center text-muted py-4">' + dispMsg + '</td></tr>');
+                    ? 'No finished dispatches match your search. Adjust search or clear it.'
+                    : 'Nothing finished yet. A dispatch moves here once its invoice is sent.';
+                dispatchedTbody.html('<tr><td colspan="10" class="text-center text-muted py-4">' + dispMsg + '</td></tr>');
             } else {
                 dispatched.forEach(function (o) {
-                    var buyer = (o.buyer_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') || '—';
-                    var deliveryStr = formatDate(o.delivery_date);
-                    var collectionStr = formatDate(o.planned_collection_date) || '—';
-                    var createdStr = formatDate(o.created_at);
+                    var buyer = escHtml(o.buyer_name || '') || '—';
+                    var collectionStr = formatDate(o.planned_collection_date || o.delivery_date) || '—';
                     var lineCount = o.line_count != null ? o.line_count : 0;
                     var totalKg = o.total_kg != null ? Number(o.total_kg) : 0;
-                    var statusBadge = KanbanHelper.statusBadge('dispatched', 'last') + scope.stageBadge(o);
-                    var actions = MacTableActions.render({
-                        id: 'kdDispatchedActions' + (o.id || ''),
-                        items: [
-                            { label: 'Edit', className: 'js-edit-dispatched-basket', dataAttrs: { 'order-id': o.id || '' } },
-                            { label: 'View sheet', className: 'js-view-dispatch-order', icon: 'fas fa-clipboard-list', dataAttrs: { 'order-id': o.id || '' } }
-                        ].concat(scope.stageMenuItem(o))
-                    });
-                    dispatchedTbody.append('<tr><td>' + buyer + '</td><td>' + collectionStr + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + _common.formatKg(totalKg) + ' kg</td><td>' + statusBadge + '</td><td>' + scope.waitingOn(o) + '</td><td class="mac-table-actions-col">' + actions + '</td></tr>');
+                    var items = [
+                        { label: 'View sheet', className: 'js-view-dispatch-order', icon: 'fas fa-clipboard-list', dataAttrs: { 'order-id': o.id || '' } }
+                    ].concat(scope.stageMenuItem(o));
+                    if (scope.stageKey(o) === 'done' && can('kernel_dispatch.invoice')) {
+                        items.push({ label: 'Undo invoice sent', className: 'js-kd-invoice-undo', dataAttrs: { 'order-id': o.id || '' } });
+                    }
+                    items.push({ label: 'Undo truck loaded', className: 'js-edit-dispatched-basket', dataAttrs: { 'order-id': o.id || '' } });
+                    var actions = MacTableActions.render({ id: 'kdDispatchedActions' + (o.id || ''), items: items });
+                    dispatchedTbody.append('<tr><td><strong>' + buyer + '</strong><div class="kd-step-of">' + lineCount + ' line' + (lineCount === 1 ? '' : 's') + '</div></td><td>' + collectionStr + '</td><td class="text-end">' + _common.formatKg(totalKg) + ' kg</td>' + scope.stepCells(o) + '<td>' + scope.waitingOn(o) + '</td><td class="mac-table-actions-col">' + actions + '</td></tr>');
                 });
             }
             MacTableActions.init(document.getElementById('kernelDispatchTable'));
@@ -488,19 +569,17 @@ var _kernelDispatchGrid = function () {
             }, function (o) {
                 var esc = KanbanHelper._esc;
                 var buyer = esc(o.buyer_name || '—');
-                var deliveryStr = formatDate(o.delivery_date);
-                var collectionStr = formatDate(o.planned_collection_date);
-                var createdStr = formatDate(o.created_at);
+                var collectionStr = formatDate(o.planned_collection_date || o.delivery_date);
                 var lineCount = o.line_count != null ? o.line_count : 0;
                 var totalKg = o.total_kg != null ? _common.formatKg(o.total_kg) : '0.00';
                 var isDispatched = o.status === 'dispatched';
+                var key = scope.stageKey(o);
 
                 var html = '<div class="kanban-card" data-order-id="' + (o.id || '') + '">';
                 html += '<div class="kanban-card-title">' + buyer + '</div>';
                 html += scope.stageBadge(o);
                 html += '<div class="kanban-card-meta">';
                 if (collectionStr) html += '<div class="kanban-card-meta-item"><i class="fas fa-calendar-plus"></i> Collect ' + esc(collectionStr) + '</div>';
-                if (deliveryStr) html += '<div class="kanban-card-meta-item"><i class="fas fa-calendar"></i> Deliver ' + esc(deliveryStr) + '</div>';
                 html += '<div class="kanban-card-meta-item"><i class="fas fa-list"></i> ' + lineCount + ' lines</div>';
                 html += '<div class="kanban-card-meta-item"><i class="fas fa-weight-hanging"></i> ' + totalKg + ' kg</div>';
                 html += '<div class="kanban-card-meta-item"><i class="fas fa-hourglass-half"></i> Waiting on: ' + scope.waitingOn(o) + '</div>';
@@ -510,9 +589,9 @@ var _kernelDispatchGrid = function () {
                 html += '<button type="button" class="btn btn-sm btn-outline-primary js-view-dispatch-order" data-order-id="' + (o.id || '') + '" title="View dispatch sheet"><i class="fas fa-clipboard-list me-1"></i>View</button>';
                 if (!isDispatched) {
                     html += '<button type="button" class="btn btn-sm btn-outline-secondary js-edit-dispatch-order me-1" data-order-id="' + (o.id || '') + '">Edit</button>';
-                    html += '<button type="button" class="btn btn-sm btn-primary js-dispatch-order" data-order-id="' + (o.id || '') + '"><i class="fas fa-truck me-1"></i>Dispatch</button>';
+                    if (key === 'truck' || key === 'legacy') html += '<button type="button" class="btn btn-sm btn-primary js-dispatch-order" data-order-id="' + (o.id || '') + '"><i class="fas fa-truck me-1"></i>Truck loaded</button>';
                 } else {
-                    html += '<button type="button" class="btn btn-sm btn-outline-secondary js-edit-dispatched-basket me-1" data-order-id="' + (o.id || '') + '" title="Edit: unlock basket (clears dispatch paperwork)">Edit</button>';
+                    html += '<button type="button" class="btn btn-sm btn-outline-secondary js-edit-dispatched-basket me-1" data-order-id="' + (o.id || '') + '" title="Undo truck loaded: unlock the basket (clears the truck paperwork)">Undo truck</button>';
                 }
                 html += '</div>';
                 html += '</div>';
@@ -522,6 +601,7 @@ var _kernelDispatchGrid = function () {
             // Drag-and-drop: confirmed → dispatched only
             KanbanHelper.enableDragDrop('kdKanbanBoard', function (orderId, fromKey, toKey) {
                 if (fromKey === 'confirmed' && toKey === 'dispatched') {
+                    // openDispatch refuses until the pricing is confirmed.
                     scope.openDispatch(orderId);
                 }
                 // backward (dispatched → confirmed) is silently ignored

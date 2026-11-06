@@ -244,3 +244,34 @@
 #kernelDispatchApproveModal .modal-footer .btn {
     min-height: 44px;
 }
+
+/* Substitutes (pick) and price sources (pricing), 6 Nov 2026. */
+#kernelDispatchApproveModal .kda-sub-row td {
+    background-color: var(--mac-info-light);
+}
+
+#kernelDispatchApproveModal .kda-sub-label {
+    font-size: var(--mac-text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: var(--mac-info);
+}
+
+#kernelDispatchApproveModal .kda-sub-warn {
+    color: var(--mac-warning-text);
+    margin-top: 2px;
+}
+
+#kernelDispatchApproveModal .kda-sub-row .js-kda-sub-stock {
+    min-width: 16rem;
+}
+
+#kernelDispatchApproveModal .kda-price-src {
+    margin-top: 2px;
+}
+
+#kernelDispatchApproveModal .kda-customer {
+    margin-bottom: var(--mac-space-md);
+    color: var(--mac-text-secondary);
+}
