@@ -49,17 +49,68 @@
                             </div>
                         </div>
                     </div>
+                    <div id="dispatchCustomerDetails" class="dispatch-customer-details mb-3" style="display: none;" aria-live="polite">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                            <span class="fw-semibold">Customer details</span>
+                            <span class="d-flex align-items-center gap-2">
+                                <span class="small text-muted" id="dispatchCustomerDetailsHint">From Contacts.</span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="dispatchCustomerEditBtn"><i class="fas fa-pen me-1"></i>Edit</button>
+                            </span>
+                        </div>
+                        <dl class="row g-2 mb-0 small" id="dispatchCustomerDetailsList"></dl>
+                        <!-- Edit in place: saves straight to Contacts (update_dispatch_customer_details) -->
+                        <div id="dispatchCustomerEditForm" class="p-3 border rounded bg-light" style="display: none;">
+                            <div class="row g-2">
+                                <div class="col-sm-6">
+                                    <label for="dispatchCustEditPerson" class="form-label small">Contact person</label>
+                                    <input type="text" id="dispatchCustEditPerson" class="form-control form-control-sm" maxlength="200" autocomplete="off">
+                                </div>
+                                <div class="col-sm-6">
+                                    <label for="dispatchCustEditMobile" class="form-label small">Cell / phone</label>
+                                    <input type="tel" id="dispatchCustEditMobile" class="form-control form-control-sm" maxlength="50" autocomplete="off">
+                                </div>
+                                <div class="col-sm-6">
+                                    <label for="dispatchCustEditEmail" class="form-label small">Email</label>
+                                    <input type="email" id="dispatchCustEditEmail" class="form-control form-control-sm" maxlength="200" autocomplete="off">
+                                </div>
+                                <div class="col-sm-6">
+                                    <label for="dispatchCustEditVat" class="form-label small">VAT number</label>
+                                    <input type="text" id="dispatchCustEditVat" class="form-control form-control-sm" maxlength="50" autocomplete="off">
+                                </div>
+                                <div class="col-12">
+                                    <label for="dispatchCustEditAddress" class="form-label small">Street address</label>
+                                    <input type="text" id="dispatchCustEditAddress" class="form-control form-control-sm" maxlength="300" autocomplete="off">
+                                </div>
+                                <div class="col-sm-6 col-md-3">
+                                    <label for="dispatchCustEditArea" class="form-label small">Area</label>
+                                    <input type="text" id="dispatchCustEditArea" class="form-control form-control-sm" maxlength="200" autocomplete="off">
+                                </div>
+                                <div class="col-sm-6 col-md-3">
+                                    <label for="dispatchCustEditCity" class="form-label small">City / town</label>
+                                    <input type="text" id="dispatchCustEditCity" class="form-control form-control-sm" maxlength="200" autocomplete="off">
+                                </div>
+                                <div class="col-sm-6 col-md-3">
+                                    <label for="dispatchCustEditProvince" class="form-label small">Province</label>
+                                    <input type="text" id="dispatchCustEditProvince" class="form-control form-control-sm" maxlength="100" autocomplete="off">
+                                </div>
+                                <div class="col-sm-6 col-md-3">
+                                    <label for="dispatchCustEditPostal" class="form-label small">Postal code</label>
+                                    <input type="text" id="dispatchCustEditPostal" class="form-control form-control-sm" maxlength="20" autocomplete="off">
+                                </div>
+                            </div>
+                            <div id="dispatchCustEditError" class="text-danger small mt-2" style="display: none;"></div>
+                            <div class="d-flex gap-2 mt-3">
+                                <button type="button" class="btn btn-sm btn-primary" id="dispatchCustEditSaveBtn">Save to Contacts</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="dispatchCustEditCancelBtn">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
                     <div class="row g-3 mb-1">
                         <div class="col-md-6">
                             <label for="dispatchCollectionDate" class="form-label">Planned Collection Date <span class="text-danger">*</span></label>
                             <input type="text" class="form-control flatpickr-date" id="dispatchCollectionDate" data-input required placeholder="dd/mm/yyyy">
                         </div>
-                        <div class="col-md-6">
-                            <label for="dispatchDeliveryDate" class="form-label">Planned Delivery Date <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control flatpickr-date" id="dispatchDeliveryDate" data-input required placeholder="dd/mm/yyyy">
-                        </div>
                     </div>
-                    <div class="form-text mb-3">Delivery can't be before collection.</div>
                 </form>
             </div>
             <!-- Step 2: Shopping cart -->
@@ -68,8 +119,6 @@
                     <strong>Customer:</strong> <span id="sendToDispatchStep2BuyerLabel">—</span>
                     <span class="mx-2">|</span>
                     <strong>Collection:</strong> <span id="sendToDispatchStep2CollectionLabel">—</span>
-                    <span class="mx-2">|</span>
-                    <strong>Delivery:</strong> <span id="sendToDispatchStep2DeliveryLabel">—</span>
                 </div>
                 <div class="d-flex flex-wrap gap-4 text-muted small mb-2">
                     <span>Type cartons per style</span>

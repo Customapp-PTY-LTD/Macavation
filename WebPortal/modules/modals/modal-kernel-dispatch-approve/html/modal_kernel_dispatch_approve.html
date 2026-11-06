@@ -15,6 +15,7 @@
                 <div id="kdaFlag" class="kda-flag d-none" role="status"></div>
                 <div id="kdaReview" class="alert alert-info d-none" role="status"></div>
                 <div id="kdaApprovedInfo" class="alert alert-success d-none" role="status"></div>
+                <div id="kdaCustomer" class="kda-customer small d-none"></div>
                 <div class="kda-card kda-table-card">
                     <div class="table-responsive">
                         <table class="table align-middle mb-0 kda-table" id="kdaTable"></table>
@@ -22,8 +23,14 @@
                     <div class="kda-help" id="kdaTableHelp"></div>
                 </div>
                 <div id="kdaPickNoteWrap" class="kda-card d-none">
-                    <label class="form-label" for="kdaPickNote">Note for Pete (optional)</label>
+                    <label class="form-label" for="kdaPickNote">Note (optional). If you changed anything, Joslyn, Mike and Pete see it.</label>
                     <textarea class="form-control" id="kdaPickNote" rows="2" maxlength="1000"></textarea>
+                </div>
+                <div id="kdaInvoiceWrap" class="kda-card d-none">
+                    <h2 class="kda-card-title">Step 5 · Invoice sent</h2>
+                    <p class="mb-2">The truck has been loaded. Send the invoice and documents to the customer, then tick it off here.</p>
+                    <label class="form-label" for="kdaInvoiceNote">Note (optional, e.g. invoice number or who it went to)</label>
+                    <input type="text" class="form-control" id="kdaInvoiceNote" maxlength="500">
                 </div>
                 <div class="kda-cards-row d-none" id="kdaApproveCards">
                     <div class="kda-card">
@@ -67,7 +74,7 @@
                 <button type="button" class="btn btn-outline-secondary d-none" id="kdaSendBackBtn">Send back to Thando</button>
                 <button type="button" class="btn btn-primary d-none" id="kdaPrimaryBtn">Confirm picked</button>
             </div>
-            <div class="kda-footnote" id="kdaFootnote">Thando sees steps 1 and 2 without prices. The sale lands on the Kernel Dashboard as soon as it is approved.</div>
+            <div class="kda-footnote" id="kdaFootnote">Thando sees the picking without prices. The sale lands on the Kernel Dashboard when the pricing is confirmed, and is re-dated to the day the truck is loaded.</div>
         </div>
     </div>
 </div>

@@ -1,12 +1,13 @@
-<!-- Kernel Dispatch: INV from W/House Finished (KERNEL R YES) → KERNEL CUSTOMERS → DEBTORS -->
+<!-- Dispatch and Sales (was Kernel Dispatch; Mike 5 Nov 2026): five steps per dispatch. INV from W/House Finished (KERNEL R YES) → KERNEL CUSTOMERS → DEBTORS -->
 <div class="module-content">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">Kernel Dispatch</h1>
+        <h1 class="h2">Dispatch and Sales</h1>
         <div class="btn-toolbar align-items-center gap-2">
             <a target="_blank" rel="noopener noreferrer" href="help/index.html#kernel-dispatch-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
             <!-- Dispatch calendar: baskets created / dispatched each day (js/mac-activity-calendar.js) -->
             <div id="kdActivityCalendarMount" class="me-2"></div>
             <button type="button" class="btn btn-outline-secondary btn-sm" id="kernelDispatchRefreshBtn"><i class="fas fa-sync-alt me-1"></i>Refresh</button>
+            <button type="button" class="btn btn-primary" id="kdSendToDispatchBtn" data-action-perm="kernel.dispatch.create"><i class="fas fa-truck me-1"></i>Send to Dispatch</button>
         </div>
     </div>
     <!-- Search and Filters -->
@@ -28,10 +29,10 @@
                 </div>
                 <div class="col-12 col-md-4 col-lg-4 mt-2 mt-md-0 d-flex justify-content-md-end align-items-end">
                     <div class="view-toggle">
-                        <button class="view-toggle-btn active" data-view="kanban" id="kdViewKanban">
+                        <button class="view-toggle-btn" data-view="kanban" id="kdViewKanban">
                             <i class="fas fa-columns me-1"></i>Board
                         </button>
-                        <button class="view-toggle-btn" data-view="table" id="kdViewTable">
+                        <button class="view-toggle-btn active" data-view="table" id="kdViewTable">
                             <i class="fas fa-list me-1"></i>Table
                         </button>
                     </div>
@@ -48,16 +49,16 @@
     </div>
     <!-- Stage filter (approval workflow) -->
     <div id="kdStageChips" class="kd-chips mb-3" role="group" aria-label="Filter by stage"></div>
-    <!-- Kanban Board (default view) -->
-    <div id="kdKanbanBoard" class="kanban-board"></div>
+    <!-- Kanban Board -->
+    <div id="kdKanbanBoard" class="kanban-board" style="display:none"></div>
 
-    <!-- Table View (hidden by default) -->
-    <div id="kdTableCards" style="display:none">
+    <!-- Table View (default): one row per dispatch with Mike's five tick boxes -->
+    <div id="kdTableCards">
     <div class="card mb-4 mac-table-actions-card">
         <div class="card-header bg-light">
-            <h5 class="mb-0">Dispatch orders (baskets)</h5>
+            <h5 class="mb-0">Open dispatches</h5>
         </div>
-        <p class="card-text text-muted small px-3 pt-2 mb-0">Orders sent from Stock (Kernel) appear here. Use <strong>View basket</strong> to see styles and quantities, <strong>Edit</strong> to change buyer, dates, or carton quantities (until dispatched), or <strong>Dispatch</strong> to complete the inspection and dispatch form.</p>
+        <p class="card-text text-muted small px-3 pt-2 mb-0">Every dispatch until its invoice is sent. Green tick = done, amber box = the step it is on now, grey box = still to come. Use <strong>Send to Dispatch</strong> above to start one.</p>
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table align-middle table-hover" id="kernelDispatchTable">
@@ -65,11 +66,12 @@
                         <tr>
                             <th>Customer</th>
                             <th>Collection date</th>
-                            <th>Delivery date</th>
-                            <th>Created</th>
-                            <th class="text-end">Lines</th>
                             <th class="text-end">Total</th>
-                            <th>Status</th>
+                            <th class="text-center kd-step-th">Dispatch created</th>
+                            <th class="text-center kd-step-th">Stock picked</th>
+                            <th class="text-center kd-step-th">Pricing confirmed</th>
+                            <th class="text-center kd-step-th">Truck loaded</th>
+                            <th class="text-center kd-step-th">Invoice sent</th>
                             <th>Waiting on</th>
                             <th>Actions</th>
                         </tr>
@@ -81,9 +83,9 @@
     </div>
     <div class="card mb-4 mac-table-actions-card">
         <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Baskets marked as dispatched</h5>
+            <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Dispatched and invoiced</h5>
         </div>
-        <p class="card-text text-muted small px-3 pt-2 mb-0">Orders that have had the inspection and dispatch form completed.</p>
+        <p class="card-text text-muted small px-3 pt-2 mb-0">All five steps done, plus older orders that went out before the five steps started.</p>
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table align-middle table-hover" id="kernelDispatchedTable">
@@ -91,11 +93,12 @@
                         <tr>
                             <th>Customer</th>
                             <th>Collection date</th>
-                            <th>Delivery date</th>
-                            <th>Created</th>
-                            <th class="text-end">Lines</th>
                             <th class="text-end">Total</th>
-                            <th>Status</th>
+                            <th class="text-center kd-step-th">Dispatch created</th>
+                            <th class="text-center kd-step-th">Stock picked</th>
+                            <th class="text-center kd-step-th">Pricing confirmed</th>
+                            <th class="text-center kd-step-th">Truck loaded</th>
+                            <th class="text-center kd-step-th">Invoice sent</th>
                             <th>Waiting on</th>
                             <th>Actions</th>
                         </tr>
@@ -105,14 +108,16 @@
             </div>
         </div>
     </div>
-    <p class="text-muted small mb-4">Orders made before this change show "—" for collection date. The edit screen can set or change it.</p>
+    <p class="text-muted small mb-4">Older orders (before the steps started) show "Older order" instead of tick boxes.</p>
     </div><!-- /kdTableCards -->
 
-    <!-- How the approval steps work -->
-    <div class="kd-steps mb-4">
-        <div class="kd-step kd-step-1"><div class="kd-step-title">1 &middot; Pete saves the order</div><div class="kd-step-text">Opens a "Pick a dispatch" task for the Production Manager.</div></div>
-        <div class="kd-step kd-step-2"><div class="kd-step-title">2 &middot; Thando confirms picking</div><div class="kd-step-text">Her task closes; an "Approve a dispatch" task opens for Sales Exec.</div></div>
-        <div class="kd-step kd-step-3"><div class="kd-step-title">3 &middot; Pete approves</div><div class="kd-step-text">The sale is recorded and the task closes. Send back reopens step 2.</div></div>
+    <!-- How the five steps work -->
+    <div class="kd-steps kd-steps-5 mb-4">
+        <div class="kd-step kd-step-1"><div class="kd-step-title">1 &middot; Dispatch created</div><div class="kd-step-text">Pete or Mike uses Send to Dispatch. A "Pick a dispatch" task opens for the Production Manager.</div></div>
+        <div class="kd-step kd-step-2"><div class="kd-step-title">2 &middot; Stock picked</div><div class="kd-step-text">Thando confirms what she picked, with substitutes if a line is short. Changes are sent to Joslyn, Mike and Pete.</div></div>
+        <div class="kd-step kd-step-3"><div class="kd-step-title">3 &middot; Pricing confirmed</div><div class="kd-step-text">Prices fill in from the customer&rsquo;s price list. Pete can change any price, then confirms. The sale is recorded.</div></div>
+        <div class="kd-step kd-step-4"><div class="kd-step-title">4 &middot; Truck loaded</div><div class="kd-step-text">When the truck arrives: truck details and checks. Only after pricing is confirmed.</div></div>
+        <div class="kd-step kd-step-5"><div class="kd-step-title">5 &middot; Invoice sent</div><div class="kd-step-text">Joslyn gets a task to send the invoice and documents, and ticks it off.</div></div>
     </div>
 </div>
 
@@ -123,4 +128,7 @@
 <!-- Edit dispatch order (buyer, dates, cartons) before dispatched -->
 <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="kernelDispatchEditModal" role="dialog" route-name="kernel-dispatch-edit-modal" tabindex="-1" aria-labelledby="kernelDispatchEditModalLabel" aria-hidden="true"></div>
 <!-- Pick confirmation / price and approve (approval workflow) -->
+<!-- Send to Dispatch (moved here from Stock on Hand, 6 Nov 2026) -->
+<div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="sendToDispatchModal" role="dialog" route-name="send-to-dispatch-modal" tabindex="-1" aria-labelledby="sendToDispatchModalLabel" aria-hidden="true"></div>
+
 <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="kernelDispatchApproveModal" role="dialog" route-name="kernel-dispatch-approve-modal" tabindex="-1" aria-labelledby="kernelDispatchApproveModalLabel" aria-hidden="true"></div>

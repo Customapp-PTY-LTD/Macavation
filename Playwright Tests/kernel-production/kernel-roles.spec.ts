@@ -3,18 +3,18 @@ import { navigateToModule } from '../helpers/navigation.helper';
 
 /**
  * Kernel modules – Role-based access (QA Blueprint: different user roles see what they should).
- * Full e2e: login as role → open Stock (Kernel), Kernel Production, Kernel Dispatch → no Access Denied, content loads.
+ * Full e2e: login as role → open Stock on Hand, Production, Dispatch and Sales → no Access Denied, content loads.
  */
 
 const KERNEL_ROUTES = [
-  { route: 'stock-management-kernel', name: 'Stock (Kernel)', selector: '#kernelBatchJourneyCard, #stockManagementTitle' },
-  { route: 'kernel-production-grid', name: 'Kernel Production', selector: '#kpKanbanBoard, #kpTableCard, .module-content' },
-  { route: 'kernel-dispatch-grid', name: 'Kernel Dispatch', selector: '#kdKanbanBoard, #kdTableCards, .module-content' },
+  { route: 'stock-management-kernel', name: 'Stock on Hand', selector: '#kernelBatchJourneyCard, #stockManagementTitle' },
+  { route: 'kernel-production-grid', name: 'Production', selector: '#kpKanbanBoard, #kpTableCard, .module-content' },
+  { route: 'kernel-dispatch-grid', name: 'Dispatch and Sales', selector: '#kdKanbanBoard, #kdTableCards, .module-content' },
 ] as const;
 
 test.describe('Kernel modules - Role-based access @kernel @rbac', () => {
 
-  test('TC-KR-001: Sales Executive can access Stock (Kernel)', async ({ testData, loginAsSalesExecutive }) => {
+  test('TC-KR-001: Sales Executive can access Stock on Hand', async ({ testData, loginAsSalesExecutive }) => {
     test.skip(!testData.users.salesExecutive?.email || !testData.users.salesExecutive?.password, 'Set SALES_EXECUTIVE_EMAIL and SALES_EXECUTIVE_PASSWORD');
     const page = await loginAsSalesExecutive();
     await page.waitForLoadState('networkidle');
@@ -24,7 +24,7 @@ test.describe('Kernel modules - Role-based access @kernel @rbac', () => {
     await expect(page.locator('#stockManagementTitle, #kernelBatchJourneyCard, .module-content').first()).toBeVisible({ timeout: 10000 });
   });
 
-  test('TC-KR-002: Sales Executive can access Kernel Production', async ({ testData, loginAsSalesExecutive }) => {
+  test('TC-KR-002: Sales Executive can access Production', async ({ testData, loginAsSalesExecutive }) => {
     test.skip(!testData.users.salesExecutive?.email || !testData.users.salesExecutive?.password, 'Set SALES_EXECUTIVE_EMAIL and SALES_EXECUTIVE_PASSWORD');
     const page = await loginAsSalesExecutive();
     await page.waitForLoadState('networkidle');
@@ -34,7 +34,7 @@ test.describe('Kernel modules - Role-based access @kernel @rbac', () => {
     await expect(page.locator('#kpKanbanBoard, #kpTableCard, .module-content').first()).toBeVisible({ timeout: 10000 });
   });
 
-  test('TC-KR-003: Sales Executive can access Kernel Dispatch', async ({ testData, loginAsSalesExecutive }) => {
+  test('TC-KR-003: Sales Executive can access Dispatch and Sales', async ({ testData, loginAsSalesExecutive }) => {
     test.skip(!testData.users.salesExecutive?.email || !testData.users.salesExecutive?.password, 'Set SALES_EXECUTIVE_EMAIL and SALES_EXECUTIVE_PASSWORD');
     const page = await loginAsSalesExecutive();
     await page.waitForLoadState('networkidle');
@@ -44,7 +44,7 @@ test.describe('Kernel modules - Role-based access @kernel @rbac', () => {
     await expect(page.locator('#kdKanbanBoard, #kdTableCards, .module-content').first()).toBeVisible({ timeout: 10000 });
   });
 
-  test('TC-KR-004: Production Manager can access Stock (Kernel)', async ({ testData, loginAsProductionManager }) => {
+  test('TC-KR-004: Production Manager can access Stock on Hand', async ({ testData, loginAsProductionManager }) => {
     test.skip(!testData.users.productionManager?.email || !testData.users.productionManager?.password, 'Set PRODUCTION_MANAGER_EMAIL and PRODUCTION_MANAGER_PASSWORD');
     const page = await loginAsProductionManager();
     await page.waitForLoadState('networkidle');
@@ -54,7 +54,7 @@ test.describe('Kernel modules - Role-based access @kernel @rbac', () => {
     await expect(page.locator('#stockManagementTitle, #kernelBatchJourneyCard, .module-content').first()).toBeVisible({ timeout: 10000 });
   });
 
-  test('TC-KR-005: Production Manager can access Kernel Production', async ({ testData, loginAsProductionManager }) => {
+  test('TC-KR-005: Production Manager can access Production', async ({ testData, loginAsProductionManager }) => {
     test.skip(!testData.users.productionManager?.email || !testData.users.productionManager?.password, 'Set PRODUCTION_MANAGER_EMAIL and PRODUCTION_MANAGER_PASSWORD');
     const page = await loginAsProductionManager();
     await page.waitForLoadState('networkidle');
@@ -64,7 +64,7 @@ test.describe('Kernel modules - Role-based access @kernel @rbac', () => {
     await expect(page.locator('#kpKanbanBoard, #kpTableCard, .module-content').first()).toBeVisible({ timeout: 10000 });
   });
 
-  test('TC-KR-006: Production Manager can access Kernel Dispatch', async ({ testData, loginAsProductionManager }) => {
+  test('TC-KR-006: Production Manager can access Dispatch and Sales', async ({ testData, loginAsProductionManager }) => {
     test.skip(!testData.users.productionManager?.email || !testData.users.productionManager?.password, 'Set PRODUCTION_MANAGER_EMAIL and PRODUCTION_MANAGER_PASSWORD');
     const page = await loginAsProductionManager();
     await page.waitForLoadState('networkidle');
@@ -86,7 +86,7 @@ test.describe('Kernel modules - Role-based access @kernel @rbac', () => {
     }
   });
 
-  test('TC-KR-008: QA Supervisor can access Stock (Kernel) and Kernel Production', async ({ testData, loginAsQASupervisor }) => {
+  test('TC-KR-008: QA Supervisor can access Stock on Hand and Production', async ({ testData, loginAsQASupervisor }) => {
     test.skip(!testData.users.qaSupervsor?.email || !testData.users.qaSupervsor?.password, 'Set QA_SUPERVISOR_EMAIL and QA_SUPERVISOR_PASSWORD');
     const page = await loginAsQASupervisor();
     await page.waitForLoadState('networkidle');

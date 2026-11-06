@@ -302,7 +302,7 @@ var _kernelPipelineSettingsGrid = (function () {
         }).join('');
         if (!cells) return '';
         return card('Storage area capacity',
-            '<p class="text-muted small mb-2">How much nut in shell each area holds. Grower Intake shows how full each one is. Leave blank for no limit.</p>' +
+            '<p class="text-muted small mb-2">How much nut in shell each area holds. Receiving shows how full each one is. Leave blank for no limit.</p>' +
             '<div class="row g-3">' + cells + '</div>', saveBtn('kpsSaveAreas'));
     }
 

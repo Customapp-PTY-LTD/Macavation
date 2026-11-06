@@ -83,3 +83,13 @@
 
 /* Mounted as the Prices tab of Kernel Pipeline Settings (no page header). */
 .ksp-tab-intro { font-size: var(--mac-text-sm); color: var(--mac-text-secondary); margin-bottom: var(--mac-space-md); }
+
+/* Valid-until: status pills, ended history rows, expiry reminder block, embedded (CRM) editor. */
+.ksp-flag-ok { background: var(--mac-green-light); color: var(--mac-green-hover); }
+.ksp-flag-std { background: var(--mac-bg-tertiary); color: var(--mac-text-secondary); }
+.ksp-chip-ended { background: var(--mac-bg-tertiary); color: var(--mac-text-secondary); }
+.ksp-rem-expiry { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--mac-bg-tertiary); padding-top: var(--mac-space-sm); }
+.ksp-embed .ksp-bar { padding-left: 0; padding-right: 0; }
+.ksp-embed-scroll { overflow-x: auto; }
+.ksp-embed .ksp-table { min-width: 520px; }
+.ksp-embed .ksp-actions { padding-left: 0; padding-right: 0; }

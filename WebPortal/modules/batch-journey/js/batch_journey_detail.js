@@ -504,7 +504,7 @@ var _batchJourneyDetail = (function () {
         var h = '<section class="card mb-3 bjd-header"><div class="card-body d-flex flex-column gap-3">';
         h += '<div class="d-flex flex-wrap justify-content-between align-items-start gap-3">';
         h += '<div class="d-flex flex-column gap-1"><div class="d-flex flex-wrap align-items-center gap-2">' +
-            '<h2 class="h4 mb-0 bjd-batch-number">' + esc(d.batch_number || row.batch_number || 'Batch') + '</h2>' + badge + '</div>' +
+            '<h2 class="h4 mb-0 bjd-batch-number">' + esc(macBatchNo.format(d.batch_number || row.batch_number || 'Batch')) + '</h2>' + badge + '</div>' +
             '<div class="small text-muted">' + sub.join(' · ') + '</div></div>';
         h += '<div class="d-flex flex-wrap gap-2">';
         if (routeInfo && routeInfo.route !== 'batch-journey') {
@@ -603,7 +603,7 @@ var _batchJourneyDetail = (function () {
                 : '<p class="text-danger mb-0">Edit is not available. Refresh the page and try again.</p>';
         } else {
             body = '<dl class="bjd-dl mb-0">' +
-                dlItem('Batch number', esc(b.batch_number || '—')) +
+                dlItem('Batch number', esc(macBatchNo.format(b.batch_number || '—'))) +
                 dlItem('Grower', esc(b.grower_name || '—'), !b.grower_name) +
                 dlItem('Received date', esc(dateText(b.received_date, 'Not set')), !b.received_date) +
                 dlItem('Supplier\'s declared weight', esc(kgText(b.wet_nis_received_kg, 'Not set')), kgNum(b.wet_nis_received_kg) == null) +
@@ -668,7 +668,7 @@ var _batchJourneyDetail = (function () {
         if (!bl || !bl.ok) return 'Could not check where this bag is, so its weight is locked. Close and reopen Edit to try again.';
         if (!bl.inOverview) return 'This batch is past production; its bags have been through the silos.';
         var loc = bl.map[String(no)];
-        if (loc && loc !== '') return 'In ' + bagLocText(loc) + '. Take it out on Grower Intake first, then change the weight here.';
+        if (loc && loc !== '') return 'In ' + bagLocText(loc) + '. Take it out on Receiving first, then change the weight here.';
         return '';
     }
 
@@ -778,7 +778,7 @@ var _batchJourneyDetail = (function () {
         h += '<button type="button" class="btn btn-outline-secondary btn-sm mt-2 bjd-touch" data-bjd-act="add-bag"><i class="fas fa-plus me-1"></i>Add bag</button>';
         h += '<p class="small text-muted mt-2 mb-0">Saving rewrites the delivery the way New Delivery saved it: the weighed total (wet NIS) becomes the sum of the bags. ' +
             'Only bags that are not placed in a storage area or a silo can be re-weighed or removed — a placed bag\'s kg is already counted there. ' +
-            'New bags start as "Not placed yet"; place them on Grower Intake. Documents are kept as they are.</p>';
+            'New bags start as "Not placed yet"; place them on Receiving. Documents are kept as they are.</p>';
         return h;
     }
 
@@ -1032,7 +1032,7 @@ var _batchJourneyDetail = (function () {
                 '<input type="text" class="form-control form-control-sm mt-2 bjd-check-comment' + (norm === c.bad.toLowerCase() ? '' : ' d-none') + '" id="bjdChkCmt_' + c.key + '" placeholder="What was wrong? (required)" value="' + esc(comments[c.key] || '') + '">' +
                 '</div>';
         });
-        h += '</div><p class="small text-muted mt-1 mb-0">Answer all six; a problem answer needs a comment, as on the Grower Intake checklist. Photos stay as they are — add or remove them on Grower Intake.</p>';
+        h += '</div><p class="small text-muted mt-1 mb-0">Answer all six; a problem answer needs a comment, as on the Receiving checklist. Photos stay as they are — add or remove them on Receiving.</p>';
 
         var bags = dlv && Array.isArray(dlv.bags) ? dlv.bags : [];
         if (bags.length) {
@@ -1205,7 +1205,7 @@ var _batchJourneyDetail = (function () {
 
     /** Why a stage cannot be edited here, or '' when it can. */
     function stageLockReason(stageKey, day) {
-        if (!day || !day.date) return 'This entry has no date, so it cannot be matched for saving. Open it on Kernel Production.';
+        if (!day || !day.date) return 'This entry has no date, so it cannot be matched for saving. Open it on Production.';
         if (!can('kernel.production_stages.edit')) return 'Your role cannot edit production stages.';
         if (isGrowerIntakeStage()) return 'This batch has not been released to production yet.';
         if (stageKey === 'packing' && isJobcardApproved()) {
@@ -1245,7 +1245,7 @@ var _batchJourneyDetail = (function () {
         var days = productionDays();
         var body;
         if (!days.length) {
-            body = '<p class="text-muted mb-0">No production days recorded yet. Days are started on Kernel Production.</p>';
+            body = '<p class="text-muted mb-0">No production days recorded yet. Days are started on Production.</p>';
         } else {
             if (!state.dayKey || !days.some(function (d) { return d.key === state.dayKey; })) state.dayKey = days[days.length - 1].key;
             var day = days.filter(function (d) { return d.key === state.dayKey; })[0];
@@ -1288,7 +1288,7 @@ var _batchJourneyDetail = (function () {
         return sectionHtml('production', {
             body: body,
             subtitle: sub,
-            headerButtons: '<button type="button" class="btn btn-link btn-sm bjd-touch" data-bjd-act="open-production">Open Kernel Production</button>'
+            headerButtons: '<button type="button" class="btn btn-link btn-sm bjd-touch" data-bjd-act="open-production">Open Production</button>'
         }).replace('bjd-section"', state.editing === 'stage' ? 'bjd-section bjd-section--editing"' : 'bjd-section"');
     }
 
@@ -1310,7 +1310,7 @@ var _batchJourneyDetail = (function () {
             h += '<button type="button" class="btn btn-outline-secondary btn-sm bjd-touch" data-bjd-act="sheet" data-stage="' + stageKey + '"' + (editing ? ' disabled' : '') + '>Open full sheet</button>';
         }
         h += '</div></div>';
-        if (lock && !editing) h += '<p class="small text-muted mb-2"><i class="fas fa-lock me-1"></i>' + esc(lock) + (!day.date ? ' <button type="button" class="btn btn-link btn-sm p-0 align-baseline" data-bjd-act="open-production">Open Kernel Production</button>' : '') + '</p>';
+        if (lock && !editing) h += '<p class="small text-muted mb-2"><i class="fas fa-lock me-1"></i>' + esc(lock) + (!day.date ? ' <button type="button" class="btn btn-link btn-sm p-0 align-baseline" data-bjd-act="open-production">Open Production</button>' : '') + '</p>';
         if (editing) {
             h += stageEditorHtml(stageKey, e || {}, day);
         } else {
@@ -1354,7 +1354,7 @@ var _batchJourneyDetail = (function () {
                 ' id="' + id + '" data-stage-key="' + spec.key + '" data-stage-type="' + (isKg ? 'kg' : 'text') + '" value="' + esc(shown) + '"' + (readonly ? ' readonly tabindex="-1"' : '') + '>' +
                 (hint ? '<div class="form-text">' + esc(hint) + '</div>' : '') + '</div>';
         });
-        h += '</div><p class="small text-muted mt-2 mb-0">Saves this stage for this day only, through the same save Kernel Production uses. Calculated boxes follow Kernel Production\'s rules.</p>';
+        h += '</div><p class="small text-muted mt-2 mb-0">Saves this stage for this day only, through the same save Production uses. Calculated boxes follow Production\'s rules.</p>';
         return h;
     }
 
@@ -1448,7 +1448,7 @@ var _batchJourneyDetail = (function () {
         else if (!has) {
             body = finished
                 ? '<p class="text-muted mb-0">No job card yet.</p>'
-                : '<p class="text-muted mb-0">Not started. Kernel Production fills the job card in from the packing sheet when production is finished. You can start it early here, but then it is not filled in for you.</p>';
+                : '<p class="text-muted mb-0">Not started. Production fills the job card in from the packing sheet when production is finished. You can start it early here, but then it is not filled in for you.</p>';
         } else body = jobCardViewHtml();
         var startBtn = '<button type="button" class="btn btn-outline-secondary btn-sm bjd-touch" data-bjd-act="jc-start">' + (finished ? 'Start job card' : 'Start job card early') + '</button>';
         return sectionHtml('jobcard', {
@@ -1534,10 +1534,10 @@ var _batchJourneyDetail = (function () {
         if (isJobcardApproved()) {
             h += '<div class="alert alert-warning small">This job card is approved. Saving updates the batch\'s stock by style straight away.</div>';
         } else if (!jobCardHasContent() && !d.production_finished_at) {
-            h += '<div class="alert alert-warning small">Starting the job card before production is finished: Kernel Production will <strong>not</strong> fill it in from the packing sheet when production is finished (it only fills an empty job card), so enter the packed styles yourself.</div>';
+            h += '<div class="alert alert-warning small">Starting the job card before production is finished: Production will <strong>not</strong> fill it in from the packing sheet when production is finished (it only fills an empty job card), so enter the packed styles yourself.</div>';
         }
         h += '<div class="row g-2">';
-        h += jcField('bjdJc_batch_number', 'Batch number', jcVal('batch_number') || (state.detail || {}).batch_number);
+        h += jcField('bjdJc_batch_number', 'Batch number', macBatchNo.format(jcVal('batch_number') || (state.detail || {}).batch_number));
         h += jcField('bjdJc_received_date', 'Received date', jcVal('received_date') || (state.detail || {}).received_date, { type: 'date' });
         h += jcField('bjdJc_supplier', 'Supplier', jcVal('supplier_name') || (state.row || {}).grower_name || (state.detail || {}).grower_name, { readonly: true, hint: 'Change the grower under Batch details.' });
         h += '</div><h4 class="bjd-subhead">Receiving</h4><div class="row g-2">';
@@ -1573,7 +1573,7 @@ var _batchJourneyDetail = (function () {
         h += jcField('bjdJc_mass_balance_in_kg', 'In (kg)', jcVal('mass_balance_in_kg'), { type: 'kg', readonly: true, hint: 'Calculated: the balance' });
         h += jcField('bjdJc_mass_balance_out_kg', 'Out (kg)', jcVal('mass_balance_out_kg'), { type: 'kg', readonly: true, hint: 'Calculated: sound + butter + waste' });
         h += jcField('bjdJc_mass_balance_percentage', 'Mass balance (%)', jcVal('mass_balance_percentage'), { type: 'number', readonly: true, hint: 'Calculated: out ÷ in' });
-        h += '</div><p class="small text-muted mt-2 mb-0">Saves a draft only. Approve the job card on Kernel Production.</p>';
+        h += '</div><p class="small text-muted mt-2 mb-0">Saves a draft only. Approve the job card on Production.</p>';
         return h;
     }
 
@@ -1705,7 +1705,7 @@ var _batchJourneyDetail = (function () {
     /** Kernel Dispatch's edit dialog refuses dispatched and cancelled orders (modal_kernel_dispatch_edit.js:112-120). */
     function orderLocked(status) {
         var st = String(status || '').toLowerCase();
-        if (st === 'dispatched') return 'Already dispatched. Re-open the basket on Kernel Dispatch (Edit) to change it.';
+        if (st === 'dispatched') return 'Already dispatched. Re-open the basket on Dispatch and Sales (Edit) to change it.';
         if (st === 'cancelled') return 'Cancelled when its last line went back to stock.';
         return '';
     }
@@ -1734,9 +1734,9 @@ var _batchJourneyDetail = (function () {
             body = (typeof buildBatchHistoryDispatchPanelHtml === 'function')
                 ? buildBatchHistoryDispatchPanelHtml(state.detail)
                 : '<p class="text-muted mb-0">Dispatch details are not available.</p>';
-            body += '<p class="small text-muted mt-2 mb-0">You can change this batch\'s cartons on an order that has not been dispatched. Buyer, dates and the other batches on an order are changed on Kernel Dispatch.</p>';
+            body += '<p class="small text-muted mt-2 mb-0">You can change this batch\'s cartons on an order that has not been dispatched. Buyer, dates and the other batches on an order are changed on Dispatch and Sales.</p>';
         }
-        var buttons = '<button type="button" class="btn btn-link btn-sm bjd-touch" data-bjd-act="open-dispatch">Open Kernel Dispatch</button>';
+        var buttons = '<button type="button" class="btn btn-link btn-sm bjd-touch" data-bjd-act="open-dispatch">Open Dispatch and Sales</button>';
         if (editable) buttons = editButton('dispatch', 'Edit cartons') + buttons;
         return sectionHtml('dispatch', {
             body: '<div class="bjd-dispatch">' + body + '</div>',
@@ -1772,7 +1772,7 @@ var _batchJourneyDetail = (function () {
             if (others > 0) h += '<p class="small text-muted mt-1 mb-0">' + others + ' line' + (others === 1 ? '' : 's') + ' for other batches stay exactly as they are.</p>';
             h += '</div>';
         });
-        h += '<p class="small text-muted mb-0">Weight is calculated: cartons × 11.34 kg. Setting 0 keeps the line on the order at 0; to take a line off the order use "Send back to stock" on Kernel Dispatch.</p>';
+        h += '<p class="small text-muted mb-0">Weight is calculated: cartons × 11.34 kg. Setting 0 keeps the line on the order at 0; to take a line off the order use "Send back to stock" on Dispatch and Sales.</p>';
         return h;
     }
 
@@ -1836,7 +1836,7 @@ var _batchJourneyDetail = (function () {
         };
         if (!added) return run();
         return confirmBox('Take ' + added + ' more carton' + (added === 1 ? '' : 's') + ' of this batch?',
-            'Adding cartons to an order takes them from this batch\'s stock on hand. Neither this page nor Kernel Dispatch checks how much stock is left, so check Stock (Kernel) first.',
+            'Adding cartons to an order takes them from this batch\'s stock on hand. Neither this page nor Dispatch and Sales checks how much stock is left, so check Stock on Hand first.',
             'Save cartons').then(function (ok) { return ok ? run() : null; });
     }
 
@@ -2240,7 +2240,7 @@ var _batchJourneyDetail = (function () {
                 if (style && (cartons > 0 || weight > 0)) styles[g].push({ style: style, cartons: cartons, weight_kg: weight });
             });
         });
-        var bn = $.trim($('#bjdJc_batch_number').val() || '');
+        var bn = macBatchNo.toStored($.trim($('#bjdJc_batch_number').val() || ''));
         if (!bn) problems.push('Batch number is required');
         if (!dt('bjdJc_received_date')) problems.push('Received date is required');
         if (kg('bjdJc_total_weight_kg') == null) problems.push('Total weight is required');
@@ -2293,7 +2293,7 @@ var _batchJourneyDetail = (function () {
         };
         if (!approved) return go();
         return confirmBox('Update stock from this job card?',
-            'This job card is already approved, so saving <strong>updates the batch\'s stock by style</strong> straight away (same as saving it on Kernel Production).',
+            'This job card is already approved, so saving <strong>updates the batch\'s stock by style</strong> straight away (same as saving it on Production).',
             'Save and update stock').then(function (ok) { return ok ? go() : null; });
     }
 
@@ -2460,7 +2460,7 @@ var _batchJourneyDetail = (function () {
                 case 'jc-start':
                     if (state.detail && state.detail.production_finished_at) { startEdit('jobcard'); break; }
                     confirmBox('Start the job card early?',
-                        'Kernel Production only fills in an <strong>empty</strong> job card when production is finished. If you start it now, you enter the packed styles yourself.',
+                        'Production only fills in an <strong>empty</strong> job card when production is finished. If you start it now, you enter the packed styles yourself.',
                         'Start it').then(function (ok) { if (ok) startEdit('jobcard'); });
                     break;
                 case 'add-bag':

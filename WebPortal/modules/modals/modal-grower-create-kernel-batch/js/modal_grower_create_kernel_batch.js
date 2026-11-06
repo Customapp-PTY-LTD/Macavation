@@ -325,7 +325,7 @@ var _modal_grower_create_kernel_batch = (function () {
         _showAreaPicker: function () {
             var box = byId('intakeBookInArea');
             if (!box) return;
-            setText('intakeBookInAreaHint', 'Optional. Bags without an area show as Not placed yet on Grower Intake, and can be moved there later.');
+            setText('intakeBookInAreaHint', 'Optional. Bags without an area show as Not placed yet on Receiving, and can be moved there later.');
             box.style.display = '';
             if (_planAreas.length) { api._renderAreaRadios(); return; }
             if (typeof dataFunctions === 'undefined' || !dataFunctions.getProcurementPlan) return;
@@ -876,7 +876,7 @@ var _modal_grower_create_kernel_batch = (function () {
             _batchNumberUserCustom = false;
             var numberEl = document.getElementById('intakeBatchNumber');
             if (numberEl) numberEl.value = '';
-            numberEl && numberEl.setAttribute('placeholder', 'Bn suggestion');
+            numberEl && numberEl.setAttribute('placeholder', 'BN suggestion');
 
             var wetEl = document.getElementById('intakeBatchWetNis');
             if (wetEl) wetEl.value = opts.wetNisKg != null ? fmtKg(opts.wetNisKg) : '';
@@ -971,7 +971,7 @@ var _modal_grower_create_kernel_batch = (function () {
             var year = dateEl && dateEl.value ? new Date(dateEl.value + 'T12:00:00').getFullYear() : new Date().getFullYear();
             dataFunctions.getNextBatchNumber(supplierId, year).then(function (nextId) {
                 var val = (nextId != null && typeof nextId === 'string') ? nextId : (nextId != null ? String(nextId) : '');
-                numberEl.value = val;
+                numberEl.value = macBatchNo.format(val);
                 numberEl.setAttribute('placeholder', val ? '' : 'Will assign on save');
                 api._applyBatchNumberLock();
                 _batchNumberUserCustom = false;
@@ -985,7 +985,7 @@ var _modal_grower_create_kernel_batch = (function () {
 
         save: async function () {
             if (!canCreateIntakeBatch()) return;
-            var batchNumber = (byId('intakeBatchNumber') && byId('intakeBatchNumber').value || '').trim();
+            var batchNumber = macBatchNo.toStored((byId('intakeBatchNumber') && byId('intakeBatchNumber').value || '').trim());
             var receivedDate = byId('intakeBatchReceivedDate') && byId('intakeBatchReceivedDate').value;
             var wetNis = numOrNull(byId('intakeBatchWetNis') && byId('intakeBatchWetNis').value);
             var supplierEl = byId('intakeBatchGrower');
@@ -1070,7 +1070,7 @@ var _modal_grower_create_kernel_batch = (function () {
                 if (sameBatch) {
                     var st = String(sameBatch.status || '').toLowerCase();
                     if (st !== 'intake' && st !== 'receiving') {
-                        throw new Error('This batch number is already used (status: ' + (sameBatch.status || 'unknown') + '). It will not appear in Grower Intake. Use a **new, unique** batch number for a new intake batch.');
+                        throw new Error('This batch number is already used (status: ' + (sameBatch.status || 'unknown') + '). It will not appear in Receiving. Use a **new, unique** batch number for a new intake batch.');
                     }
                 }
 
@@ -1163,7 +1163,7 @@ var _modal_grower_create_kernel_batch = (function () {
                         Swal.fire({
                             icon: 'warning',
                             title: 'Batch created, delivery details not saved',
-                            text: 'Batch ' + batchNumber + ' was created, but its bag weights, transport details, collection points and documents were NOT saved (' + deliveryProblem + '). Open the batch to add them again.'
+                            text: 'Batch ' + macBatchNo.format(batchNumber) + ' was created, but its bag weights, transport details, collection points and documents were NOT saved (' + deliveryProblem + '). Open the batch to add them again.'
                         });
                     } else {
                         Swal.fire({

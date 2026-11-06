@@ -192,8 +192,8 @@ test.describe('RBAC - Role-Based Access Control @rbac @critical', () => {
 
     const coreModules = [
       { route: 'crm-grid', name: 'CRM' },
-      { route: 'grower-intake-grid', name: 'Grower Intake' },
-      { route: 'kernel-production-grid', name: 'Kernel Production' },
+      { route: 'grower-intake-grid', name: 'Receiving' },
+      { route: 'kernel-production-grid', name: 'Production' },
       { route: 'quality-assurance-grid', name: 'Quality Assurance' },
       { route: 'stock-management-grid', name: 'Stock Management' },
       { route: 'financial-management-grid', name: 'Financial Management' },

@@ -74,7 +74,7 @@ var _modal_quality_test = (function () {
                     $('#testNumber').val(test.test_number || '');
                     $('#testType').val(test.test_type || '');
                     $('#productType').val(test.product_type || '');
-                    $('#batchNumber').val(test.batch_number || '');
+                    $('#batchNumber').val(macBatchNo.format(test.batch_number || ''));
                     $('#sampleReference').val(test.sample_reference || '');
                     $('#style').val(test.style || '');
                     $('#testedBy').val(test.tested_by || '');
@@ -101,7 +101,7 @@ var _modal_quality_test = (function () {
                     $('#testStatus').val(test.status || 'pending');
                 } else if (_context && _context.source === 'supplier-intake') {
                     var bn = _context.batch_number || '';
-                    if ($('#batchNumber').length) $('#batchNumber').val(bn);
+                    if ($('#batchNumber').length) $('#batchNumber').val(macBatchNo.format(bn));
                     if ($('#testType').length) $('#testType').val('batch');
                     if ($('#productType').length) $('#productType').val('oil');
                     if ($('#testNumber').length) $('#testNumber').val(makeTestNumber('QT', bn));
@@ -203,7 +203,7 @@ var _modal_quality_test = (function () {
                 p_test_type: $('#testType').val(),
                 p_product_type: $('#productType').val() || null,
                 p_test_date: $('#testDate').val(),
-                p_batch_number: $('#batchNumber').val() || null,
+                p_batch_number: macBatchNo.toStored($('#batchNumber').val() || '') || null,
                 p_sample_reference: $('#sampleReference').val() || null,
                 p_style: $('#style').val() || null,
                 p_moisture_percentage: $('#moisturePercentage').val() ? parseFloat($('#moisturePercentage').val(), 10) : null,

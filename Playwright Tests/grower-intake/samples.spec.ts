@@ -2,12 +2,12 @@ import { test, expect } from '../fixtures';
 import { navigateToModule } from '../helpers/navigation.helper';
 
 /**
- * Grower Intake Module Tests
+ * Receiving Module Tests
  * 
  * Tests for sample submission and grower intake workflows
  */
 
-test.describe('Grower Intake - Sample Management @grower-intake', () => {
+test.describe('Receiving - Sample Management @grower-intake', () => {
 
   test.beforeEach(async ({ authenticatedPage }) => {
     await navigateToModule(authenticatedPage, 'grower-intake-grid');
@@ -16,8 +16,8 @@ test.describe('Grower Intake - Sample Management @grower-intake', () => {
   });
 
   test('TC-GI-001: View Samples List', async ({ authenticatedPage }) => {
-    // Grower Intake shows intake batches (Kanban or table), not a separate samples table
-    const heading = authenticatedPage.locator('h1:has-text("Grower Intake Management")');
+    // Receiving shows intake batches (Kanban or table), not a separate samples table
+    const heading = authenticatedPage.locator('h1:has-text("Receiving")');
     await expect(heading).toBeVisible({ timeout: 10000 });
     const mainContent = authenticatedPage.locator('#giKanbanBoard, #giTableCard, #intakeBatchesTable');
     await expect(mainContent.first()).toBeVisible({ timeout: 5000 });

@@ -513,7 +513,7 @@ var _kernelProductionGrid = function () {
                         '<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">More</button>' +
                         '<ul class="dropdown-menu dropdown-menu-end">' + moreItems.join('') + '</ul></div>';
                     return '<div class="kanban-card" data-batch-id="' + batch.id + '">' +
-                        '<div class="kanban-card-title">' + KanbanHelper._esc(batch.batch_number || 'N/A') + '</div>' +
+                        '<div class="kanban-card-title">' + KanbanHelper._esc(macBatchNo.format(batch.batch_number || 'N/A')) + '</div>' +
                         (typeof BatchStatus !== 'undefined'
                             ? '<div class="kanban-card-status-row">' + BatchStatus.statusBadgeHtml(displayStatus) + '</div>'
                             : '') +
@@ -577,7 +577,7 @@ var _kernelProductionGrid = function () {
             scope.filteredBatches = scope.batches.filter((batch) => {
                 const displayStatus = getBatchDisplayStatus(batch);
                 const matchesSearch = !searchTerm ||
-                    (batch.batch_number && batch.batch_number.toLowerCase().indexOf(searchTerm) >= 0) ||
+                    (batch.batch_number && (batch.batch_number.toLowerCase().indexOf(searchTerm) >= 0 || macBatchNo.matches(batch.batch_number, searchTerm))) ||
                     (batch.grower_name && batch.grower_name.toLowerCase().indexOf(searchTerm) >= 0) ||
                     (batch.status && batch.status.toLowerCase().indexOf(searchTerm) >= 0) ||
                     (displayStatus.label && displayStatus.label.toLowerCase().indexOf(searchTerm) >= 0);
@@ -740,7 +740,7 @@ var _kernelProductionGrid = function () {
             entries.forEach(function (entry) {
                 html += '<div class="kp-production-calendar-entry">';
                 html += '<div class="kp-production-calendar-entry-head">';
-                html += '<div><div class="kp-production-calendar-entry-batch">' + escapeHtml(entry.batchNumber) + '</div><div class="kp-production-calendar-entry-grower">' + escapeHtml(entry.growerName) + '</div></div>';
+                html += '<div><div class="kp-production-calendar-entry-batch">' + escapeHtml(macBatchNo.format(entry.batchNumber)) + '</div><div class="kp-production-calendar-entry-grower">' + escapeHtml(entry.growerName) + '</div></div>';
                 html += '</div>';
                 html += '<div class="kp-production-calendar-stage-badges">';
                 (entry.stages || []).forEach(function (stage) {
@@ -758,7 +758,7 @@ var _kernelProductionGrid = function () {
             tbody.empty();
             if (scope.filteredBatches.length === 0) {
                 if (scope.batches.length === 0) {
-                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No production batches. Release batches from Grower Intake.</td></tr>');
+                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No production batches. Release batches from Receiving.</td></tr>');
                 } else {
                     tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-filter me-2"></i>No batches match your search.</td></tr>');
                 }
@@ -804,7 +804,7 @@ var _kernelProductionGrid = function () {
                 }
                 var stagePos = displayStatus.filterValue === 'awaiting_production' ? 'first' : displayStatus.filterValue === 'release_ready' ? 'last' : 'mid';
                 const bbTitle = bbDisplay !== '—' ? 'Best Before Date' : 'Best Before Date (set when Job Card is completed)';
-                const row = '<tr class="js-batch-row" data-batch-id="' + batch.id + '"><td>' + (batch.batch_number || 'N/A') + (scope.unfinishedSheetsByKernel[batch.id] ? ' ' + unfinishedSheetFlagHtml(batch, scope.unfinishedSheetsByKernel[batch.id]) : '') + '</td><td>' + (batch.grower_name || 'N/A') + '</td><td title="Received date">' + receivedDate + '</td><td title="' + (bbTitle.replace(/"/g, '&quot;')) + '">' + bbDisplay + '</td><td>' + _common.formatKg(batch.display_wet_nis_kg != null ? batch.display_wet_nis_kg : (batch.wet_nis_received_kg || 0)) + '</td><td>' + KanbanHelper.statusBadge(displayStatus.label, stagePos) + '</td>' + actionsCell + '</tr>';
+                const row = '<tr class="js-batch-row" data-batch-id="' + batch.id + '"><td>' + macBatchNo.format(batch.batch_number || 'N/A') + (scope.unfinishedSheetsByKernel[batch.id] ? ' ' + unfinishedSheetFlagHtml(batch, scope.unfinishedSheetsByKernel[batch.id]) : '') + '</td><td>' + (batch.grower_name || 'N/A') + '</td><td title="Received date">' + receivedDate + '</td><td title="' + (bbTitle.replace(/"/g, '&quot;')) + '">' + bbDisplay + '</td><td>' + _common.formatKg(batch.display_wet_nis_kg != null ? batch.display_wet_nis_kg : (batch.wet_nis_received_kg || 0)) + '</td><td>' + KanbanHelper.statusBadge(displayStatus.label, stagePos) + '</td>' + actionsCell + '</tr>';
                 tbody.append(row);
             });
             MacTableActions.init(document.getElementById('batchesTable'));

@@ -155,3 +155,16 @@
 .dispatch-selected-summary .card-header { font-weight: 600; }
 .dispatch-selected-summary #dispatchSelectedList .table th { white-space: nowrap; }
 .dispatch-selected-summary #dispatchSelectedList .table td { vertical-align: middle; }
+
+/* Kernel stock by style (Mike, 5 Nov 2026): centred carton counts, grey odd rows, supplier under batch number */
+#kernelStockByStyleTable tbody tr.ks-zebra > td:not(.table-warning) {
+    background-color: var(--mac-bg-tertiary);
+}
+#kernelStockByStyleTable .ks-batch-td { vertical-align: middle; }
+#kernelStockByStyleTable .ks-batch-supplier {
+    font-size: 0.75rem;
+    line-height: 1.2;
+    color: var(--mac-text-tertiary);
+}
+#kernelStockByStyleTable .ks-count-flag { margin-top: 0.25rem; }
+#kernelStockByStyleTable .ks-counted-btn { padding: 0 0.4rem; font-size: 0.7rem; line-height: 1.4; }

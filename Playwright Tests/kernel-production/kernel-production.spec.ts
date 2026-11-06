@@ -2,12 +2,12 @@ import { test, expect } from '../fixtures';
 import { navigateToModule } from '../helpers/navigation.helper';
 
 /**
- * Kernel Production Module Tests
+ * Production Module Tests
  * QA Blueprint: Playwright Tests/{module-name}/{module-name}.spec.ts
  * Tests for kernel production batch workflows
  */
 
-test.describe('Kernel Production - Batch Management @kernel-production', () => {
+test.describe('Production - Batch Management @kernel-production', () => {
 
   test.beforeEach(async ({ authenticatedPage }) => {
     await navigateToModule(authenticatedPage, 'kernel-production-grid');
@@ -17,13 +17,13 @@ test.describe('Kernel Production - Batch Management @kernel-production', () => {
 
   test('TC-KP-001: View Production Batches List', async ({ authenticatedPage }) => {
     await authenticatedPage.waitForTimeout(500);
-    await expect(authenticatedPage.locator('h1:has-text("Kernel Production Workflow"), h2:has-text("Kernel Production")').first()).toBeVisible({ timeout: 10000 });
+    await expect(authenticatedPage.locator('h1:has-text("Production"), h2:has-text("Production")').first()).toBeVisible({ timeout: 10000 });
     await expect(authenticatedPage.locator('#kpKanbanBoard, #kpTableCard').first()).toBeVisible({ timeout: 10000 });
   });
 
-  test('TC-KP-002: Production batches come from Grower Intake', async ({ authenticatedPage }) => {
-    // Kernel Production receives batches via Grower Intake "Release to production" — no header create button.
-    await expect(authenticatedPage.locator('h1:has-text("Kernel Production Workflow")')).toBeVisible({ timeout: 10000 });
+  test('TC-KP-002: Production batches come from Receiving', async ({ authenticatedPage }) => {
+    // Production receives batches via Receiving "Release to production" — no header create button.
+    await expect(authenticatedPage.locator('h1:has-text("Production")')).toBeVisible({ timeout: 10000 });
     await expect(authenticatedPage.locator('#kpKanbanBoard, #kpTableCard').first()).toBeVisible({ timeout: 10000 });
   });
 

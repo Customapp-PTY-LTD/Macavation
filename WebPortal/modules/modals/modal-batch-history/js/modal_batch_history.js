@@ -565,7 +565,7 @@ var _modal_batch_history = (function () {
 
     function getBatchInfoText(batch) {
         if (!batch) return 'Batch: Loading...';
-        var batchNumber = batch.batch_number || 'Batch';
+        var batchNumber = macBatchNo.format(batch.batch_number || 'Batch');
         return 'Batch: ' + batchNumber + (batch.grower_name ? ' — ' + batch.grower_name : '');
     }
 
@@ -967,7 +967,7 @@ var _modal_batch_history = (function () {
 
                     var html = '<div class="small">';
                     html += '<div class="card mb-2 border-0 bg-light"><div class="card-body py-2">';
-                    html += '<div class="fw-semibold mb-1">' + fmtText(batchNumber) + '</div>';
+                    html += '<div class="fw-semibold mb-1">' + fmtText(macBatchNo.format(batchNumber)) + '</div>';
                     html += '<div><strong>Received:</strong> ' + fmtDate(receivedDate) + ' &nbsp; <strong>Supplier:</strong> ' + fmtText(supplierDisplay) + '</div>';
                     html += '<div class="mt-1"><strong>Production batch ID:</strong> ' + fmtText(jcVal('production_batch_id')) + '</div>';
                     html += '</div></div>';

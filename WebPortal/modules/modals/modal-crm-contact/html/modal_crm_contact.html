@@ -22,6 +22,11 @@
                             Quotes
                         </button>
                     </li>
+                    <li class="nav-item d-none" role="presentation" id="crmPricesTabItem">
+                        <button class="nav-link" id="prices-tab" data-bs-toggle="tab" data-bs-target="#prices" type="button" role="tab">
+                            Prices
+                        </button>
+                    </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders" type="button" role="tab">
                             Orders
@@ -269,6 +274,9 @@
                                 <!-- Quotes will be loaded here -->
                             </div>
                         </div>
+                    </div>
+                    <div class="tab-pane fade" id="prices" role="tabpanel">
+                        <div class="mt-3" id="crmPricesBody"></div>
                     </div>
                     <div class="tab-pane fade" id="orders" role="tabpanel">
                         <div class="mt-3">
