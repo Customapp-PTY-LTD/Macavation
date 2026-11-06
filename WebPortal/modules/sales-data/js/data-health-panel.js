@@ -397,7 +397,7 @@ var DataHealthPanel = (function () {
                 var open = el('button', 'btn btn-outline-primary btn-sm py-0', 'Open on Production');
                 open.type = 'button';
                 open.addEventListener('click', function () { openProductionBatch(u.batch_number); });
-                line([DAYS[d.getDay()] + ' ' + fmt(d), u.batch_number || '', num(u.kg), open], [2]);
+                line([DAYS[d.getDay()] + ' ' + fmt(d), macBatchNo.format(u.batch_number || ''), num(u.kg), open], [2]);
             });
             if (!listed) {
                 var tr3 = el('tr'), td3 = el('td', 'text-muted',
@@ -540,7 +540,7 @@ var DataHealthPanel = (function () {
         var explain = el('div', 'dh-explain');
         var e1 = el('div');
         e1.appendChild(el('h4', null, 'How “missing” is worked out'));
-        e1.appendChild(el('p', null, 'Production: each day’s typed cracked kg is compared with what the factory recorded on Kernel Production. Nut in Shell Intake: each week’s intake rows are compared with the deliveries booked in on Grower Intake. Kernel Sales: a week with dispatches but no invoice lines is flagged. Cracking sheets: a batch cracked in a silo run whose cracking sheet has no shell bags for that day is flagged. Oil sales and exports have no factory figure to compare against yet.'));
+        e1.appendChild(el('p', null, 'Production: each day’s typed cracked kg is compared with what the factory recorded on Production. Nut in Shell Intake: each week’s intake rows are compared with the deliveries booked in on Receiving. Kernel Sales: a week with dispatches but no invoice lines is flagged. Cracking sheets: a batch cracked in a silo run whose cracking sheet has no shell bags for that day is flagged. Oil sales and exports have no factory figure to compare against yet.'));
         var e2 = el('div');
         e2.appendChild(el('h4', null, 'Why a blank isn’t always a gap'));
         e2.appendChild(el('p', null, 'A week without a delivery or a sale can be perfectly normal, so this page only flags a gap when the factory side shows activity and the data page doesn’t.'));

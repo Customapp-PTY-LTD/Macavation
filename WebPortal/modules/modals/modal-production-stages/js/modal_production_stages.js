@@ -864,7 +864,7 @@ var _modal_production_stages = (function () {
                 $body.append(
                     '<tr>' +
                     '<td>Silo ' + esc(r.silo_number) + '</td>' +
-                    '<td>' + esc(scope._crackBatchLabel()) + '</td>' +
+                    '<td>' + esc(macBatchNo.format(scope._crackBatchLabel())) + '</td>' +
                     '<td>' + esc(scope._crackHHMM(r.opened_at)) + pill + '</td>' +
                     '<td>' + esc(scope._crackHHMM(r.closed_at)) + '</td>' +
                     '<td class="text-end">' + esc(scope._crackKg(r.start_kg)) + '</td>' +
@@ -1846,7 +1846,7 @@ var _modal_production_stages = (function () {
             html.push('<div style="margin-bottom:18px;">');
             if (batchName || grower) {
                 html.push('<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">');
-                if (batchName) html.push('<span style="font-size:1.1rem;font-weight:700;">' + batchName + '</span>');
+                if (batchName) html.push('<span style="font-size:1.1rem;font-weight:700;">' + macBatchNo.format(batchName) + '</span>');
                 if (status) html.push('<span style="' + styles.pill + 'background:' + statusColour + '20;color:' + statusColour + ';">' + status.charAt(0).toUpperCase() + status.slice(1) + '</span>');
                 html.push('</div>');
                 if (grower) html.push('<div style="color:var(--mac-text-secondary,#666);font-size:0.85rem;">Grower: ' + grower + '</div>');
@@ -2418,7 +2418,7 @@ var _modal_production_stages = (function () {
                 var shellKg = (cracking_data && cracking_data.shell_total != null && String(cracking_data.shell_total).trim() !== '') ? parseFloat(cracking_data.shell_total) : NaN;
                 var shellDate = cracking_data && cracking_data.date ? String(cracking_data.date).split('T')[0] : null;
                 if (isFinite(shellKg) && dataFunctions.autoCreateShellLotFromProduction) {
-                    var batchNum = ($('#productionStagesBatchNumber').text() || $('#productionStagesBatchId').val() || '').trim();
+                    var batchNum = macBatchNo.toStored(($('#productionStagesBatchNumber').text() || $('#productionStagesBatchId').val() || '').trim());
                     if (batchNum) {
                         Promise.resolve(dataFunctions.autoCreateShellLotFromProduction(batchNum, shellKg, 'Production stages save', null, shellDate)).catch(function () { /* non-blocking */ });
                     }
@@ -2479,7 +2479,7 @@ var _modal_production_stages = (function () {
                 return;
             }
             $('#productionStagesBatchId').val(batchId);
-            $('#productionStagesBatchNumber').text(batch.batch_number || batchId || '');
+            $('#productionStagesBatchNumber').text(macBatchNo.format(batch.batch_number || batchId || ''));
             $('#productionStagesDayId').val('');
             scope.clearProductionStagesForm();
             scope.refreshShellRows();
@@ -2596,7 +2596,7 @@ var _modal_production_stages = (function () {
                 for (var k in data) { if (data.hasOwnProperty(k)) rows.push('<tr><td class="text-nowrap">' + k + '</td><td>' + fmt(data[k]) + '</td></tr>'); }
                 return rows.length ? '<table class="table align-middle table-bordered mb-2"><tbody>' + rows.join('') + '</tbody></table>' : '<p class="text-muted mb-0">No data</p>';
             };
-            var batchNum = detail ? (detail.batch_number || '—') : '—';
+            var batchNum = detail ? macBatchNo.format(detail.batch_number || '—') : '—';
             var grower   = detail ? (detail.grower_name || '—') : '—';
             var html = '<div class="small"><p class="mb-2"><strong>Batch:</strong> ' + fmt(batchNum) + ' &nbsp; <strong>Grower:</strong> ' + fmt(grower) + '</p>';
             html += '<div class="card mb-2"><div class="card-header py-1"><strong>Cracking</strong></div><div class="card-body py-2">' + renderSection(s.cracking_data) + '</div></div>';

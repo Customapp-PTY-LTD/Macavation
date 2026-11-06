@@ -372,7 +372,7 @@ var _productionLog = (function () {
                 if (lastDay !== null && day !== lastDay) { subtotal(); dayList = []; }
                 lastDay = day;
                 dayList.push(days[i]);
-                var batches = Array.isArray(run.batch_numbers) ? run.batch_numbers.join(', ') : (run.batch_numbers || '');
+                var batches = (Array.isArray(run.batch_numbers) ? run.batch_numbers : String(run.batch_numbers || '').split(',')).map(function (x) { return macBatchNo.format(String(x).trim()); }).filter(Boolean).join(', ');
                 var tr = addRow(body, [day, run.silo_number, batches, run.grower_names || '–', kg2(run.volume_kg),
                     (run.left_kg == null || Number(run.left_kg) === 0) ? 'Empty' : kg2(run.left_kg),
                     localTime(run.opened_at) + '–' + localTime(run.closed_at) + ' (' + fmtDuration(run.minutes) + ')',
@@ -427,7 +427,7 @@ var _productionLog = (function () {
                 if (lastDay !== null && p.day !== lastDay) { subtotal(); dayRows = []; }
                 lastDay = p.day;
                 dayRows.push(p);
-                addRow(body, [p.day, p.batch_number || '', p.supplier || '–']
+                addRow(body, [p.day, macBatchNo.format(p.batch_number || ''), p.supplier || '–']
                     .concat(styles.map(function (st) { return kg2(p.by_style && p.by_style[st]); }))
                     .concat([kg2(p.sk_kg), cartons(p.sk_cartons), kg2(p.bt_kg)]), hd);
             });

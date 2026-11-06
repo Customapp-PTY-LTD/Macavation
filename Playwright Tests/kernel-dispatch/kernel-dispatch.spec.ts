@@ -2,12 +2,12 @@ import { test, expect } from '../fixtures';
 import { navigateToModule } from '../helpers/navigation.helper';
 
 /**
- * Kernel Dispatch Module Tests
+ * Dispatch and Sales Module Tests
  * QA Blueprint: Playwright Tests/{module-name}/{module-name}.spec.ts
- * Grid View, View Toggle, Refresh. Kernel Dispatch lists orders (baskets) from Stock (Kernel).
+ * Grid View, View Toggle, Refresh. Dispatch and Sales lists orders (baskets) from Stock on Hand.
  */
 
-test.describe('Kernel Dispatch @kernel-dispatch', () => {
+test.describe('Dispatch and Sales @kernel-dispatch', () => {
 
   test.beforeEach(async ({ authenticatedPage }) => {
     await navigateToModule(authenticatedPage, 'kernel-dispatch-grid');
@@ -15,11 +15,11 @@ test.describe('Kernel Dispatch @kernel-dispatch', () => {
     await expect(authenticatedPage.locator('#kdViewTable, #kdViewKanban').first()).toBeVisible({ timeout: 20000 });
   });
 
-  test('TC-KD-001: View Kernel Dispatch module', async ({ authenticatedPage }) => {
+  test('TC-KD-001: View Dispatch and Sales module', async ({ authenticatedPage }) => {
     await authenticatedPage.waitForTimeout(500);
     const moduleContent = authenticatedPage.locator('.module-content, #content-area').first();
     await expect(moduleContent).toBeVisible({ timeout: 10000 });
-    await expect(authenticatedPage.locator('h1:has-text("Kernel Dispatch"), h2:has-text("Kernel Dispatch")')).toBeVisible({ timeout: 5000 });
+    await expect(authenticatedPage.locator('h1:has-text("Dispatch and Sales"), h2:has-text("Dispatch and Sales")')).toBeVisible({ timeout: 5000 });
   });
 
   test('TC-KD-002: Kernel outbound card visible', async ({ authenticatedPage }) => {

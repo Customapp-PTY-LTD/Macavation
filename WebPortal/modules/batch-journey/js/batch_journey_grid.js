@@ -339,7 +339,7 @@ var _batchJourneyGrid = (function () {
             var routeInfo = typeof BatchStatus !== 'undefined' ? BatchStatus.getKernelRouteForStatus(displayStatus) : { label: 'Open' };
             var ddSuffix = String(b.id || '').replace(/-/g, '');
             html += '<tr class="js-bj-row" data-batch-id="' + kid + '">'
-                + '<td>' + (b.batch_number || '-') + '</td>'
+                + '<td>' + macBatchNo.format(b.batch_number || '-') + '</td>'
                 + '<td>' + (b.grower_name || '-') + '</td>'
                 + '<td>' + statusBadgeHtml(displayStatus) + '</td>'
                 + '<td>' + receivedDate + '</td>'
@@ -420,7 +420,7 @@ var _batchJourneyGrid = (function () {
             if (!statusFilterMatches(b, statusFilter)) return false;
             if (search) {
                 var haystack = ((b.batch_number || '') + ' ' + (b.grower_name || '')).toLowerCase();
-                if (haystack.indexOf(search) === -1) return false;
+                if (haystack.indexOf(search) === -1 && !macBatchNo.matches(haystack, search)) return false;
             }
             return true;
         });
@@ -614,7 +614,7 @@ var _batchJourneyGrid = (function () {
             else window.alert('Archive is not available.');
             return;
         }
-        var batchLabel = (label && String(label).trim()) ? String(label).trim() : 'this batch';
+        var batchLabel = (label && String(label).trim()) ? macBatchNo.format(String(label).trim()) : 'this batch';
         if (typeof Swal === 'undefined') {
             if (!window.confirm('Archive batch ' + batchLabel + '?')) return;
             df.deactivateKernelBatch(kernelId).then(function (result) {
@@ -719,7 +719,7 @@ var _modal_oil_batch_history = {
         var d = typeof BatchStatus !== 'undefined' ? BatchStatus.getOilDisplayStatus(batch) : { label: batch.status || '—' };
         var routeInfo = typeof BatchStatus !== 'undefined' ? BatchStatus.getOilRouteForStatus(d) : null;
         var html = '<dl class="text-start small mb-0">'
-            + '<dt>Batch</dt><dd>' + (typeof BatchStatus !== 'undefined' ? BatchStatus.escapeHtml(batch.batch_number || '—') : (batch.batch_number || '—')) + '</dd>'
+            + '<dt>Batch</dt><dd>' + (typeof BatchStatus !== 'undefined' ? BatchStatus.escapeHtml(macBatchNo.format(batch.batch_number || '—')) : macBatchNo.format(batch.batch_number || '—')) + '</dd>'
             + '<dt>Supplier</dt><dd>' + (batch.supplier_name || batch.grower_name || '—') + '</dd>'
             + '<dt>Status</dt><dd>' + d.label + '</dd>'
             + '<dt>Quantity (kg)</dt><dd>' + (batch.quantity_kg != null ? batch.quantity_kg : '—') + '</dd>'

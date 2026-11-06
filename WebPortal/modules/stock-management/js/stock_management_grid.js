@@ -333,8 +333,8 @@ var _stockManagementGrid = function () {
             var subtitleEl = document.getElementById('stockManagementSubtitle');
             if (route === 'stock-management-kernel') {
                 stream = 'kernel';
-                if (titleEl) titleEl.textContent = 'Stock (Kernel)';
-                if (subtitleEl) subtitleEl.textContent = 'Kernel batches by style — send to dispatch, or export.';
+                if (titleEl) titleEl.textContent = 'Stock on Hand';
+                if (subtitleEl) subtitleEl.textContent = 'Kernel batches by style — add a batch, correct stock, or export.';
             } else if (route === 'stock-management-oil') {
                 stream = 'oil';
                 if (titleEl) titleEl.textContent = 'Stock (Oil & Protein)';
@@ -369,9 +369,6 @@ var _stockManagementGrid = function () {
             if (typeof $ !== 'undefined') {
                 $('#rawMaterialIssuedBtn').off('click').on('click', function () {
                     if (typeof _modal_stock_raw_material_issued !== 'undefined' && _modal_stock_raw_material_issued.show) _modal_stock_raw_material_issued.show();
-                });
-                $('#sendToDispatchBtn').off('click').on('click', function () {
-                    if (typeof _modal_stock_send_to_dispatch !== 'undefined' && _modal_stock_send_to_dispatch.show) _modal_stock_send_to_dispatch.show();
                 });
                 $('#importHistoricalKernelBtn').off('click').on('click', function () {
                     var modalEl = document.getElementById('importHistoricalKernelModal');
@@ -568,15 +565,21 @@ var _stockManagementGrid = function () {
                 });
                 // Card 1 search — filter the by-style batch rows by text (client-side)
                 $('#kernelStockSearch').off('input.ksSearch').on('input.ksSearch', function () {
-                    var q = ($(this).val() || '').toLowerCase().trim();
+                    var q = ($(this).val() || '').trim();
                     $('#kernelStockByStyleBody tr').each(function () {
-                        var t = ($(this).text() || '').toLowerCase();
-                        this.style.display = (!q || t.indexOf(q) !== -1) ? '' : 'none';
+                        // Either batch-number form finds the batch (BN.01.26.05 or Bn 01 26 05).
+                        this.style.display = (!q || macBatchNo.matches($(this).text() || '', q)) ? '' : 'none';
                     });
+                    scope.applyKernelZebra();
                 });
                 $('#kernelStockClearSearch').off('click.ksSearch').on('click.ksSearch', function () {
                     $('#kernelStockSearch').val('');
                     $('#kernelStockByStyleBody tr').each(function () { this.style.display = ''; });
+                    scope.applyKernelZebra();
+                });
+                // "Counted": the picker's count flag is dealt with, so the batch no longer needs a count.
+                $(document).off('click.ksCounted', '.js-ks-counted').on('click.ksCounted', '.js-ks-counted', function () {
+                    scope.markKernelBatchCounted($(this).attr('data-kernel-id'));
                 });
                 $(document).off('click.ksMoreView', '.js-ks-more-view').on('click.ksMoreView', '.js-ks-more-view', function () {
                     scope.toggleKernelView($(this).data('view'));
@@ -720,7 +723,7 @@ var _stockManagementGrid = function () {
             scope.filteredStockItems = scope.stockItems.filter(function (item) {
                 var matchesSearch = !searchTerm ||
                     (item.stock_number && item.stock_number.toLowerCase().includes(searchTerm)) ||
-                    (item.batch_number && item.batch_number.toLowerCase().includes(searchTerm)) ||
+                    (item.batch_number && (item.batch_number.toLowerCase().includes(searchTerm) || macBatchNo.matches(item.batch_number, searchTerm))) ||
                     (item.location && item.location.toLowerCase().includes(searchTerm));
                 var matchesStatus = !statusFilter || item.status === statusFilter;
                 var matchesProduct = !productFilter || item.product_type === productFilter;
@@ -777,6 +780,7 @@ var _stockManagementGrid = function () {
                     }
                 });
             }
+            scope.loadKernelCountFlags();
             return df.getKernelBatches(null, forceRefresh, { status: 'complete' }).then(function (all) {
                 all = (all || []).filter(function (b) {
                     var st = b && b.status != null ? String(b.status).trim() : '';
@@ -894,7 +898,7 @@ var _stockManagementGrid = function () {
                         var key = day + '|' + r.stream + '|' + (r.batch_number || r.style || '');
                         var g = groups[key];
                         if (!g) {
-                            g = groups[key] = { date: day, stream: r.stream, batch: r.batch_number || '', styles: [], buyers: [], kg: {}, order: [] };
+                            g = groups[key] = { date: day, stream: r.stream, batch: macBatchNo.format(r.batch_number || ''), styles: [], buyers: [], kg: {}, order: [] };
                         }
                         if (r.style && g.styles.indexOf(r.style) === -1) g.styles.push(r.style);
                         var buyer = r.detail && r.detail.buyer_name;
@@ -1053,7 +1057,7 @@ var _stockManagementGrid = function () {
                     '<td class="small">' + who + '</td>' +
                     '<td><span class="badge rounded-pill ' + ev.cls + '">' + escapeHtml(ev.text) + '</span></td>' +
                     '<td class="small">' + escapeHtml(STREAM_LABEL[r.stream] || r.stream || '') + '</td>' +
-                    '<td class="small">' + escapeHtml(r.batch_number || '—') + '</td>' +
+                    '<td class="small">' + escapeHtml(macBatchNo.format(r.batch_number || '—')) + '</td>' +
                     '<td class="small">' + escapeHtml(r.style || '—') + '</td>' +
                     '<td class="text-end small">' + fmtQty(r.cartons) + '</td>' +
                     '<td class="text-end small">' + fmtQty(r.qty_kg, true) + '</td>' +
@@ -1129,6 +1133,7 @@ var _stockManagementGrid = function () {
                 var batchNumberEl = document.getElementById('swalStockBatchNumber');
                 if (!listEl || !batchNumberEl) return;
                 var q = (batchNumberEl.value || '').trim().toLowerCase();
+                var qKey = macBatchNo.searchKey(q);
                 if (!q) {
                     listEl.innerHTML = '';
                     listEl.style.display = 'none';
@@ -1137,13 +1142,13 @@ var _stockManagementGrid = function () {
                 var matches = (scope.kernelFinishedBatches || []).filter(function (b) {
                     if (!kernelBatchStatusIsFinishedStock(b)) return false;
                     var bn = batchNumberFromBatch(b).toLowerCase();
-                    return bn && bn.indexOf(q) !== -1;
+                    return bn && (bn.indexOf(q) !== -1 || macBatchNo.matches(bn, q));
                 });
                 matches.sort(function (a, b) {
                     var an = batchNumberFromBatch(a);
                     var bn = batchNumberFromBatch(b);
-                    var ae = an.toLowerCase() === q ? 0 : 1;
-                    var be = bn.toLowerCase() === q ? 0 : 1;
+                    var ae = macBatchNo.searchKey(an) === qKey ? 0 : 1;
+                    var be = macBatchNo.searchKey(bn) === qKey ? 0 : 1;
                     if (ae !== be) return ae - be;
                     return String(an).localeCompare(String(bn), undefined, { numeric: true, sensitivity: 'base' });
                 });
@@ -1169,7 +1174,7 @@ var _stockManagementGrid = function () {
                     return '<button type="button" class="stock-addbatch-match-row js-stock-addbatch-pick list-group-item list-group-item-action py-2 px-3 text-start w-100 border-0 border-bottom"' +
                         ' data-kernel-id="' + escapeHtml(id) + '"' +
                         (id ? '' : ' disabled') + '>' +
-                        '<span class="fw-semibold">' + escapeHtml(bn || '—') + '</span>' +
+                        '<span class="fw-semibold">' + escapeHtml(macBatchNo.format(bn) || '—') + '</span>' +
                         (g ? '<span class="text-muted"> · ' + escapeHtml(g) + '</span>' : '') +
                         badge + vis +
                         '</button>';
@@ -1192,7 +1197,7 @@ var _stockManagementGrid = function () {
                 }
                 try {
                     var nextId = await ((dataFunctions.getNextBatchNumber && dataFunctions.getNextBatchNumber(supplierId, year)) || Promise.resolve(null));
-                    batchNumberEl.value = nextId || '';
+                    batchNumberEl.value = nextId ? macBatchNo.format(nextId) : '';
                     batchNumberEl.placeholder = nextId ? '' : 'Will assign on save';
                 } catch (e2) {
                     batchNumberEl.value = '';
@@ -1265,7 +1270,7 @@ var _stockManagementGrid = function () {
                         return { mode: 'restore', kernel_id: rid };
                     }
                     var supplierId = (document.getElementById('swalStockBatchSupplier') || {}).value || '';
-                    var batchNumber = ((document.getElementById('swalStockBatchNumber') || {}).value || '').trim();
+                    var batchNumber = macBatchNo.toStored(((document.getElementById('swalStockBatchNumber') || {}).value || '').trim());
                     var receivedDate = (document.getElementById('swalStockBatchReceivedDate') || {}).value || '';
                     var wetNisRaw = (document.getElementById('swalStockBatchWetNis') || {}).value || '';
                     var ffaRaw = (document.getElementById('swalStockBatchFfa') || {}).value || '';
@@ -1319,7 +1324,7 @@ var _stockManagementGrid = function () {
                         icon: 'success',
                         title: 'Batch linked to stock',
                         text: pickedBn
-                            ? ('Batch ' + pickedBn + ' is available in By style with Correct stock on. Edit quantities or send to dispatch as needed.')
+                            ? ('Batch ' + macBatchNo.format(pickedBn) + ' is available in By style with Correct stock on. Edit quantities or send to dispatch as needed.')
                             : ('Correct stock is on and the batch list was refreshed. Edit quantities or send to dispatch as needed.'),
                         timer: 5200,
                         showConfirmButton: true,
@@ -1508,18 +1513,22 @@ var _stockManagementGrid = function () {
             batches.forEach(function (b) {
                 var cells = getKernelStyleCellsForDisplay(b);
                 var batchNum = (b.batch_number || '').toString();
-                var row = '<tr><td>' + escapeHtml(batchNum) + '</td>';
+                var growerName = ((b.grower_name != null ? b.grower_name : b.GrowerName) || '').toString().trim();
+                var batchCell = '<div class="ks-batch-no">' + escapeHtml(macBatchNo.format(batchNum)) + '</div>';
+                if (growerName) batchCell += '<div class="ks-batch-supplier">' + escapeHtml(growerName) + '</div>';
+                batchCell += scope.kernelCountFlagHtml(kernelIdFromBatch(b));
+                var row = '<tr><td class="ks-batch-td">' + batchCell + '</td>';
                 styleKeys.forEach(function (k) {
                     var val = cells[k] != null ? cells[k] : 0;
                     totals[k] += parseNum(val);
                     var displayVal = (val !== 0 && val !== '' && val != null) ? val : '—';
                     var stTitle = escapeHtml(kernelStyleStockCellTitle(k, scope.kernelAdjustMode)).replace(/"/g, '&quot;');
                     if (scope.kernelAdjustMode) {
-                        row += '<td class="text-end table-warning kernel-stock-adjust-cell kernel-style-col" data-kernel-stock-adjust="1" data-kernel-id="' + escapeHtml(kernelIdFromBatch(b)) + '" data-batch-number="' + escapeHtml(batchNum) + '" data-style="' + escapeHtml(k) + '" title="' + stTitle + '">' +
-                            '<span class="kernel-stock-adjust-value d-block w-100 text-end">' + displayVal + '</span>' +
+                        row += '<td class="text-center table-warning kernel-stock-adjust-cell kernel-style-col" data-kernel-stock-adjust="1" data-kernel-id="' + escapeHtml(kernelIdFromBatch(b)) + '" data-batch-number="' + escapeHtml(batchNum) + '" data-style="' + escapeHtml(k) + '" title="' + stTitle + '">' +
+                            '<span class="kernel-stock-adjust-value d-block w-100 text-center">' + displayVal + '</span>' +
                             '</td>';
                     } else {
-                        row += '<td class="text-end kernel-style-col" title="' + stTitle + '">' + displayVal + '</td>';
+                        row += '<td class="text-center kernel-style-col" title="' + stTitle + '">' + displayVal + '</td>';
                     }
                 });
                 var ffaVal = (b.ffa != null && b.ffa !== '') ? (typeof b.ffa === 'number' ? b.ffa : parseFloat(b.ffa)) : null;
@@ -1561,12 +1570,76 @@ var _stockManagementGrid = function () {
                 body.append(row);
             });
             MacTableActions.init(document.getElementById('kernelStockByStyleTable'));
+            scope.applyKernelZebra();
             totalsRow.find('td[data-style]').each(function () {
                 var k = $(this).data('style');
                 $(this).text(totals[k] != null ? totals[k] : 0);
             });
             // Re-renders (sort, late config) rebuild every row; keep the search filter applied.
             if (($('#kernelStockSearch').val() || '').trim()) $('#kernelStockSearch').trigger('input.ksSearch');
+        },
+
+        /** Odd visible batch rows (first, third, ...) get the light grey band; re-run after the search hides rows. */
+        applyKernelZebra: function () {
+            var n = 0;
+            $('#kernelStockByStyleBody tr').each(function () {
+                var visible = this.style.display !== 'none';
+                $(this).toggleClass('ks-zebra', visible && (n % 2 === 0));
+                if (visible) n++;
+            });
+        },
+
+        /** "Count needed" pill (+ "Counted" button for people who may clear it) under a batch number. */
+        kernelCountFlagHtml: function (kernelId) {
+            var scope = _stockManagementGrid;
+            var flags = (scope.kernelCountFlags && scope.kernelCountFlags[String(kernelId)]) || [];
+            if (!flags.length) return '';
+            var tip = flags.map(function (f) {
+                var buyer = f.buyer_name ? ' (' + f.buyer_name + ')' : '';
+                return (f.style || 'Style') + ': ' + (f.asked_cartons != null ? f.asked_cartons : '?') + ' asked, ' +
+                    (f.found_cartons != null ? f.found_cartons : '?') + ' found' + buyer;
+            }).join('\n');
+            var canClear = typeof hasAction === 'function' && (hasAction('stock.adjust_soh') || hasAction('kernel_dispatch.pick'));
+            return '<div class="ks-count-flag">' +
+                '<span class="badge bg-warning text-dark" title="' + escapeHtml(tip).replace(/"/g, '&quot;') + '"><i class="fas fa-exclamation-triangle me-1"></i>Count needed</span>' +
+                (canClear ? ' <button type="button" class="btn btn-outline-secondary btn-sm ks-counted-btn js-ks-counted" data-kernel-id="' + escapeHtml(String(kernelId)) + '">Counted</button>' : '') +
+                '</div>';
+        },
+
+        /** Load the open "count needed" flags. Never breaks the grid: on any failure the pills are simply absent. */
+        loadKernelCountFlags: function () {
+            var scope = _stockManagementGrid;
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions || typeof dataFunctions.getKernelStockCountFlags !== 'function') {
+                    return Promise.resolve();
+                }
+                return Promise.resolve(dataFunctions.getKernelStockCountFlags()).then(function (res) {
+                    var map = {};
+                    if (res && res.success && Array.isArray(res.flags)) {
+                        res.flags.forEach(function (f) {
+                            var k = String(f.kernel_id);
+                            (map[k] = map[k] || []).push(f);
+                        });
+                    }
+                    scope.kernelCountFlags = map;
+                    if (scope.kernelCurrentView === 'bystyle' && (scope.kernelFinishedBatches || []).length) scope.renderKernelStockByStyle();
+                }).catch(function (e) { console.warn('[Stock Management] getKernelStockCountFlags failed:', e); });
+            } catch (e) {
+                console.warn('[Stock Management] getKernelStockCountFlags failed:', e);
+                return Promise.resolve();
+            }
+        },
+
+        markKernelBatchCounted: function (kernelId) {
+            var scope = _stockManagementGrid;
+            try {
+                if (!kernelId || typeof dataFunctions === 'undefined' || !dataFunctions || typeof dataFunctions.clearKernelStockCountFlags !== 'function') return;
+                Promise.resolve(dataFunctions.clearKernelStockCountFlags(kernelId, null, null)).then(function () {
+                    return scope.loadKernelCountFlags();
+                }).catch(function (e) { console.warn('[Stock Management] clearKernelStockCountFlags failed:', e); });
+            } catch (e) {
+                console.warn('[Stock Management] clearKernelStockCountFlags failed:', e);
+            }
         },
 
         toggleKernelView: function (view) {
@@ -1673,7 +1746,7 @@ var _stockManagementGrid = function () {
             });
             var weeks = Object.keys(byWeek).sort();
             var rows = weeks.length === 0
-                ? '<tr><td colspan="' + colspan + '" class="text-center text-muted py-4">No data. Release batches to stock from Kernel Production to see weekly in by style.</td></tr>'
+                ? '<tr><td colspan="' + colspan + '" class="text-center text-muted py-4">No data. Release batches to stock from Production to see weekly in by style.</td></tr>'
                 : weeks.map(function (key) {
                     var v = byWeek[key];
                     var cells = ['<td>' + escapeHtml(key) + '</td>'];
@@ -1724,8 +1797,8 @@ var _stockManagementGrid = function () {
                 return;
             }
             Swal.fire({
-                title: 'Send back to Kernel Production?',
-                text: 'This batch will reappear in the Kernel Production queue. You can then correct or update production data.',
+                title: 'Send back to Production?',
+                text: 'This batch will reappear in the Production queue. You can then correct or update production data.',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonText: 'Yes, send back',
@@ -1746,7 +1819,7 @@ var _stockManagementGrid = function () {
                 scope.promptAdjustKernelStockCellWithNativePrompt(batch, style);
                 return;
             }
-            var titleBatch = escapeHtml(batch.batch_number || 'Kernel batch');
+            var titleBatch = escapeHtml(macBatchNo.format(batch.batch_number || 'Kernel batch'));
             Swal.fire({
                 title: 'Adjust Stock',
                 html:
@@ -1836,7 +1909,7 @@ var _stockManagementGrid = function () {
 
         promptAdjustKernelStockCellWithNativePrompt: function (batch, style) {
             var scope = _stockManagementGrid;
-            var bn = batch.batch_number || 'batch';
+            var bn = macBatchNo.format(batch.batch_number || 'batch');
             var sign = (window.prompt('Batch ' + bn + ', style ' + style + ' — type + or -', '+') || '').trim();
             if (sign !== '+' && sign !== '-') return;
             var unit = (window.prompt('Unit? Type cartons or kg', 'cartons') || 'cartons').trim().toLowerCase();
@@ -1895,11 +1968,20 @@ var _stockManagementGrid = function () {
                     Swal.fire({
                         icon: 'success',
                         title: 'Stock adjusted',
-                        text: (batch.batch_number || 'Batch') + ' was updated.',
+                        text: macBatchNo.format(batch.batch_number || 'Batch') + ' was updated.',
                         timer: 1800,
                         showConfirmButton: false
                     });
-                } else window.alert('Stock adjusted for ' + (batch.batch_number || 'batch'));
+                } else window.alert('Stock adjusted for ' + macBatchNo.format(batch.batch_number || 'batch'));
+                // The adjustment is the count: clear any "count needed" flag for this batch and style.
+                try {
+                    var cdf = (typeof dataFunctions !== 'undefined' && dataFunctions) ? dataFunctions : df;
+                    if (cdf && typeof cdf.clearKernelStockCountFlags === 'function' && adjustment && adjustment.style) {
+                        Promise.resolve(cdf.clearKernelStockCountFlags(kernelId, adjustment.style)).then(function () {
+                            scope.loadKernelCountFlags();
+                        }).catch(function (ec) { console.warn('[Stock Management] clearKernelStockCountFlags failed:', ec); });
+                    }
+                } catch (ecf) { console.warn('[Stock Management] clearKernelStockCountFlags failed:', ecf); }
                 scope.loadKernelBatches(true);
             }).catch(function (e) {
                 console.error('[Stock Management] saveKernelStockAdjustment failed:', e);
@@ -1945,8 +2027,8 @@ var _stockManagementGrid = function () {
                             icon: 'success',
                             title: already ? 'Already on production board' : 'Sent back to production',
                             text: already
-                                ? 'This batch is already in the Kernel Production queue. Open the job card there and press Jobcard approved when ready.'
-                                : 'Batch is on Kernel Production (QA). Open the job card, confirm style quantities, then press Jobcard approved.',
+                                ? 'This batch is already in the Production queue. Open the job card there and press Jobcard approved when ready.'
+                                : 'Batch is on Production (QA). Open the job card, confirm style quantities, then press Jobcard approved.',
                             timer: 3200,
                             showConfirmButton: false
                         });
@@ -2001,7 +2083,7 @@ var _stockManagementGrid = function () {
             }
             scope.filteredStockItems.forEach(function (item) {
                 var statusClass = item.status === 'available' ? 'bg-success' : item.status === 'reserved' ? 'bg-warning' : 'bg-secondary';
-                var row = '<tr><td>' + (item.stock_number || 'N/A') + '</td><td>' + (item.product_type || 'N/A') + '</td><td>' + (item.style || 'N/A') + '</td><td>' + (item.batch_number || 'N/A') + '</td><td>' + (_common.formatKg(item.quantity_kg) || '0.00') + '</td><td>' + (item.location || 'N/A') + '</td><td><span class="badge ' + statusClass + '">' + (item.status || 'N/A') + '</span></td><td class="mac-table-actions-col">' + MacTableActions.render({
+                var row = '<tr><td>' + (item.stock_number || 'N/A') + '</td><td>' + (item.product_type || 'N/A') + '</td><td>' + (item.style || 'N/A') + '</td><td>' + (macBatchNo.format(item.batch_number) || 'N/A') + '</td><td>' + (_common.formatKg(item.quantity_kg) || '0.00') + '</td><td>' + (item.location || 'N/A') + '</td><td><span class="badge ' + statusClass + '">' + (item.status || 'N/A') + '</span></td><td class="mac-table-actions-col">' + MacTableActions.render({
                     items: [{ label: 'View', className: '', icon: 'fas fa-eye', attrs: { 'data-view-item': item.id || '' } }]
                 }) + '</td></tr>';
                 tbody.append(row);
@@ -2105,7 +2187,7 @@ var _stockManagementGrid = function () {
                 var shellId = l.id || '';
                 return '<tr data-shell-id="' + escapeHtml(shellId) + '">' +
                     '<td>' + escapeHtml(l.lot_number || '') + '</td>' +
-                    '<td>' + escapeHtml(l.source_batch_number || '') + '</td>' +
+                    '<td>' + escapeHtml(macBatchNo.format(l.source_batch_number || '')) + '</td>' +
                     '<td class="text-end">' + (l.quantity_kg != null ? _common.formatKg(l.quantity_kg) : '0.00') + '</td>' +
                     '<td>' + escapeHtml(l.status || '') + '</td>' +
                     '<td class="mac-table-actions-col">' + MacTableActions.render({
@@ -2149,7 +2231,7 @@ var _stockManagementGrid = function () {
                     '</div>',
                     '<div>',
                     '<label for="swalShellSourceBatch">Source kernel batch</label>',
-                    '<input id="swalShellSourceBatch" class="mac-input" placeholder="e.g. Bn 63 26 20" value="' + escapeHtml(existing && existing.source_batch_number ? existing.source_batch_number : '') + '">',
+                    '<input id="swalShellSourceBatch" class="mac-input" placeholder="e.g. BN.63.26.20" value="' + escapeHtml(existing && existing.source_batch_number ? macBatchNo.format(existing.source_batch_number) : '') + '">',
                     '</div>',
                     '<div class="row2">',
                     '<div>',
@@ -2175,7 +2257,7 @@ var _stockManagementGrid = function () {
                     return {
                         id: existing ? existing.id : null,
                         lot_number: (document.getElementById('swalShellLotNumber').value || '').trim(),
-                        source_batch_number: (document.getElementById('swalShellSourceBatch').value || '').trim(),
+                        source_batch_number: macBatchNo.toStored((document.getElementById('swalShellSourceBatch').value || '').trim()),
                         quantity_kg: _common.parseKg(document.getElementById('swalShellQty').value) || 0,
                         status: document.getElementById('swalShellStatus').value || 'in_stock'
                     };
@@ -2462,7 +2544,7 @@ var _stockManagementGrid = function () {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Archive is not available. Please refresh.', 'error');
                 return;
             }
-            var label = (batchLabel && String(batchLabel).trim()) ? String(batchLabel).trim() : 'this batch';
+            var label = (batchLabel && String(batchLabel).trim()) ? macBatchNo.format(String(batchLabel).trim()) : 'this batch';
             Swal.fire({
                 title: 'Archive kernel batch?',
                 html: 'Send <strong>' + escapeHtml(label) + '</strong> to the archive? It will be removed from active lists. You can restore it later from <strong>View archive</strong>.',
@@ -2564,7 +2646,7 @@ var _stockManagementGrid = function () {
                 } else {
                     action = '<span class="text-muted small">Cannot restore</span>';
                 }
-                html += '<tr><td class="fw-semibold">' + escapeHtml(bn) + '</td><td>' + escapeHtml(grower) + '</td><td class="small text-muted">' + escapeHtml(at) + '</td><td class="small">' + escapeHtml(by) + '</td><td class="small">' + escapeHtml(dtype) + '</td><td>' + action + '</td></tr>';
+                html += '<tr><td class="fw-semibold">' + escapeHtml(macBatchNo.format(bn)) + '</td><td>' + escapeHtml(grower) + '</td><td class="small text-muted">' + escapeHtml(at) + '</td><td class="small">' + escapeHtml(by) + '</td><td class="small">' + escapeHtml(dtype) + '</td><td>' + action + '</td></tr>';
             });
             html += '</tbody></table>';
             listEl.innerHTML = html;
@@ -2580,7 +2662,7 @@ var _stockManagementGrid = function () {
                     if (result && result.needs_new_number) {
                         return scope.promptNewBatchNumberForRestore(originalBatchNumber).then(function (entered) {
                             if (!entered) return null;
-                            return df.restoreKernelBatchFromArchive(archiveId, entered);
+                            return df.restoreKernelBatchFromArchive(archiveId, macBatchNo.toStored(entered));
                         });
                     }
                     return result;
@@ -2593,12 +2675,12 @@ var _stockManagementGrid = function () {
 
             start.then(function (preEntered) {
                 if (numberInUse && !preEntered) return null;
-                return attemptRestore(preEntered || null);
+                return attemptRestore(preEntered ? macBatchNo.toStored(preEntered) : null);
             }).then(function (result) {
                 if (!result) return;
                 if (result.success === false) throw new Error(result.error || 'Restore failed');
                 var bn = result.batch_number || originalBatchNumber || 'batch';
-                Swal.fire({ icon: 'success', title: 'Batch restored', text: bn + ' is active again.', timer: 2200, showConfirmButton: false });
+                Swal.fire({ icon: 'success', title: 'Batch restored', text: macBatchNo.format(bn) + ' is active again.', timer: 2200, showConfirmButton: false });
                 scope.loadKernelBatches(true);
                 return df.getKernelBatchArchive(scope._kernelArchiveSearch || null, null, { limit: 200 });
             }).then(function (rows) {
@@ -2616,9 +2698,9 @@ var _stockManagementGrid = function () {
             var orig = originalBatchNumber != null ? String(originalBatchNumber) : '';
             return Swal.fire({
                 title: 'New batch number required',
-                html: 'Batch number <strong>' + escapeHtml(orig) + '</strong> is already in use by another active batch. Enter a new number for the restored batch.',
+                html: 'Batch number <strong>' + escapeHtml(macBatchNo.format(orig)) + '</strong> is already in use by another active batch. Enter a new number for the restored batch.',
                 input: 'text',
-                inputPlaceholder: 'e.g. Bn 01 26 05',
+                inputPlaceholder: 'e.g. BN.01.26.05',
                 showCancelButton: true,
                 confirmButtonText: 'Restore with new number',
                 inputValidator: function (value) {
