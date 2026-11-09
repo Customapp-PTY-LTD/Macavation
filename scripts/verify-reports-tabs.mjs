@@ -25,6 +25,7 @@ const FILES = {
   drafts: 'migrations/20261106180000_reports_auto_drafts.sql',
   order: 'migrations/20261106180100_reports_section_order.sql',
   figures: 'migrations/20261106180200_reports_all_figures.sql',
+  v2: 'migrations/20261107090000_reports_v2_snapshot.sql',
 };
 const sql = {};
 for (const [k, rel] of Object.entries(FILES)) {
@@ -38,7 +39,7 @@ for (const [k, rel] of Object.entries(FILES)) {
 // Strip -- comments so prose in headers cannot satisfy or trip a check.
 const code = (s) => s.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 
-for (const k of ['drafts', 'figures']) {
+for (const k of ['drafts', 'figures', 'v2']) {
   if (!sql[k]) continue;
   const body = code(sql[k]);
   const rel = FILES[k];
@@ -82,6 +83,22 @@ if (sql.figures) {
   check('figures: oil sales skip register-linked local lines', /export_register_id IS NULL/.test(body));
 }
 
+if (sql.v2) {
+  const body = code(sql.v2);
+  check('v2: ADD COLUMN IF NOT EXISTS report_snapshot', /ADD COLUMN IF NOT EXISTS report_snapshot jsonb/.test(body));
+  check('v2: ADD COLUMN IF NOT EXISTS snapshot_sha256', /ADD COLUMN IF NOT EXISTS snapshot_sha256 text/.test(body));
+  const pub = body.match(/CREATE OR REPLACE FUNCTION public\.publish_report_instance\([\s\S]*?\n\$\$;/);
+  check('v2: redefines publish_report_instance', !!pub);
+  if (pub) {
+    check('v2: publish writes report_snapshot', /report_snapshot\s*=\s*v_snap/.test(pub[0]));
+    check('v2: publish writes snapshot_sha256', /snapshot_sha256\s*=\s*encode\(sha256\(/.test(pub[0]));
+    check('v2: publish has the figures refusal branch', /Figures could not be read: /.test(pub[0]) && /RETURN QUERY SELECT 0, 'Figures could not be read/.test(pub[0]));
+  }
+  for (const fn of ['_report_headlines', 'get_report_comparison', 'get_report_coming_up', 'report_build_snapshot', 'get_report_view']) {
+    check(`v2: defines ${fn}`, new RegExp(String.raw`CREATE OR REPLACE FUNCTION public\.${fn}\(`).test(body));
+  }
+}
+
 let dataFns = '';
 try {
   dataFns = read('WebPortal/js/data-functions.js');
@@ -92,10 +109,27 @@ for (const [wrapper, rpc] of [
   ['ensureReportDrafts', 'ensure_report_drafts'],
   ['listReportHistory', 'list_report_history'],
   ['getReportsAllFigures', 'get_reports_all_figures'],
+  ['getReportView', 'get_report_view'],
 ]) {
   check(`data-functions: ${wrapper} exists`, new RegExp(String.raw`${wrapper}:\s*async function`).test(dataFns));
   check(`data-functions: ${wrapper} calls ${rpc}`, dataFns.includes(`'${rpc}'`));
 }
+check('data-functions: storeReportPdf wrapper is gone (no store_only mode on the edge function)', !/storeReportPdf/.test(dataFns));
+
+// New-look PDF (Reports v2).
+const JS_DIR = 'WebPortal/modules/sales-reports/js/';
+const pdfJs = read(JS_DIR + 'report-figures-pdf.js');
+const editorJs = read(JS_DIR + 'report_editor.js');
+check('report-figures-pdf.js exposes build', /ReportFiguresPdf\s*=\s*\{[^}]*\bbuild\s*:/.test(pdfJs));
+check('report-figures-pdf.js exposes ensureLib', /ReportFiguresPdf\s*=\s*\{[^}]*\bensureLib\s*:/.test(pdfJs));
+check('report_editor.js uses view.pdfBase64 when embedded', /embedded\s*&&\s*embeddedView[\s\S]{0,200}pdfBase64/.test(editorJs) && /embeddedView\.pdfBase64\(\)/.test(editorJs));
+for (const f of ['report_view.js', 'report_figures.js', 'report-figures-pdf.js']) {
+  const txt = read(JS_DIR + f);
+  check(`${f}: no .innerHTML = assignment`, !/\.innerHTML\s*=/.test(txt));
+  check(`${f}: no .html( call`, !/\.html\(/.test(txt));
+}
+check('report-figures-pdf.js: no arrow glyphs', !/[▲▼]/.test(pdfJs));
+check('data-functions: report_view_ cache is cleared alongside report_history_', (dataFns.match(/clearCachePattern\('report_view_'\)/g) || []).length >= 5);
 check('data-functions: ensureReportDrafts clears report_history_ cache', /ensureReportDrafts[\s\S]{0,600}clearCachePattern\('report_history_'\)/.test(dataFns));
 
 if (failures.length) {

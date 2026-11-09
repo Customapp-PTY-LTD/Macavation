@@ -301,7 +301,7 @@ var _reportsPage = function () {
         return ensureEditorMarkup().then(function () {
             if (token !== state.openToken) return;
             lastOpenedId = id;
-            _reportEditor.openEmbedded(id, { onChange: handleEditorChange });
+            _reportEditor.openEmbedded(id, { onChange: handleEditorChange, view: window._reportView });
         }).catch(function (err) {
             if (token !== state.openToken) return;
             console.warn('[reports] could not open the editor', err);
