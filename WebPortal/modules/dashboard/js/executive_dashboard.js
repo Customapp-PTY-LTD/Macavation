@@ -946,14 +946,14 @@ var _executiveDashboard = function () {
             // its recipients are managed.
             $('#generateReportBtn').off('click').on('click', () => {
                 if (typeof _appRouter !== 'undefined') {
-                    _appRouter.navigate('sales-report-editor');
+                    _appRouter.navigate('sales-forecasting-grid');
                 } else {
                     Swal.fire('Info', 'Open Reports from the sidebar.', 'info');
                 }
             });
             $('#execDailyReportBtn').off('click').on('click', function () {
                 if (typeof _appRouter !== 'undefined') {
-                    _appRouter.navigate('sales-report-editor');
+                    _appRouter.navigate('sales-forecasting-grid');
                 }
             });
             $('#customizeDashboardBtn').off('click').on('click', function () {

@@ -641,6 +641,9 @@
                 "js/report-whatsapp-history.js",
                 "js/report_editor.js",
                 "../management-dashboard/js/mgmt_dashboard_common.js",
+                "js/report_figures.js",
+                "js/report-figures-pdf.js",
+                "js/report_view.js",
                 "js/reports_page.js",
                 "js/reports_all_figures.js",
                 "js/report_list_grid.js"
@@ -659,6 +662,7 @@
                 "js/report-pdf-builder.js",
                 "js/report-whatsapp-send.js",
                 "js/report-whatsapp-history.js",
+                "js/report-figures-pdf.js",
                 "js/report_editor.js"
             ],
             "css": [

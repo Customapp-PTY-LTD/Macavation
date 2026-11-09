@@ -6567,6 +6567,7 @@ var _dataFunctions = function () {
             const result = await this.callFunction('ensure_report_drafts', params, null, { useCache: false });
             this.clearCachePattern('report_list_');
             this.clearCachePattern('report_history_');
+            this.clearCachePattern('report_view_');
             this.clearCachePattern('report_instance_');
             return result;
         },
@@ -6577,6 +6578,21 @@ var _dataFunctions = function () {
             const params = { p_period_type: pt, p_limit: limit || 26 };
             const cacheKey = 'report_history_' + params.p_period_type + '_' + params.p_limit;
             return await this.callFunction('list_report_history', params, null, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        // Reports v2 (migrations/20261107090000): one call returns the report the Reports tabs render -
+        // the frozen snapshot for a published report, a live build for a draft, legacy:true for older ones.
+        getReportView: async function (reportInstanceId, forceRefresh = false) {
+            const id = (reportInstanceId != null ? String(reportInstanceId) : '').trim();
+            if (!id) throw new Error('getReportView: reportInstanceId is required.');
+            const params = { p_report_instance_id: id };
+            const cacheKey = 'report_view_' + id;
+            return await this.callFunction('get_report_view', params, null, {
                 cacheKey: cacheKey,
                 useCache: true,
                 cacheTtl: this.cache.ttl.dynamic,
@@ -6614,6 +6630,7 @@ var _dataFunctions = function () {
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
             this.clearCachePattern('report_history_');
+            this.clearCachePattern('report_view_');
             return result;
         },
 
@@ -6649,6 +6666,7 @@ var _dataFunctions = function () {
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
             this.clearCachePattern('report_history_');
+            this.clearCachePattern('report_view_');
             return result;
         },
 
@@ -6662,6 +6680,7 @@ var _dataFunctions = function () {
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
             this.clearCachePattern('report_history_');
+            this.clearCachePattern('report_view_');
             return result;
         },
 
@@ -6688,6 +6707,7 @@ var _dataFunctions = function () {
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
             this.clearCachePattern('report_history_');
+            this.clearCachePattern('report_view_');
             return result;
         },
 
@@ -6706,6 +6726,7 @@ var _dataFunctions = function () {
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
             this.clearCachePattern('report_history_');
+            this.clearCachePattern('report_view_');
             return result;
         },
 
@@ -6717,6 +6738,7 @@ var _dataFunctions = function () {
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
             this.clearCachePattern('report_history_');
+            this.clearCachePattern('report_view_');
             return result;
         },
 
@@ -6730,6 +6752,7 @@ var _dataFunctions = function () {
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
             this.clearCachePattern('report_history_');
+            this.clearCachePattern('report_view_');
             return result;
         },
 
@@ -6746,6 +6769,7 @@ var _dataFunctions = function () {
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
             this.clearCachePattern('report_history_');
+            this.clearCachePattern('report_view_');
             return result;
         },
 
@@ -6763,6 +6787,7 @@ var _dataFunctions = function () {
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
             this.clearCachePattern('report_history_');
+            this.clearCachePattern('report_view_');
             return result;
         },
 
