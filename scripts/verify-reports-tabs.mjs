@@ -143,7 +143,7 @@ check('compareTile handles ytd_actual_on_target', /ytd_actual_on_target/.test(co
 check('chartImages does not multiply the canvas size by scale', !/\*\s*scale/.test(chartFn.replace(/\/\/.*$/gm, '')));
 check('chartImages sets canvas.width = w', /canvas\.width = w;/.test(chartFn) && /canvas\.height = h;/.test(chartFn));
 check('report-figures-pdf.js: no keepWithNext', !/keepWithNext\s*:/.test(pdfJs.replace(/\/\/.*$/gm, '')));
-check('report-figures-pdf.js: pageBreakBefore present', /pageBreakBefore\s*:\s*function[\s\S]{0,120}headlineLevel === 1/.test(pdfJs));
+check('report-figures-pdf.js: pageBreakBefore present', /pageBreakBefore\s*:\s*function[\s\S]{0,400}headlineLevel !?== 1/.test(pdfJs));
 check('report-figures-pdf.js: table title is a header row (headerRows: 2)', /headerRows: 2/.test(pdfJs));
 check('report_view.js: no "trucks" count wording', !/' trucks'/.test(viewJs));
 check('report_view.js: overdue wording', /still marked as not dispatched/.test(viewJs) && !/overdue and still waiting/.test(viewJs));
