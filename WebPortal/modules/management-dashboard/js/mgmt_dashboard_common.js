@@ -64,9 +64,23 @@ var MgmtDashboard = (function () {
         return key === currentMonthKey() ? label + ' (to date)' : label;
     }
 
+    // Calendar date of a full timestamp (published_at, built_at) as it reads in South Africa, not UTC.
+    // Date-only strings are returned unchanged.
+    var SAST_DAY = (typeof Intl !== 'undefined' && Intl.DateTimeFormat)
+        ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Johannesburg', year: 'numeric', month: '2-digit', day: '2-digit' }) : null;
+
+    function sastDay(iso) {
+        var s = String(iso);
+        if (s.length > 10 && SAST_DAY) {
+            var d = new Date(s);
+            if (!isNaN(d.getTime())) return SAST_DAY.format(d);   // en-CA reads YYYY-MM-DD
+        }
+        return s.slice(0, 10);
+    }
+
     function prettyDate(iso) {
         if (!iso) return '';
-        var p = String(iso).slice(0, 10).split('-');
+        var p = sastDay(iso).split('-');
         return +p[2] + ' ' + MONTHS[+p[1] - 1] + ' ' + p[0];
     }
 

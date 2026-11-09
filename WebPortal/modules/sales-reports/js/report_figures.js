@@ -17,11 +17,12 @@
  *   ReportFigures.paint(hostEl, model, {idPrefix, controls:{oilFilter:true}, onOilFilter(v)}) draws it.
  *   ReportFigures.destroy(idPrefix) destroys every chart painted under that prefix.
  *   ReportFigures.compareTile(metric, {periodWord, ytd}) -> tile (value, target line, vs-last-period line).
- *   ReportFigures.chartImages(specs, {w, h, scale}) -> Promise<[{id, dataUrl, w, h}]> (off-screen JPEGs).
+ *   ReportFigures.chartImages(specs, {w, h, scale}) -> Promise<[{id, dataUrl, w, h}]> (off-screen light-palette JPEGs; w/h in CSS px).
  *
  * Security invariant: every database value reaches the DOM through textContent (MgmtDashboard.el /
  * fillTable / tile) - never innerHTML. Colours come from MgmtDashboard.colors() (the --mac-* tokens);
- * the one exception is the white page background of PDF chart images, which must be white by definition.
+ * the one exception is the print palette (printColors(): fixed light colours, incl. the
+ * white page behind PDF chart images) so PDFs never inherit dark mode.
  * null in the data means "not available": shown as an em dash, never as 0; a null target is
  * "No target set", never 0%.
  */
@@ -38,6 +39,19 @@ var ReportFigures = (function () {
     ];
 
     var registry = {};   // idPrefix -> { chartIds: {id: true}, own: {id: Chart} }
+
+    // PRINT PALETTE (exception to "colours come from the tokens"; the PDF builder reads it as ReportFigures.printColors()): PDF pages and their chart images are
+    // always light, whatever theme the portal is in, so they must not inherit dark-mode tokens. Values
+    // are the light-theme tokens in css/design-tokens.css. These are the only print colour literals.
+    function printColors() {
+        return {
+            text: '#1f1f1f', muted: '#6e6e68', grid: '#e3e3e0', headFill: '#f2f2ef',
+            green: '#198754', tan: '#8d7434', info: '#0969DA',
+            greenSoft: 'rgba(25, 135, 84, 0.4)', tanSoft: 'rgba(141, 116, 52, 0.4)',
+            surface: '#ffffff', watermark: '#d9d9d6'
+        };
+    }
+
 
     // ------------------------------------------------------------------
     // Formatting. null -> an em dash, never 0.
@@ -550,9 +564,28 @@ var ReportFigures = (function () {
             t.lines.push({ text: vs + ' ' + signedPct(pc), tone: pc >= 0 ? 'up' : 'down' });
         }
         // Year to date (monthly report).
+        // Targets may exist for only some periods, so the like-for-like actual is ytd_actual_on_target.
         if (o.ytd && isNum(metric.ytd)) {
-            t.lines.push({ text: 'Year to date ' + fmtByUnit(unit, metric.ytd) + ' vs ' +
-                (isNum(metric.ytd_target) ? 'target ' + fmtByUnit(unit, metric.ytd_target) : 'no target set'), tone: 'muted' });
+            var yp = Number(metric.ytd_periods) || 0, tp = Number(metric.ytd_target_periods) || 0;
+            var ytxt = 'Year to date ' + fmtByUnit(unit, metric.ytd);
+            if (!isNum(metric.ytd_target) || tp <= 0) {
+                ytxt += ' · no target set';
+            } else {
+                var full = tp === yp;
+                var base = full ? metric.ytd : metric.ytd_actual_on_target;
+                if (full) ytxt += ' vs target ' + fmtByUnit(unit, metric.ytd_target);
+                else if (isNum(base)) ytxt += ' · target set for ' + tp + ' of ' + yp + ' ' + word + 's: ' + fmtByUnit(unit, base) + ' vs ' + fmtByUnit(unit, metric.ytd_target);
+                else ytxt += ' · target set for ' + tp + ' of ' + yp + ' ' + word + 's: ' + fmtByUnit(unit, metric.ytd_target);
+                if (isNum(base)) {
+                    if (unit === 'pct') {
+                        var yd = Number(base) - Number(metric.ytd_target);
+                        ytxt += ' · ' + (yd > 0 ? '+' : yd < 0 ? MINUS : '') + Math.abs(yd).toFixed(1) + ' pts';
+                    } else if (Number(metric.ytd_target) !== 0) {
+                        ytxt += ' · ' + signedPct((Number(base) - Number(metric.ytd_target)) / Math.abs(Number(metric.ytd_target)) * 100);
+                    }
+                }
+            }
+            t.lines.push({ text: ytxt, tone: 'muted' });
         }
         return t;
     }
@@ -765,7 +798,7 @@ var ReportFigures = (function () {
 
     function chartConfig(s, extra) {
         extra = extra || {};
-        var c = M.colors();
+        var c = extra.print ? printColors() : M.colors();
         var unit = s.opts && s.opts.unit;
         var common = { maintainAspectRatio: false, animation: false };
         if (extra.responsive === false) { common.responsive = false; common.devicePixelRatio = extra.scale || 2; }
@@ -804,7 +837,9 @@ var ReportFigures = (function () {
     // Renders each spec off-screen and returns JPEG data URLs (used by the PDF).
     function chartImages(specs, o) {
         o = o || {};
-        var w = o.w || 640, h = o.h || 300, scale = o.scale || 2;
+        // w x h are CSS pixels (the PDF scales them to 250pt / 515pt wide); devicePixelRatio = scale does the doubling.
+        var w = o.w || 840, h = o.h || 330, scale = o.scale || 2;
+        var PC = printColors();
         var list = (specs || []).filter(function (s) { return s && !s.empty; });
         if (typeof Chart === 'undefined' || typeof document === 'undefined') return Promise.resolve([]);
         // White page behind the chart: a JPEG has no transparency, and the PDF page is white.
@@ -812,7 +847,7 @@ var ReportFigures = (function () {
             var ctx = chart.ctx;
             ctx.save();
             ctx.globalCompositeOperation = 'destination-over';
-            ctx.fillStyle = '#ffffff';
+            ctx.fillStyle = PC.surface;
             ctx.fillRect(0, 0, chart.width, chart.height);
             ctx.restore();
         } };
@@ -823,17 +858,18 @@ var ReportFigures = (function () {
         function one(s) {
             return new Promise(function (resolve) {
                 var canvas = document.createElement('canvas');
-                canvas.width = w * scale; canvas.height = h * scale;
+                canvas.width = w; canvas.height = h;
                 canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
                 holder.appendChild(canvas);
                 var chart = null;
                 try {
-                    chart = new Chart(canvas, chartConfig(s, { responsive: false, scale: scale, plugins: [whiteBg] }));
+                    chart = new Chart(canvas, chartConfig(s, { responsive: false, scale: scale, plugins: [whiteBg], print: true }));
                     out.push({ id: s.id, dataUrl: chart.toBase64Image('image/jpeg', 0.9), w: w, h: h });
                 } catch (e) {
                     if (window.console) console.warn('[ReportFigures] chart image ' + s.id + ' failed', e);
                 }
                 if (chart) { try { chart.destroy(); } catch (e2) { /* gone */ } }
+                canvas.width = 0; canvas.height = 0;   // release the bitmap
                 holder.removeChild(canvas);
                 resolve();
             });
@@ -844,7 +880,7 @@ var ReportFigures = (function () {
     }
 
     return {
-        model: model, paint: paint, destroy: destroy, compareTile: compareTile, chartImages: chartImages,
+        model: model, paint: paint, printColors: printColors, destroy: destroy, compareTile: compareTile, chartImages: chartImages,
         util: { bucketRows: bucketRows, topN: topN, spec: spec, hbarSpec: hbarSpec, barSpec: barSpec, groupedSpec: groupedSpec,
             doughnutSpec: doughnutSpec, tileOf: tileOf, tableOf: tableOf, card: card, grid: grid, newSection: newSection,
             notice: notice, collectCharts: collectCharts, fmtByUnit: fmtByUnit, kgF: kgF, kgPlain: kgPlain, zarF: zarF,

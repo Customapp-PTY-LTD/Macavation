@@ -129,6 +129,33 @@ for (const f of ['report_view.js', 'report_figures.js', 'report-figures-pdf.js']
   check(`${f}: no .html( call`, !/\.html\(/.test(txt));
 }
 check('report-figures-pdf.js: no arrow glyphs', !/[▲▼]/.test(pdfJs));
+// Reports v2 review fixes.
+const figJs = read(JS_DIR + 'report_figures.js');
+const viewJs = read(JS_DIR + 'report_view.js');
+const compareFn = (figJs.match(/function compareTile\([\s\S]*?\n    \}\n/) || [''])[0];
+const chartFn = (figJs.match(/function chartImages\([\s\S]*?\n    \}\n/) || [''])[0];
+check('compareTile found', compareFn.length > 0);
+check('chartImages found', chartFn.length > 0);
+for (const f of ['report_figures.js', 'report_view.js', 'report-figures-pdf.js']) {
+  check(`${f}: ytd_prior is not referenced`, !/ytd_prior/.test(read(JS_DIR + f)));
+}
+check('compareTile handles ytd_actual_on_target', /ytd_actual_on_target/.test(compareFn) && /ytd_target_periods/.test(compareFn) && /ytd_periods/.test(compareFn));
+check('chartImages does not multiply the canvas size by scale', !/\*\s*scale/.test(chartFn.replace(/\/\/.*$/gm, '')));
+check('chartImages sets canvas.width = w', /canvas\.width = w;/.test(chartFn) && /canvas\.height = h;/.test(chartFn));
+check('report-figures-pdf.js: no keepWithNext', !/keepWithNext\s*:/.test(pdfJs.replace(/\/\/.*$/gm, '')));
+check('report-figures-pdf.js: pageBreakBefore present', /pageBreakBefore\s*:\s*function[\s\S]{0,120}headlineLevel === 1/.test(pdfJs));
+check('report-figures-pdf.js: table title is a header row (headerRows: 2)', /headerRows: 2/.test(pdfJs));
+check('report_view.js: no "trucks" count wording', !/' trucks'/.test(viewJs));
+check('report_view.js: overdue wording', /still marked as not dispatched/.test(viewJs) && !/overdue and still waiting/.test(viewJs));
+check('report_editor.js: applyView destroys the view for legacy reports', /if \(host && !used\) \{[\s\S]{0,200}embeddedView\.destroy\(\)/.test(editorJs));
+// Print palette exception: colour literals are allowed ONLY inside ReportFigures' printColors().
+const palRe = /function printColors\(\) \{[\s\S]*?\n    \}\n/;
+check('report_figures.js: printColors() exists and is exposed', palRe.test(figJs) && /\bprintColors: printColors\b/.test(figJs));
+for (const f of ['report_figures.js', 'report_view.js', 'report-figures-pdf.js']) {
+  const txt = read(JS_DIR + f).replace(palRe, '').split('\n').filter((l) => !/^\s*(\*|\/\/|\/\*)/.test(l)).join('\n');
+  check(`${f}: no colour literals outside the print palette`, !/#[0-9a-fA-F]{3,8}\b|rgba?\(\s*\d/.test(txt.replace(/\/\*[\s\S]*?\*\//g, '')));
+}
+
 check('data-functions: report_view_ cache is cleared alongside report_history_', (dataFns.match(/clearCachePattern\('report_view_'\)/g) || []).length >= 5);
 check('data-functions: ensureReportDrafts clears report_history_ cache', /ensureReportDrafts[\s\S]{0,600}clearCachePattern\('report_history_'\)/.test(dataFns));
 

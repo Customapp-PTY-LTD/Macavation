@@ -14,8 +14,8 @@
  * pdfmake is ~2.7MB with its embedded fonts, so it is NOT in index.html: ensureLib() fetches it on first
  * use (same lazy <script> pattern as kernel_production_grid.js). vfs_fonts must load AFTER pdfmake.
  *
- * Colours come from MgmtDashboard.colors() (the --mac-* tokens, read lazily at build time). No colour
- * literals live here: the page and chart background is white by definition (the default pdfmake page).
+ * Colours come from ReportFigures.printColors(): a fixed LIGHT print palette (the print-palette exception
+ * to "colours come from the tokens"), so a PDF never inherits dark mode. No colour literals live here.
  * Comparison lines use "+12%" / "-12%" text, never arrow glyphs (Roboto in pdfmake has no such glyphs).
  * Weights read 1,000.00 kg and rand reads R 1,234,567.
  */
@@ -25,8 +25,8 @@
     var DASH = '—';
     var MARGIN = 36;
     var PAGE_W = 595.28 - 2 * MARGIN;           // 523.28pt usable
-    var FULL_FIT = [515, 206];                  // 1000 x 400 image
-    var HALF_FIT = [250, 150];                  // 600 x 360 image
+    var FULL_FIT = [515, 202];                  // 840 x 330 image (CSS px -> ~7pt axis text)
+    var HALF_FIT = [250, 149];                  // 420 x 250 image
     var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
     // ------------------------------------------------------------------
@@ -77,9 +77,22 @@
         return t;
     }
 
+    var SAST_DAY = (typeof Intl !== 'undefined' && Intl.DateTimeFormat)
+        ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Johannesburg', year: 'numeric', month: '2-digit', day: '2-digit' }) : null;
+
+    // Timestamps read as the South African calendar day; date-only strings are unchanged.
+    function sastDay(iso) {
+        var v = s(iso);
+        if (v.length > 10 && SAST_DAY) {
+            var d = new Date(v);
+            if (!isNaN(d.getTime())) return SAST_DAY.format(d);
+        }
+        return v.slice(0, 10);
+    }
+
     function prettyDate(iso) {
         if (!iso) return '';
-        var p = s(iso).slice(0, 10).split('-');
+        var p = sastDay(iso).split('-');
         if (p.length < 3 || !+p[1]) return s(iso);
         return (+p[2]) + ' ' + MONTHS[+p[1] - 1] + ' ' + p[0];
     }
@@ -96,9 +109,10 @@
     }
 
     function palette() {
-        var M = w.MgmtDashboard, c = {};
-        try { c = (M && M.colors && M.colors()) || {}; } catch (e) { c = {}; }
-        return { green: hex(c.green), tan: hex(c.tan), grid: hex(c.grid), muted: hex(c.text) };
+        var RFG = w.ReportFigures, c = {};
+        try { c = (RFG && RFG.printColors && RFG.printColors()) || {}; } catch (e) { c = {}; }
+        return { green: hex(c.green), tan: hex(c.tan), grid: hex(c.grid), muted: hex(c.muted), text: hex(c.text),
+            headFill: hex(c.headFill), watermark: hex(c.watermark) };
     }
 
     function colorize(obj, color) { if (color) obj.color = color; return obj; }
@@ -169,10 +183,41 @@
         };
     }
 
-    function dataTable(tbl, pal) {
+    // Column widths from the longest cell per column: numeric columns take their natural width, text
+    // columns share what is left in proportion to theirs, so no column swallows the page.
+    function columnWidths(heads, rows) {
+        // pdfmake adds 4pt padding each side of every cell ON TOP of these widths, so the widths
+        // must sum to the page width minus 8pt per column or the table runs past the right margin.
+        var CH = 4.4, MAXTXT = 48;
+        var avail = PAGE_W - 8 * heads.length - 2;
+        var nat = heads.map(function (h, i) {
+            var m = fmt(h.text).length;
+            rows.forEach(function (r) { var l = fmt(r[i]).length; if (l > m) m = l; });
+            return Math.max(18, Math.min(m, h.num ? 30 : MAXTXT) * CH);
+        });
+        var total = nat.reduce(function (a, b) { return a + b; }, 0);
+        var txt = 0;
+        heads.forEach(function (h, i) { if (!h.num) txt += nat[i]; });
+        if (total > avail || !txt) {
+            // Too wide (or all numeric): shrink every column in proportion.
+            return nat.map(function (w) { return Math.floor(w * avail / total); });
+        }
+        // Room to spare: numbers keep their natural width, text columns share the surplus.
+        var surplus = avail - total;
+        return heads.map(function (h, i) {
+            return Math.floor(h.num ? nat[i] : nat[i] + surplus * nat[i] / txt);
+        });
+    }
+
+    // The title sits inside the table as a spanning header row (headerRows: 2), so it repeats with the
+    // column heads when the table breaks across pages and can never be stranded at the foot of a page.
+    function dataTable(tbl, pal, title) {
         var heads = tbl.heads || [];
-        var body = [heads.map(function (h) {
-            return { text: fmt(h.text), bold: true, fontSize: 8, alignment: h.num ? 'right' : 'left', fillColor: pal.grid };
+        var n = Math.max(heads.length, 1);
+        var titleRow = [{ text: fmt(title), fontSize: 9, bold: true, colSpan: n, margin: [0, 0, 0, 1] }];
+        for (var k = 1; k < n; k++) titleRow.push({});
+        var body = [titleRow, heads.map(function (h) {
+            return { text: fmt(h.text), bold: true, fontSize: 8, alignment: h.num ? 'right' : 'left', fillColor: pal.headFill };
         })];
         function line(r, bold) {
             return heads.map(function (h, i) {
@@ -181,12 +226,11 @@
         }
         (tbl.rows || []).forEach(function (r) { body.push(line(r, false)); });
         if (tbl.total) body.push(line(tbl.total, true));
-        var widths = heads.map(function (h, i) { return i === 0 ? '*' : 'auto'; });
-        if (!widths.length) widths = ['*'];
+        var widths = heads.length ? columnWidths(heads, (tbl.rows || []).concat(tbl.total ? [tbl.total] : [])) : ['*'];
         return {
-            table: { headerRows: 1, dontBreakRows: true, widths: widths, body: body },
+            table: { headerRows: 2, dontBreakRows: true, widths: widths, body: body },
             layout: {
-                hLineWidth: function () { return 0.5; }, vLineWidth: function () { return 0; },
+                hLineWidth: function (i) { return i === 1 ? 0 : 0.5; }, vLineWidth: function () { return 0; },
                 hLineColor: function () { return pal.grid; }
             },
             margin: [0, 0, 0, 8]
@@ -222,8 +266,7 @@
                 }
             } else if (c.table) {
                 flush();
-                out.push({ text: fmt(c.title), fontSize: 9, bold: true, margin: [0, 0, 0, 2], keepWithNext: true });
-                out.push(dataTable(c.table, pal));
+                out.push(dataTable(c.table, pal, c.title));
             }
         });
         flush();
@@ -235,7 +278,7 @@
         var head = (sec.num ? sec.num + ' ' : '') + sec.title;
         var htxt = [{ text: fmt(head) }];
         if (sec.src) htxt.push(colorize({ text: '  ' + fmt(sec.src), fontSize: 8, bold: false }, pal.muted));
-        out.push({ text: htxt, fontSize: 11, bold: true, margin: [0, 8, 0, 4], keepWithNext: true });
+        out.push({ text: htxt, fontSize: 11, bold: true, margin: [0, 8, 0, 4], headlineLevel: 1 });
         if (sec.notice && sec.notice.text) out.push(colorize({ text: fmt(sec.notice.text), fontSize: 8, italics: true, margin: [0, 0, 0, 4] }, pal.muted));
         if (sec.tiles && sec.tiles.length) out.push(tilesTable(sec.tiles, pal));
         if (sec.source) out.push(colorize({ text: fmt(sec.source), fontSize: 8, margin: [0, 0, 0, 4] }, pal.muted));
@@ -249,8 +292,10 @@
         var out = [];
         ((blk && blk.streams) || []).forEach(function (st) {
             if (st.title) {
-                out.push(colorize({ text: fmt(st.title), fontSize: 14, bold: true, margin: [0, 14, 0, 0], keepWithNext: true }, pal.green));
-                if (st.sub) out.push(colorize({ text: fmt(st.sub), fontSize: 8, margin: [0, 0, 0, 2], keepWithNext: true }, pal.muted));
+                // Title and sub-line are ONE node so pageBreakBefore sees a single heading.
+                var runs = [{ text: fmt(st.title) }];
+                if (st.sub) runs.push(colorize({ text: '\n' + fmt(st.sub), fontSize: 8, bold: false }, pal.muted));
+                out.push(colorize({ text: runs, fontSize: 14, bold: true, margin: [0, 14, 0, 2], headlineLevel: 1 }, pal.green));
             }
             (st.sections || []).forEach(function (sec) { sectionBlocks(sec, imgs, pal).forEach(function (b) { out.push(b); }); });
         });
@@ -282,7 +327,7 @@
 
         var summary = s(inst.executive_summary).trim();
         if (summary) {
-            content.push({ text: 'Executive summary', fontSize: 11, bold: true, margin: [0, 4, 0, 3] });
+            content.push({ text: 'Executive summary', fontSize: 11, bold: true, margin: [0, 4, 0, 3], headlineLevel: 1 });
             content.push({ text: summary, fontSize: 9, margin: [0, 0, 0, 6] });
         }
 
@@ -299,7 +344,16 @@
         var doc = {
             pageSize: 'A4',
             pageMargins: [MARGIN, MARGIN, MARGIN, 48],
-            defaultStyle: { fontSize: 9 },
+            defaultStyle: { fontSize: 9, color: pal.text },
+            // pdfmake 0.2 ignores keepWithNext: a heading (headlineLevel 1) left last on a page moves to the next.
+            pageBreakBefore: function (node, followingNodesOnPage) {
+                // Also move a heading that lands in the bottom fifth of a page: with only a line or
+                // two of its section under it, it reads as stranded.
+                if (node.headlineLevel !== 1) return false;
+                if (followingNodesOnPage.length === 0) return true;
+                var pos = node.startPosition || {};
+                return pos.pageInnerHeight > 0 && pos.top > pos.pageInnerHeight * 0.8;
+            },
             content: content,
             footer: function (currentPage, pageCount) {
                 return {
@@ -313,7 +367,7 @@
         };
         if (draft) {
             doc.watermark = { text: 'DRAFT', opacity: 0.3, bold: true };
-            if (pal.grid) doc.watermark.color = pal.grid;
+            if (pal.watermark) doc.watermark.color = pal.watermark;
         }
         return doc;
     }

@@ -68,7 +68,12 @@ var _reportEditor = function () {
                 used = false;
             }
         }
-        if (host && !used) host.textContent = '';
+        if (host && !used) {
+            if (embeddedView && typeof embeddedView.destroy === 'function') {
+                try { embeddedView.destroy(); } catch (e) { /* view already gone */ }
+            }
+            host.textContent = '';
+        }
         $('#reportViewHost').toggleClass('d-none', !used);
         $('#reportEditorAccordion').toggleClass('d-none', used);
         return used;
