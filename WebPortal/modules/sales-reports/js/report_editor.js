@@ -36,6 +36,48 @@ var _reportEditor = function () {
     // behaves exactly as before. Reset by destroy().
     var embedded = false;
     var embeddedOnChange = null;
+    // Reports v2: the embedded host may pass a view ({render, destroy}); the figures then come from
+    // dataFunctions.getReportView and replace the old accordion (legacy reports keep the accordion).
+    var embeddedView = null;
+    var viewForNextInit = null;
+    var viewPayload = null;
+
+    // Fetches the report view alongside the instance. A failure just means "no view": the old
+    // accordion renders as before.
+    function fetchView(id, force) {
+        if (!embeddedView || typeof dataFunctions === 'undefined' || typeof dataFunctions.getReportView !== 'function') {
+            return Promise.resolve(null);
+        }
+        return Promise.resolve(dataFunctions.getReportView(id, !!force)).catch(function (err) {
+            console.warn('[sales-reports] getReportView failed', err);
+            return null;
+        });
+    }
+
+    function viewInUse() {
+        return !!(embeddedView && viewPayload && !viewPayload.legacy && viewPayload.success !== false);
+    }
+
+    // Draws the view into #reportViewHost; false means the old accordion should be built instead.
+    function applyView() {
+        var host = document.getElementById('reportViewHost');
+        var used = false;
+        if (host && viewInUse()) {
+            try { used = embeddedView.render(host, viewPayload) !== false; } catch (e) {
+                console.warn('[sales-reports] report view render failed', e);
+                used = false;
+            }
+        }
+        if (host && !used) {
+            if (embeddedView && typeof embeddedView.destroy === 'function') {
+                try { embeddedView.destroy(); } catch (e) { /* view already gone */ }
+            }
+            host.textContent = '';
+        }
+        $('#reportViewHost').toggleClass('d-none', !used);
+        $('#reportEditorAccordion').toggleClass('d-none', used);
+        return used;
+    }
 
     function notifyChange() {
         if (embedded && typeof embeddedOnChange === 'function') {
@@ -858,14 +900,17 @@ var _reportEditor = function () {
         destroyKernelStockCharts();
 
         var $accordion = $('#reportEditorAccordion').empty();
-        var sections = Array.isArray(payload.sections) ? payload.sections : [];
-        sections.forEach(function (section, idx) {
-            $accordion.append(buildSectionAccordionItem(section, idx, isEditable, statusDraft));
-        });
+        var viewUsed = applyView();
+        if (!viewUsed) {
+            var sections = Array.isArray(payload.sections) ? payload.sections : [];
+            sections.forEach(function (section, idx) {
+                $accordion.append(buildSectionAccordionItem(section, idx, isEditable, statusDraft));
+            });
 
-        // Populated after the accordion is in the DOM, since both the tally and the chart are
-        // fetched asynchronously and write into elements built above.
-        loadKernelStockSection();
+            // Populated after the accordion is in the DOM, since both the tally and the chart are
+            // fetched asynchronously and write into elements built above.
+            loadKernelStockSection();
+        }
 
         $('#reportEditorContent').removeClass('d-none');
     }
@@ -888,9 +933,11 @@ var _reportEditor = function () {
             return;
         }
         state.reportId = id;
-        dataFunctions.getReportInstance(id).then(function (payload) {
+        Promise.all([dataFunctions.getReportInstance(id), fetchView(id, false)]).then(function (pair) {
+            var payload = pair[0];
             // A slower earlier request must not render over the report now selected.
             if (id !== state.reportId) return;
+            viewPayload = pair[1];
             if (!payload) {
                 showEmptyState('fa-file-invoice', 'Report not found', 'This report could not be found. It may have been deleted.');
                 return;
@@ -909,8 +956,10 @@ var _reportEditor = function () {
     function reloadAndRerender() {
         if (!state.reportId) return Promise.resolve();
         var reqId = state.reportId;
-        return dataFunctions.getReportInstance(reqId, null, true).then(function (fresh) {
+        return Promise.all([dataFunctions.getReportInstance(reqId, null, true), fetchView(reqId, true)]).then(function (pair) {
+            var fresh = pair[0];
             if (reqId !== state.reportId) return;
+            viewPayload = pair[1];
             if (!fresh) {
                 showEmptyState('fa-file-invoice', 'Report not found', 'This report could not be found. It may have been deleted.');
                 return;
@@ -929,7 +978,10 @@ var _reportEditor = function () {
     // state.reportId before calling this (re-issue assigns the new report's id first).
     function reloadAfterLockChange() {
         if (!state.reportId) return Promise.resolve();
-        return dataFunctions.getReportInstance(state.reportId, null, true).then(function (fresh) {
+        var lockId = state.reportId;
+        return Promise.all([dataFunctions.getReportInstance(lockId, null, true), fetchView(lockId, true)]).then(function (pair) {
+            var fresh = pair[0];
+            viewPayload = pair[1];
             if (!fresh) {
                 showEmptyState('fa-file-invoice', 'Report not found', 'This report could not be found. It may have been deleted.');
                 return;
@@ -1216,40 +1268,28 @@ var _reportEditor = function () {
     // assigns into the pdfMake global.
     // ------------------------------------------------------------------
 
-    var PDFMAKE_SRC = 'https://cdn.jsdelivr.net/npm/pdfmake@0.2.10/build/pdfmake.min.js';
-    var PDFFONTS_SRC = 'https://cdn.jsdelivr.net/npm/pdfmake@0.2.10/build/vfs_fonts.js';
-
-    function loadScriptOnce(src, marker) {
-        return new Promise(function (resolve, reject) {
-            var existing = document.querySelector('script[data-mac-lib="' + marker + '"]');
-            if (existing) {
-                if (existing.getAttribute('data-mac-loaded') === '1') { resolve(); return; }
-                existing.addEventListener('load', function () { resolve(); });
-                existing.addEventListener('error', function () { reject(new Error(marker)); });
-                return;
-            }
-            var el = document.createElement('script');
-            el.src = src;
-            el.setAttribute('data-mac-lib', marker);
-            el.onload = function () { el.setAttribute('data-mac-loaded', '1'); resolve(); };
-            el.onerror = function () {
-                if (el.parentNode) el.parentNode.removeChild(el);
-                reject(new Error(marker));
-            };
-            document.head.appendChild(el);
-        });
+    // The loader itself lives in ReportFiguresPdf.ensureLib() (js/report-figures-pdf.js), shared by the
+    // old builder path below and the new view PDF.
+    function ensurePdfMake() {
+        if (typeof ReportFiguresPdf === 'undefined' || !ReportFiguresPdf.ensureLib) {
+            return Promise.reject(new Error('pdf-lib-missing'));
+        }
+        return ReportFiguresPdf.ensureLib();
     }
 
-    function ensurePdfMake() {
-        if (typeof pdfMake !== 'undefined' && pdfMake.vfs) return Promise.resolve();
-        return loadScriptOnce(PDFMAKE_SRC, 'pdfmake')
-            .then(function () { return loadScriptOnce(PDFFONTS_SRC, 'pdfmake-vfs'); });
+    // Reports v2: when embedded with a view and the report is not legacy, the PDF is the new-look
+    // one drawn from the same figures as the screen (view.pdfBase64 / view.fileName). Otherwise the
+    // old ReportPdfBuilder path runs exactly as before.
+    function usingViewPdf() {
+        return !!(embedded && embeddedView && viewInUse() &&
+            typeof embeddedView.pdfBase64 === 'function' && typeof embeddedView.fileName === 'function');
     }
 
     // Filename from the report's own period label, so a downloaded file is identifiable offline.
     // Anything that is not a letter, digit or dash becomes a dash — the label is user-facing text
     // and must never reach the filesystem verbatim.
     function pdfFileName(payload) {
+        if (usingViewPdf()) return embeddedView.fileName();
         var base = displayLabel(payload && payload.period_label) || 'report';
         var safe = base.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
         return 'Macavation-' + (safe || 'report') + '.pdf';
@@ -1259,18 +1299,33 @@ var _reportEditor = function () {
         if (!state.payload) return;
         var $btn = $('#reportEditorDownloadPdfBtn');
         $btn.prop('disabled', true);
-        ensurePdfMake().then(function () {
-            if (typeof ReportPdfBuilder === 'undefined' || !ReportPdfBuilder.buildReportDocDefinition) {
-                throw new Error('builder-missing');
-            }
-            var docDefinition = ReportPdfBuilder.buildReportDocDefinition(state.payload);
-            pdfMake.createPdf(docDefinition).download(pdfFileName(state.payload));
-        }).catch(function (err) {
+        var job;
+        if (usingViewPdf()) {
+            var viewName = embeddedView.fileName();
+            job = embeddedView.pdfBase64().then(function (b64) {
+                var bin = atob(b64), bytes = new Uint8Array(bin.length);
+                for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                var url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+                var a = document.createElement('a');
+                a.href = url; a.download = viewName;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+            });
+        } else {
+            job = ensurePdfMake().then(function () {
+                if (typeof ReportPdfBuilder === 'undefined' || !ReportPdfBuilder.buildReportDocDefinition) {
+                    throw new Error('builder-missing');
+                }
+                var docDefinition = ReportPdfBuilder.buildReportDocDefinition(state.payload);
+                pdfMake.createPdf(docDefinition).download(pdfFileName(state.payload));
+            });
+        }
+        job.catch(function (err) {
             console.warn('[sales-reports] PDF export failed', err);
             Swal.fire({
                 icon: 'error',
                 title: 'Could not build the PDF',
-                text: 'The PDF library could not be loaded. Check your connection and try again.'
+                text: 'The PDF could not be built. Check your connection and try again.'
             });
         }).finally(function () {
             $btn.prop('disabled', false);
@@ -1286,6 +1341,7 @@ var _reportEditor = function () {
     // ------------------------------------------------------------------
 
     function pdfBase64() {
+        if (usingViewPdf()) return embeddedView.pdfBase64();
         return ensurePdfMake().then(function () {
             if (typeof ReportPdfBuilder === 'undefined' || !ReportPdfBuilder.buildReportDocDefinition) {
                 throw new Error('builder-missing');
@@ -1403,6 +1459,9 @@ var _reportEditor = function () {
     return {
         init: function () {
             _reportEditor.destroy();
+            embeddedView = viewForNextInit;
+            viewForNextInit = null;
+            viewPayload = null;
             state.reportId = null;
             state.payload = null;
             state.pendingExecSummary = false;
@@ -1431,10 +1490,13 @@ var _reportEditor = function () {
             try { if (typeof Session !== 'undefined' && Session.set) Session.set('currentReportId', id); } catch (e) { /* ignore */ }
             if (embedded && $('#reportEditorModule').length) {
                 embeddedOnChange = (opts && opts.onChange) || null;
+                embeddedView = (opts && opts.view) || null;
+                viewPayload = null;
                 state.reportId = id;
                 load();
                 return true;
             }
+            viewForNextInit = (opts && opts.view) || null;
             _reportEditor.init();   // calls destroy(), which resets the embedded flags
             embedded = true;
             embeddedOnChange = (opts && opts.onChange) || null;
@@ -1445,6 +1507,11 @@ var _reportEditor = function () {
         destroy: function () {
             embedded = false;
             embeddedOnChange = null;
+            if (embeddedView && typeof embeddedView.destroy === 'function') {
+                try { embeddedView.destroy(); } catch (e) { /* view already gone */ }
+            }
+            embeddedView = null;
+            viewPayload = null;
             // Chart.js keeps a live reference to its canvas and to resize listeners; leaving one
             // behind would keep redrawing into a canvas belonging to whichever module loads next.
             destroyKernelStockCharts();

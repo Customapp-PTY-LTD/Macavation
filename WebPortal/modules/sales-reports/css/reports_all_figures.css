@@ -1,74 +1,79 @@
-/* Management reports - All figures tab. Everything is scoped under #reportsPaneAll; colours are --mac-* tokens. */
-#reportsPaneAll .raf-period {
+/* Management reports - All figures tab. Everything is scoped under .rf-root (carried by #rafRoot and the report view host); colours are --mac-* tokens. */
+.rf-root .raf-period {
     position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
     padding: 10px 0; background: var(--mac-bg); border-bottom: 1px solid var(--mac-border);
 }
-#reportsPaneAll .raf-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-#reportsPaneAll .raf-chips .btn {
+.rf-root .raf-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.rf-root .raf-chips .btn {
     border: 1px solid var(--mac-border-strong); background: var(--mac-bg-secondary); color: var(--mac-text-secondary);
     border-radius: 999px; padding: 3px 12px;
 }
-#reportsPaneAll .raf-chips .btn.active { background: var(--mac-green); border-color: var(--mac-green); color: var(--mac-bg-secondary); }
-#reportsPaneAll .raf-stepper { display: flex; align-items: center; gap: 6px; }
-#reportsPaneAll .raf-label { min-width: 190px; text-align: center; font-weight: 600; color: var(--mac-text-secondary); }
-#reportsPaneAll .raf-range { display: block; font-weight: 400; font-size: var(--mac-text-xs); color: var(--mac-text-tertiary); }
-#reportsPaneAll .raf-loading { font-size: var(--mac-text-sm); color: var(--mac-text-tertiary); }
-#reportsPaneAll .raf-busy .raf-block, #reportsPaneAll .raf-busy .raf-jump { opacity: 0.55; transition: opacity 0.15s; }
+.rf-root .raf-chips .btn.active { background: var(--mac-green); border-color: var(--mac-green); color: var(--mac-bg-secondary); }
+.rf-root .raf-stepper { display: flex; align-items: center; gap: 6px; }
+.rf-root .raf-label { min-width: 190px; text-align: center; font-weight: 600; color: var(--mac-text-secondary); }
+.rf-root .raf-range { display: block; font-weight: 400; font-size: var(--mac-text-xs); color: var(--mac-text-tertiary); }
+.rf-root .raf-loading { font-size: var(--mac-text-sm); color: var(--mac-text-tertiary); }
+.rf-root.raf-busy .raf-block, .rf-root.raf-busy .raf-jump { opacity: 0.55; transition: opacity 0.15s; }
 
-#reportsPaneAll .raf-jump { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin: 12px 0 0; font-size: var(--mac-text-sm); color: var(--mac-text-secondary); }
-#reportsPaneAll .raf-jump a { color: var(--mac-green); text-decoration: none; padding: 2px 8px; border-radius: 999px; background: var(--mac-green-light); }
-#reportsPaneAll .raf-jump-oil a { color: var(--mac-tan); background: var(--mac-tan-light); }
+.rf-root .raf-jump { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin: 12px 0 0; font-size: var(--mac-text-sm); color: var(--mac-text-secondary); }
+.rf-root .raf-jump a { color: var(--mac-green); text-decoration: none; padding: 2px 8px; border-radius: 999px; background: var(--mac-green-light); }
+.rf-root .raf-jump-oil a { color: var(--mac-tan); background: var(--mac-tan-light); }
 
-#reportsPaneAll .raf-stream {
+.rf-root .raf-stream {
     margin: 22px 0 0; padding: 10px 14px; border-radius: 8px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px;
     background: var(--mac-green); color: var(--mac-bg-secondary);
 }
-#reportsPaneAll .raf-stream h2 { margin: 0; font-size: var(--mac-text-lg); color: inherit; }
-#reportsPaneAll .raf-stream span { font-size: var(--mac-text-sm); opacity: 0.9; }
-#reportsPaneAll .raf-stream-oil { background: var(--mac-tan); }
+.rf-root .raf-stream h2 { margin: 0; font-size: var(--mac-text-lg); color: inherit; }
+.rf-root .raf-stream span { font-size: var(--mac-text-sm); opacity: 0.9; }
+.rf-root .raf-stream-oil { background: var(--mac-tan); }
 
-#reportsPaneAll .raf-block { scroll-margin-top: 70px; margin-top: 18px; padding-bottom: 6px; }
-#reportsPaneAll .raf-h3 { font-size: var(--mac-text-md); margin: 0 0 10px; color: var(--mac-text-secondary); }
-#reportsPaneAll .raf-num { color: var(--mac-green); }
-#reportsPaneAll .raf-block[id^="rafO"] .raf-num { color: var(--mac-tan); }
-#reportsPaneAll .raf-src { font-size: var(--mac-text-xs); font-weight: 400; color: var(--mac-text-tertiary); margin-left: 6px; }
+.rf-root .raf-block { scroll-margin-top: 70px; margin-top: 18px; padding-bottom: 6px; }
+.rf-root .raf-h3 { font-size: var(--mac-text-md); margin: 0 0 10px; color: var(--mac-text-secondary); }
+.rf-root .raf-num { color: var(--mac-green); }
+.rf-root .raf-block-oil .raf-num { color: var(--mac-tan); }
+.rf-root .raf-src { font-size: var(--mac-text-xs); font-weight: 400; color: var(--mac-text-tertiary); margin-left: 6px; }
 
-#reportsPaneAll .raf-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-bottom: 12px; }
-#reportsPaneAll .raf-tiles .mgmt-tile { background: var(--mac-bg-secondary); border: 1px solid var(--mac-border); border-radius: 8px; padding: 10px 12px; }
-#reportsPaneAll .mgmt-tile-label { font-size: var(--mac-text-xs); color: var(--mac-text-tertiary); text-transform: uppercase; letter-spacing: 0.03em; }
-#reportsPaneAll .mgmt-tile-value { font-size: var(--mac-text-lg); font-weight: 700; color: var(--mac-text-secondary); overflow-wrap: anywhere; }
-#reportsPaneAll .mgmt-tile-note { font-size: var(--mac-text-xs); color: var(--mac-text-tertiary); }
-#reportsPaneAll .raf-tile-missing { border-color: var(--mac-danger) !important; background: var(--mac-danger-light) !important; }
-#reportsPaneAll .raf-tile-missing .mgmt-tile-value { color: var(--mac-danger); font-size: var(--mac-text-md); }
+.rf-root .raf-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.rf-root .raf-tiles .mgmt-tile { background: var(--mac-bg-secondary); border: 1px solid var(--mac-border); border-radius: 8px; padding: 10px 12px; }
+.rf-root .mgmt-tile-label { font-size: var(--mac-text-xs); color: var(--mac-text-tertiary); text-transform: uppercase; letter-spacing: 0.03em; }
+.rf-root .mgmt-tile-value { font-size: var(--mac-text-lg); font-weight: 700; color: var(--mac-text-secondary); overflow-wrap: anywhere; }
+.rf-root .mgmt-tile-note { font-size: var(--mac-text-xs); color: var(--mac-text-tertiary); }
+.rf-root .raf-tile-missing { border-color: var(--mac-danger) !important; background: var(--mac-danger-light) !important; }
+.rf-root .raf-tile-missing .mgmt-tile-value { color: var(--mac-danger); font-size: var(--mac-text-md); }
 
-#reportsPaneAll .raf-grid { display: grid; gap: 12px; margin-bottom: 12px; grid-template-columns: 1fr; }
+.rf-root .raf-grid { display: grid; gap: 12px; margin-bottom: 12px; grid-template-columns: 1fr; }
 @media (min-width: 900px) {
-    #reportsPaneAll .raf-grid-2 { grid-template-columns: 1fr 1fr; }
-    #reportsPaneAll .raf-grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .rf-root .raf-grid-2 { grid-template-columns: 1fr 1fr; }
+    .rf-root .raf-grid-3 { grid-template-columns: repeat(3, 1fr); }
 }
-#reportsPaneAll .raf-card { background: var(--mac-bg-secondary); border: 1px solid var(--mac-border); border-radius: 8px; padding: 10px 12px; min-width: 0; }
-#reportsPaneAll .raf-card h4 { font-size: var(--mac-text-sm); margin: 0 0 8px; color: var(--mac-text-secondary); }
-#reportsPaneAll .raf-chart { position: relative; height: 240px; }
-#reportsPaneAll .raf-table-wrap { overflow-x: auto; }
-#reportsPaneAll .raf-table { width: 100%; border-collapse: collapse; font-size: var(--mac-text-sm); }
-#reportsPaneAll .raf-table th, #reportsPaneAll .raf-table td { border-bottom: 1px solid var(--mac-border); white-space: nowrap; }
-#reportsPaneAll .raf-table th { color: var(--mac-text-tertiary); font-weight: 600; }
-#reportsPaneAll .raf-table .mgmt-total-row td { font-weight: 700; background: var(--mac-green-light); }
-#reportsPaneAll .raf-block[id^="rafO"] .raf-table .mgmt-total-row td { background: var(--mac-tan-light); }
-#reportsPaneAll .mgmt-empty { color: var(--mac-text-tertiary); font-size: var(--mac-text-sm); }
+.rf-root .raf-card { background: var(--mac-bg-secondary); border: 1px solid var(--mac-border); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.rf-root .raf-card h4 { font-size: var(--mac-text-sm); margin: 0 0 8px; color: var(--mac-text-secondary); }
+.rf-root .raf-chart { position: relative; height: 240px; }
+.rf-root .raf-table-wrap { overflow-x: auto; }
+.rf-root .raf-table { width: 100%; border-collapse: collapse; font-size: var(--mac-text-sm); }
+.rf-root .raf-table th, .rf-root .raf-table td { border-bottom: 1px solid var(--mac-border); white-space: nowrap; }
+.rf-root .raf-table th { color: var(--mac-text-tertiary); font-weight: 600; }
+.rf-root .raf-table .mgmt-total-row td { font-weight: 700; background: var(--mac-green-light); }
+.rf-root .raf-block-oil .raf-table .mgmt-total-row td { background: var(--mac-tan-light); }
+.rf-root .mgmt-empty { color: var(--mac-text-tertiary); font-size: var(--mac-text-sm); }
 
-#reportsPaneAll .raf-notice { padding: 8px 12px; border-radius: 8px; margin-bottom: 10px; font-size: var(--mac-text-sm); }
-#reportsPaneAll .raf-notice-muted { background: var(--mac-bg-tertiary); color: var(--mac-text-secondary); border: 1px solid var(--mac-border); }
-#reportsPaneAll .raf-notice-danger { background: var(--mac-danger-light); color: var(--mac-danger); border: 1px solid var(--mac-danger); }
-#reportsPaneAll .raf-gap { padding: 8px 12px; border-radius: 8px; margin: 4px 0 8px; font-size: var(--mac-text-sm); background: var(--mac-danger-light); color: var(--mac-danger); border-left: 4px solid var(--mac-danger); }
-#reportsPaneAll .raf-fine { font-size: var(--mac-text-xs); color: var(--mac-text-tertiary); }
-#reportsPaneAll .raf-subtabs { margin-bottom: 10px; }
+.rf-root .raf-notice { padding: 8px 12px; border-radius: 8px; margin-bottom: 10px; font-size: var(--mac-text-sm); }
+.rf-root .raf-notice-muted { background: var(--mac-bg-tertiary); color: var(--mac-text-secondary); border: 1px solid var(--mac-border); }
+.rf-root .raf-notice-danger { background: var(--mac-danger-light); color: var(--mac-danger); border: 1px solid var(--mac-danger); }
+.rf-root .raf-gap { padding: 8px 12px; border-radius: 8px; margin: 4px 0 8px; font-size: var(--mac-text-sm); background: var(--mac-danger-light); color: var(--mac-danger); border-left: 4px solid var(--mac-danger); }
+.rf-root .raf-fine { font-size: var(--mac-text-xs); color: var(--mac-text-tertiary); }
+.rf-root .raf-subtabs { margin-bottom: 10px; }
 
 /* Day mode has no time series. */
-#reportsPaneAll .raf-day .raf-ts { display: none; }
-#reportsPaneAll .raf-day .raf-card:has(.raf-ts) { display: none; }
+.rf-root.raf-day .raf-ts { display: none; }
+.rf-root.raf-day .raf-card:has(.raf-ts) { display: none; }
 
 @media (max-width: 575px) {
-    #reportsPaneAll .raf-label { min-width: 0; flex: 1; }
-    #reportsPaneAll .raf-chart { height: 200px; }
+    .rf-root .raf-label { min-width: 0; flex: 1; }
+    .rf-root .raf-chart { height: 200px; }
 }
+
+/* Compare tiles (Weekly / Monthly report view): target and previous-period lines. */
+.rf-root .rf-cmp { margin-top: 2px; }
+.rf-root .rf-cmp-up { color: var(--mac-success, var(--mac-green)); }
+.rf-root .rf-cmp-down { color: var(--mac-danger); }
