@@ -372,14 +372,11 @@ var _modal_production_stages = (function () {
             $(document).on('input change', '.wash-crate-input, .ps-wash-manual-kg', function () { scope.recalcWashingQty(); });
             $(document).on('input change', '.sort-crate-input, .ps-sort-manual-kg', function () { scope.recalcSortingQty(); });
             $(document).on('input change', '.pack-carton-input', function () { scope.recalcPackingQty(); });
-            // Cracking: volume cracked, minute tests and shell waste are all derived from what the user types.
+            // Cracking: volume cracked and shell waste are derived from what the user types.
             $(document).off('.kp2ps'); // init() can run more than once; never stack these handlers
             $(document).on('input.kp2ps change.kp2ps', '#ps_crack_startqty1, #ps_crack_endqty_left', function () { scope.recalcCrackVolume(); });
             $(document).on('click.kp2ps', '#crackRunAddBtn', function (e) { e.preventDefault(); scope.openAddCrackingRun(); });
             $(document).on('click.kp2ps', '.js-crack-run-edit', function (e) { e.preventDefault(); scope.openEditCrackingRun(parseInt(this.getAttribute('data-idx'), 10)); });
-            $(document).on('input.kp2ps change.kp2ps', '[id^="ps_crack_wholes_"], [id^="ps_crack_uncracks_"]', function () {
-                scope.recalcMinuteTestRow(this.id.split('_').pop());
-            });
             $(document).on('input.kp2ps change.kp2ps', '[id^="ps_crack_shell_qty"]', function () { scope.recalcShellTotal(); });
             $(document).on('click.kp2ps', '#crackShellAdd', function (e) {
                 e.preventDefault();
@@ -632,37 +629,19 @@ var _modal_production_stages = (function () {
             $('#ps_crack_vol_cracked_per_min').val(mins > 0 ? scope._kg2(vol / mins) : '');
         },
 
-        /** A minute-test row was edited: recompute that row's total (wholes + uncracks), then percentages and averages. */
-        recalcMinuteTestRow: (slot) => {
+        /**
+         * Minute tests were removed from the sheet (Nov 2026, not used). Days saved before then may still hold
+         * wholes_/uncracks_/total_/pct_* and avg_* values; copy them from the stored day so a re-save never wipes them.
+         */
+        carryLegacyMinuteTests: (cracking_data) => {
             const scope = _modal_production_stages;
-            var w = parseStageNum($('#ps_crack_wholes_' + slot).val());
-            var u = parseStageNum($('#ps_crack_uncracks_' + slot).val());
-            $('#ps_crack_total_' + slot).val(w == null && u == null ? '' : scope._fixed2((w || 0) + (u || 0)));
-            scope.recalcMinuteTestDerived();
-        },
-
-        /** Percentages per slot and averages across the slots that have a number. A hand-typed legacy total is respected as-is. */
-        recalcMinuteTestDerived: () => {
-            const scope = _modal_production_stages;
-            var sw = 0, su = 0, st = 0, cnt = 0;
-            ['07', '10', '13'].forEach(function (slot) {
-                var w = parseStageNum($('#ps_crack_wholes_' + slot).val());
-                var u = parseStageNum($('#ps_crack_uncracks_' + slot).val());
-                var t = parseStageNum($('#ps_crack_total_' + slot).val());
-                if (w == null && u == null && t == null) {
-                    $('#ps_crack_pct_wholes_' + slot + ', #ps_crack_pct_uncracks_' + slot).val('');
-                    return;
+            if (!cracking_data || !cracking_data.date || !scope._loadedKernelDetail) return;
+            var stored = scope._findByDate(scope._loadedKernelDetail.cracking_data, cracking_data.date) || {};
+            Object.keys(stored).forEach(function (k) {
+                if (/^(wholes|uncracks|total|pct_wholes|pct_uncracks)_\d+$/.test(k) || /^(avg_(wholes|uncracks|total)|pct_avg_(wholes|uncracks))$/.test(k)) {
+                    if (!(k in cracking_data)) cracking_data[k] = stored[k];
                 }
-                var wv = w || 0, uv = u || 0, tv = t != null ? t : wv + uv;
-                $('#ps_crack_pct_wholes_' + slot).val(tv > 0 ? scope._fixed2(wv / tv * 100) : '');
-                $('#ps_crack_pct_uncracks_' + slot).val(tv > 0 ? scope._fixed2(uv / tv * 100) : '');
-                sw += wv; su += uv; st += tv; cnt++;
             });
-            $('#ps_crack_avg_wholes').val(cnt ? scope._fixed2(sw / cnt) : '');
-            $('#ps_crack_avg_uncracks').val(cnt ? scope._fixed2(su / cnt) : '');
-            $('#ps_crack_avg_total').val(cnt ? scope._fixed2(st / cnt) : '');
-            $('#ps_crack_pct_avg_wholes').val(st > 0 ? scope._fixed2(sw / st * 100) : '');
-            $('#ps_crack_pct_avg_uncracks').val(st > 0 ? scope._fixed2(su / st * 100) : '');
         },
 
         /** Total Shell Waste = sum of the bag quantities. Called when a quantity is edited or a row removed (never on load). */
@@ -2328,6 +2307,7 @@ var _modal_production_stages = (function () {
             var washing_data = scope.getProductionStagesSectionData('wash');
             var sorting_data = scope.getProductionStagesSectionData('sort');
             var packing_data = scope.getProductionStagesSectionData('pack');
+            scope.carryLegacyMinuteTests(cracking_data);
             var batch = typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch
                 ? _kernelProductionGrid.getBatch(batchId) : null;
             var nisKg = (scope._loadedKernelDetail && scope._loadedKernelDetail.wet_nis_received_kg != null)

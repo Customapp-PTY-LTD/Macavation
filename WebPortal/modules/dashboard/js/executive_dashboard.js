@@ -77,7 +77,6 @@ var _executiveDashboard = function () {
         execStatBatchesInProduction: 'Kernel batches in production',
         execStatOilLitresToday: 'Oil bins today',
         execStatOilLitresWeek: 'Oil bins this week',
-        execDailyMinuteTests: 'Daily minute tests',
         execProductionTrends: 'Production Trends',
         execStockHistory: 'Stock on hand history',
         execRunwayForecast: 'Raw material runway forecast (NIS)',
@@ -510,7 +509,6 @@ var _executiveDashboard = function () {
             await scope.loadKernelStats();
             await scope.loadTileHistory();
             await scope.loadProductionStats();
-            await scope.loadDailyMinuteTests();
             await scope.loadProductionTrendsChart();
             await scope.loadStockHistoryChart();
             await scope.loadRunwayForecastChart();
@@ -569,9 +567,9 @@ var _executiveDashboard = function () {
             } catch (e) { role = ''; }
 
             var production = ['totalProduction', 'execStatBatchesInProduction',
-                'execDailyMinuteTests', 'execProductionTrends', 'execRunwayForecast'];
+                'execProductionTrends', 'execRunwayForecast'];
             var oil = ['execStatOilLitresToday', 'execStatOilLitresWeek', 'execProductionTrends', 'totalProduction'];
-            var qa = ['execDailyMinuteTests', 'totalProduction'];
+            var qa = ['totalProduction'];
             var forecastSales = ['execRunwayForecast', 'totalProduction', 'execProductionTrends'];
 
             var map = {
@@ -798,28 +796,6 @@ var _executiveDashboard = function () {
             } catch (e) {
                 console.error('Error loading tile history:', e);
                 $('#execStatKgDispatchedToday').text('—');
-            }
-        },
-
-        loadDailyMinuteTests: async () => {
-            const slotMap = { '07h00': '07', '10h00': '10', '13h00': '13', 'Averages': 'avg' };
-            const cols = ['batch', 'wholes', 'uncracks', 'total'];
-            const empty = '\u2014';
-            try {
-                if (typeof dataFunctions === 'undefined' || !dataFunctions.getDailyMinuteTests) return;
-                const rows = await dataFunctions.getDailyMinuteTests();
-                rows.forEach(function (r) {
-                    var slot = slotMap[r.time_slot];
-                    if (!slot) return;
-                    cols.forEach(function (col) {
-                        var val = r[col];
-                        var cell = document.querySelector('.minute-test-cell[data-slot="' + slot + '"][data-col="' + col + '"]');
-                        if (cell) cell.textContent = (val != null && String(val).trim() !== '') ? String(val).trim() : empty;
-                    });
-                });
-            } catch (e) {
-                console.error('Error loading daily minute tests:', e);
-                document.querySelectorAll('.minute-test-cell').forEach(function (el) { el.textContent = empty; });
             }
         },
 

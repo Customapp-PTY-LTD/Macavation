@@ -2618,25 +2618,6 @@ var _dataFunctions = function () {
         },
 
         /**
-         * Get daily minute tests for dashboard (07h00, 10h00, 13h00, Averages from cracking).
-         * @param {string} [dateStr] - Optional date YYYY-MM-DD; omit for today (SA).
-         * @returns {Promise<Array<{time_slot:string,wholes:string,uncracks:string,total:string}>>}
-         */
-        getDailyMinuteTests: async function (dateStr, token = null) {
-            try {
-                var params = {};
-                if (dateStr && String(dateStr).trim() !== '') params.p_date = String(dateStr).trim();
-                var raw = await this.callFunction('get_daily_minute_tests', params, token, { useCache: false });
-                if (Array.isArray(raw)) return raw;
-                if (raw && Array.isArray(raw.get_daily_minute_tests)) return raw.get_daily_minute_tests;
-                return [];
-            } catch (e) {
-                console.warn('[Dashboard] get_daily_minute_tests failed. Apply migration 20260330000001_get_daily_minute_tests.sql if needed.', e.message);
-                return [];
-            }
-        },
-
-        /**
          * Get dashboard production stats: kernel pipeline, oil, quality, dispatch, batch health.
          * Used by Executive dashboard.
          */

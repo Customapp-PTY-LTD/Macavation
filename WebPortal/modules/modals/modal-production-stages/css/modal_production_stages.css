@@ -53,14 +53,11 @@
     padding-right: 1rem;
 }
 
-/* Calculated / read-only fields (crate x factor kg, totals, volume cracked, minute-test results) */
+/* Calculated / read-only fields (crate x factor kg, totals, volume cracked) */
 #productionStagesModal .ps-calc,
 #productionStagesModal .ps-calc:focus {
     background-color: var(--mac-bg-tertiary);
     box-shadow: none;
-}
-#productionStagesModal .ps-minute-tests {
-    max-width: 720px;
 }
 
 /* Crate sums: visible "crates x kg each = kg" working under auto-filled kg fields */
