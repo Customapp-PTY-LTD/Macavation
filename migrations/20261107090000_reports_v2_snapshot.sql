@@ -112,7 +112,7 @@ DECLARE
     v_ytd_t     numeric;
     v_ytd_tn    integer;
     v_ytd_n     integer;
-    v_ytd_prior numeric;
+    v_ytd_on numeric;
     v_ytd_val   numeric;
     v_m         date;
     v_m_end     date;
@@ -183,7 +183,7 @@ BEGIN
         ) AS t(k, label, unit, stream, kind, metric_key, targeted)
     LOOP
         v_mk := r.metric_key;
-        v_target := NULL; v_ytd_t := NULL; v_ytd_tn := NULL; v_ytd_prior := NULL; v_ytd_val := NULL;
+        v_target := NULL; v_ytd_t := NULL; v_ytd_tn := NULL; v_ytd_on := NULL; v_ytd_val := NULL;
 
         IF r.kind <> 'stock' THEN
             v_ytd_val := NULLIF(v_h_ytd->>r.k, '')::numeric;
@@ -198,12 +198,19 @@ BEGIN
               FROM public.report_period_targets t
              WHERE t.metric_key = v_mk AND t.period_type = p_period_type
                AND t.period_start BETWEEN v_ytd_from AND v_from AND t.target_value > 0;
-            IF COALESCE(v_ytd_tn, 0) = 0 THEN v_ytd_t := NULL; v_ytd_tn := 0; END IF;
-        END IF;
-
-        IF v_mk IS NOT NULL AND r.kind = 'flow' THEN
-            v_ytd_prior := public.resolve_report_metric_value(
-                v_mk, (v_ytd_from - interval '1 year')::date, (v_ytd_to - interval '1 year')::date);
+            IF COALESCE(v_ytd_tn, 0) = 0 THEN
+                v_ytd_t := NULL; v_ytd_tn := 0;
+            ELSE
+                -- Actual over ONLY the periods that carry a target, so a partial-year target is
+                -- compared like for like (2 targeted months vs 2 months of actuals, not 7).
+                SELECT sum(public.resolve_report_metric_value(t.metric_key, t.period_start,
+                           CASE WHEN p_period_type = 'weekly' THEN t.period_start + 6
+                                ELSE (t.period_start + interval '1 month' - interval '1 day')::date END))
+                  INTO v_ytd_on
+                  FROM public.report_period_targets t
+                 WHERE t.metric_key = v_mk AND t.period_type = p_period_type
+                   AND t.period_start BETWEEN v_ytd_from AND v_from AND t.target_value > 0;
+            END IF;
         END IF;
 
         v_metrics := v_metrics || jsonb_build_object(r.k, jsonb_build_object(
@@ -215,7 +222,7 @@ BEGIN
             'ytd_target', v_ytd_t,
             'ytd_target_periods', CASE WHEN r.kind = 'flow' AND r.targeted THEN COALESCE(v_ytd_tn, 0) END,
             'ytd_periods', CASE WHEN r.kind = 'stock' THEN NULL ELSE v_ytd_n END,
-            'ytd_prior', v_ytd_prior));
+            'ytd_actual_on_target', v_ytd_on));
     END LOOP;
 
     -- Financial-year month by month (monthly reports only): actuals via the fast resolver.

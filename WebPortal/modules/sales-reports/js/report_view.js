@@ -94,6 +94,8 @@ var _reportView = (function () {
     // Coming up.
     // ------------------------------------------------------------------
 
+    function deliveriesNote(n) { return U.intF(n) + (n === 1 ? ' delivery' : ' deliveries'); }
+
     function comingUpSection(cu, word) {
         var s = U.newSection('ComingUp', null, 'Coming up next ' + word, 'Planned deliveries and orders to collect');
         if (!cu || cu.success === false) {
@@ -109,7 +111,7 @@ var _reportView = (function () {
         if (!procRows.length) procRows.push(['Nothing planned', '', '', '', '']);
         if (!orderRows.length) orderRows.push(['No orders to collect', '', '', '', '', '']);
         s.tiles = [
-            U.tileOf('Planned deliveries', U.kgF(cu.procurement_kg), U.intF((cu.procurement || []).length) + ' trucks'),
+            U.tileOf('Planned deliveries', U.kgF(cu.procurement_kg), deliveriesNote((cu.procurement || []).length)),
             U.tileOf('Orders to collect', U.kgF(cu.orders_kg), U.zarF(cu.orders_zar))
         ];
         s.grids = [U.grid(2, [
@@ -120,7 +122,7 @@ var _reportView = (function () {
         ])];
         if (U.num0(cu.overdue_orders) > 0) {
             s.gap = null;
-            U.notice(s, U.num0(cu.overdue_orders) + ' order' + (U.num0(cu.overdue_orders) === 1 ? ' is' : 's are') + ' overdue and still waiting to be collected.', 'danger');
+            U.notice(s, U.num0(cu.overdue_orders) + ' earlier order' + (U.num0(cu.overdue_orders) === 1 ? ' is' : 's are') + ' still marked as not dispatched.', 'danger');
         }
         return s;
     }
@@ -228,7 +230,7 @@ var _reportView = (function () {
         return true;
     }
 
-    // Chart images (off-screen JPEGs: full width 1000x400, half 600x360, scale 2) for every chart the
+    // Chart images (off-screen JPEGs in CSS px: full width 840x330, half 420x250, devicePixelRatio 2) for every chart the
     // PDF draws, then ReportFiguresPdf.build, then pdfMake -> base64 (no data: prefix).
     function pdfBase64() {
         var payload = state.payload;
@@ -241,10 +243,10 @@ var _reportView = (function () {
         var imgs = {};
         function take(list) { (list || []).forEach(function (i) { imgs[i.id] = i; }); }
         return lib.ensureLib().then(function () {
-            return RF.chartImages(ids('full'), { w: 1000, h: 400, scale: 2 });
+            return RF.chartImages(ids('full'), { w: 840, h: 330, scale: 2 });
         }).then(function (list) {
             take(list);
-            return RF.chartImages(ids('half'), { w: 600, h: 360, scale: 2 });
+            return RF.chartImages(ids('half'), { w: 420, h: 250, scale: 2 });
         }).then(function (list) {
             take(list);
             var docDefinition = lib.build(payload, imgs, parts);
