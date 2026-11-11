@@ -21,17 +21,18 @@ var BatchStatus = (function () {
         'awaiting-production': 'awaiting_production',
         'in-production': 'in_production',
         'awaiting-test': 'awaiting_test',
-        // Positive release (20261111090000): every lab outcome short of Passed sits in the At the lab column.
-        'at-lab': 'at_lab',
-        'lab-failed': 'at_lab',
-        'lab-decision': 'at_lab',
-        'lab-rejected': 'at_lab',
+        // Positive release (20261111090000): once production is finished the batch sits in
+        // Awaiting lab results until both lab tests pass (Henry, 11 Nov 2026: 4 columns only).
+        'at-lab': 'awaiting_test',
+        'lab-failed': 'awaiting_test',
+        'lab-decision': 'awaiting_test',
+        'lab-rejected': 'awaiting_test',
         'release-ready': 'release_ready'
     };
 
     var MODULE_SUBTITLES = {
         'grower-intake-grid': 'Book a truck in, do the Receiving checklist and the Samples. A batch with everything in spec goes straight to Ready to crack; anything out of spec waits under Needs a decision. Open Bags on a batch to see and move where its bags are.',
-        'kernel-production-grid': 'Batches here: Ready to crack, In production, Waiting for end sample, At the lab, Ready for stock',
+        'kernel-production-grid': 'Batches here: Ready to crack, In production, Awaiting lab results, Ready for stock',
         'stock-management-kernel': 'Finished kernel stock by style — batches with remaining stock on hand',
         'kernel-dispatch-grid': 'Dispatch baskets for kernel customers',
         'supplier-intake-grid': 'Oil ingredient batches: Awaiting tests, Ready for Oil Production',
@@ -126,16 +127,16 @@ var BatchStatus = (function () {
         var inProductionPipeline = ['production', 'qa', 'awaiting_production', 'in_production', 'awaiting_test', 'release_ready', 'pending_release'].indexOf(st) >= 0;
         if (inProductionPipeline) {
             if (batch.production_finished_at && !batch.has_qa) {
-                return { value: 'awaiting-test', label: 'Waiting for end sample', bucket: 'awaiting-test' };
+                return { value: 'awaiting-test', label: 'Awaiting lab results', bucket: 'awaiting-test' };
             }
             // batch._lab is merged in by Kernel Production from get_kernel_positive_release; other
             // screens don't load it and keep showing Ready for stock (the release itself is locked in SQL).
             var lab = batch._lab;
             if (batch.production_finished_at && batch.has_qa && lab) {
-                if (lab.state === 'at_lab') return { value: 'at-lab', label: 'At the lab', bucket: 'production' };
-                if (lab.state === 'failed') return { value: 'lab-failed', label: 'Failed: retest', bucket: 'production' };
-                if (lab.state === 'needs_decision') return { value: 'lab-decision', label: 'Needs a decision', bucket: 'production' };
-                if (lab.state === 'rejected') return { value: 'lab-rejected', label: 'Rejected', bucket: 'production' };
+                if (lab.state === 'at_lab') return { value: 'at-lab', label: 'Awaiting lab results', bucket: 'awaiting-test' };
+                if (lab.state === 'failed') return { value: 'lab-failed', label: 'Failed: retest', bucket: 'awaiting-test' };
+                if (lab.state === 'needs_decision') return { value: 'lab-decision', label: 'Needs a decision', bucket: 'awaiting-test' };
+                if (lab.state === 'rejected') return { value: 'lab-rejected', label: 'Rejected', bucket: 'awaiting-test' };
             }
             if (batch.production_finished_at && batch.has_qa) {
                 return { value: 'release-ready', label: 'Ready for stock', bucket: 'production' };

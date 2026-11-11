@@ -836,7 +836,7 @@ var _executiveDashboard = function () {
             var num = function (v) { return Number(v) || 0; };
             var segments = [
                 { key: 'in_intake', label: 'In intake', count: num(s.batches_in_intake), tone: 'info', open: true },
-                { key: 'awaiting_test', label: 'Waiting for end sample', count: num(s.batches_awaiting_test), tone: 'warning', open: true },
+                { key: 'awaiting_test', label: 'Awaiting lab results', count: num(s.batches_awaiting_test), tone: 'warning', open: true },
                 { key: 'on_hold', label: 'On hold', count: num(s.batches_on_hold), tone: 'danger', open: true },
                 { key: 'release_ready', label: 'Ready for stock', count: num(s.batches_release_ready), tone: 'success', open: true },
                 { key: 'dispatch_pending', label: 'Dispatch pending', count: num(s.dispatch_pending), tone: 'info', open: true },
