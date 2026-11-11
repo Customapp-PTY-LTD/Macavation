@@ -558,7 +558,7 @@ var _modal_batch_history = (function () {
         var productionFinished = !!batch.production_finished_at;
 
         if (productionFinished && hasQa) return 'Ready for stock';
-        if (productionFinished) return 'Waiting for end sample';
+        if (productionFinished) return 'Awaiting lab results';
         if (hasProductionData) return 'In production';
         return batch.status ? statusToTitleCase(batch.status) : 'Ready to crack';
     }

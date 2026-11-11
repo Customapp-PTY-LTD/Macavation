@@ -130,14 +130,70 @@ var _kernelProductionGrid = function () {
         const hasEndSample = !!batch.has_qa;
 
         if (productionFinished && hasEndSample) return { label: 'Ready for stock', filterValue: 'release_ready' };
-        if (productionFinished) return { label: 'Waiting for end sample', filterValue: 'awaiting_test' };
+        if (productionFinished) return { label: 'Awaiting lab results', filterValue: 'awaiting_test' };
         if (hasProductionData) return { label: 'In production', filterValue: 'in_production' };
         return { label: 'Ready to crack', filterValue: 'awaiting_production' };
     };
 
+    // ---- Positive release (migration 20261111090000) -------------------------------------------
+    // batch._lab comes from get_kernel_positive_release (merged in loadBatches). No _lab = old behaviour.
+    var _labCfg = null;
+    function labPassed(batch) {
+        var lab = batch && batch._lab;
+        return !lab || lab.state === 'passed';
+    }
+    function labDay(iso) {
+        if (!iso) return '';
+        var p = String(iso).split('-');
+        var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+        if (isNaN(d.getTime())) return String(iso);
+        return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()] + ' ' + d.getDate() + ' ' +
+            ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
+    }
+    /** One short line under the status: "Day 3 of 10 · due Fri 20 Nov" (red when late). Escaped. */
+    function labNoteHtml(batch) {
+        var lab = batch && batch._lab;
+        if (!lab) return '';
+        var esc = function (s) { return _common.escapeHtml(String(s == null ? '' : s)); };
+        var test = Number(lab.test_number) > 1 ? 'Test ' + esc(lab.test_number) + ' · ' : '';
+        var expected = _labCfg && _labCfg.expected_days ? Number(_labCfg.expected_days) : null;
+        var unit = _labCfg && _labCfg.count === 'calendar' ? '' : ' working';
+        var tip = expected ? ' title="Expected ' + esc(expected) + unit + ' days at the lab (Kernel Pipeline Settings)"' : '';
+        if (lab.state === 'at_lab') {
+            if (lab.days_at_lab == null) return '<div class="small text-muted">' + test + 'At the lab</div>';
+            var line = test + 'Day ' + esc(lab.days_at_lab) + (expected ? ' of ' + esc(expected) : '');
+            if (lab.is_late && expected) {
+                return '<div class="small text-danger fw-semibold"' + tip + '>' + line + ' · ' + esc(Number(lab.days_at_lab) - expected) + ' days late</div>';
+            }
+            return '<div class="small text-muted"' + tip + '>' + line + (lab.due_on ? ' · due ' + esc(labDay(lab.due_on)) : '') + '</div>';
+        }
+        if (lab.state === 'failed') return '<div class="small text-danger">' + test + 'Failed a lab test. Send it for a retest.</div>';
+        if (lab.state === 'needs_decision') return '<div class="small text-danger">' + test + 'Failed the retest. Reprocess or reject.</div>';
+        if (lab.state === 'rejected') return '<div class="small text-danger">Rejected' + (lab.rejected_reason ? ': ' + esc(lab.rejected_reason) : '') + '</div>';
+        if (lab.state === 'reprocessing') return '<div class="small text-muted">Reprocessing · test ' + esc(lab.test_number) + ' next</div>';
+        return '';
+    }
+    function buildLabAction(batch) {
+        var id = _common.escapeHtml(String(batch.id));
+        var st = batch._lab && batch._lab.state;
+        if (st === 'at_lab') {
+            return '<button type="button" class="btn btn-sm btn-primary js-lab-results" data-batch-id="' + id + '"><i class="fas fa-flask me-1"></i>Enter lab results</button>';
+        }
+        if (st === 'failed') {
+            return '<button type="button" class="btn btn-sm btn-warning js-lab-decision" data-decision="retest" data-batch-id="' + id + '"><i class="fas fa-redo me-1"></i>Send for retest</button>';
+        }
+        if (st === 'needs_decision') {
+            return '<button type="button" class="btn btn-sm btn-primary js-lab-decision" data-decision="reprocess" data-batch-id="' + id + '"><i class="fas fa-recycle me-1"></i>Reprocess and test again</button>' +
+                '<button type="button" class="btn btn-sm btn-outline-danger js-lab-decision" data-decision="reject" data-batch-id="' + id + '">Reject</button>';
+        }
+        return '<button type="button" class="btn btn-sm btn-outline-secondary js-end-sample-batch" data-batch-id="' + id + '"><i class="fas fa-flask me-1"></i>End sample</button>';
+    }
+
     function buildPrimaryProductionAction(batch, displayStatus, canReleaseToStock, isJobCardApproved) {
         var id = batch.id;
         var fv = displayStatus.filterValue;
+        // Lab results in, but not Passed yet: retest / reprocess / reject / enter results.
+        if (fv === 'awaiting_test' && batch.has_qa && batch._lab && batch._lab.state !== 'passed') return buildLabAction(batch);
         if (fv === 'awaiting_test') {
             return '<button type="button" class="btn btn-sm btn-primary js-end-sample-batch" data-batch-id="' + id + '"><i class="fas fa-flask me-1"></i>End sample</button>';
         }
@@ -242,7 +298,7 @@ var _kernelProductionGrid = function () {
     const KANBAN_COLUMNS = [
         { key: 'awaiting_production', label: 'Ready to crack' },
         { key: 'in_production', label: 'In production' },
-        { key: 'awaiting_test', label: 'Waiting for end sample' },
+        { key: 'awaiting_test', label: 'Awaiting lab results' },
         { key: 'release_ready', label: 'Ready for stock' }
     ];
 
@@ -381,6 +437,52 @@ var _kernelProductionGrid = function () {
                     });
                 });
             });
+            // Positive release actions.
+            $(document).on('click', '.js-lab-results', function (e) {
+                e.preventDefault();
+                var batchId = $(this).data('batch-id');
+                if (batchId && typeof _modal_end_sample !== 'undefined' && _modal_end_sample.show) _modal_end_sample.show(batchId);
+            });
+            $(document).on('click', '.js-lab-decision', async function (e) {
+                e.preventDefault();
+                var $btn = $(this);
+                var batchId = $btn.data('batch-id');
+                var decision = String($btn.data('decision') || '');
+                var batch = _kernelProductionGrid.getBatch ? _kernelProductionGrid.getBatch(batchId) : null;
+                var bn = batch ? macBatchNo.format(batch.batch_number || '') : '';
+                if (typeof Swal === 'undefined' || !batchId) return;
+                var reason = null;
+                if (decision === 'retest') {
+                    var r1 = await Swal.fire({ icon: 'question', title: 'Send ' + bn + ' for a retest?',
+                        text: 'The failed test goes back to Waiting and the day count starts again from today. Enter the retest result on the End sample when it comes back.',
+                        showCancelButton: true, confirmButtonText: 'Send for retest' });
+                    if (!r1.isConfirmed) return;
+                } else if (decision === 'reprocess') {
+                    var r2 = await Swal.fire({ icon: 'question', title: 'Reprocess ' + bn + '?',
+                        text: 'The batch goes back into production with the same batch number. When it is packed again it needs a new End sample and lab test. Earlier results are kept.',
+                        showCancelButton: true, confirmButtonText: 'Reprocess' });
+                    if (!r2.isConfirmed) return;
+                } else if (decision === 'reject') {
+                    var r3 = await Swal.fire({ icon: 'warning', title: 'Reject ' + bn + '?',
+                        text: 'The batch can then never be released to stock. Say why:',
+                        input: 'text', inputPlaceholder: 'Reason', showCancelButton: true, confirmButtonText: 'Reject batch', confirmButtonColor: '#dc3545',
+                        inputValidator: function (v) { return (v && v.trim()) ? null : 'Give a reason.'; } });
+                    if (!r3.isConfirmed) return;
+                    reason = String(r3.value || '').trim();
+                } else {
+                    return;
+                }
+                $btn.prop('disabled', true);
+                try {
+                    var res = await _dataFunctions.recordKernelLabDecision(batchId, decision, reason);
+                    if (!res || res.success === false) throw new Error((res && res.error) || 'Could not save.');
+                    if (_common.showSuccessToast) _common.showSuccessToast(decision === 'retest' ? 'Sent for retest.' : decision === 'reprocess' ? 'Back in production for reprocessing.' : 'Batch rejected.');
+                    _kernelProductionGrid.loadBatches(true);
+                } catch (err) {
+                    Swal.fire('Not saved', (err && err.message) || 'Could not save.', 'error');
+                    $btn.prop('disabled', false);
+                }
+            });
             $(document).on('click', '.js-release-to-stock-disabled', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -390,7 +492,14 @@ var _kernelProductionGrid = function () {
                     ? _kernelProductionGrid.getBatch(batchId) : null;
                 var releaseReadyColumn = !!(batch && batch.production_finished_at && batch.has_qa);
                 var jobOk = isJobcardApproved(batch);
-                var text = (releaseReadyColumn && !jobOk)
+                var labMsg = batch && batch._lab && batch._lab.state !== 'passed' && batch._lab.state !== 'reprocessing'
+                    ? (batch._lab.state === 'at_lab'
+                        ? 'This batch is still at the lab. Enter the lab results as Passed on the End sample before releasing it to stock.'
+                        : batch._lab.state === 'rejected'
+                            ? 'This batch was rejected after its lab tests and cannot be released to stock.'
+                            : 'This batch failed a lab test. Send it for a retest or reprocess it first.')
+                    : null;
+                var text = labMsg ? labMsg : (releaseReadyColumn && !jobOk)
                     ? 'This batch is release-ready, but the Job Card must be approved before you can release to stock.'
                     : 'Complete Production, then complete End sample for this batch. Release to stock will become available when the batch is release-ready or completed.';
                 Swal.fire({ icon: 'info', title: 'Release to stock', text: text });
@@ -497,7 +606,7 @@ var _kernelProductionGrid = function () {
                     var displayStatus = getBatchDisplayStatus(batch);
                     var isJobCardApproved = isJobcardApproved(batch);
                     var isReleaseReadyState = batch.status === 'qa' || batch.status === 'complete' || (batch.production_finished_at && batch.has_qa);
-                    var canReleaseToStock = isReleaseReadyState && isJobCardApproved;
+                    var canReleaseToStock = isReleaseReadyState && isJobCardApproved && labPassed(batch);
                     var primaryBtn = buildPrimaryProductionAction(batch, displayStatus, canReleaseToStock, isJobCardApproved);
                     var moreItems = [
                         '<li><a class="dropdown-item js-production-batch" href="#" data-batch-id="' + batch.id + '">Production stages</a></li>',
@@ -517,6 +626,7 @@ var _kernelProductionGrid = function () {
                         (typeof BatchStatus !== 'undefined'
                             ? '<div class="kanban-card-status-row">' + BatchStatus.statusBadgeHtml(displayStatus) + '</div>'
                             : '') +
+                        labNoteHtml(batch) +
                         (scope.unfinishedSheetsByKernel[batch.id]
                             ? '<div class="kanban-card-status-row">' + unfinishedSheetFlagHtml(batch, scope.unfinishedSheetsByKernel[batch.id]) + '</div>'
                             : '') +
@@ -535,6 +645,16 @@ var _kernelProductionGrid = function () {
             // Drag-and-drop: forward transitions only
             var colOrder = ['awaiting_production', 'in_production', 'awaiting_test', 'release_ready'];
             KanbanHelper.enableDragDrop('kpKanbanBoard', function (batchId, fromKey, toKey) {
+                if (fromKey === 'awaiting_test' && toKey === 'release_ready') {
+                    var labBatch = scope.getBatch(batchId);
+                    if (labBatch && labBatch._lab && labBatch._lab.state !== 'passed') {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({ icon: 'info', title: 'Lab results', text: 'A batch moves to Ready for stock once its lab results are entered on the End sample as Passed.' });
+                        }
+                        scope.loadBatches(true);
+                        return;
+                    }
+                }
                 var fromIdx = colOrder.indexOf(fromKey);
                 var toIdx = colOrder.indexOf(toKey);
                 if (toIdx <= fromIdx) return; // block backward moves
@@ -638,6 +758,14 @@ var _kernelProductionGrid = function () {
                     } catch (e) {
                         console.warn('[Kernel Production] Silo overview unavailable; open silos not shown as In production', e);
                     }
+                }
+                // Positive release: lab state per batch (null when the RPC is not on this database yet).
+                if (typeof _dataFunctions.getKernelPositiveRelease === 'function') {
+                    var pr = await _dataFunctions.getKernelPositiveRelease();
+                    _labCfg = pr;
+                    var byId = {};
+                    ((pr && pr.batches) || []).forEach(function (r) { byId[r.kernel_id] = r; });
+                    scope.batches.forEach(function (b) { b._lab = byId[b.id] || null; });
                 }
                 var batchesNeedingDetail = scope.batches.filter(function (b) {
                     return b.production_day_count > 0;
@@ -768,7 +896,7 @@ var _kernelProductionGrid = function () {
                 const displayStatus = getBatchDisplayStatus(batch);
                 const isReleaseReady = batch.status === 'qa' || batch.status === 'complete' || (batch.production_finished_at && batch.has_qa);
                 const isJobCardApproved = isJobcardApproved(batch);
-                const canReleaseToStock = isReleaseReady && isJobCardApproved;
+                const canReleaseToStock = isReleaseReady && isJobCardApproved && labPassed(batch);
                 const receivedDate = (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY)
                     ? (_common.formatDateDDMMYYYY(batch.received_date) || 'N/A')
                     : (batch.received_date ? (batch.received_date.toString().split ? batch.received_date.toString().split('T')[0] : batch.received_date) : 'N/A');
@@ -804,7 +932,7 @@ var _kernelProductionGrid = function () {
                 }
                 var stagePos = displayStatus.filterValue === 'awaiting_production' ? 'first' : displayStatus.filterValue === 'release_ready' ? 'last' : 'mid';
                 const bbTitle = bbDisplay !== '—' ? 'Best Before Date' : 'Best Before Date (set when Job Card is completed)';
-                const row = '<tr class="js-batch-row" data-batch-id="' + batch.id + '"><td>' + macBatchNo.format(batch.batch_number || 'N/A') + (scope.unfinishedSheetsByKernel[batch.id] ? ' ' + unfinishedSheetFlagHtml(batch, scope.unfinishedSheetsByKernel[batch.id]) : '') + '</td><td>' + (batch.grower_name || 'N/A') + '</td><td title="Received date">' + receivedDate + '</td><td title="' + (bbTitle.replace(/"/g, '&quot;')) + '">' + bbDisplay + '</td><td>' + _common.formatKg(batch.display_wet_nis_kg != null ? batch.display_wet_nis_kg : (batch.wet_nis_received_kg || 0)) + '</td><td>' + KanbanHelper.statusBadge(displayStatus.label, stagePos) + '</td>' + actionsCell + '</tr>';
+                const row = '<tr class="js-batch-row" data-batch-id="' + batch.id + '"><td>' + macBatchNo.format(batch.batch_number || 'N/A') + (scope.unfinishedSheetsByKernel[batch.id] ? ' ' + unfinishedSheetFlagHtml(batch, scope.unfinishedSheetsByKernel[batch.id]) : '') + '</td><td>' + (batch.grower_name || 'N/A') + '</td><td title="Received date">' + receivedDate + '</td><td title="' + (bbTitle.replace(/"/g, '&quot;')) + '">' + bbDisplay + '</td><td>' + _common.formatKg(batch.display_wet_nis_kg != null ? batch.display_wet_nis_kg : (batch.wet_nis_received_kg || 0)) + '</td><td>' + KanbanHelper.statusBadge(displayStatus.label, stagePos) + labNoteHtml(batch) + '</td>' + actionsCell + '</tr>';
                 tbody.append(row);
             });
             MacTableActions.init(document.getElementById('batchesTable'));

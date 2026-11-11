@@ -6,6 +6,23 @@ var _modal_end_sample = (function () {
     var labTestPdfUrl = '';       // stored URL after upload
     var _completedAt  = null;     // preserved from existing qa_data so re-saves don't reset the date
 
+    // Positive release (migration 20261111090000): each lab test has an outcome Waiting / Passed / Failed.
+    var LAB_TESTS = [
+        { req: '#endSampleInternalMicroRequired', status: '#endSampleInternalMicroStatus', name: 'Internal Micro' },
+        { req: '#endSampleExternalLabRequired',   status: '#endSampleExternalLabStatus',   name: 'External lab' }
+    ];
+    function todayIso() {
+        var d = new Date();
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    function anyLabWaiting() {
+        return LAB_TESTS.some(function (x) { return $(x.req).prop('checked') && $(x.status).val() === 'waiting'; });
+    }
+    function refreshLabUi() {
+        LAB_TESTS.forEach(function (x) { $(x.status).prop('disabled', !$(x.req).prop('checked')); });
+        $('#saveEndSampleBtnText').text(anyLabWaiting() ? 'Save and send to lab' : 'Save');
+    }
+
     return {
         init: () => {
             const scope = _modal_end_sample;
@@ -20,6 +37,19 @@ var _modal_end_sample = (function () {
             });
             $('#endSampleLabTestPdf').off('change').on('change', function (e) {
                 scope.handleLabTestPdfSelect(e);
+            });
+            // Ticking a lab test starts it at Waiting (and dates the External lab sample today); unticking clears it.
+            LAB_TESTS.forEach(function (x) {
+                $(x.req).off('change.lab').on('change.lab', function () {
+                    if (this.checked) {
+                        if (!$(x.status).val()) $(x.status).val('waiting');
+                        if (x.status === '#endSampleExternalLabStatus' && !$('#endSampleLabSentOn').val()) $('#endSampleLabSentOn').val(todayIso());
+                    } else {
+                        $(x.status).val('');
+                    }
+                    refreshLabUi();
+                });
+                $(x.status).off('change.lab').on('change.lab', refreshLabUi);
             });
         },
 
@@ -37,6 +67,11 @@ var _modal_end_sample = (function () {
             $('#endSampleInternalMicroResult').val('');
             $('#endSampleExternalLabRequired').prop('checked', false);
             $('#endSampleExternalLabResult').val('');
+            $('#endSampleInternalMicroStatus').val('');
+            $('#endSampleExternalLabStatus').val('');
+            $('#endSampleLabSentOn').val('');
+            $('#endSampleLabInfo').empty();
+            refreshLabUi();
             scope.setSignedDropdowns([]);
             labTestPdfUrl = '';
             _completedAt  = null;
@@ -114,6 +149,14 @@ var _modal_end_sample = (function () {
             $('#endSampleInternalMicroResult').val(qa.internal_micro_result || '');
             $('#endSampleExternalLabRequired').prop('checked', !!qa.external_lab_required);
             $('#endSampleExternalLabResult').val(qa.external_lab_result || '');
+            $('#endSampleInternalMicroStatus').val(qa.internal_micro_required ? (qa.internal_micro_status || '') : '');
+            $('#endSampleExternalLabStatus').val(qa.external_lab_required ? (qa.external_lab_status || '') : '');
+            $('#endSampleLabSentOn').val(qa.lab_sent_on || '');
+            var info = [];
+            if (Number(qa.lab_attempt) >= 2) info.push('<span class="badge bg-warning text-dark">Retest</span> The first lab test failed; this is the retest.');
+            if (qa.lab_decision === 'rejected') info.push('<span class="badge bg-danger">Rejected</span> ' + _common.escapeHtml(qa.lab_rejected_reason || ''));
+            $('#endSampleLabInfo').html(info.join('<br>'));
+            refreshLabUi();
             var supVal = (qa.supervisor_signed_by || '').trim();
             var npmVal = (qa.nut_plant_manager_signed_by || '').trim();
             var $sup = $('#endSampleSupervisorSigned');
@@ -214,6 +257,23 @@ var _modal_end_sample = (function () {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not found', 'error');
                 return;
             }
+            // Lab outcome checks (positive release).
+            var imReq = $('#endSampleInternalMicroRequired').prop('checked');
+            var exReq = $('#endSampleExternalLabRequired').prop('checked');
+            var imStatus = imReq ? ($('#endSampleInternalMicroStatus').val() || '') : '';
+            var exStatus = exReq ? ($('#endSampleExternalLabStatus').val() || '') : '';
+            var sentOn = $('#endSampleLabSentOn').val() || '';
+            var labErr = null;
+            if (imReq && !imStatus) labErr = 'Choose the Internal Micro outcome: Waiting, Passed or Failed.';
+            else if (exReq && !exStatus) labErr = 'Choose the External lab outcome: Waiting, Passed or Failed.';
+            else if (exReq && !sentOn) labErr = 'Enter the date the sample was sent to the lab.';
+            else if (sentOn && sentOn > todayIso()) labErr = 'The date sent to the lab cannot be in the future.';
+            else if (exStatus === 'passed' && !labTestPdfUrl) labErr = 'Attach the lab test PDF before marking External lab as Passed.';
+            if (labErr) {
+                if (typeof Swal !== 'undefined') Swal.fire('Check the lab results', labErr, 'warning');
+                return;
+            }
+            if (!sentOn && (imStatus === 'waiting')) sentOn = todayIso();
             var qaData = {
                 moisture_required: $('#endSampleMoistureRequired').prop('checked'),
                 moisture_result: $('#endSampleMoistureResult').val() ? parseFloat($('#endSampleMoistureResult').val()) : null,
@@ -225,6 +285,9 @@ var _modal_end_sample = (function () {
                 internal_micro_result: $('#endSampleInternalMicroResult').val() || null,
                 external_lab_required: $('#endSampleExternalLabRequired').prop('checked'),
                 external_lab_result: $('#endSampleExternalLabResult').val() || null,
+                internal_micro_status: imStatus || null,
+                external_lab_status: exStatus || null,
+                lab_sent_on: sentOn || null,
                 lab_test_pdf_url: labTestPdfUrl || null,
                 supervisor_signed_by: $('#endSampleSupervisorSigned').val() || null,
                 nut_plant_manager_signed_by: $('#endSampleNutPlantManagerSigned').val() || null,
@@ -237,7 +300,12 @@ var _modal_end_sample = (function () {
             dataFunctions.upsertKernelQa(kernelId, qaData).then((result) => {
                 var inner = (result && result.upsert_kernel_qa) ? result.upsert_kernel_qa : result;
                 if (inner && inner.success === false) throw new Error(inner.error || 'Save failed');
-                if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Saved', text: 'End sample saved. Batch is now release ready.', timer: 2000, showConfirmButton: false });
+                var doneText = (imStatus === 'failed' || exStatus === 'failed')
+                    ? 'End sample saved. The batch failed a lab test: choose what happens next on Production.'
+                    : (imStatus === 'waiting' || exStatus === 'waiting')
+                        ? 'End sample saved. The batch is now at the lab.'
+                        : 'End sample saved. Batch is now release ready.';
+                if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Saved', text: doneText, timer: 2500, showConfirmButton: false });
                 var modalEl = document.getElementById('endSampleModal');
                 if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
                 else $('#endSampleModal').modal('hide');

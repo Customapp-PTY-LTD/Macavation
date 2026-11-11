@@ -255,6 +255,40 @@ var _kernelPipelineSettingsGrid = (function () {
         return card('Daily production target', body, saveBtn('kpsSaveTarget'));
     }
 
+    // Positive release: how long a batch should be at the lab after its End sample (20261111090000).
+    function labDaysValue(cfg) {
+        var v = (cfg && cfg.settings && cfg.settings.lab_expected_days) || {};
+        var d = parseInt(v.days, 10);
+        return { days: isNaN(d) ? 10 : d, count: v.count === 'calendar' ? 'calendar' : 'working' };
+    }
+
+    function labDaysCard(cfg) {
+        var v = labDaysValue(cfg);
+        var opt = function (value, title, text) {
+            return '<label class="kps-choice' + (v.count === value ? ' is-on' : '') + '">' +
+                '<input class="form-check-input" type="radio" name="kpsLabCount" value="' + value + '"' + (v.count === value ? ' checked' : '') + dis() + '>' +
+                '<span><strong>' + esc(title) + '</strong><span class="d-block small text-muted">' + esc(text) + '</span></span></label>';
+        };
+        var body = '<div class="mb-3"><label class="form-label" for="kpsLabDays">Expected days at the lab</label>' +
+            '<input type="number" step="1" min="1" max="60" class="form-control kps-num" id="kpsLabDays" value="' + numAttr(v.days) + '"' + dis() + '>' +
+            '<div class="kps-hint">How long a batch should take at the lab after its End sample is sent. Past this it shows as late on Production and Stock on Hand. Changing it applies to every batch still at the lab.</div></div>' +
+            '<fieldset><legend class="form-label fw-semibold fs-6">Count the days as</legend>' +
+            opt('working', 'Working days', 'Monday to Friday. Public holidays are not taken out.') +
+            opt('calendar', 'Calendar days', 'Every day, weekends included.') +
+            '</fieldset>';
+        return card('Positive release (lab)', body, saveBtn('kpsSaveLabDays'));
+    }
+
+    function saveLabDays(btn) {
+        var days = numOrNull($('#kpsLabDays').val());
+        if (days == null || !Number.isInteger(days) || days < 1 || days > 60) { toast('Expected days at the lab must be a whole number from 1 to 60.', 'error'); return; }
+        var v = { days: days, count: $('#kpsModule input[name="kpsLabCount"]:checked').val() === 'calendar' ? 'calendar' : 'working' };
+        var old = labDaysValue(state.cfg);
+        var calls = (old.days === v.days && old.count === v.count) ? [] :
+            [function () { return dataFunctions.setKernelPipelineSetting('lab_expected_days', v); }];
+        runAll(btn, calls, 'Lab days saved.');
+    }
+
     function listHtml(kind, items) {
         var rows = (items || []).map(function (it) {
             var active = it.is_active !== false;
@@ -310,7 +344,7 @@ var _kernelPipelineSettingsGrid = (function () {
         var cfg = state.cfg;
         $('#kpsNotice').html('');
         $('#kpsPaneIntake').html(specCard(cfg) + crateCard(cfg) + batchCard(cfg) + bagWeighCard(cfg) + shelfCard(cfg));
-        $('#kpsPanePlant').html(targetCard(cfg) + transportCard(cfg) + siloCard(cfg) + storageCard(cfg));
+        $('#kpsPanePlant').html(targetCard(cfg) + labDaysCard(cfg) + transportCard(cfg) + siloCard(cfg) + storageCard(cfg));
     }
 
     function renderTabs() {
@@ -537,6 +571,7 @@ var _kernelPipelineSettingsGrid = (function () {
             $('#kpsModule input[name="' + this.name + '"]').each(function () { $(this).closest('.kps-choice').toggleClass('is-on', this.checked); });
         });
         $d.on('click' + NS, '#kpsSaveTarget', function () { saveTarget(this); });
+        $d.on('click' + NS, '#kpsSaveLabDays', function () { saveLabDays(this); });
         $d.on('click' + NS, '#kpsSaveSilos', function () { saveSilos(this); });
         $d.on('click' + NS, '#kpsSaveAreas', function () { saveAreas(this); });
         $d.on('click' + NS, '#kpsGoRolePerms', function () {

@@ -781,6 +781,7 @@ var _stockManagementGrid = function () {
                 });
             }
             scope.loadKernelCountFlags();
+            scope.loadKernelPositiveRelease();
             return df.getKernelBatches(null, forceRefresh, { status: 'complete' }).then(function (all) {
                 all = (all || []).filter(function (b) {
                     var st = b && b.status != null ? String(b.status).trim() : '';
@@ -1575,8 +1576,122 @@ var _stockManagementGrid = function () {
                 var k = $(this).data('style');
                 $(this).text(totals[k] != null ? totals[k] : 0);
             });
+            scope.renderKernelPositiveRelease(totals);
             // Re-renders (sort, late config) rebuild every row; keep the search filter applied.
             if (($('#kernelStockSearch').val() || '').trim()) $('#kernelStockSearch').trigger('input.ksSearch');
+        },
+
+        /** Positive release (packed kernel still at the lab). Failure or missing RPC leaves kernelPositiveRelease null and nothing new renders. */
+        loadKernelPositiveRelease: function () {
+            var scope = _stockManagementGrid;
+            if (typeof dataFunctions === 'undefined' || !dataFunctions || typeof dataFunctions.getKernelPositiveRelease !== 'function') return Promise.resolve();
+            return dataFunctions.getKernelPositiveRelease().then(function (r) {
+                scope.kernelPositiveRelease = r || null;
+                if (scope.kernelPositiveRelease) scope.renderKernelStockByStyle();
+            }).catch(function (e) {
+                console.warn('[Stock Management] positive release unavailable:', e && e.message);
+                scope.kernelPositiveRelease = null;
+            });
+        },
+
+        /** Batches in positive release: at the lab, passed (waiting for release), failed or needs a decision. */
+        kernelPositiveReleaseBatches: function () {
+            var pr = _stockManagementGrid.kernelPositiveRelease;
+            if (!pr || !Array.isArray(pr.batches)) return [];
+            return pr.batches.filter(function (b) {
+                return b && ['at_lab', 'passed', 'failed', 'needs_decision'].indexOf(b.state) !== -1;
+            });
+        },
+
+        /** Whole cartons as "1,234", otherwise up to 2 dp as "1,234.5". */
+        formatKernelCartons: function (n) {
+            n = Number(n);
+            if (!isFinite(n)) return '0';
+            var r = Math.round(n * 100) / 100;
+            var parts = String(r).split('.');
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            return parts.join('.');
+        },
+
+        /** "Fri 20 Nov" from YYYY-MM-DD. */
+        formatKernelShortDate: function (iso) {
+            var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+            if (!m) return '';
+            var d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+            return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' +
+                ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getUTCMonth()];
+        },
+
+        /** Plain-English lab status for one positive-release batch: { text, late }. */
+        kernelPositiveReleaseStatus: function (b) {
+            var scope = _stockManagementGrid;
+            var pr = scope.kernelPositiveRelease || {};
+            var exp = pr.expected_days;
+            if (b.state === 'passed') return { text: 'Lab passed \u00b7 waiting for release', late: false };
+            if (b.state === 'failed') return { text: 'Failed a lab test \u00b7 retest due', late: false };
+            if (b.state === 'needs_decision') return { text: 'Failed the retest \u00b7 needs a decision', late: false };
+            var text = (Number(b.test_number) > 1 ? 'Test ' + b.test_number + ' \u00b7 ' : '') + 'Day ' + (b.days_at_lab != null ? b.days_at_lab : '?') + ' of ' + (exp != null ? exp : '?');
+            var late = b.is_late === true;
+            if (late) {
+                var n = (b.days_at_lab != null && exp != null) ? Number(b.days_at_lab) - Number(exp) : null;
+                if (n != null && n > 0) text += ' \u00b7 ' + n + (n === 1 ? ' day late' : ' days late');
+            } else if (b.due_on) {
+                text += ' \u00b7 due ' + scope.formatKernelShortDate(b.due_on);
+            }
+            return { text: text, late: late };
+        },
+
+        /** Renders the summary strip and the grey Positive release rows (own tbody, so search/sort/zebra/adjust never touch them). */
+        renderKernelPositiveRelease: function (onHandTotals) {
+            var scope = _stockManagementGrid;
+            var $body = $('#kernelStockPosRelBody');
+            var $sum = $('#kernelStockPosRelSummary');
+            $body.empty();
+            $sum.empty().addClass('d-none');
+            var list = scope.kernelPositiveReleaseBatches();
+            if (!$body.length || !scope.kernelPositiveRelease || !list.length) return;
+            var KG = 11.34;
+            var styleKeys = KERNEL_STYLE_OPTIONS.slice();
+            var prTotals = {};
+            styleKeys.forEach(function (k) { prTotals[k] = 0; });
+            list.forEach(function (b) {
+                var c = b.cartons_by_style || {};
+                styleKeys.forEach(function (k) { prTotals[k] += parseNum(c[k]); });
+            });
+            function sum(o) { return styleKeys.reduce(function (a, k) { return a + (Number(o[k]) || 0); }, 0); }
+            var onHandCtn = sum(onHandTotals || {});
+            var prCtn = sum(prTotals);
+            var lateN = list.filter(function (b) { return b.state === 'at_lab' && b.is_late === true; }).length;
+            var fmt = scope.formatKernelCartons;
+            function tile(label, ctn, extraHtml) {
+                return '<div class="ks-pr-tile"><div class="ks-pr-tile-label">' + escapeHtml(label) + '</div>' +
+                    '<div class="ks-pr-tile-value">' + escapeHtml(fmt(ctn)) + ' ctn</div>' +
+                    '<div class="ks-pr-tile-sub">' + escapeHtml(_common.formatKg(ctn * KG)) + ' kg' + (extraHtml || '') + '</div></div>';
+            }
+            var prExtra = ' \u00b7 ' + escapeHtml(list.length + (list.length === 1 ? ' batch' : ' batches')) +
+                (lateN ? ' \u00b7 <span class="text-danger fw-semibold">' + escapeHtml(lateN + ' late') + '</span>' : '');
+            $sum.html(tile('On hand now', onHandCtn) + tile('Positive release', prCtn, prExtra) + tile('Total available', onHandCtn + prCtn)).removeClass('d-none');
+
+            function styleCells(vals, blank) {
+                return styleKeys.map(function (k) {
+                    var v = Number(vals[k]) || 0;
+                    return '<td class="text-center kernel-style-col">' + (v ? escapeHtml(fmt(v)) : blank) + '</td>';
+                }).join('');
+            }
+            var h = '<tr class="ks-pr-section"><td colspan="15">Positive release: at the lab or waiting for release. Counted from the packing sheet; can\'t be sent to dispatch yet.</td></tr>';
+            list.forEach(function (b) {
+                var st = scope.kernelPositiveReleaseStatus(b);
+                var grower = (b.grower_name || '').toString().trim();
+                var cell = '<div class="ks-batch-no">' + escapeHtml(macBatchNo.format((b.batch_number || '').toString())) + '</div>' +
+                    (grower ? '<div class="ks-batch-supplier">' + escapeHtml(grower) + '</div>' : '');
+                h += '<tr class="ks-pr-row"><td class="ks-batch-td">' + cell + '</td>' + styleCells(b.cartons_by_style || {}, '\u2014') +
+                    '<td colspan="4" class="small' + (st.late ? ' text-danger fw-semibold' : '') + '">' + escapeHtml(st.text) + '</td></tr>';
+            });
+            h += '<tr class="ks-pr-total"><td>Positive release total</td>' + styleCells(prTotals, '0') + '<td colspan="4" class="small fw-normal">At the lab or waiting for release</td></tr>';
+            var avail = {};
+            styleKeys.forEach(function (k) { avail[k] = (Number(onHandTotals && onHandTotals[k]) || 0) + prTotals[k]; });
+            h += '<tr class="ks-pr-available"><td>Total available</td>' + styleCells(avail, '0') + '<td colspan="4" class="small fw-normal">On hand + positive release</td></tr>';
+            $body.html(h);
         },
 
         /** Odd visible batch rows (first, third, ...) get the light grey band; re-run after the search hides rows. */
