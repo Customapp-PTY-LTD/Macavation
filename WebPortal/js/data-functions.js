@@ -3799,6 +3799,37 @@ var _dataFunctions = function () {
         },
 
         /**
+         * getKernelPositiveRelease — batches past the End sample and not yet in stock (positive release):
+         * { expected_days, count:'working'|'calendar', today, batches:[{ kernel_id, batch_number, state
+         *   ('at_lab'|'passed'|'failed'|'needs_decision'|'rejected'|'reprocessing'), test_number, lab_attempt,
+         *   sent_on, days_at_lab, due_on, is_late, internal_micro_status, external_lab_status, rejected_reason,
+         *   cartons_by_style:{'1':97,...} }] }. Migration 20261111090000. Resolves null if the RPC is missing.
+         */
+        getKernelPositiveRelease: async function (token = null) {
+            try {
+                const raw = await this.callFunction('get_kernel_positive_release', {}, token, { useCache: false });
+                const r = this.unwrapKernelRpcJson(raw, 'get_kernel_positive_release');
+                return (r && r.success && Array.isArray(r.batches)) ? r : null;
+            } catch (e) {
+                console.warn('[Positive release] get_kernel_positive_release unavailable:', e && e.message);
+                return null;
+            }
+        },
+
+        /** recordKernelLabDecision — 'retest' | 'reprocess' | 'reject' (reason required for reject). */
+        recordKernelLabDecision: async function (kernelId, decision, reason = null, token = null) {
+            const raw = await this.callFunction('record_kernel_lab_decision', {
+                p_kernel_id: kernelId,
+                p_decision: decision,
+                p_reason: reason,
+                p_actor_user_id: this.getCurrentUserId() || null
+            }, token, { useCache: false, preserveNullParams: true });
+            this.clearCachePattern('kernel_batch_detail_' + kernelId);
+            this.clearCachePattern('kernel_batches');
+            return this.unwrapKernelRpcJson(raw, 'record_kernel_lab_decision') || raw;
+        },
+
+        /**
          * completeKernelBatch — set kernel status to 'complete' (release to stock).
          * Used by: kernel_production_batch_actions.releaseBatchToStock
          */

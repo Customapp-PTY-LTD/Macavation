@@ -56,6 +56,83 @@ var _modal_stock_send_to_dispatch = (function () {
             return _batches;
         });
     }
+    /** Positive release (kernel still at the lab): null when the RPC is missing, then nothing extra is shown. */
+    var _posRelease = null;
+    function loadPositiveRelease() {
+        if (typeof dataFunctions === 'undefined' || !dataFunctions || typeof dataFunctions.getKernelPositiveRelease !== 'function') {
+            _posRelease = null;
+            return Promise.resolve(null);
+        }
+        return dataFunctions.getKernelPositiveRelease().then(function (r) {
+            _posRelease = r || null;
+            return _posRelease;
+        }).catch(function () { _posRelease = null; return null; });
+    }
+    function posRelBatches() {
+        if (!_posRelease || !Array.isArray(_posRelease.batches)) return [];
+        return _posRelease.batches.filter(function (b) {
+            return b && ['at_lab', 'passed', 'failed', 'needs_decision'].indexOf(b.state) !== -1;
+        });
+    }
+    function fmtCartons(n) {
+        n = Number(n);
+        if (!isFinite(n)) return '0';
+        var r = Math.round(n * 100) / 100;
+        var parts = String(r).split('.');
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        return parts.join('.');
+    }
+    function fmtShortDate(iso) {
+        var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+        if (!m) return '';
+        var d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+        return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' +
+            ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getUTCMonth()];
+    }
+    /** Days past the expected lab time for an at-lab batch (0 when not late). */
+    function posRelDaysLate(b) {
+        if (!b || b.state !== 'at_lab' || b.is_late !== true) return 0;
+        var exp = _posRelease ? Number(_posRelease.expected_days) : NaN;
+        var n = (b.days_at_lab != null && isFinite(exp)) ? Number(b.days_at_lab) - exp : 0;
+        return n > 0 ? n : 0;
+    }
+    /** Short plain-English note for one batch, used in the warning: due date, late, or waiting. */
+    function posRelBatchNote(b) {
+        if (b.state === 'passed') return 'waiting for release';
+        if (b.state === 'failed') return 'retest due';
+        if (b.state === 'needs_decision') return 'needs a decision';
+        var late = posRelDaysLate(b);
+        if (b.is_late === true) return late > 0 ? late + (late === 1 ? ' day late' : ' days late') : 'late';
+        return b.due_on ? 'due ' + fmtShortDate(b.due_on) : 'at the lab';
+    }
+    /** Positive-release cartons for one style: { cartons, batches:[{b,c}] } (only batches with stock of it). */
+    function posRelForStyle(k) {
+        var out = { cartons: 0, batches: [] };
+        posRelBatches().forEach(function (b) {
+            var c = Number((b.cartons_by_style || {})[k]) || 0;
+            if (c > 0) { out.cartons += c; out.batches.push({ b: b, c: c }); }
+        });
+        return out;
+    }
+    /** On-hand cartons for one style across every batch in the grid (same whole-carton "max" the inputs use). */
+    function onHandForStyle(k) {
+        var t = 0;
+        (_batches || []).forEach(function (b) {
+            var cells = (b.remaining_by_style_cartons && typeof b.remaining_by_style_cartons === 'object') ? b.remaining_by_style_cartons
+                : ((b.yield_by_style_cartons && typeof b.yield_by_style_cartons === 'object') ? b.yield_by_style_cartons : {});
+            t += cartonsAvailable(cells, k);
+        });
+        return t;
+    }
+    function chosenForStyle(k) {
+        return _dispatchLines.reduce(function (a, l) { return String(l.style) === k ? a + (Number(l.cartons) || 0) : a; }, 0);
+    }
+    function mkTd(text, cls) {
+        var td = document.createElement('td');
+        if (cls) td.className = cls;
+        td.textContent = text;
+        return td;
+    }
     var DEFAULT_BB_BANDS = { green: 12, yellow: 6 };
     var _bbBands = DEFAULT_BB_BANDS;
 
@@ -234,6 +311,11 @@ var _modal_stock_send_to_dispatch = (function () {
                     if (!typing) api.renderShoppingTable();
                 });
             }
+            if (api._posRelLoading) {
+                api._posRelLoading.then(function () {
+                    if (_posRelease) api.renderPositiveReleaseRows();
+                });
+            }
             // Bands may still be loading: re-render once they arrive, unless the user is already typing in the table.
             loadBands().then(function (changed) {
                 var active = document.activeElement;
@@ -273,6 +355,7 @@ var _modal_stock_send_to_dispatch = (function () {
                 emptyTd.textContent = 'No stock available.';
                 emptyTr.appendChild(emptyTd);
                 body.appendChild(emptyTr);
+                api.renderPositiveReleaseRows();
                 return;
             }
             batches.forEach(function (b) {
@@ -363,9 +446,106 @@ var _modal_stock_send_to_dispatch = (function () {
             if (totalsRow) {
                 totalsRow.querySelectorAll('td[data-style]').forEach(function (td) {
                     var k = td.getAttribute('data-style');
-                    td.textContent = (totals[k] != null && totals[k] > 0) ? totals[k] : '—';
+                    td.textContent = (totals[k] != null && totals[k] > 0) ? totals[k] : '\u2014';
                 });
             }
+            api.renderPositiveReleaseRows();
+        },
+
+        /** Read-only "Positive release" and "Total available" rows under the grid (never inputs, never in the basket). */
+        renderPositiveReleaseRows: function () {
+            var body = document.getElementById('dispatchPosRelBody');
+            if (!body) return;
+            body.innerHTML = '';
+            if (!_posRelease || posRelBatches().length === 0) { api.updatePositiveReleaseWarning(); return; }
+            var trPR = document.createElement('tr');
+            trPR.className = 'dispatch-pr-row';
+            trPR.style.setProperty('--bs-table-bg', 'rgba(255, 0, 94, 0.03)'); trPR.style.color = 'var(--mac-text-tertiary)';
+            var trAV = document.createElement('tr');
+            trAV.className = 'dispatch-av-row';
+            trAV.style.setProperty('--bs-table-bg', 'rgba(25, 135, 84, 0.10)'); trAV.style.color = 'var(--mac-green-hover)';
+            var tdL = mkTd('Positive release', 'fw-semibold');
+            var sub = document.createElement('div');
+            sub.className = 'small fw-normal';
+            sub.textContent = 'At the lab. Can\u2019t be sent yet.';
+            tdL.appendChild(sub);
+            tdL.colSpan = 3;
+            trPR.appendChild(tdL);
+            var tdA = mkTd('Total available', 'fw-semibold');
+            var subA = document.createElement('div');
+            subA.className = 'small fw-normal';
+            subA.textContent = 'On hand + positive release';
+            tdA.appendChild(subA);
+            tdA.colSpan = 3;
+            trAV.appendChild(tdA);
+            STYLE_KEYS.forEach(function (k) {
+                var pr = posRelForStyle(k);
+                var td = document.createElement('td');
+                td.className = 'text-center';
+                if (pr.cartons > 0) {
+                    var v = document.createElement('div');
+                    v.className = 'fw-semibold';
+                    v.textContent = fmtCartons(pr.cartons);
+                    td.appendChild(v);
+                    var hint = document.createElement('div');
+                    hint.className = 'small';
+                    var maxLate = 0, earliest = '', allPassed = true;
+                    pr.batches.forEach(function (x) {
+                        if (x.b.state !== 'passed') allPassed = false;
+                        maxLate = Math.max(maxLate, posRelDaysLate(x.b));
+                        if (x.b.state === 'at_lab' && x.b.due_on && x.b.is_late !== true && (!earliest || x.b.due_on < earliest)) earliest = x.b.due_on;
+                    });
+                    var anyLate = pr.batches.some(function (x) { return x.b.state === 'at_lab' && x.b.is_late === true; });
+                    if (anyLate) {
+                        hint.className += ' text-danger fw-semibold';
+                        hint.textContent = maxLate > 0 ? maxLate + (maxLate === 1 ? ' day late' : ' days late') : 'late';
+                    } else if (allPassed) {
+                        hint.textContent = 'waiting for release';
+                    } else if (earliest) {
+                        hint.textContent = 'due ' + fmtShortDate(earliest);
+                    } else {
+                        hint.textContent = 'retest needed';
+                    }
+                    td.appendChild(hint);
+                } else {
+                    td.className += ' text-muted';
+                    td.textContent = '\u2014';
+                }
+                trPR.appendChild(td);
+                var total = onHandForStyle(k) + pr.cartons;
+                trAV.appendChild(mkTd(total > 0 ? fmtCartons(total) : '\u2014', 'text-center fw-semibold' + (total > 0 ? '' : ' text-muted')));
+            });
+            body.appendChild(trPR);
+            body.appendChild(trAV);
+            api.updatePositiveReleaseWarning();
+        },
+
+        /** Warns when, for some style, everything on hand is chosen while more of it sits in positive release. */
+        updatePositiveReleaseWarning: function () {
+            var box = document.getElementById('dispatchPosRelWarning');
+            if (!box) return;
+            box.innerHTML = '';
+            var lines = [];
+            if (_posRelease) {
+                STYLE_KEYS.forEach(function (k) {
+                    var onHand = onHandForStyle(k);
+                    var pr = posRelForStyle(k);
+                    if (onHand > 0 && pr.cartons > 0 && chosenForStyle(k) >= onHand) {
+                        var list = pr.batches.map(function (x) {
+                            return fmtBatch(x.b.batch_number || '') + ' (' + posRelBatchNote(x.b) + ')';
+                        }).join(', ');
+                        lines.push('Style ' + k + ': everything on hand is chosen (' + fmtCartons(onHand) + ' ctn). ' +
+                            fmtCartons(pr.cartons) + ' more cartons are in positive release (' + list + '). They can\u2019t be sent yet.');
+                    }
+                });
+            }
+            if (!lines.length) { box.style.display = 'none'; return; }
+            lines.forEach(function (t) {
+                var p = document.createElement('div');
+                p.textContent = t;
+                box.appendChild(p);
+            });
+            box.style.display = '';
         },
 
         /** Handle typing in a carton input: validate, flag over-max, update line + basket without re-rendering the table. */
@@ -416,6 +596,7 @@ var _modal_stock_send_to_dispatch = (function () {
         },
 
         renderBasket: function () {
+            api.updatePositiveReleaseWarning();
             var basketEl = document.getElementById('dispatchModalBasket');
             var basketBody = document.getElementById('dispatchModalBasketBody');
             var basketTotal = document.getElementById('dispatchModalBasketTotal');
@@ -693,6 +874,7 @@ var _modal_stock_send_to_dispatch = (function () {
             if (buyerSelect) buyerSelect.classList.remove('is-invalid');
             api.renderCustomerDetails(null);
             api._batchesLoading = loadBatches();
+            api._posRelLoading = loadPositiveRelease();
             ['dispatchCollectionDate'].forEach(function (id) {
                 var el = document.getElementById(id);
                 if (!el) return;
