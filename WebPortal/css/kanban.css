@@ -55,63 +55,6 @@
     max-height: calc(100vh - 280px);
 }
 
-/* ── Grouped boards (columns with a `group`, e.g. Production): one row per group ──
-   One board, so drag-and-drop between rows keeps working. 3 columns wide, 2 on iPad, 1 on phones. */
-.kanban-board.kanban-board--rows {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    column-gap: var(--mac-space-md);
-    row-gap: var(--mac-space-sm);
-    overflow-x: visible;
-    min-height: 0;
-    align-items: start;
-}
-
-.kanban-board--rows .kanban-column {
-    min-width: 0;
-}
-
-.kanban-board--rows .kanban-column-body {
-    max-height: 46vh;
-}
-
-.kanban-board--rows .kanban-column-empty {
-    min-height: 72px;
-    padding: var(--mac-space-md);
-}
-
-.kanban-row-heading {
-    grid-column: 1 / -1;
-    display: flex;
-    align-items: center;
-    gap: var(--mac-space-sm);
-    padding: var(--mac-space-xs) var(--mac-space-md) 0;
-    margin-top: var(--mac-space-md);
-    border-top: 1px solid var(--mac-border);
-    font-size: 0.8125rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--mac-text-primary);
-}
-
-.kanban-row-heading:first-child {
-    margin-top: 0;
-    border-top: 0;
-}
-
-@media (max-width: 1024px) {
-    .kanban-board.kanban-board--rows {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 767.98px) {
-    .kanban-board.kanban-board--rows {
-        grid-template-columns: minmax(0, 1fr);
-    }
-}
-
 /* ============================================
    KANBAN CARDS
    ============================================ */
