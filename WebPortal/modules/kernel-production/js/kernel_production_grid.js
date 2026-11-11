@@ -130,7 +130,7 @@ var _kernelProductionGrid = function () {
         const hasEndSample = !!batch.has_qa;
 
         if (productionFinished && hasEndSample) return { label: 'Ready for stock', filterValue: 'release_ready' };
-        if (productionFinished) return { label: 'Waiting for end sample', filterValue: 'awaiting_test' };
+        if (productionFinished) return { label: 'Awaiting lab results', filterValue: 'awaiting_test' };
         if (hasProductionData) return { label: 'In production', filterValue: 'in_production' };
         return { label: 'Ready to crack', filterValue: 'awaiting_production' };
     };
@@ -192,7 +192,8 @@ var _kernelProductionGrid = function () {
     function buildPrimaryProductionAction(batch, displayStatus, canReleaseToStock, isJobCardApproved) {
         var id = batch.id;
         var fv = displayStatus.filterValue;
-        if (fv === 'at_lab') return buildLabAction(batch);
+        // Lab results in, but not Passed yet: retest / reprocess / reject / enter results.
+        if (fv === 'awaiting_test' && batch.has_qa && batch._lab && batch._lab.state !== 'passed') return buildLabAction(batch);
         if (fv === 'awaiting_test') {
             return '<button type="button" class="btn btn-sm btn-primary js-end-sample-batch" data-batch-id="' + id + '"><i class="fas fa-flask me-1"></i>End sample</button>';
         }
@@ -297,8 +298,7 @@ var _kernelProductionGrid = function () {
     const KANBAN_COLUMNS = [
         { key: 'awaiting_production', label: 'Ready to crack' },
         { key: 'in_production', label: 'In production' },
-        { key: 'awaiting_test', label: 'Waiting for end sample' },
-        { key: 'at_lab', label: 'At the lab' },
+        { key: 'awaiting_test', label: 'Awaiting lab results' },
         { key: 'release_ready', label: 'Ready for stock' }
     ];
 
@@ -643,14 +643,17 @@ var _kernelProductionGrid = function () {
             );
 
             // Drag-and-drop: forward transitions only
-            var colOrder = ['awaiting_production', 'in_production', 'awaiting_test', 'at_lab', 'release_ready'];
+            var colOrder = ['awaiting_production', 'in_production', 'awaiting_test', 'release_ready'];
             KanbanHelper.enableDragDrop('kpKanbanBoard', function (batchId, fromKey, toKey) {
-                if (fromKey === 'at_lab' || toKey === 'at_lab') {
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({ icon: 'info', title: 'Lab results', text: 'A batch leaves At the lab when its lab results are entered on the End sample as Passed.' });
+                if (fromKey === 'awaiting_test' && toKey === 'release_ready') {
+                    var labBatch = scope.getBatch(batchId);
+                    if (labBatch && labBatch._lab && labBatch._lab.state !== 'passed') {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({ icon: 'info', title: 'Lab results', text: 'A batch moves to Ready for stock once its lab results are entered on the End sample as Passed.' });
+                        }
+                        scope.loadBatches(true);
+                        return;
                     }
-                    scope.loadBatches(true);
-                    return;
                 }
                 var fromIdx = colOrder.indexOf(fromKey);
                 var toIdx = colOrder.indexOf(toKey);
