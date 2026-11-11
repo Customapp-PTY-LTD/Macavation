@@ -416,3 +416,5 @@
 .silo-bag-no { font-weight: 700; margin: 0; cursor: pointer; }
 .silo-bag-weighed { font-size: var(--mac-text-xs); color: var(--mac-text-secondary); text-align: right; padding: 0.25rem 0; }
 .silo-allocated > summary { cursor: pointer; width: fit-content; }
+/* Re-weigh box on a bag weighed at intake: optional, so it stays quiet until used. */
+.silo-bag-real.is-reweigh:placeholder-shown:not(:focus) { background: transparent; border-style: dashed; }
