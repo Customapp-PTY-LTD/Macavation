@@ -6,7 +6,9 @@
  *   KanbanHelper.enableDragDrop('myBoardId', function(itemId, fromKey, toKey) { ... });
  *
  * @param {string}   containerId  - DOM id of the kanban container
- * @param {Array}    columns      - [{ key: string, label: string }]
+ * @param {Array}    columns      - [{ key: string, label: string, group?: string }]
+ *                                  Optional group: columns sharing a group sit on one row under a
+ *                                  heading (board gets .kanban-board--rows). Boards without groups are unchanged.
  * @param {Array}    items        - Raw data array
  * @param {Function} getColumnKey - (item) => column key string
  * @param {Function} cardRenderer - (item) => HTML string for one kanban card
@@ -46,8 +48,18 @@ var KanbanHelper = {
 
         // Build HTML
         var html = '';
+        var hasGroups = columns.some(function (c) { return !!c.group; });
+        var lastGroup = null;
         columns.forEach(function (col, colIdx) {
             var cards = grouped[col.key] || [];
+            if (hasGroups && col.group && col.group !== lastGroup) {
+                var groupCount = columns.reduce(function (n, c) {
+                    return c.group === col.group ? n + (grouped[c.key] || []).length : n;
+                }, 0);
+                html += '<div class="kanban-row-heading"><span>' + KanbanHelper._esc(col.group) + '</span>' +
+                    '<span class="kanban-column-count">' + groupCount + '</span></div>';
+                lastGroup = col.group;
+            }
             var posClass = colIdx === 0 ? 'kanban-col-first' : colIdx === columns.length - 1 ? 'kanban-col-last' : 'kanban-col-mid';
             html += '<div class="kanban-column ' + posClass + '" data-column-key="' + KanbanHelper._esc(col.key) + '">';
             html += '<div class="kanban-column-header">';
@@ -68,6 +80,7 @@ var KanbanHelper = {
         });
 
         container.innerHTML = html;
+        container.classList.toggle('kanban-board--rows', hasGroups);
     },
 
     /**

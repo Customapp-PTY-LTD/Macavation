@@ -295,11 +295,12 @@ var _kernelProductionGrid = function () {
     };
 
     const KANBAN_COLUMNS = [
-        { key: 'awaiting_production', label: 'Ready to crack' },
-        { key: 'in_production', label: 'In production' },
-        { key: 'awaiting_test', label: 'Waiting for end sample' },
-        { key: 'at_lab', label: 'At the lab' },
-        { key: 'release_ready', label: 'Ready for stock' }
+        // Two rows (Fable, 11 Nov 2026): the floor's columns on top, lab and release underneath.
+        { key: 'awaiting_production', label: 'Ready to crack', group: 'Production' },
+        { key: 'in_production', label: 'In production', group: 'Production' },
+        { key: 'awaiting_test', label: 'Waiting for end sample', group: 'Production' },
+        { key: 'at_lab', label: 'At the lab', group: 'Lab & release' },
+        { key: 'release_ready', label: 'Ready for stock', group: 'Lab & release' }
     ];
 
     return {
