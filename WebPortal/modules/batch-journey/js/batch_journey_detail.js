@@ -745,11 +745,50 @@ var _batchJourneyDetail = (function () {
         return h + '</ul>';
     }
 
-    function afterBagChange(r, fnName, message) {
+    /** What is typed in the Delivery edit form, so a bag removal/addition (saved straight away) does not lose it. */
+    function captureDeliveryForm() {
+        var snap = { fields: {}, bags: {} };
+        ['bjdDlvNote', 'bjdDlvConsignment', 'bjdDlvRate', 'bjdDlvTransporter', 'bjdDlvType', 'bjdDlvPoints'].forEach(function (id) {
+            var $f = $('#' + id);
+            if ($f.length) snap.fields[id] = $f.val();
+        });
+        $('#bjdBagsBody tr.bjd-bag-row').each(function () {
+            var $w = $(this).find('[data-bag="weight_kg"]');
+            snap.bags[this.getAttribute('data-no')] = {
+                description: $(this).find('[data-bag="description"]').val(),
+                weight: $w.prop('readOnly') ? null : $w.val()
+            };
+        });
+        return snap;
+    }
+
+    function restoreDeliveryForm(snap) {
+        if (!snap) return;
+        Object.keys(snap.fields).forEach(function (id) { $('#' + id).val(snap.fields[id]); });
+        $('#bjdBagsBody tr.bjd-bag-row').each(function () {
+            var b = snap.bags[this.getAttribute('data-no')];
+            if (!b) return;
+            $(this).find('[data-bag="description"]').val(b.description);
+            var $w = $(this).find('[data-bag="weight_kg"]');
+            if (b.weight != null && !$w.prop('readOnly')) $w.val(b.weight);
+        });
+        updateBagsTotal();
+    }
+
+    /** After Remove / Add a bag (already saved): re-read the batch and stay in Edit with what was typed. */
+    function afterBagChange(r, fnName, message, snap) {
         var inner = assertOk(r, fnName);
         var total = inner && inner.weighed_total_kg != null ? kgNum(inner.weighed_total_kg) : null;
-        toast(message, total != null ? 'Weighed total is now ' + _common.formatKg(total) + ' kg.' : '');
-        return reloadAll();
+        toast(message, total != null ? 'Saved. Weighed total is now ' + _common.formatKg(total) + ' kg.' : 'Saved.');
+        return reloadAll().then(function () {
+            if (state.editing !== 'delivery') return;
+            return loadBagLocations().then(function () {
+                if (state.editing !== 'delivery') return;
+                render();
+                restoreDeliveryForm(snap);
+                scrollToSection('delivery');
+            });
+        });
     }
 
     function removeBagDialog(no) {
@@ -761,6 +800,7 @@ var _batchJourneyDetail = (function () {
         if (block) { showError('Bag ' + no + ': ' + block); return; }
         var bl = bagLocsHere();
         var loc = bl && bl.ok ? (bl.map[String(no)] || '') : '';
+        var snap = captureDeliveryForm();
         var html = '<div class="text-start">' +
             '<p class="small mb-3">Bag ' + esc(no) + (hasText(bag.description) ? ' (' + esc(bag.description) + ')' : '') + ' · <strong>' + esc(kgText(bag.weight_kg)) + '</strong>' +
             (loc ? ' · in ' + esc(bagLocText(loc)) : '') + '</p>' +
@@ -769,7 +809,7 @@ var _batchJourneyDetail = (function () {
             '<label class="form-label small mb-1" for="bjdBagNote">Note <span class="text-muted" id="bjdBagNoteHint">(optional)</span></label>' +
             '<textarea class="form-control" id="bjdBagNote" rows="2" maxlength="500"></textarea>' +
             '<p class="small text-muted mt-2 mb-0">The batch\'s weighed total drops by ' + esc(kgText(bag.weight_kg)) +
-            (loc ? ', and ' + esc(bagLocText(loc)) + ' drops by the same' : '') + '. The reason is kept in the batch\'s bag changes.</p></div>';
+            (loc ? ', and ' + esc(bagLocText(loc)) + ' drops by the same' : '') + '. This saves straight away, with the reason kept in the batch\'s bag changes. Anything else you typed stays in the form until you save it.</p></div>';
         Swal.fire({
             title: 'Remove bag ' + no + '?',
             html: html, showCancelButton: true, confirmButtonText: 'Remove bag', focusConfirm: false,
@@ -787,13 +827,14 @@ var _batchJourneyDetail = (function () {
                 });
             }
         }).then(function (res) {
-            if (res && res.isConfirmed && res.value) return afterBagChange(res.value, 'remove_kernel_bag', 'Bag ' + no + ' removed');
+            if (res && res.isConfirmed && res.value) return afterBagChange(res.value, 'remove_kernel_bag', 'Bag ' + no + ' removed', snap);
         }).catch(function (err) { showError((err && err.message) || 'Could not remove the bag.'); });
     }
 
     function addBagDialog() {
         var d = df();
         if (!d || typeof d.addKernelBag !== 'function') { showError('This needs the latest portal. Refresh the page and try again.'); return; }
+        var snap = captureDeliveryForm();
         var html = '<div class="text-start">' +
             '<label class="form-label small mb-1" for="bjdBagReason">Why is it being added? <span class="text-danger">*</span></label>' +
             '<select class="form-select mb-3" id="bjdBagReason">' + reasonOptions(BAG_ADD_REASONS) + '</select>' +
@@ -803,7 +844,7 @@ var _batchJourneyDetail = (function () {
             '<input type="text" class="form-control" id="bjdBagDesc" maxlength="200" value="NIS"></div></div>' +
             '<label class="form-label small mb-1" for="bjdBagNote">Note <span class="text-muted" id="bjdBagNoteHint">(optional)</span></label>' +
             '<textarea class="form-control" id="bjdBagNote" rows="2" maxlength="500"></textarea>' +
-            '<p class="small text-muted mt-2 mb-0">It gets the next bag number and starts as "Not placed yet" — place it on Grower Intake. The batch\'s weighed total goes up by its weight.</p></div>';
+            '<p class="small text-muted mt-2 mb-0">It gets the next bag number and starts as "Not placed yet" — place it on Grower Intake. The batch\'s weighed total goes up by its weight. This saves straight away; anything else you typed stays in the form until you save it.</p></div>';
         Swal.fire({
             title: 'Add a bag',
             html: html, showCancelButton: true, confirmButtonText: 'Add bag', focusConfirm: false,
@@ -825,7 +866,7 @@ var _batchJourneyDetail = (function () {
         }).then(function (res) {
             if (!res || !res.isConfirmed || !res.value) return;
             var inner = assertOk(res.value, 'add_kernel_bag');
-            return afterBagChange(res.value, 'add_kernel_bag', 'Bag ' + (inner && inner.bag_no != null ? inner.bag_no + ' ' : '') + 'added');
+            return afterBagChange(res.value, 'add_kernel_bag', 'Bag ' + (inner && inner.bag_no != null ? inner.bag_no + ' ' : '') + 'added', snap);
         }).catch(function (err) { showError((err && err.message) || 'Could not add the bag.'); });
     }
 
@@ -845,27 +886,19 @@ var _batchJourneyDetail = (function () {
         var total = 0;
         var bl = bagLocsHere();
         var showWhere = !!(bl && bl.ok && bl.inOverview);
-        var change = canChangeBags();
         h += '<h4 class="bjd-subhead">Bags</h4><div class="table-responsive bjd-table-box"><table class="table align-middle mb-0"><thead><tr><th>No.</th><th>Description</th><th class="text-end">Weight (kg)</th>' +
-            (showWhere ? '<th>Where</th>' : '') + (change ? '<th class="bjd-col-btn"><span class="visually-hidden">Remove</span></th>' : '') + '</tr></thead><tbody>';
+            (showWhere ? '<th>Where</th>' : '') + '</tr></thead><tbody>';
         bags.forEach(function (bag) {
             total += kgNum(bag && bag.weight_kg) || 0;
             var no = bag && bag.no;
             h += '<tr><td>' + esc(no) + '</td><td>' + esc(bag && bag.description) + '</td><td class="text-end">' + esc(_common.formatKg(kgNum(bag && bag.weight_kg))) + '</td>';
             if (showWhere) h += '<td class="small">' + esc(bagLocText(bl.map[String(no)] || '')) + '</td>';
-            if (change) {
-                var block = bagRemoveBlock(no);
-                h += '<td class="text-end text-nowrap">' + (block
-                    ? '<i class="fas fa-lock text-muted" title="' + esc(block) + '" aria-label="' + esc(block) + '"></i>'
-                    : '<button type="button" class="btn btn-outline-danger btn-sm bjd-touch" data-bjd-act="bag-remove" data-no="' + esc(no) + '">Remove</button>') + '</td>';
-            }
             h += '</tr>';
         });
         h += '<tr class="fw-semibold"><td colspan="2">Weighed total</td><td class="text-end">' + esc(_common.formatKg(total)) + '</td>' +
-            (showWhere ? '<td></td>' : '') + (change ? '<td></td>' : '') + '</tr></tbody></table></div>';
-        if (change) {
-            h += '<button type="button" class="btn btn-outline-secondary btn-sm mt-2 bjd-touch" data-bjd-act="bag-add"><i class="fas fa-plus me-1"></i>Add a bag</button>';
-            h += '<p class="small text-muted mt-2 mb-0">Spilled, wet or extra bag? Remove or add it here with a reason. A bag in a silo has to be undone on the Silos screen first.</p>';
+            (showWhere ? '<td></td>' : '') + '</tr></tbody></table></div>';
+        if (canChangeBags()) {
+            h += '<p class="small text-muted mt-2 mb-0">Spilled, wet or extra bag? Press Edit to remove or add a bag with a reason.</p>';
         }
         h += bagChangesHtml();
         var docs = typeof historyFileLinksHtml === 'function' ? historyFileLinksHtml(dlv.documents) : '';
@@ -900,7 +933,16 @@ var _batchJourneyDetail = (function () {
             '<td class="text-nowrap">' + esc(bag.no) + '</td>' +
             '<td><input type="text" class="form-control form-control-sm" data-bag="description" aria-label="Description" value="' + esc(bag.description || '') + '"></td>' +
             '<td><input type="text" inputmode="decimal" class="form-control form-control-sm text-end js-kg-input" data-bag="weight_kg" aria-label="Weight kg" value="' + esc(w == null ? '' : _common.formatKg(w)) + '"' + (lock ? ' readonly tabindex="-1"' : '') + '></td>' +
-            '<td class="small">' + (isNew ? 'New' : esc(loc)) + (lock ? ' <i class="fas fa-lock ms-1" title="' + esc(lock) + '" aria-label="' + esc(lock) + '"></i>' : '') + '</td></tr>';
+            '<td class="small">' + (isNew ? 'New' : esc(loc)) + (lock ? ' <i class="fas fa-lock ms-1" title="' + esc(lock) + '" aria-label="' + esc(lock) + '"></i>' : '') + '</td>' +
+            (canChangeBags() ? '<td class="text-end text-nowrap">' + removeCellHtml(bag.no) + '</td>' : '') + '</tr>';
+    }
+
+    /** Remove button for one bag (asks for a reason), or a lock when it is in a silo / cracked. */
+    function removeCellHtml(no) {
+        var block = bagRemoveBlock(no);
+        return block
+            ? '<i class="fas fa-lock text-muted" title="' + esc(block) + '" aria-label="' + esc(block) + '"></i>'
+            : '<button type="button" class="btn btn-outline-danger btn-sm bjd-touch" data-bjd-act="bag-remove" data-no="' + esc(no) + '">Remove</button>';
     }
 
     function deliveryEditHtml() {
@@ -927,12 +969,17 @@ var _batchJourneyDetail = (function () {
         if (state.bagLocs && !state.bagLocs.ok) {
             h += '<div class="alert alert-warning small py-2">Could not check where the bags are, so bag weights are locked. Close and reopen Edit to try again.</div>';
         }
-        h += '<div class="table-responsive bjd-table-box"><table class="table align-middle mb-0 bjd-items-table"><thead><tr><th>No.</th><th>Description</th><th class="text-end">Weight (kg)</th><th>Where</th></tr></thead><tbody id="bjdBagsBody">';
+        h += '<div class="table-responsive bjd-table-box"><table class="table align-middle mb-0 bjd-items-table"><thead><tr><th>No.</th><th>Description</th><th class="text-end">Weight (kg)</th><th>Where</th>' +
+            (canChangeBags() ? '<th class="bjd-col-btn"><span class="visually-hidden">Remove</span></th>' : '') + '</tr></thead><tbody id="bjdBagsBody">';
         arr(dlv.bags).forEach(function (bag) { h += bagRowHtml(bag, false); });
-        h += '</tbody><tfoot><tr class="fw-semibold"><td colspan="2">Weighed total (becomes wet NIS weighed)</td><td class="text-end" id="bjdBagsTotal"></td><td></td></tr></tfoot></table></div>';
-        h += '<p class="small text-muted mt-2 mb-0">Saving rewrites the delivery the way New Delivery saved it: the weighed total (wet NIS) becomes the sum of the bags. ' +
-            'Only bags that are not placed in a storage area or a silo can be re-weighed here — a placed bag\'s kg is already counted there. ' +
-            'To remove a bag or add one, close Edit and use Remove / Add a bag, which ask for a reason. Documents are kept as they are.</p>';
+        h += '</tbody><tfoot><tr class="fw-semibold"><td colspan="2">Weighed total (becomes wet NIS weighed)</td><td class="text-end" id="bjdBagsTotal"></td><td' +
+            (canChangeBags() ? ' colspan="2"' : '') + '></td></tr></tfoot></table></div>';
+        if (canChangeBags()) {
+            h += '<button type="button" class="btn btn-outline-secondary btn-sm mt-2 bjd-touch" data-bjd-act="bag-add"><i class="fas fa-plus me-1"></i>Add a bag</button>';
+        }
+        h += '<p class="small text-muted mt-2 mb-0">Spilled, wet or extra bag? Use Remove or Add a bag: each asks for a reason and saves straight away. ' +
+            'A bag in a silo has to be undone on the Silos screen first. ' +
+            'Save delivery saves the rest of this form: the weighed total (wet NIS) is the sum of the bags, and only bags not yet placed can be re-weighed here. Documents are kept as they are.</p>';
         return h;
     }
 
