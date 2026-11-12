@@ -1,6 +1,6 @@
 /**
- * Supplier Intake Grid – Oil & Protein.
- * Mirrored from Grower Intake (Kernel): same layout, Board/Table toggle, Kanban + table card.
+ * Receiving (oil pipeline step 1) – deliveries and their bags, one compact line per bag.
+ * Table is the default view (Board is optional). FFA is typed inline and saved in one go.
  * Modals: Receiver checklist (create batches or edit one batch).
  */
 var _supplierIntakeGrid = function () {
@@ -45,11 +45,11 @@ var _supplierIntakeGrid = function () {
 
     function productTypeLabel(value) {
         var map = {
-            oil_kernel: 'Oil kernel',
-            cracker_dust: 'Cracker dust',
-            kernel_dust: 'Kernel dust',
+            oil_kernel: 'Oil Kernel',
+            cracker_dust: 'Cracker Dust',
+            kernel_dust: 'Kernel Dust',
             crush: 'Crush',
-            cake: 'Cake',
+            cake: 'Oil Cake',
             protein_powder: 'Protein powder',
             other: 'Other'
         };
@@ -60,7 +60,7 @@ var _supplierIntakeGrid = function () {
     function batchProductLabel(b) {
         var base = productTypeLabel(b && b.product_type);
         if (b && b.product_type === 'oil_kernel' && b.grade) {
-            return base + (b.grade === 'food_grade' ? ' (food grade)' : ' (crude grade)');
+            return b.grade === 'food_grade' ? 'Food Grade Oil Kernel' : 'Crude Grade Oil Kernel';
         }
         return base;
     }
@@ -152,15 +152,20 @@ var _supplierIntakeGrid = function () {
         weeklyOilRows: [],
         weeklySnapshotLoaded: false,
         siWeeklyMode: 'in',
-        currentView: 'kanban',
+        currentView: 'table',
         _pendingOilRelease: null,
+        _ffaSpec: null,
+        _ffaDraft: {},
 
         init: () => {
             const scope = _supplierIntakeGrid;
-            if (typeof _supplierIntakeStock !== 'undefined' && _supplierIntakeStock.init) _supplierIntakeStock.init();
             if (typeof BatchStatus !== 'undefined') BatchStatus.applyModuleSubtitle('supplier-intake-grid');
             if (typeof HandoffDialog !== 'undefined') HandoffDialog.applyPendingSearchForRoute('supplier-intake-grid');
             scope.bindEvents();
+            // FFA limit for the inline Result column; "Entered" is shown when no limit is set.
+            if (_common.loadOilFfaSpec) {
+                _common.loadOilFfaSpec().then(function (spec) { scope._ffaSpec = spec; scope.refreshInlineFfa(); }).catch(function () {});
+            }
             scope.loadBatches(true);
             const loadPromises = [];
             $('.modal[route-name]').each((index, el) => {
@@ -200,6 +205,10 @@ var _supplierIntakeGrid = function () {
                     Swal.fire('Error', 'Receiver checklist modal not loaded. Please refresh the page.', 'error');
                 }
             });
+            $('#siGoRawMaterialsBtn').off('click').on('click', function (e) {
+                e.preventDefault();
+                if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) _appRouter.routeTo('oil-raw-materials', true);
+            });
             $('#exportSupplierIntakeBtn').off('click').on('click', () => scope.exportBatches());
             $('#siViewKanban, #siViewTable').off('click').on('click', function () {
                 scope.toggleView($(this).data('view'));
@@ -227,7 +236,7 @@ var _supplierIntakeGrid = function () {
             });
 
             $(document).on('click', '#supplierIntakeBatchesTableBody tr.js-supplier-intake-row', function (e) {
-                if ($(e.target).closest('.dropdown').length || $(e.target).closest('button, .btn').length) return;
+                if ($(e.target).closest('.dropdown, input').length || $(e.target).closest('button, .btn').length) return;
                 const batchId = $(this).data('batch-id');
                 if (batchId) scope.showBatchDetail(batchId);
             });
@@ -296,6 +305,24 @@ var _supplierIntakeGrid = function () {
                 e.preventDefault();
                 e.stopPropagation();
                 scope.showDeliveryFfa(String($(this).attr('data-group') || ''));
+            });
+            $(document).off('input.siInlineFfa').on('input.siInlineFfa', '#supplierIntakeBatchesTableBody input[name="siInlineFfa"]', function () {
+                var id = String($(this).attr('data-oil-id'));
+                var v = $(this).val();
+                if (v === '' || v == null) delete scope._ffaDraft[id]; else scope._ffaDraft[id] = String(v);
+                scope.refreshInlineFfa();
+            });
+            $(document).off('keydown.siInlineFfa').on('keydown.siInlineFfa', '#supplierIntakeBatchesTableBody input[name="siInlineFfa"]', function (e) {
+                if (e.key !== 'Enter') return;
+                e.preventDefault();
+                var inputs = $('#supplierIntakeBatchesTableBody input[name="siInlineFfa"]');
+                var next = inputs.eq(inputs.index(this) + 1);
+                if (next.length) next.trigger('focus').trigger('select');
+                else $('#siSaveInlineFfaBtn').trigger('focus');
+            });
+            $('#siSaveInlineFfaBtn').off('click').on('click', function (e) {
+                e.preventDefault();
+                scope.saveInlineFfa();
             });
             $('#siDeliveryFfaBody').off('input.siFfa').on('input.siFfa', 'input[name="siBagFfa"]', function () {
                 scope.refreshDeliveryFfa();
@@ -537,10 +564,10 @@ var _supplierIntakeGrid = function () {
             const scope = _supplierIntakeGrid;
             const tbody = $('#supplierIntakeBatchesTableBody');
             if (!tbody.length) return;
-            tbody.html('<tr><td colspan="11" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>Loading…</td></tr>');
+            tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>Loading…</td></tr>');
             try {
                 if (typeof dataFunctions === 'undefined' || !dataFunctions.getSupplierIntakeBatches) {
-                    tbody.html('<tr><td colspan="11" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>Data functions not available.</td></tr>');
+                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>Data functions not available.</td></tr>');
                     return;
                 }
                 const all = await dataFunctions.getSupplierIntakeBatches('supplier_intake', null, forceRefresh);
@@ -551,12 +578,10 @@ var _supplierIntakeGrid = function () {
                 scope.loadWeeklySnapshot(forceRefresh).catch(function (err) {
                     console.warn('[Supplier Intake] loadWeeklySnapshot:', err);
                 });
-                // A delivery or a release changes raw material stock.
-                if (forceRefresh && typeof _supplierIntakeStock !== 'undefined' && _supplierIntakeStock.refresh) _supplierIntakeStock.refresh();
             } catch (e) {
                 console.error('[Supplier Intake] loadBatches failed:', e);
                 scope.batches = [];
-                tbody.html('<tr><td colspan="11" class="text-center text-danger py-4">Failed to load batches.</td></tr>');
+                tbody.html('<tr><td colspan="7" class="text-center text-danger py-4">Failed to load batches.</td></tr>');
             }
         },
 
@@ -567,10 +592,11 @@ var _supplierIntakeGrid = function () {
             tbody.empty();
             if (scope.filteredBatches.length === 0) {
                 if (scope.batches.length === 0) {
-                    tbody.html('<tr><td colspan="11" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No batches in supplier intake. Click Receiver checklist to add batches.</td></tr>');
+                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No deliveries yet. Click New delivery to add bags.</td></tr>');
                 } else {
-                    tbody.html('<tr><td colspan="11" class="text-center text-muted py-4"><i class="fas fa-filter me-2"></i>No batches match your search.</td></tr>');
+                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-filter me-2"></i>No batches match your search.</td></tr>');
                 }
+                scope.refreshInlineFfa();
                 return;
             }
             function groupKey(b) {
@@ -586,82 +612,152 @@ var _supplierIntakeGrid = function () {
                 if (ga > gb) return 1;
                 var an = (a && a.batch_number) ? String(a.batch_number) : '';
                 var bn = (b && b.batch_number) ? String(b.batch_number) : '';
-                return an.localeCompare(bn);
+                return an.localeCompare(bn, undefined, { numeric: true });
             });
             var lastGroup = null;
+            var noInGroup = 0;
             scope._deliveryGroups = {};
             list.forEach(function (b) {
                 var k = groupKey(b);
                 (scope._deliveryGroups[k] = scope._deliveryGroups[k] || []).push(b);
             });
+            var html = [];
             list.forEach((b) => {
                 const batchId = (b.id != null ? b.id : b.batch_number || '').toString();
-                const supplier = (b.supplier_details != null ? b.supplier_details : (b.supplier_id ? '—' : '—'));
-                const mfgBb = [formatDate(b.manufactured_date), formatDate(b.best_before_date)].filter(Boolean).join(' / ') || '—';
-                const batchNumEscaped = (b.batch_number || '—').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-                const batchNumberCell = '<a href="#" class="supplier-intake-batch-number-link" role="button" data-batch-id="' + batchId + '">' + batchNumEscaped + '</a>';
+                const supplier = (b.supplier_details != null ? b.supplier_details : '—');
                 var colKey = getSupplierColumnKey(b);
-                const sampleBtnHtml = '<button type="button" class="btn btn-sm btn-primary supplier-intake-step-btn js-supplier-intake-sample-test-btn" data-batch-id="' + escapeHtml(batchId) + '" title="Record official bag FFA (one time)"><i class="fas fa-vial me-1"></i><span class="supplier-intake-btn-text">Sample test</span></button>';
-                const releaseToOilBtn = '<button type="button" class="btn btn-sm btn-primary supplier-intake-step-btn js-supplier-intake-release-oil" data-batch-id="' + escapeHtml(batchId) + '" title="Release to Oil Production"><i class="fas fa-arrow-right me-1"></i><span class="supplier-intake-btn-text">Release to Oil Production</span></button>';
-                var receivingCell;
-                if (colKey === 'release_ready') {
-                    receivingCell = '<div class="supplier-intake-receiving-buttons">' + releaseToOilBtn + '</div>';
-                } else if (ffaDecisionStatus(b) === 'pending') {
-                    receivingCell = '<div class="supplier-intake-receiving-buttons"><span class="small text-danger">Not in spec: waiting for Mark, Pete or Mike</span></div>';
-                } else if (ffaDecisionStatus(b) === 'rejected') {
-                    receivingCell = '<div class="supplier-intake-receiving-buttons"><span class="small text-danger">Rejected' +
-                        (b.ffa_decision.decided_by_name ? ' by ' + escapeHtml(b.ffa_decision.decided_by_name) : '') + '</span></div>';
-                } else if (hasSupplierIntakeOfficialFfa(b)) {
-                    receivingCell = '<div class="supplier-intake-receiving-buttons"><span class="text-muted small">Official FFA on file</span></div>';
-                } else {
-                    receivingCell = '<div class="supplier-intake-receiving-buttons">' + sampleBtnHtml + '</div>';
-                }
-                const releaseItem = (colKey === 'release_ready')
-                    ? '<a class="dropdown-item js-supplier-intake-release-oil" href="#"><i class="fas fa-arrow-right me-2"></i>Release to Oil Production</a>'
-                    : '<span class="dropdown-item text-muted" role="button" tabindex="0">Release to Oil Production</span>';
-                const viewItem = '<a class="dropdown-item js-supplier-intake-view" href="#" data-batch-id="' + batchId + '"><i class="fas fa-eye me-2"></i>View</a>';
-                const editItem = '<a class="dropdown-item js-supplier-intake-edit" href="#" data-batch-id="' + batchId + '"><i class="fas fa-edit me-2"></i>Edit</a>';
-                const deleteItem = '<a class="dropdown-item text-danger js-supplier-intake-delete" href="#" data-batch-id="' + escapeHtml(batchId) + '"><i class="fas fa-trash-alt me-2"></i>Remove from intake</a>';
-                const actionsCell = MacTableActions.render({
-                    id: 'supplierIntakeActions' + batchId,
-                    items: [releaseItem, viewItem, editItem, deleteItem]
-                });
-                var st = bagStatus(b);
-                var statusBadgeHtml = '<span class="badge ' + st.cls + '">' + escapeHtml(st.label) + '</span>';
+                var dec = ffaDecisionStatus(b);
 
                 var gk = groupKey(b);
                 if (gk !== lastGroup) {
                     lastGroup = gk;
-                    var grpSupplier = supplier || '—';
-                    var grpDelivery = b.delivery_note_ref || '—';
-                    var grpDate = formatDate(b.date_received) || '—';
-                    var grpHtml = '<tr class="supplier-intake-group-row">' +
-                        '<td colspan="11" class="supplier-intake-group-cell">' +
-                        '<span class="supplier-intake-group-title">' + escapeHtml(grpSupplier) + '</span>' +
-                        '<span class="supplier-intake-group-meta">Delivery: ' + escapeHtml(grpDelivery) + ' • Received: ' + escapeHtml(grpDate) + '</span>' +
-                        (function () {
-                            var waiting = (scope._deliveryGroups[gk] || []).filter(isWaitingForFfa).length;
-                            return waiting ? '<button type="button" class="btn btn-sm btn-primary si-delivery-ffa-btn js-si-delivery-ffa" data-group="' + escapeHtml(gk) + '">' +
-                                '<i class="fas fa-vial me-1" aria-hidden="true"></i>Record FFA for this delivery · ' + waiting + ' waiting</button>' : '';
-                        })() +
-                        '</td></tr>';
-                    tbody.append(grpHtml);
+                    noInGroup = 0;
+                    var bags = scope._deliveryGroups[gk] || [];
+                    var totalKg = 0;
+                    bags.forEach(function (x) { var q = parseFloat(x.quantity_kg); if (!isNaN(q)) totalKg += q; });
+                    var docsKnown = bags.some(function (x) { return Array.isArray(x.documents); });
+                    var docCount = docsKnown ? Math.max.apply(null, bags.map(function (x) { return Array.isArray(x.documents) ? x.documents.length : 0; })) : null;
+                    var waiting = bags.filter(isWaitingForFfa).length;
+                    html.push('<tr class="supplier-intake-group-row">' +
+                        '<td colspan="7" class="supplier-intake-group-cell">' +
+                        '<span class="supplier-intake-group-title">' + escapeHtml(supplier || '—') + '</span>' +
+                        '<span class="supplier-intake-group-meta">' + escapeHtml([
+                            'Delivery note ' + (b.delivery_note_ref || '—'),
+                            formatDate(b.date_received) || '—',
+                            bags.length + (bags.length === 1 ? ' bag' : ' bags'),
+                            _common.formatKg(totalKg) + ' kg',
+                            'Documents: ' + (docCount == null ? '—' : docCount)
+                        ].join(' · ')) + '</span>' +
+                        (waiting ? '<button type="button" class="btn btn-sm btn-outline-primary si-delivery-ffa-btn js-si-delivery-ffa" data-group="' + escapeHtml(gk) + '">' +
+                            '<i class="fas fa-vial me-1" aria-hidden="true"></i>FFA for this delivery · ' + waiting + ' waiting</button>' : '') +
+                        '</td></tr>');
                 }
-                const row = '<tr class="js-supplier-intake-row" data-batch-id="' + batchId + '">' +
+                noInGroup++;
+
+                var batchNumberCell = '<a href="#" class="supplier-intake-batch-number-link" role="button" data-batch-id="' + escapeHtml(batchId) + '">' + escapeHtml(b.batch_number || '—') + '</a>';
+                var canType = isWaitingForFfa(b) && dec !== 'pending' && dec !== 'rejected';
+                var ffaCell;
+                var resultCell;
+                if (canType) {
+                    var draft = scope._ffaDraft[String(b.id)] || '';
+                    ffaCell = '<input type="text" inputmode="decimal" class="form-control form-control-sm text-end si-ffa-inline" name="siInlineFfa" autocomplete="off" placeholder="—" data-oil-id="' + escapeHtml(b.id) + '" value="' + escapeHtml(draft) + '" aria-label="FFA percent for ' + escapeHtml(b.batch_number || 'bag') + '">';
+                    resultCell = '<span class="si-ffa-result is-waiting">Waiting</span>';
+                } else {
+                    ffaCell = ffaCellHtml(b);
+                    if (dec === 'pending') resultCell = '<span class="si-ffa-result is-decision">Out of spec · needs a decision</span>';
+                    else if (dec === 'rejected') resultCell = '<span class="si-ffa-result is-decision">Rejected</span>';
+                    else if (colKey === 'release_ready') resultCell = '<span class="si-ffa-result is-ready">In spec · Ready</span>';
+                    else resultCell = '<span class="si-ffa-result is-waiting">' + escapeHtml(bagStatus(b).label) + '</span>';
+                }
+
+                var items = [];
+                if (colKey === 'release_ready') items.push('<a class="dropdown-item js-supplier-intake-release-oil" href="#"><i class="fas fa-arrow-right me-2"></i>Release to Oil Production</a>');
+                if (colKey !== 'release_ready' && !hasSupplierIntakeOfficialFfa(b)) items.push('<a class="dropdown-item js-supplier-intake-sample-test-btn" href="#" data-batch-id="' + escapeHtml(batchId) + '"><i class="fas fa-vial me-2"></i>Sample test</a>');
+                items.push('<a class="dropdown-item js-supplier-intake-view" href="#" data-batch-id="' + escapeHtml(batchId) + '"><i class="fas fa-eye me-2"></i>View</a>');
+                items.push('<a class="dropdown-item js-supplier-intake-edit" href="#" data-batch-id="' + escapeHtml(batchId) + '"><i class="fas fa-edit me-2"></i>Edit</a>');
+                items.push('<a class="dropdown-item text-danger js-supplier-intake-delete" href="#" data-batch-id="' + escapeHtml(batchId) + '"><i class="fas fa-trash-alt me-2"></i>Delete</a>');
+                const actionsCell = MacTableActions.render({ id: 'supplierIntakeActions' + batchId, items: items });
+
+                html.push('<tr class="js-supplier-intake-row" data-batch-id="' + escapeHtml(batchId) + '">' +
+                    '<td class="supplier-intake-col-no text-muted">' + noInGroup + '</td>' +
                     '<td class="supplier-intake-col-batch">' + batchNumberCell + '</td>' +
-                    '<td class="supplier-intake-col-product d-none d-md-table-cell">' + escapeHtml(batchProductLabel(b) || '—') + '</td>' +
-                    '<td class="supplier-intake-col-date">' + (formatDate(b.date_received) || '—') + '</td>' +
-                    '<td class="supplier-intake-col-note d-none d-lg-table-cell">' + (b.delivery_note_ref || '—') + '</td>' +
-                    '<td class="supplier-intake-col-supplier">' + (supplier || '—') + '</td>' +
-                    '<td class="supplier-intake-col-qty d-none d-sm-table-cell">' + (b.quantity_kg != null ? _common.formatKg(b.quantity_kg) : '—') + '</td>' +
-                    '<td class="supplier-intake-col-ffa text-end">' + ffaCellHtml(b) + '</td>' +
-                    '<td class="supplier-intake-col-mfg d-none d-lg-table-cell">' + mfgBb + '</td>' +
-                    '<td class="supplier-intake-col-receiving">' + receivingCell + '</td>' +
-                    '<td class="supplier-intake-col-status">' + statusBadgeHtml + '</td>' +
-                    '<td class="supplier-intake-col-actions mac-table-actions-col">' + actionsCell + '</td></tr>';
-                tbody.append(row);
+                    '<td class="supplier-intake-col-product">' + escapeHtml(batchProductLabel(b) || '—') + '</td>' +
+                    '<td class="supplier-intake-col-qty text-end">' + (b.quantity_kg != null ? escapeHtml(_common.formatKg(b.quantity_kg)) : '—') + '</td>' +
+                    '<td class="supplier-intake-col-ffa text-end">' + ffaCell + '</td>' +
+                    '<td class="supplier-intake-col-result">' + resultCell + '</td>' +
+                    '<td class="supplier-intake-col-actions mac-table-actions-col">' + actionsCell + '</td></tr>');
             });
+            tbody.html(html.join(''));
             MacTableActions.init(document.getElementById('supplierIntakeBatchesTable'));
+            scope.refreshInlineFfa();
+        },
+
+        /** Result column and the "Save N FFA results" button, from what is typed in the FFA boxes. */
+        refreshInlineFfa: function () {
+            const scope = _supplierIntakeGrid;
+            var specOk = !!(scope._ffaSpec && scope._ffaSpec.green_limit != null);
+            var n = 0, bad = 0;
+            $('#supplierIntakeBatchesTableBody input[name="siInlineFfa"]').each(function () {
+                var $in = $(this);
+                var v = parseFfaInput($in.val());
+                var $res = $in.closest('tr').find('.si-ffa-result');
+                $res.removeClass('is-ready is-decision is-waiting');
+                $in.removeClass('is-invalid is-valid');
+                if (v === '') { $res.addClass('is-waiting').text('Waiting'); return; }
+                if (isNaN(v)) { bad++; $in.addClass('is-invalid'); $res.addClass('is-decision').text('Enter 0 to 100'); return; }
+                n++;
+                if (!specOk) { $res.addClass('is-waiting').text('Entered'); return; }
+                if (_common.oilFfaOutcome(scope._ffaSpec, v) === 'decision') {
+                    $in.addClass('is-invalid');
+                    $res.addClass('is-decision').text('Out of spec · needs a decision');
+                } else {
+                    $in.addClass('is-valid');
+                    $res.addClass('is-ready').text('In spec · Ready');
+                }
+            });
+            var btn = document.getElementById('siSaveInlineFfaBtn');
+            if (btn) {
+                btn.disabled = n === 0 || bad > 0;
+                btn.innerHTML = '<i class="fas fa-save me-1"></i>Save ' + n + ' FFA result' + (n === 1 ? '' : 's');
+            }
+        },
+
+        saveInlineFfa: async function () {
+            const scope = _supplierIntakeGrid;
+            var items = [];
+            $('#supplierIntakeBatchesTableBody input[name="siInlineFfa"]').each(function () {
+                var v = parseFfaInput($(this).val());
+                if (v !== '' && !isNaN(v)) items.push({ oil_id: String($(this).attr('data-oil-id')), ffa: v });
+            });
+            if (!items.length) return;
+            var btn = document.getElementById('siSaveInlineFfaBtn');
+            if (btn) btn.disabled = true;
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.recordSupplierIntakeFfaBulk) throw new Error('Save not available. Refresh the page.');
+                var res = await dataFunctions.recordSupplierIntakeFfaBulk(items);
+                if (!res || res.success === false) throw new Error((res && res.error) || 'Could not save the FFA results');
+                var failed = Array.isArray(res.failed) ? res.failed : [];
+                var failedIds = {};
+                failed.forEach(function (f) { if (f && f.oil_id != null) failedIds[String(f.oil_id)] = true; });
+                // Saved bags drop their draft; failed ones keep what was typed.
+                items.forEach(function (it) { if (!failedIds[it.oil_id]) delete scope._ffaDraft[it.oil_id]; });
+                var parts = [];
+                if (res.ready) parts.push(res.ready + ' ready for Oil Production');
+                if (res.held) parts.push(res.held + ' waiting for an exec decision');
+                if (typeof Swal !== 'undefined') {
+                    if (failed.length) {
+                        Swal.fire({ icon: 'warning', title: 'Some results were not saved', text: (parts.length ? 'Saved: ' + parts.join(', ') + '. ' : '') +
+                            failed.length + ' not saved: ' + failed.map(function (f) { return f.error; }).filter(Boolean).join('; ') });
+                    } else {
+                        Swal.fire({ icon: 'success', title: 'FFA saved', text: parts.join(', ') + '.', timer: res.held ? 4000 : 2500, showConfirmButton: false });
+                    }
+                }
+                await scope.loadBatches(true);
+            } catch (e) {
+                console.error('[Receiving] inline FFA save failed:', e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to save the FFA results.', 'error');
+                scope.refreshInlineFfa();
+            }
         },
 
         loadWeeklySnapshot: function (forceRefresh) {

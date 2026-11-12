@@ -8,18 +8,14 @@
         <div class="modal-body">
             <form id="supplierReceiverChecklistForm" novalidate>
                 <div class="card mb-3">
-                    <div class="card-header"><h6 class="mb-0">Delivery &amp; supplier</h6></div>
+                    <div class="card-header"><h6 class="mb-0">Delivery details</h6></div>
                     <div class="card-body">
                         <div class="row g-2">
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <label for="srcDateReceived" class="form-label required">Date received</label>
                                 <input type="text" class="form-control flatpickr-date" id="srcDateReceived" data-input required placeholder="dd/mm/yyyy">
                             </div>
-                            <div class="col-md-4">
-                                <label for="srcDeliveryNoteRef" class="form-label required">Delivery note / PO number</label>
-                                <input type="text" class="form-control" id="srcDeliveryNoteRef" required placeholder="e.g. DN12345">
-                            </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <label for="srcSupplierDetails" class="form-label required">Supplier</label>
                                 <div class="input-group">
                                     <select class="form-select" id="srcSupplierDetails" required>
@@ -57,9 +53,94 @@
                     </div>
                 </div>
 
-                <div class="card mb-3">
+                <div class="card mb-3" id="srcTransportCard">
+                    <div class="card-header"><h6 class="mb-0">Transport details</h6></div>
                     <div class="card-body">
-                        <label class="form-label fw-semibold">Vehicle &amp; Receiving Checks <span class="text-danger">(all required)</span></label>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="srcConsignmentRef" class="form-label">Consignment reference</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="srcConsignmentRef" autocomplete="off" placeholder="Optional">
+                                    <button type="button" class="btn btn-outline-secondary" id="srcConsignmentAttachBtn"><i class="fas fa-paperclip me-1"></i>Attach consignment note</button>
+                                </div>
+                                <div class="form-text">From the transporter's paperwork.</div>
+                                <input type="file" class="d-none" id="srcConsignmentFile" accept="image/*,application/pdf" multiple>
+                                <div class="d-flex flex-wrap gap-1 mt-1" id="srcConsignmentChips"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="srcDeliveryNoteRef" class="form-label required">Delivery note reference</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="srcDeliveryNoteRef" required autocomplete="off" placeholder="e.g. DN12345">
+                                    <button type="button" class="btn btn-outline-secondary" id="srcDeliveryNoteAttachBtn"><i class="fas fa-paperclip me-1"></i>Attach delivery note</button>
+                                </div>
+                                <div class="form-text">From the supplier.</div>
+                                <input type="file" class="d-none" id="srcDeliveryNoteFile" accept="image/*,application/pdf" multiple>
+                                <div class="d-flex flex-wrap gap-1 mt-1" id="srcDeliveryNoteChips"></div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Other documents <span class="text-muted fw-normal">(optional)</span></label>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="srcOtherAttachBtn">+ Attach another document</button>
+                                </div>
+                                <input type="file" class="d-none" id="srcOtherFile" accept="image/*,application/pdf" multiple>
+                                <div class="d-flex flex-wrap gap-1 mt-1" id="srcOtherChips"></div>
+                            </div>
+                            <div class="col-12">
+                                <div class="text-danger small d-none" id="srcDocsError"></div>
+                                <div class="text-muted small d-none" id="srcDocsUploading"><i class="fas fa-spinner fa-spin me-1"></i>Uploading...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">Bags on this delivery</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-1" id="srcItemsTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width:70px">No.</th>
+                                        <th style="min-width: 190px;">Description</th>
+                                        <th style="min-width: 150px;">Batch # <span class="text-danger">*</span></th>
+                                        <th class="text-end" style="min-width: 130px;">Weight (kg)</th>
+                                        <th style="min-width: 140px;">Manufactured date <span class="text-danger">*</span></th>
+                                        <th class="text-end" style="min-width: 100px;">FFA (%)</th>
+                                        <th style="min-width: 170px;">Goes to</th>
+                                        <th style="width:50px"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="srcItemsTableBody"></tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="3">Weighed total (kg) &ndash; sum of bags &middot; <span id="srcBagCount">0</span> bags</td>
+                                        <td class="text-end fw-bold" id="srcBagTotal">0.00</td>
+                                        <td colspan="4"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap mb-2" id="srcAddBagsWrap">
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="srcAddItemRow">+ Add</button>
+                            <input type="number" class="form-control form-control-sm" id="srcAddBagCount" value="1" min="1" max="500" step="1" style="width: 80px;" aria-label="How many bags to add">
+                            <span class="small">bag(s)</span>
+                            <small class="text-muted">New rows copy the description, batch (numbered on) and date from the last row. Weight starts blank.</small>
+                        </div>
+                        <div class="small mb-2 d-none" id="srcBatchSuggestWrap">
+                            <span class="text-muted" id="srcBatchSuggestHint">Suggested &mdash; you can change it.</span>
+                            <button type="button" class="btn btn-sm btn-link py-0" id="srcBatchSuggestRefresh"><i class="fas fa-rotate me-1"></i>Refresh suggested</button>
+                        </div>
+                        <div class="small mb-2" id="srcFfaSummary"></div>
+                        <div class="text-muted small mb-1"><i class="fas fa-circle-info me-1" aria-hidden="true"></i>FFA is optional. Bags without a result wait in <strong>Awaiting tests</strong>, the same as before. A result that is not in spec (<span id="srcFfaSpecText">see Kernel Pipeline Settings</span>) waits for a decision from Mark, Pete or Mike.</div>
+                        <div class="text-muted small">Rows with no weight are left out when you save. Each bag becomes its own batch, grouped under this supplier and delivery note. Food grade and crude oil kernel count as one pool in Raw Materials.</div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header"><h6 class="mb-0">Truck checks <span class="text-danger small">(all required)</span></h6></div>
+                    <div class="card-body">
                         <div class="mb-3 src-check-item">
                             <label class="form-label">Is the vehicle clean?</label>
                             <div class="d-flex align-items-center gap-3">
@@ -156,47 +237,6 @@
                             <label for="srcReceivingComments" class="form-label">Comments/Actions taken</label>
                             <textarea class="form-control" id="srcReceivingComments" rows="2"></textarea>
                         </div>
-                    </div>
-                </div>
-
-                <div class="card mb-0">
-                    <div class="card-header">
-                        <h6 class="mb-0">Bags on this delivery</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-sm align-middle mb-1" id="srcItemsTable">
-                                <thead>
-                                    <tr>
-                                        <th style="width:70px">No.</th>
-                                        <th style="min-width: 190px;">Description</th>
-                                        <th style="min-width: 150px;">Batch # <span class="text-danger">*</span></th>
-                                        <th class="text-end" style="min-width: 130px;">Weight (kg)</th>
-                                        <th style="min-width: 140px;">Manufactured date <span class="text-danger">*</span></th>
-                                        <th class="text-end" style="min-width: 100px;">FFA (%)</th>
-                                        <th style="min-width: 170px;">Goes to</th>
-                                        <th style="width:50px"></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="srcItemsTableBody"></tbody>
-                                <tfoot>
-                                    <tr>
-                                        <td colspan="3">Weighed total (kg) &ndash; sum of bags &middot; <span id="srcBagCount">0</span> bags</td>
-                                        <td class="text-end fw-bold" id="srcBagTotal">0.00</td>
-                                        <td colspan="4"></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                        <div class="d-flex align-items-center gap-2 flex-wrap mb-2" id="srcAddBagsWrap">
-                            <button type="button" class="btn btn-sm btn-outline-primary" id="srcAddItemRow">+ Add</button>
-                            <input type="number" class="form-control form-control-sm" id="srcAddBagCount" value="1" min="1" max="500" step="1" style="width: 80px;" aria-label="How many bags to add">
-                            <span class="small">bag(s)</span>
-                            <small class="text-muted">New rows copy the description, batch (numbered on) and date from the last row. Weight starts blank.</small>
-                        </div>
-                        <div class="small mb-2" id="srcFfaSummary"></div>
-                        <div class="text-muted small mb-1"><i class="fas fa-circle-info me-1" aria-hidden="true"></i>FFA is optional. Bags without a result wait in <strong>Awaiting tests</strong>, the same as before. A result that is not in spec (<span id="srcFfaSpecText">see Kernel Pipeline Settings</span>) waits for a decision from Mark, Pete or Mike.</div>
-                        <div class="text-muted small">Rows with no weight are left out when you save. Each bag becomes its own batch, grouped under this supplier and delivery note. Food grade and crude oil kernel count as one pool on the Raw material stock tab.</div>
                     </div>
                 </div>
                 <div class="alert alert-danger mt-3 mb-0 d-none" id="srcChecklistMessage" role="alert"></div>
