@@ -343,6 +343,7 @@ var _oilProductionGrid = function () {
         init: function () {
             var scope = _oilProductionGrid;
             scope.bindEvents();
+            if (typeof _oilProductionCake !== 'undefined') { _oilProductionCake.init(); }
             if (typeof initMacSectionCollapses === 'function') {
                 initMacSectionCollapses(document.querySelector('.module-content'));
             }
@@ -2132,6 +2133,160 @@ var _oilProductionGrid = function () {
         return _common.escapeHtml(text);
     }
 }();
+
+/**
+ * Oil Production: Oil cake tab (moved here from Grower Intake, Mike 12 Nov 2026).
+ * Oil cake: production and sales recorded separately; there is no stock-on-hand line for cake here
+ * (cake stock is on the Raw Materials page).
+ *
+ * Security invariant: every DB-supplied or user-supplied string goes through esc() before it
+ * reaches markup.
+ */
+var _oilProductionCake = (function () {
+    'use strict';
+
+    var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    var state = { tab: 'main', cakeMonth: null, cake: null, cakeKind: 'produced' };
+
+    function esc(v) { return _common.escapeHtml(v == null ? '' : String(v)); }
+    function kg(v, dp) { var n = Number(v); return _common.formatKg(isFinite(n) ? n : 0, dp === undefined ? 2 : dp); }
+    function pad2(n) { return (n < 10 ? '0' : '') + n; }
+    function todayStr() { var d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+    function fmtDate(iso) {
+        var p = String(iso || '').split('T')[0].split('-');
+        if (p.length !== 3) { return String(iso || ''); }
+        return Number(p[2]) + ' ' + MONTHS[Number(p[1]) - 1] + ' ' + p[0];
+    }
+    function isOk(r) { return !!r && r.success !== false && !r.error; }
+    function errText(r, fallback) { return (r && (r.error || r.message)) ? String(r.error || r.message) : fallback; }
+    function safe(p) { return Promise.resolve(p).catch(function (e) { return { success: false, error: String(e && e.message || e) }; }); }
+    function notify(icon, text) { if (typeof Swal !== 'undefined') { Swal.fire({ icon: icon, text: text }); } }
+
+    function showTab(tab) {
+        state.tab = tab;
+        $('.op-tab').each(function () {
+            $(this).attr('aria-selected', $(this).attr('data-op-tab') === tab ? 'true' : 'false');
+        });
+        $('#opPaneMain').toggleClass('d-none', tab !== 'main');
+        $('#opPaneCake').toggleClass('d-none', tab !== 'cake');
+        if (tab === 'cake') { loadCake(); }
+    }
+
+    function monthRange(ym) {
+        var p = ym.split('-'), y = Number(p[0]), m = Number(p[1]);
+        var last = new Date(y, m, 0).getDate();
+        return { from: ym + '-01', to: ym + '-' + pad2(last) };
+    }
+
+    function loadCake() {
+        if (!state.cakeMonth) { state.cakeMonth = todayStr().slice(0, 7); }
+        var range = monthRange(state.cakeMonth);
+        var wanted = state.cakeMonth;
+        return safe(dataFunctions.getOilCakeMovements(range.from, range.to)).then(function (r) {
+            if (state.cakeMonth !== wanted) { return; }
+            state.cake = isOk(r) && Array.isArray(r.movements) ? r : null;
+            renderCake();
+        });
+    }
+
+    function renderCake() {
+        var $p = $('#opPaneCake');
+        var r = state.cake;
+        var ym = state.cakeMonth || todayStr().slice(0, 7);
+        var monthName = MONTHS[Number(ym.slice(5, 7)) - 1] + ' ' + ym.slice(0, 4);
+        if (r === null) {
+            $p.html('<div class="alert alert-warning">The oil cake log isn\'t set up on this database yet.</div>');
+            return;
+        }
+        var sale = state.cakeKind === 'sold';
+        var h = '<div class="d-flex flex-wrap gap-2 align-items-center mb-3">' +
+            '<label for="opCakeMonth" class="form-label mb-0 fw-semibold">Month</label>' +
+            '<input type="month" class="form-control op-cake-month" id="opCakeMonth" max="' + esc(todayStr().slice(0, 7)) + '" value="' + esc(ym) + '"></div>';
+        h += '<div class="op-cake-totals">' +
+            '<div class="card"><div class="card-body"><span>Produced in ' + esc(monthName) + '</span><strong>' + esc(kg(r.produced_kg, 0)) + ' kg</strong></div></div>' +
+            '<div class="card"><div class="card-body"><span>Sold in ' + esc(monthName) + '</span><strong>' + esc(kg(r.sold_kg, 0)) + ' kg</strong></div></div>' +
+            '</div>';
+        h += '<div class="card mb-3"><div class="card-body">' +
+            '<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3"><h3 class="h6 mb-0">Record oil cake</h3>' +
+            '<div class="btn-group" role="group" aria-label="Record type">' +
+            '<button type="button" class="btn btn-outline-secondary op-cake-kind' + (!sale ? ' active' : '') + '" data-kind="produced" aria-pressed="' + (!sale) + '">Production</button>' +
+            '<button type="button" class="btn btn-outline-secondary op-cake-kind' + (sale ? ' active' : '') + '" data-kind="sold" aria-pressed="' + sale + '">Sale</button>' +
+            '</div></div>' +
+            '<div class="row g-2 align-items-end">' +
+            '<div class="col-sm-6 col-lg-2"><label for="opCakeDate" class="form-label">Date</label><input type="date" class="form-control" id="opCakeDate" max="' + esc(todayStr()) + '" value="' + esc(todayStr()) + '"></div>' +
+            '<div class="col-sm-6 col-lg-2"><label for="opCakeKg" class="form-label">Weight (kg)</label><input type="text" inputmode="decimal" class="form-control js-kg-input" id="opCakeKg"></div>' +
+            (sale ? '<div class="col-sm-6 col-lg-3"><label for="opCakeSoldTo" class="form-label">Sold to</label><input type="text" class="form-control" id="opCakeSoldTo" maxlength="200"></div>' : '') +
+            '<div class="col-sm-6 col-lg-3"><label for="opCakeNotes" class="form-label">Notes</label><input type="text" class="form-control" id="opCakeNotes" maxlength="500" placeholder="Optional"></div>' +
+            '<div class="col-sm-6 col-lg-2"><button type="button" class="btn btn-primary w-100" id="opCakeSave">' + (sale ? 'Save sale' : 'Save production') + '</button></div>' +
+            '</div></div></div>';
+        h += '<div class="card"><div class="card-body p-0"><div class="table-responsive"><table class="table align-middle mb-0">' +
+            '<thead><tr><th>Date</th><th>Type</th><th>Sold to</th><th>Notes</th><th class="text-end">Weight (kg)</th><th></th></tr></thead><tbody>';
+        if (!r.movements.length) {
+            h += '<tr><td colspan="6" class="text-muted">Nothing recorded in ' + esc(monthName) + '.</td></tr>';
+        }
+        r.movements.forEach(function (m) {
+            var sold = m.kind === 'sold';
+            h += '<tr><td class="text-nowrap">' + esc(fmtDate(m.movement_date)) + '</td>' +
+                '<td><span class="op-cake-pill op-cake-pill-' + (sold ? 'sold' : 'produced') + '">' + (sold ? 'Sold' : 'Produced') + '</span></td>' +
+                '<td>' + (m.sold_to ? esc(m.sold_to) : '&mdash;') + '</td><td>' + (m.notes ? esc(m.notes) : '') + '</td>' +
+                '<td class="text-end">' + esc(kg(m.kg, 2)) + '</td>' +
+                '<td class="text-end"><button type="button" class="btn btn-sm btn-outline-secondary op-cake-void" data-id="' + esc(m.id) + '">Remove</button></td></tr>';
+        });
+        h += '</tbody></table></div></div></div>';
+        $p.html(h);
+    }
+
+    function saveCake() {
+        var sale = state.cakeKind === 'sold';
+        var date = String($('#opCakeDate').val() || '');
+        var amount = _common.parseKg($('#opCakeKg').val());
+        var soldTo = sale ? String($('#opCakeSoldTo').val() || '').trim() : null;
+        var notes = String($('#opCakeNotes').val() || '').trim();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { notify('warning', 'Enter the date.'); return; }
+        if (amount == null || !(amount > 0)) { notify('warning', 'Enter the weight in kg.'); return; }
+        if (sale && !soldTo) { notify('warning', 'Enter who the oil cake was sold to.'); return; }
+        $('#opCakeSave').prop('disabled', true);
+        safe(dataFunctions.saveOilCakeMovement(state.cakeKind, date, amount, soldTo, notes)).then(function (r) {
+            if (!isOk(r)) { notify('error', errText(r, 'Could not save.')); $('#opCakeSave').prop('disabled', false); return; }
+            state.cakeMonth = date.slice(0, 7);
+            loadCake();
+        });
+    }
+
+    function voidCake(id) {
+        if (typeof Swal === 'undefined') { return; }
+        Swal.fire({ icon: 'question', text: 'Remove this oil cake entry?', showCancelButton: true, confirmButtonText: 'Remove' }).then(function (c) {
+            if (!c.isConfirmed) { return; }
+            safe(dataFunctions.voidOilCakeMovement(id)).then(function (r) {
+                if (!isOk(r)) { notify('error', errText(r, 'Could not remove the entry.')); }
+                loadCake();
+            });
+        });
+    }
+
+    function bindEvents() {
+        // Namespaced on the module root, which the router replaces on each visit.
+        $('#oilProductionModule')
+            .off('.opCake')
+            .on('click.opCake', '.op-tab', function () { showTab(String($(this).attr('data-op-tab') || 'main')); })
+            .on('change.opCake', '#opCakeMonth', function () {
+                var v = String($(this).val() || '');
+                if (/^\d{4}-\d{2}$/.test(v)) { state.cakeMonth = v; loadCake(); }
+            })
+            .on('click.opCake', '.op-cake-kind', function () { state.cakeKind = $(this).attr('data-kind') === 'sold' ? 'sold' : 'produced'; renderCake(); })
+            .on('click.opCake', '#opCakeSave', saveCake)
+            .on('click.opCake', '.op-cake-void', function () { voidCake(String($(this).attr('data-id') || '')); });
+    }
+
+    return {
+        init: function () {
+            state.tab = 'main';
+            state.cakeMonth = null;
+            state.cakeKind = 'produced';
+            bindEvents();
+        }
+    };
+})();
 
 window.initializeOilProductionGrid = function () {
     if (typeof _oilProductionGrid !== 'undefined' && _oilProductionGrid.init) {

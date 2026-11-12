@@ -1,5 +1,5 @@
 /**
- * Supplier Intake (oil plant) — Supplier recon tab (29 Oct 2026).
+ * Oil Raw Materials — Supplier recon tab (29 Oct 2026; moved from Supplier Intake 12 Nov 2026).
  *
  * Kg received per supplier and per month, per raw material, so deliveries can be checked against
  * suppliers' invoices. Loads come from get_oil_supplier_recon (migration 20261029120000):
@@ -11,7 +11,7 @@
  * Security invariant: every DB-supplied or user-supplied string goes through esc() before it
  * reaches markup.
  */
-var _supplierIntakeRecon = (function () {
+var _oilRawRecon = (function () {
     'use strict';
 
     var COLS = [
@@ -58,14 +58,14 @@ var _supplierIntakeRecon = (function () {
         if (!state.from) { state.from = todayStr().slice(0, 4) + '-01-01'; }
         if (!state.to) { state.to = todayStr(); }
         var wanted = state.from + '|' + state.to;
-        $('#siPaneRecon').html('<div class="text-muted p-3">Loading…</div>');
+        $('#orPaneRecon').html('<div class="text-muted p-3">Loading…</div>');
         return safe(dataFunctions.getOilSupplierRecon(state.from, state.to)).then(function (r) {
             if (state.from + '|' + state.to !== wanted) { return; }
             state.loaded = true;
             if (isOk(r) && Array.isArray(r.loads)) {
                 state.result = r;
             } else {
-                console.warn('[Supplier Intake] get_oil_supplier_recon unavailable:', errText(r, ''));
+                console.warn('[Oil Raw Materials] get_oil_supplier_recon unavailable:', errText(r, ''));
                 state.result = null;
                 state.error = errText(r, '');
             }
@@ -86,15 +86,15 @@ var _supplierIntakeRecon = (function () {
     }
 
     function render() {
-        var $p = $('#siPaneRecon');
+        var $p = $('#orPaneRecon');
         var r = state.result;
         var h = '<div class="card mb-3 mac-module-filter-bar"><div class="card-body"><div class="row g-2 align-items-end">' +
-            '<div class="col-6 col-md-3 col-lg-2"><label for="siReconFrom" class="form-label">From</label>' +
-            '<input type="date" class="form-control" id="siReconFrom" value="' + esc(state.from) + '"></div>' +
-            '<div class="col-6 col-md-3 col-lg-2"><label for="siReconTo" class="form-label">To</label>' +
-            '<input type="date" class="form-control" id="siReconTo" value="' + esc(state.to) + '"></div>' +
-            '<div class="col-12 col-md-4 col-lg-3"><label for="siReconSupplier" class="form-label">Supplier</label>' +
-            '<select class="form-select" id="siReconSupplier"><option value="">All suppliers</option>';
+            '<div class="col-6 col-md-3 col-lg-2"><label for="orReconFrom" class="form-label">From</label>' +
+            '<input type="date" class="form-control" id="orReconFrom" value="' + esc(state.from) + '"></div>' +
+            '<div class="col-6 col-md-3 col-lg-2"><label for="orReconTo" class="form-label">To</label>' +
+            '<input type="date" class="form-control" id="orReconTo" value="' + esc(state.to) + '"></div>' +
+            '<div class="col-12 col-md-4 col-lg-3"><label for="orReconSupplier" class="form-label">Supplier</label>' +
+            '<select class="form-select" id="orReconSupplier"><option value="">All suppliers</option>';
         var loads = r ? r.loads : [];
         var names = {};
         loads.forEach(function (l) { names[l.supplier] = true; });
@@ -103,7 +103,7 @@ var _supplierIntakeRecon = (function () {
             h += '<option value="' + esc(n) + '"' + (n === state.supplier ? ' selected' : '') + '>' + esc(n) + '</option>';
         });
         h += '</select></div>' +
-            '<div class="col-12 col-md-2 col-lg-2 ms-lg-auto"><button type="button" class="btn btn-outline-secondary w-100" id="siReconExport"' +
+            '<div class="col-12 col-md-2 col-lg-2 ms-lg-auto"><button type="button" class="btn btn-outline-secondary w-100" id="orReconExport"' +
             (r && loads.length ? '' : ' disabled') + '><i class="fas fa-download me-1" aria-hidden="true"></i>Export loads</button></div>' +
             '</div></div></div>';
 
@@ -119,7 +119,7 @@ var _supplierIntakeRecon = (function () {
         var bought = emptySum(), own = emptySum();
         shown.forEach(function (l) { addTo(l.own ? own : bought, l); });
         var flagged = shown.filter(function (l) { return !!l.flag; });
-        h += '<div class="si-cake-totals">' +
+        h += '<div class="or-totals">' +
             '<div class="card"><div class="card-body"><span>Bought in</span><strong>' + esc(kg(bought.total, 0)) + ' kg</strong>' +
             '<div class="small text-muted">' + esc(bought.loads) + ' loads</div></div></div>' +
             '<div class="card"><div class="card-body"><span>Our own material</span><strong>' + esc(kg(own.total, 0)) + ' kg</strong>' +
@@ -144,15 +144,15 @@ var _supplierIntakeRecon = (function () {
                 return b.sum.total - a.sum.total;
             });
             h += '<div class="card mb-3"><div class="card-body p-0"><h3 class="h6 px-3 pt-3">By supplier</h3>' +
-                '<div class="table-responsive"><table class="table align-middle mb-0 si-recon-table">' + headRow('Supplier') + '<tbody>';
+                '<div class="table-responsive"><table class="table align-middle mb-0 or-recon-table">' + headRow('Supplier') + '<tbody>';
             if (!sups.length) { h += '<tr><td colspan="7" class="text-muted">No loads in this period.</td></tr>'; }
             sups.forEach(function (s) {
-                h += sumRow('<button type="button" class="btn btn-link p-0 si-recon-pick" data-supplier="' + esc(s.name) + '">' + esc(s.name) + '</button>' +
+                h += sumRow('<button type="button" class="btn btn-link p-0 or-recon-pick" data-supplier="' + esc(s.name) + '">' + esc(s.name) + '</button>' +
                     (s.own ? ' <span class="small text-muted">(own cracking)</span>' : ''), s.sum);
             });
-            h += '</tbody><tfoot>' + sumRow('Bought in', bought, 'si-recon-total') + sumRow('All received', (function () {
+            h += '</tbody><tfoot>' + sumRow('Bought in', bought, 'or-recon-total') + sumRow('All received', (function () {
                 var all = emptySum(); loads.forEach(function (l) { addTo(all, l); }); return all;
-            })(), 'si-recon-total') + '</tfoot></table></div></div></div>';
+            })(), 'or-recon-total') + '</tfoot></table></div></div></div>';
         }
 
         // By month
@@ -164,25 +164,25 @@ var _supplierIntakeRecon = (function () {
         var months = Object.keys(byMonth).sort();
         h += '<div class="card mb-3"><div class="card-body p-0"><h3 class="h6 px-3 pt-3">By month' +
             (state.supplier ? ' — ' + esc(state.supplier) : ', all suppliers') + '</h3>' +
-            '<div class="table-responsive"><table class="table align-middle mb-0 si-recon-table">' + headRow('Month') + '<tbody>';
+            '<div class="table-responsive"><table class="table align-middle mb-0 or-recon-table">' + headRow('Month') + '<tbody>';
         if (!months.length) { h += '<tr><td colspan="7" class="text-muted">No loads in this period.</td></tr>'; }
         months.forEach(function (ym) { h += sumRow(esc(monthName(ym)), byMonth[ym]); });
         var tot = emptySum(); shown.forEach(function (l) { addTo(tot, l); });
-        h += '</tbody>' + (months.length ? '<tfoot>' + sumRow('Total', tot, 'si-recon-total') + '</tfoot>' : '') + '</table></div></div></div>';
+        h += '</tbody>' + (months.length ? '<tfoot>' + sumRow('Total', tot, 'or-recon-total') + '</tfoot>' : '') + '</table></div></div></div>';
 
         // Loads
         h += '<div class="card"><div class="card-body p-0"><h3 class="h6 px-3 pt-3">Loads</h3>' +
-            '<div class="table-responsive"><table class="table align-middle mb-0 si-recon-table"><thead><tr><th>Date</th><th>Supplier</th><th>From</th>';
+            '<div class="table-responsive"><table class="table align-middle mb-0 or-recon-table"><thead><tr><th>Date</th><th>Supplier</th><th>From</th>';
         COLS.forEach(function (c) { h += '<th class="text-end">' + esc(c.name) + '</th>'; });
         h += '<th class="text-end">Total</th><th>Note</th></tr></thead><tbody>';
         if (!shown.length) { h += '<tr><td colspan="9" class="text-muted">No loads in this period.</td></tr>'; }
         shown.slice().sort(function (a, b) { return a.received_date < b.received_date ? 1 : a.received_date > b.received_date ? -1 : 0; }).forEach(function (l) {
-            h += '<tr' + (l.flag ? ' class="si-recon-flagged"' : '') + '><td class="text-nowrap">' + esc(fmtDate(l.received_date)) + '</td>' +
+            h += '<tr' + (l.flag ? ' class="or-recon-flagged"' : '') + '><td class="text-nowrap">' + esc(fmtDate(l.received_date)) + '</td>' +
                 '<td>' + esc(l.supplier) + '</td>' +
                 '<td class="small text-muted text-nowrap">' + (l.source === 'portal' ? 'Portal' + (l.reference ? ' · ' + esc(l.reference) : '') : 'Recon sheet') + '</td>';
             COLS.forEach(function (c) { h += '<td class="text-end">' + (Number(l[c.key]) ? esc(kg(l[c.key])) : '<span class="text-muted">–</span>') + '</td>'; });
             h += '<td class="text-end fw-semibold">' + esc(kg(loadTotal(l))) + '</td><td class="small">' +
-                (l.flag ? '<span class="si-stock-pill si-stock-pill-amber">' + esc(FLAG_LABEL[l.flag] || l.flag) + '</span> ' : '') +
+                (l.flag ? '<span class="or-pill or-pill-amber">' + esc(FLAG_LABEL[l.flag] || l.flag) + '</span> ' : '') +
                 (l.note ? esc(l.note) : '') + '</td></tr>';
         });
         h += '</tbody></table></div></div></div>';
@@ -229,14 +229,14 @@ var _supplierIntakeRecon = (function () {
 
     function bindEvents() {
         // Namespaced on the module root, which the router replaces on each visit.
-        $('#supplierIntakeModule')
-            .off('.siRecon')
-            .on('change.siRecon', '#siReconFrom, #siReconTo', function () {
-                setRange(String($('#siReconFrom').val() || ''), String($('#siReconTo').val() || ''));
+        $('#oilRawMaterialsModule')
+            .off('.orRecon')
+            .on('change.orRecon', '#orReconFrom, #orReconTo', function () {
+                setRange(String($('#orReconFrom').val() || ''), String($('#orReconTo').val() || ''));
             })
-            .on('change.siRecon', '#siReconSupplier', function () { state.supplier = String($(this).val() || ''); render(); })
-            .on('click.siRecon', '.si-recon-pick', function () { state.supplier = String($(this).attr('data-supplier') || ''); render(); })
-            .on('click.siRecon', '#siReconExport', exportLoads);
+            .on('change.orRecon', '#orReconSupplier', function () { state.supplier = String($(this).val() || ''); render(); })
+            .on('click.orRecon', '.or-recon-pick', function () { state.supplier = String($(this).attr('data-supplier') || ''); render(); })
+            .on('click.orRecon', '#orReconExport', exportLoads);
     }
 
     return {

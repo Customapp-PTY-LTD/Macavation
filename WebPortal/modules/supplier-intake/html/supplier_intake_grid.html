@@ -1,8 +1,11 @@
-<!-- Supplier Intake: Oil & Protein – mirrored from Grower Intake (Kernel); same layout, Board/Table, card structure. -->
+<!-- Receiving (oil pipeline step 1): deliveries and their bags, one line per bag. Raw Materials lives on its own route. -->
 <div class="module-content" id="supplierIntakeModule">
     <div class="pt-3 pb-2 mb-3 border-bottom">
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
-            <h1 class="h2 mb-0">Supplier Intake Management</h1>
+            <div>
+                <div class="small text-uppercase text-muted fw-semibold" style="letter-spacing:.06em">Oil pipeline</div>
+                <h1 class="h2 mb-0">Receiving</h1>
+            </div>
             <div class="btn-toolbar mb-2 mb-md-0 ms-auto gap-2">
                 <a target="_blank" rel="noopener noreferrer" href="help/index.html#supplier-intake-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
                 <button type="button" class="btn btn-outline-secondary" id="supplierAdjustStockBtn" title="Stock counts and corrections without truck checks, or edit an existing batch">
@@ -16,26 +19,14 @@
                 </button>
             </div>
         </div>
-        <p class="text-muted mb-0 mt-2 small macavation-module-journey-subtitle" id="macavationModuleJourneySubtitle">Log every load with <strong>New delivery</strong> (truck checks and one row per bag). Use <strong>Quick stock entry</strong> only for stock counts and corrections. Then complete sample tests before releasing to Oil Production.</p>
+        <p class="text-muted mb-0 mt-2 small macavation-module-journey-subtitle" id="macavationModuleJourneySubtitle">Log every load with <strong>New delivery</strong> (truck checks, documents and one row per bag). Type the FFA result for each bag below, then release to Oil Production. Use <strong>Quick stock entry</strong> only for stock counts and corrections.</p>
     </div>
 
-    <div role="tablist" aria-label="Sections" class="si-tabs">
-        <button type="button" role="tab" class="si-tab" id="siTabDeliveries" aria-selected="true" aria-controls="siPaneDeliveries" data-si-tab="deliveries">Deliveries</button>
-        <button type="button" role="tab" class="si-tab" id="siTabStock" aria-selected="false" aria-controls="siPaneStock" data-si-tab="stock">Raw material stock <span class="si-tab-badge d-none" id="siStockLowBadge"></span></button>
-        <button type="button" role="tab" class="si-tab" id="siTabCake" aria-selected="false" aria-controls="siPaneCake" data-si-tab="cake">Oil cake</button>
-        <button type="button" role="tab" class="si-tab" id="siTabRecon" aria-selected="false" aria-controls="siPaneRecon" data-si-tab="recon">Supplier recon</button>
+    <div class="mb-3">
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="siGoRawMaterialsBtn"><i class="fas fa-boxes-stacked me-1"></i>Raw Materials</button>
     </div>
 
-    <!-- Raw material stock on hand (rendered by supplier_intake_stock.js) -->
-    <div id="siPaneStock" role="tabpanel" aria-labelledby="siTabStock" class="d-none"></div>
-
-    <!-- Oil cake produced and sold (rendered by supplier_intake_stock.js) -->
-    <div id="siPaneCake" role="tabpanel" aria-labelledby="siTabCake" class="d-none"></div>
-
-    <!-- Kg received per supplier and month, for invoice checks (rendered by supplier_intake_recon.js) -->
-    <div id="siPaneRecon" role="tabpanel" aria-labelledby="siTabRecon" class="d-none"></div>
-
-    <div id="siPaneDeliveries" role="tabpanel" aria-labelledby="siTabDeliveries">
+    <div id="siPaneDeliveries">
 
     <!-- Search and Filters -->
     <div class="card mb-3 mac-module-filter-bar">
@@ -60,10 +51,10 @@
                 </div>
                 <div class="col-12 col-lg-4 mac-filter-bar-trailing">
                     <div class="view-toggle">
-                        <button class="view-toggle-btn active" data-view="kanban" id="siViewKanban">
+                        <button class="view-toggle-btn" data-view="kanban" id="siViewKanban">
                             <i class="fas fa-columns me-1"></i>Board
                         </button>
-                        <button class="view-toggle-btn" data-view="table" id="siViewTable">
+                        <button class="view-toggle-btn active" data-view="table" id="siViewTable">
                             <i class="fas fa-list me-1"></i>Table
                         </button>
                     </div>
@@ -72,31 +63,31 @@
         </div>
     </div>
 
-    <!-- Kanban Board (default view) -->
-    <div id="siKanbanBoard" class="kanban-board"></div>
+    <!-- Kanban Board (optional view) -->
+    <div id="siKanbanBoard" class="kanban-board" style="display:none"></div>
 
-    <!-- Table View (hidden by default) -->
-    <div class="card mb-4 supplier-intake-table-card mac-table-actions-card" id="siTableCard" style="display:none">
+    <!-- Table View (default): one compact line per bag -->
+    <div class="card mb-4 supplier-intake-table-card mac-table-actions-card" id="siTableCard">
         <div class="card-body p-2 p-md-3">
+            <div class="d-flex justify-content-end align-items-center gap-2 mb-2" id="siFfaSaveBar">
+                <span class="small text-muted d-none d-md-inline">Type the FFA and press Enter to jump to the next bag.</span>
+                <button type="button" class="btn btn-sm btn-primary" id="siSaveInlineFfaBtn" disabled><i class="fas fa-save me-1"></i>Save 0 FFA results</button>
+            </div>
             <div class="table-responsive supplier-intake-table-responsive">
-                <table class="table align-middle table-hover" id="supplierIntakeBatchesTable">
+                <table class="table table-sm align-middle table-hover si-compact-table" id="supplierIntakeBatchesTable">
                     <thead>
                         <tr>
+                            <th class="supplier-intake-col-no">No.</th>
                             <th class="supplier-intake-col-batch">Batch #</th>
-                            <th class="supplier-intake-col-product d-none d-md-table-cell">Description</th>
-                            <th class="supplier-intake-col-date">Date received</th>
-                            <th class="supplier-intake-col-note d-none d-lg-table-cell">Delivery note / PO</th>
-                            <th class="supplier-intake-col-supplier">Supplier</th>
-                            <th class="supplier-intake-col-qty d-none d-sm-table-cell">Weight (kg)</th>
-                            <th class="supplier-intake-col-ffa text-end">FFA (%)</th>
-                            <th class="supplier-intake-col-mfg d-none d-lg-table-cell">Mfg / Best before</th>
-                            <th class="supplier-intake-col-receiving">Sample test</th>
-                            <th class="supplier-intake-col-status">Status</th>
-                            <th class="supplier-intake-col-actions">Actions</th>
+                            <th class="supplier-intake-col-product">Description</th>
+                            <th class="supplier-intake-col-qty text-end">Weight (kg)</th>
+                            <th class="supplier-intake-col-ffa text-end">FFA %</th>
+                            <th class="supplier-intake-col-result">Result</th>
+                            <th class="supplier-intake-col-actions"><span class="visually-hidden">Actions</span></th>
                         </tr>
                     </thead>
                     <tbody id="supplierIntakeBatchesTableBody">
-                        <tr><td colspan="11" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>Loading…</td></tr>
+                        <tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>Loading…</td></tr>
                     </tbody>
                 </table>
             </div>

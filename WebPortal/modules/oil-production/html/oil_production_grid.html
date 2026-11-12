@@ -1,5 +1,5 @@
 <!-- Oil Production: raw ingredients in production, oil bin batches -->
-<div class="module-content">
+<div class="module-content" id="oilProductionModule">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Oil Production</h1>
         <div class="btn-toolbar mb-2 mb-md-0 ms-auto">
@@ -12,6 +12,16 @@
             </button>
         </div>
     </div>
+
+    <div role="tablist" aria-label="Sections" class="op-tabs">
+        <button type="button" role="tab" class="op-tab" id="opTabMain" aria-selected="true" aria-controls="opPaneMain" data-op-tab="main">Production</button>
+        <button type="button" role="tab" class="op-tab" id="opTabCake" aria-selected="false" aria-controls="opPaneCake" data-op-tab="cake">Oil cake</button>
+    </div>
+
+    <!-- Oil cake produced and sold (rendered by oil_production_grid.js, _oilProductionCake) -->
+    <div id="opPaneCake" role="tabpanel" aria-labelledby="opTabCake" class="d-none"></div>
+
+    <div id="opPaneMain" role="tabpanel" aria-labelledby="opTabMain">
 
     <!-- 1. Raw ingredients in production (released from Supplier Intake) -->
     <div class="card mb-4 mac-section-collapse-card">
@@ -399,5 +409,6 @@
                 </div>
             </div>
         </div>
+    </div>
     </div>
 </div>

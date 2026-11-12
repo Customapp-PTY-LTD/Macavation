@@ -386,6 +386,9 @@ var _appRouter = function () {
                 'supplier-intake-grid': () => {
                     if (typeof initializeSupplierIntakeGrid === 'function') initializeSupplierIntakeGrid();
                 },
+                'oil-raw-materials': () => {
+                    if (typeof _oilRawMaterials !== 'undefined' && _oilRawMaterials.init) _oilRawMaterials.init();
+                },
                 'supplier-oil-batch-modal': () => {
                     if (typeof _modalSupplierOilBatch !== 'undefined' && _modalSupplierOilBatch.init) _modalSupplierOilBatch.init();
                 },
