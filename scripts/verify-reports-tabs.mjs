@@ -160,7 +160,7 @@ check('data-functions: report_view_ cache is cleared alongside report_history_',
 check('data-functions: ensureReportDrafts clears report_history_ cache', /ensureReportDrafts[\s\S]{0,600}clearCachePattern\('report_history_'\)/.test(dataFns));
 
 // Weekly report v2 (Mike, 12 Nov 2026): two pages, line-by-line figures, monthly / 4 target fallback.
-const WEEKLY_MIG = 'migrations/20261112090000_weekly_report_v2.sql';
+const WEEKLY_MIG = 'migrations/20261112110000_weekly_report_v2.sql';
 let weeklySql = '';
 try {
   weeklySql = code(read(WEEKLY_MIG));
