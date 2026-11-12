@@ -29,8 +29,50 @@
                 <div id="kdaInvoiceWrap" class="kda-card d-none">
                     <h2 class="kda-card-title">Step 5 · Invoice sent</h2>
                     <p class="mb-2">The truck has been loaded. Send the invoice and documents to the customer, then tick it off here.</p>
-                    <label class="form-label" for="kdaInvoiceNote">Note (optional, e.g. invoice number or who it went to)</label>
-                    <input type="text" class="form-control" id="kdaInvoiceNote" maxlength="500">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="kdaPoRef">Customer PO number</label>
+                            <input type="text" class="form-control" id="kdaPoRef" maxlength="100" autocomplete="off">
+                            <div class="mt-2">
+                                <input type="file" class="d-none" id="kdaPoFileInput" accept="image/*,application/pdf" multiple>
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="kdaPoAttachBtn">Attach the PO</button>
+                                <span class="text-muted small ms-1">PDF or photo, up to 6 MB</span>
+                            </div>
+                            <div class="mt-2" id="kdaPoFiles"></div>
+                            <div class="text-danger small d-none" id="kdaPoFileError"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="kdaInvRef">Our invoice number</label>
+                            <input type="text" class="form-control" id="kdaInvRef" maxlength="100" autocomplete="off">
+                            <div class="mt-2">
+                                <input type="file" class="d-none" id="kdaInvFileInput" accept="image/*,application/pdf" multiple>
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="kdaInvAttachBtn">Attach the invoice</button>
+                                <span class="text-muted small ms-1">PDF or photo, up to 6 MB</span>
+                            </div>
+                            <div class="mt-2" id="kdaInvFiles"></div>
+                            <div class="text-danger small d-none" id="kdaInvFileError"></div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="kdaInvoiceNote">Note (optional, e.g. who it went to)</label>
+                            <input type="text" class="form-control" id="kdaInvoiceNote" maxlength="500">
+                        </div>
+                    </div>
+                </div>
+                <div id="kdaPaperWrap" class="kda-card d-none">
+                    <h2 class="kda-card-title">PO and invoice</h2>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="text-muted small">Customer PO number</div>
+                            <div class="fw-semibold" id="kdaPaperPoRef">-</div>
+                            <div class="mt-1" id="kdaPaperPoFiles"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-muted small">Our invoice number</div>
+                            <div class="fw-semibold" id="kdaPaperInvRef">-</div>
+                            <div class="mt-1" id="kdaPaperInvFiles"></div>
+                        </div>
+                        <div class="col-12 small d-none" id="kdaPaperNote"></div>
+                    </div>
                 </div>
                 <div class="kda-cards-row d-none" id="kdaApproveCards">
                     <div class="kda-card">

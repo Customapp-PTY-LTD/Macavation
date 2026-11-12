@@ -270,13 +270,38 @@ var _batchJourneyGrid = (function () {
         if (tabs) tabs.classList.toggle('d-none', !show);
         var kernelPanel = document.getElementById('bjKernelPanel');
         var oilPanel = document.getElementById('bjOilPanel');
+        var docsPanel = document.getElementById('bjDocsPanel');
         if (!show) {
             if (kernelPanel) kernelPanel.style.display = 'none';
             if (oilPanel) oilPanel.style.display = 'none';
+            if (docsPanel) docsPanel.style.display = 'none';
             return;
         }
         if (kernelPanel) kernelPanel.style.display = scope.activeStream === 'kernel' ? '' : 'none';
         if (oilPanel) oilPanel.style.display = scope.activeStream === 'oil' ? '' : 'none';
+        if (docsPanel) docsPanel.style.display = scope.activeStream === 'documents' ? '' : 'none';
+    }
+
+    function canSeeDocuments() {
+        return typeof roleMenuConfig !== 'undefined' && roleMenuConfig.hasAccess('document-management-grid');
+    }
+
+    /** Documents tab: mount the document-management module's own markup once per visit, then init it. */
+    async function loadDocsPanel() {
+        if (scope.docsLoaded) return;
+        scope.docsLoaded = true;
+        var panel = document.getElementById('bjDocsPanel');
+        if (!panel) return;
+        var res = await _appRouter.fetchHtml(_appRouter.basePath + '/document-management/html/document_management_grid.html');
+        if (!res.success) {
+            scope.docsLoaded = false;
+            panel.innerHTML = '<div class="alert alert-warning">Documents could not be loaded. Please refresh the page.</div>';
+            return;
+        }
+        panel.innerHTML = res.data;
+        // The tab already names the section; drop the standalone page title, keep its Help/New folder/Upload buttons.
+        $(panel).find('.module-content > .border-bottom h1').remove();
+        if (typeof initializeDocumentManagementGrid === 'function') initializeDocumentManagementGrid();
     }
 
     /**
@@ -453,16 +478,20 @@ var _batchJourneyGrid = (function () {
     }
 
     function setActiveStream(stream) {
-        scope.activeStream = stream === 'oil' ? 'oil' : 'kernel';
+        scope.activeStream = (stream === 'oil' || (stream === 'documents' && canSeeDocuments())) ? stream : 'kernel';
         var kernelPanel = document.getElementById('bjKernelPanel');
         var oilPanel = document.getElementById('bjOilPanel');
+        var docsPanel = document.getElementById('bjDocsPanel');
         if (kernelPanel) kernelPanel.style.display = scope.activeStream === 'kernel' ? '' : 'none';
         if (oilPanel) oilPanel.style.display = scope.activeStream === 'oil' ? '' : 'none';
+        if (docsPanel) docsPanel.style.display = scope.activeStream === 'documents' ? '' : 'none';
         document.querySelectorAll('#bjStreamTabs .nav-link').forEach(function (btn) {
             var s = btn.getAttribute('data-stream');
             btn.classList.toggle('active', s === scope.activeStream);
         });
-        if (scope.activeStream === 'oil' && !scope.oilBatches.length) {
+        if (scope.activeStream === 'documents') {
+            loadDocsPanel();
+        } else if (scope.activeStream === 'oil' && !scope.oilBatches.length) {
             loadOilBatches();
         } else if (scope.activeStream === 'oil') {
             filterAndSortOil();
@@ -699,8 +728,16 @@ var _batchJourneyGrid = (function () {
         init: function () {
             if (typeof BatchStatus !== 'undefined') BatchStatus.applyModuleSubtitle('batch-journey');
             if (typeof HandoffDialog !== 'undefined') HandoffDialog.applyPendingSearchForRoute('batch-journey');
+            // Fresh markup every visit, so the Documents panel must be mounted again when next opened.
+            scope.docsLoaded = false;
+            if (scope.activeStream === 'documents') scope.activeStream = 'kernel';
+            var docsTab = document.getElementById('bjDocsTabItem');
+            if (docsTab) docsTab.classList.toggle('d-none', !canSeeDocuments());
             bindEvents();
             loadBatches();
+            // Handoff { tab: 'documents' }: the old Documents menu link lands here.
+            var h = (typeof _appRouter !== 'undefined' && _appRouter.takeHandoff) ? _appRouter.takeHandoff('batch-journey') : null;
+            if (h && h.tab === 'documents') setActiveStream('documents');
 
             if (typeof _appRouter !== 'undefined' && _appRouter.loadContent) {
                 _appRouter.loadContent({
