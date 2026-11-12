@@ -462,6 +462,13 @@ var _procurementPlan = (function () {
         var h = state.handoff;
         if (!h) return;
         state.handoff = null;
+        // Grower Intake's late-truck Edit button: open the Edit truck panel on that truck.
+        if (h.editProcurementId) {
+            var d = findDelivery(h.editProcurementId);
+            if (d && canEdit()) openPanel('delivery', { delivery: d });
+            else toast(false, canEdit() ? 'That truck is no longer on the plan.' : 'You do not have permission to edit the plan.');
+            return;
+        }
         setTimeout(function () {
             var node = null;
             if (h.focusProcurementId) {

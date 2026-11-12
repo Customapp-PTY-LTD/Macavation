@@ -111,6 +111,12 @@ var _growerIntakeGrid = function () {
                 e.preventDefault();
                 scope.trucksOpen = !scope.trucksOpen;
                 scope.renderExpectedTrucks();
+            }).on('click.giTrucksStrip', '#giExpectedTrucks .js-truck-edit', function (e) {
+                e.preventDefault();
+                scope.editTruck($(this).data('procurement-id'));
+            }).on('click.giTrucksStrip', '#giExpectedTrucks .js-truck-cancel', function (e) {
+                e.preventDefault();
+                scope.cancelTruck($(this).data('procurement-id'));
             }).on('click.giTrucksStrip', '#giTrucksOld', function (e) {
                 e.preventDefault();
                 if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) _appRouter.routeTo('procurement-plan', true);
@@ -759,6 +765,50 @@ var _growerIntakeGrid = function () {
 
         _procCanBook: () => typeof window.hasAction === 'function' && !!window.hasAction('grower.intake.create'),
 
+        /** Same permission the Procurement plan uses for its Edit truck panel and Cancel this truck. */
+        _procCanEditPlan: () => typeof window.hasAction === 'function' && !!window.hasAction('procurement.plan.edit'),
+
+        /** Late truck -> Edit: opens the Procurement plan's own Edit truck panel on that truck. */
+        editTruck: (procurementId) => {
+            if (typeof _appRouter !== 'undefined' && _appRouter.openWith) {
+                _appRouter.openWith('procurement-plan', { editProcurementId: procurementId });
+            }
+        },
+
+        /** Late truck -> Cancel: same call and wording as the Procurement plan's Cancel this truck. */
+        cancelTruck: async (procurementId) => {
+            const scope = _growerIntakeGrid;
+            var truck = (scope.procurementItems || []).filter(function (p) { return String(p.id) === String(procurementId); })[0];
+            var who = truck ? (truck.grower || 'this grower') : 'this grower';
+            var yes;
+            if (typeof Swal !== 'undefined') {
+                var r = await Swal.fire({
+                    title: 'Cancel this truck?',
+                    text: 'The truck from ' + who + ' comes off the plan.',
+                    icon: 'warning', showCancelButton: true,
+                    confirmButtonText: 'Cancel truck', cancelButtonText: 'Keep it'
+                });
+                yes = !!r.isConfirmed;
+            } else {
+                yes = window.confirm('Cancel this truck? It comes off the plan.');
+            }
+            if (!yes) return;
+            var df = typeof _dataFunctions !== 'undefined' && _dataFunctions ? _dataFunctions
+                   : typeof dataFunctions !== 'undefined' ? dataFunctions : null;
+            var res = null;
+            try {
+                res = df && df.cancelProcurementDelivery ? await df.cancelProcurementDelivery(procurementId) : null;
+            } catch (e) {
+                console.error('[Expected trucks] Cancel failed:', e);
+            }
+            if (!res || res.success === false) {
+                if (typeof _common !== 'undefined' && _common.showErrorToast) _common.showErrorToast((res && res.error) || 'Could not cancel. Please try again.');
+                return;
+            }
+            if (typeof _common !== 'undefined' && _common.showSuccessToast) _common.showSuccessToast('Truck cancelled.');
+            scope.loadProcurements(true);
+        },
+
         _procFmtDate: (iso) => {
             if (!iso) return '';
             var p = String(iso).slice(0, 10).split('-');
@@ -829,7 +879,8 @@ var _growerIntakeGrid = function () {
             var iso = function (n) { return scope._procIsoFromDate(new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + n)); };
             var tomorrow = iso(1), lateFrom = iso(-LATE_DAYS), weekEnd = iso(6);
             var canBook = scope._procCanBook();
-            var items = (scope.procurementItems || []).slice().sort(function (x, y) {
+            var canEditPlan = scope._procCanEditPlan();
+            var items =(scope.procurementItems || []).slice().sort(function (x, y) {
                 return String(x.scheduled_date).localeCompare(String(y.scheduled_date)) ||
                     ((x.sort_index != null ? x.sort_index : 9999) - (y.sort_index != null ? y.sort_index : 9999));
             });
@@ -862,7 +913,14 @@ var _growerIntakeGrid = function () {
                         '<span class="gi-truck-when">' + esc(when) + (p.status === 'confirmed' ? '' : ' \u00B7 not confirmed') + '</span></div>';
                     h += '<div class="gi-truck-title">' + esc(p.grower || 'Grower') + '</div>';
                     h += '<div class="gi-truck-sub">' + esc([p.truck_label, kgTxt, area].filter(Boolean).join(' \u00B7 ')) + '</div>';
-                    if (canBook && kind !== 'tomorrow') h += '<button type="button" class="btn btn-sm btn-primary js-book-in-btn" data-procurement-id="' + esc(p.id) + '">Book in</button>';
+                    var acts = '';
+                    if (canBook && kind !== 'tomorrow') acts += '<button type="button" class="btn btn-sm btn-primary js-book-in-btn" data-procurement-id="' + esc(p.id) + '">Book in</button>';
+                    // Late trucks: change the plan (new date, weight...) or take it off, without leaving for the plan
+                    if (kind === 'late' && canEditPlan) {
+                        acts += '<button type="button" class="btn btn-sm btn-outline-secondary js-truck-edit" data-procurement-id="' + esc(p.id) + '">Edit</button>' +
+                            '<button type="button" class="btn btn-sm btn-outline-danger js-truck-cancel" data-procurement-id="' + esc(p.id) + '">Cancel</button>';
+                    }
+                    if (acts) h += '<div class="gi-truck-actions">' + acts + '</div>';
                     return h + '</div>';
                 };
                 html += '<div class="gi-trucks-list" data-kind="all">' +
