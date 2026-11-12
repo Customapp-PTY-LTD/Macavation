@@ -358,25 +358,6 @@ var _modal_supplier_receiver_checklist = (function () {
         return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
     }
 
-    /**
-     * createSupplierIntakeBatch / updateSupplierIntakeBatch build intake_data from a fixed list of keys, so
-     * consignment_ref and documents would be dropped. Merge them into the saved row afterwards (same
-     * read-merge-upsert the release function uses). Returns true when saved.
-     */
-    async function saveDeliveryExtras(oilId, consignmentRef, documents) {
-        if (!oilId || typeof dataFunctions === 'undefined' || !dataFunctions.getOilBatchById || !dataFunctions.callFunction) return false;
-        var row = await dataFunctions.getOilBatchById(oilId);
-        var intake = parseIntakeObj(row && row.intake_data);
-        var merged = Object.assign({}, intake, { consignment_ref: consignmentRef || null, documents: documents });
-        var params = { p_oil_id: oilId, p_status: (row && row.status) || 'awaiting_test', p_intake_data: merged };
-        var uid = dataFunctions.getCurrentUserId ? dataFunctions.getCurrentUserId() : null;
-        if (uid) params.p_updated_by = uid;
-        var res = await dataFunctions.callFunction('upsert_oil_batch', params, null, { useCache: false });
-        var resolved = res && (res.data !== undefined ? res.data : res);
-        if (dataFunctions.clearCachePattern) { dataFunctions.clearCachePattern('supplier_intake'); dataFunctions.clearCachePattern('oil_batches'); }
-        return !!resolved && resolved.success !== false;
-    }
-
     /** Edit: load the consignment ref and documents already saved on the bag, since the grid row does not carry them. */
     async function loadSavedExtras(oilId) {
         try {
@@ -1044,6 +1025,8 @@ var _modal_supplier_receiver_checklist = (function () {
                         pallets_condition: pallets_condition,
                         raw_materials_condition: raw_materials_condition,
                         receiving_comments: receiving_comments,
+                        consignment_ref: consignmentRef || null,
+                        documents: documents,
                         status: _editingBatchStatus || 'awaiting_test'
                     };
                     if (_editingBatchSnapshot && _editingBatchSnapshot.official_ffa != null && _editingBatchSnapshot.official_ffa !== '') {
@@ -1058,9 +1041,6 @@ var _modal_supplier_receiver_checklist = (function () {
                     if (res && res.success === false) {
                         throw new Error(res.error || res.message || 'Failed to update batch');
                     }
-                    // updateSupplierIntakeBatch rewrites intake_data whole, so put the documents back.
-                    var extrasOkEdit = await saveDeliveryExtras(_editingBatchId, consignmentRef, documents);
-                    if (!extrasOkEdit) throw new Error('The batch was saved but its consignment reference and documents were not. Open Edit and save again.');
                     if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Saved', text: 'Batch updated.', timer: 2500, showConfirmButton: false });
                 } else {
                     if (typeof dataFunctions === 'undefined' || !dataFunctions.createSupplierIntakeBatch) {
@@ -1068,7 +1048,7 @@ var _modal_supplier_receiver_checklist = (function () {
                         return;
                     }
                     var deliveryGroupId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : (function () { var d = new Date().getTime(); return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) { var r = (d + Math.random() * 16) % 16 | 0; d = Math.floor(d / 16); return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16); }); })();
-                    var created = 0, ready = 0, held = 0, ffaFailed = [], extrasFailed = [];
+                    var created = 0, ready = 0, held = 0, ffaFailed = [];
                     for (var i = 0; i < rows.length; i++) {
                         var r = rows[i];
                         var payload = {
@@ -1094,21 +1074,15 @@ var _modal_supplier_receiver_checklist = (function () {
                             pest_infestations: pest_infestations,
                             pallets_condition: pallets_condition,
                             raw_materials_condition: raw_materials_condition,
-                            receiving_comments: receiving_comments
+                            receiving_comments: receiving_comments,
+                            consignment_ref: consignmentRef || null,
+                            documents: documents
                         };
                         var res = await dataFunctions.createSupplierIntakeBatch(payload);
                         if (res && res.success === false) {
                             throw new Error(res.error || res.message || 'Failed to create batch');
                         }
                         created++;
-                        if ((consignmentRef || documents.length) && res && res.id) {
-                            try {
-                                if (!(await saveDeliveryExtras(res.id, consignmentRef, documents))) extrasFailed.push(r.batch_number);
-                            } catch (xe) {
-                                console.error('[Receiver checklist] documents save failed', xe);
-                                extrasFailed.push(r.batch_number);
-                            }
-                        }
                         // Same rule as Sample test: in spec -> Ready, not in spec -> waits for an exec.
                         if (r.ffa != null && res && res.id && dataFunctions.completeSupplierIntakeFirstSampleFfa) {
                             try {
@@ -1128,8 +1102,7 @@ var _modal_supplier_receiver_checklist = (function () {
                     if (waiting) parts.push(waiting + ' in Awaiting tests');
                     var savedText = 'Delivery saved: ' + created + ' bag' + (created === 1 ? '' : 's') + ' (' + parts.join(', ') + ').';
                     if (typeof Swal !== 'undefined') {
-                        if (extrasFailed.length) Swal.fire({ icon: 'warning', title: 'Saved, but documents were not', text: savedText + ' The consignment reference and documents were not saved on: ' + extrasFailed.join(', ') + '. Use Edit on those bags to attach them again.' });
-                        else if (ffaFailed.length) Swal.fire({ icon: 'warning', title: 'Saved, but some FFA results were not', text: savedText + ' Record FFA again for: ' + ffaFailed.join(', ') + '.' });
+                        if (ffaFailed.length) Swal.fire({ icon: 'warning', title: 'Saved, but some FFA results were not', text: savedText + ' Record FFA again for: ' + ffaFailed.join(', ') + '.' });
                         else Swal.fire({ icon: 'success', title: 'Created', text: savedText, timer: held ? 4000 : 2500, showConfirmButton: false });
                     }
                 }
