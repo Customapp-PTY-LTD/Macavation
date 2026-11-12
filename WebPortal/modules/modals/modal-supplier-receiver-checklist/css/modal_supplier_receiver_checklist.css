@@ -16,3 +16,30 @@
     background-color: var(--mac-danger-light);
     border: 1px solid var(--mac-danger);
 }
+
+/* Attached documents (consignment note, delivery note, other): removable chips */
+.src-doc-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    padding: 2px 6px 2px 10px;
+    border: 1px solid var(--mac-border);
+    border-radius: 999px;
+    background: var(--mac-bg-secondary);
+    font-size: 0.8125rem;
+}
+.src-doc-chip a, .src-doc-chip .src-doc-name {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.src-doc-chip .src-doc-remove {
+    border: none;
+    background: transparent;
+    color: var(--mac-text-secondary);
+    line-height: 1;
+    padding: 0 4px;
+}
+.src-doc-chip .src-doc-remove:hover { color: var(--mac-danger); }

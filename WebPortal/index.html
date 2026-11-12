@@ -60,7 +60,7 @@
     <!-- Metric UI -->
     <script src="js/metric-ui.js"></script>
     <!-- Workflow Views -->
-    <script src="js/workflow-views.js?v=20261106disp3"></script>
+    <script src="js/workflow-views.js?v=20261112oilrm"></script>
     <!-- Connected Workflows -->
     <script src="js/connected-workflows.js"></script>
     <!-- Proactive Intelligence -->
@@ -197,23 +197,28 @@
                                 <div class="collapse" id="oilCollapse">
                                     <ul class="nav flex-column ms-3">
                                         <li class="nav-item d-none" data-route="supplier-intake-grid">
-                                            <a class="nav-link" href="#" route="supplier-intake-grid" title="Step 1 — Supplier Intake">
-                                                <i class="fas fa-dolly me-2"></i>1. Supplier Intake
+                                            <a class="nav-link" href="#" route="supplier-intake-grid" title="Step 1 — Receiving">
+                                                <i class="fas fa-dolly me-2"></i>1. Receiving
+                                            </a>
+                                        </li>
+                                        <li class="nav-item d-none" data-route="oil-raw-materials">
+                                            <a class="nav-link" href="#" route="oil-raw-materials" title="Step 2 — Raw Materials">
+                                                <i class="fas fa-boxes-stacked me-2"></i>2. Raw Materials
                                             </a>
                                         </li>
                                         <li class="nav-item d-none" data-route="oil-production-grid">
-                                            <a class="nav-link" href="#" route="oil-production-grid" title="Step 2 — Oil Production">
-                                                <i class="fas fa-industry me-2"></i>2. Oil Production
+                                            <a class="nav-link" href="#" route="oil-production-grid" title="Step 3 — Production">
+                                                <i class="fas fa-industry me-2"></i>3. Production
                                             </a>
                                         </li>
                                         <li class="nav-item d-none" data-route="stock-management-oil">
-                                            <a class="nav-link" href="#" route="stock-management-oil" title="Step 3 — Stock (Oil &amp; Protein)">
-                                                <i class="fas fa-warehouse me-2"></i>3. Stock (Oil &amp; Protein)
+                                            <a class="nav-link" href="#" route="stock-management-oil" title="Step 4 — Stock on Hand">
+                                                <i class="fas fa-warehouse me-2"></i>4. Stock on Hand
                                             </a>
                                         </li>
                                         <li class="nav-item d-none" data-route="oil-dispatch-grid">
-                                            <a class="nav-link" href="#" route="oil-dispatch-grid" title="Step 4 — Oil Dispatch">
-                                                <i class="fas fa-box-open me-2"></i>4. Oil Dispatch
+                                            <a class="nav-link" href="#" route="oil-dispatch-grid" title="Step 5 — Dispatch and Sales">
+                                                <i class="fas fa-box-open me-2"></i>5. Dispatch and Sales
                                             </a>
                                         </li>
                                     </ul>
@@ -572,8 +577,8 @@
     <script src="js/themes.js"></script>
     <script src="js/super-user-visibility.js?v=20260715a"></script>
     <script src="js/batch-number-format.js?v=20261106bn1"></script>
-    <script src="js/data-functions.js?v=20261112latetrucks"></script>
-    <script src="js/auth-service.js?v=20260716c"></script>
+    <script src="js/data-functions.js?v=20261112oilrm"></script>
+    <script src="js/auth-service.js?v=20261112oilrm"></script>
     <script src="js/common.js?v=20261102ffa"></script>
     <script src="js/export-utils.js"></script>
     <!-- Display-only role label formatter: super_user -> "Super User" (never renames the key) -->
@@ -589,7 +594,7 @@
          data-functions guards all offlineStorage usage with typeof checks.) -->
 
     <!-- Role-Based Menu Scripts -->
-    <script src="js/role-menu-config.js?v=20261112latetrucks"></script>
+    <script src="js/role-menu-config.js?v=20261112oilrm"></script>
     <script src="js/menu-filter.js?v=20261106support"></script>
     <script src="js/action-access.js?v=20260602a"></script>
     <script src="js/notifications.js?v=20261027red"></script>
@@ -597,7 +602,7 @@
     <script src="js/stock-alerts-shared.js?v=20260629a"></script>
     
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
-    <script src="js/batch-status.js?v=20261112latetrucks"></script>
+    <script src="js/batch-status.js?v=20261112oilrm"></script>
     <script src="js/handoff-dialog.js?v=20261103autorel1"></script>
     <script src="js/kanban-helper.js?v=20261031r5"></script>
     <script src="js/mac-activity-calendar.js?v=20261015a"></script>
@@ -611,7 +616,7 @@
          script tag, so bumping it here is all that is needed to make a deployed change to any
          module actually reach a browser that has been in the portal before. Bump it whenever a
          module's html/js/css changes. -->
-    <script src="js/appRouter.js?v=20261112latetrucks"></script>
+    <script src="js/appRouter.js?v=20261112oilrm"></script>
     <script src="js/app.js"></script>
     <script src="js/index.js?v=20261027tasks"></script>
     <script src="js/shell.js"></script>

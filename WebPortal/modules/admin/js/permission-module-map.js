@@ -50,6 +50,7 @@ var _permissionModuleMap = (function () {
         'stock-management-kernel': ['stock-management'],
         'kernel-dispatch-grid': ['kernel-dispatch'],
         'supplier-intake-grid': ['supplier-intake'],
+        'oil-raw-materials': ['supplier-intake'],
         'oil-production-grid': ['oil-production'],
         'stock-management-oil': ['stock-management'],
         'oil-dispatch-grid': ['oil-dispatch'],

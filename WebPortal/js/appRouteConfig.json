@@ -238,16 +238,26 @@
             ]
         },
         "supplier-intake-grid": {
-            "description": "Supplier Intake - Oil & Protein",
+            "description": "Oil Receiving - deliveries and FFA tests",
             "path": "supplier-intake",
             "html": "html/supplier_intake_grid.html",
             "js": [
-                "js/supplier_intake_grid.js",
-                "js/supplier_intake_stock.js",
-                "js/supplier_intake_recon.js"
+                "js/supplier_intake_grid.js"
             ],
             "css": [
                 "css/supplier_intake_grid.css"
+            ]
+        },
+        "oil-raw-materials": {
+            "description": "Oil Raw Materials - stock levels, bags in stock, weekly overview, month-end count, daily recipe, supplier recon",
+            "path": "oil-raw-materials",
+            "html": "html/oil_raw_materials.html",
+            "js": [
+                "js/oil_raw_materials.js",
+                "js/oil_raw_recon.js"
+            ],
+            "css": [
+                "css/oil_raw_materials.css"
             ]
         },
         "supplier-oil-batch-modal": {
