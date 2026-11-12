@@ -313,7 +313,7 @@
     function weeklyHeader(st, inst, parts, pal, first) {
         var color = st.key === 'oil' ? pal.tan : pal.green;
         var mark = parts.logo
-            ? { image: parts.logo, fit: [54, 54], width: 60 }
+            ? { image: parts.logo, fit: [68, 68], width: 72 }   // img/report-logo.png: square, white margin built in
             : colorize({ text: 'MACAVATION', fontSize: 12, bold: true, width: 100, margin: [0, 14, 0, 0] }, color);
         var dates = [];
         if (inst.period_start) dates.push({ text: [{ text: 'Start date: ', bold: true }, { text: prettyDate(inst.period_start) }], fontSize: 9 });
