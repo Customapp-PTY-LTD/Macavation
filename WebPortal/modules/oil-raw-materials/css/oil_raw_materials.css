@@ -11,10 +11,10 @@
 
 /* Level chips */
 .or-level { display: inline-flex; align-items: center; gap: 6px; border-radius: var(--mac-radius-pill); font-size: var(--mac-text-xs); font-weight: 700; padding: 3px 10px; white-space: nowrap; border: 1px solid transparent; }
-.or-level-critical { background: #a61b1b; color: #fff; }
-.or-level-low { background: #f7b267; color: #4a2300; border-color: #d98324; }
-.or-level-manageable { background: #cfe0fb; color: #0f2f66; border-color: #8fb0ea; }
-.or-level-good { background: #e4f4e8; color: #14532d; border-color: #86c79a; }
+.or-level-critical { background: var(--mac-danger); color: #fff; }
+.or-level-low { background: var(--mac-warning-light); color: var(--mac-warning-text); border-color: rgba(var(--mac-warning-rgb), 0.55); }
+.or-level-manageable { background: var(--mac-info-light); color: var(--mac-info); border-color: rgba(var(--mac-info-rgb), 0.4); }
+.or-level-good { background: var(--mac-success-light); color: var(--mac-success); border-color: rgba(var(--mac-success-rgb), 0.4); }
 .or-level-none { background: var(--mac-bg-tertiary); color: var(--mac-text-secondary); border-color: var(--mac-border); }
 .or-legend { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-bottom: var(--mac-space-md); }
 .or-legend-note { font-size: var(--mac-text-sm); color: var(--mac-text-secondary); }

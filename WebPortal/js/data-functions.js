@@ -4215,6 +4215,8 @@ var _dataFunctions = function () {
                     grade: intake.grade || null,
                     date_received: intake.date_received || o.production_date,
                     delivery_note_ref: intake.delivery_note_reference || intake.delivery_note_ref,
+                    consignment_ref: intake.consignment_ref || null,
+                    documents: Array.isArray(intake.documents) ? intake.documents : [],
                     supplier_id: intake.supplier_id || null,
                     supplier_details: intake.supplier || intake.supplier_details,
                     quantity_kg: intake.quantity_kg != null ? intake.quantity_kg : (intake.items && intake.items[0] && intake.items[0].quantity_kg),
@@ -4530,6 +4532,9 @@ var _dataFunctions = function () {
                 item_comments: data.item_comments || {},
                 item_photos: data.item_photos || {}
             };
+            // Oil Receiving (12 Nov 2026): transporter consignment ref + documents attached next to their references.
+            if (data.consignment_ref !== undefined) intakeData.consignment_ref = data.consignment_ref ? String(data.consignment_ref).trim() || null : null;
+            if (Array.isArray(data.documents)) intakeData.documents = data.documents;
             if (data.adjust_stock_ffa != null && String(data.adjust_stock_ffa).trim() !== '') {
                 var adjF = parseFloat(data.adjust_stock_ffa);
                 if (!isNaN(adjF)) intakeData.adjust_stock_ffa = adjF;
@@ -4600,6 +4605,9 @@ var _dataFunctions = function () {
                 item_comments: data.item_comments || {},
                 item_photos: data.item_photos || {}
             };
+            // Oil Receiving (12 Nov 2026): transporter consignment ref + documents attached next to their references.
+            if (data.consignment_ref !== undefined) intakeData.consignment_ref = data.consignment_ref ? String(data.consignment_ref).trim() || null : null;
+            if (Array.isArray(data.documents)) intakeData.documents = data.documents;
             if (data.official_ffa != null && data.official_ffa !== '') intakeData.official_ffa = Number(data.official_ffa);
             if (data.supplier_intake_official_ffa_at) intakeData.supplier_intake_official_ffa_at = data.supplier_intake_official_ffa_at;
             if (data.ffa != null && data.ffa !== '') intakeData.ffa = Number(data.ffa);
