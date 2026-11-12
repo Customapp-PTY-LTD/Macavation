@@ -79,6 +79,7 @@ class AuthService {
         return [
             'crm-grid',
             'supplier-intake-grid',
+            'oil-raw-materials',
             'oil-production-grid',
             'oil-production-forecast-grid',
             'stock-management-oil',

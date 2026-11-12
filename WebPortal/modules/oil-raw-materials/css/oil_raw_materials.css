@@ -1,0 +1,70 @@
+/* Oil Raw Materials (12 Nov 2026). Stock levels differ in lightness as well as hue, and every level carries a text label and icon. */
+.or-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--mac-border); margin-bottom: var(--mac-space-md); }
+.or-tab { min-height: 44px; padding: 0 16px; background: transparent; border: none; border-bottom: 3px solid transparent; color: var(--mac-text-secondary); font-weight: 500; display: inline-flex; align-items: center; gap: 8px; }
+.or-tab[aria-selected="true"] { border-bottom-color: var(--mac-green); color: var(--mac-text); font-weight: 700; }
+
+.or-select-auto { width: auto; }
+.or-narrow { max-width: 120px; }
+.or-num-table td, .or-num-table th { font-variant-numeric: tabular-nums; }
+.or-diff-warn { background: var(--mac-warning-light); color: var(--mac-warning-text); font-weight: 700; }
+.or-count-first td { border-top: 2px solid var(--mac-border); }
+
+/* Level chips */
+.or-level { display: inline-flex; align-items: center; gap: 6px; border-radius: var(--mac-radius-pill); font-size: var(--mac-text-xs); font-weight: 700; padding: 3px 10px; white-space: nowrap; border: 1px solid transparent; }
+.or-level-critical { background: var(--mac-danger); color: #fff; }
+.or-level-low { background: var(--mac-warning-light); color: var(--mac-warning-text); border-color: rgba(var(--mac-warning-rgb), 0.55); }
+.or-level-manageable { background: var(--mac-info-light); color: var(--mac-info); border-color: rgba(var(--mac-info-rgb), 0.4); }
+.or-level-good { background: var(--mac-success-light); color: var(--mac-success); border-color: rgba(var(--mac-success-rgb), 0.4); }
+.or-level-none { background: var(--mac-bg-tertiary); color: var(--mac-text-secondary); border-color: var(--mac-border); }
+.or-legend { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-bottom: var(--mac-space-md); }
+.or-legend-note { font-size: var(--mac-text-sm); color: var(--mac-text-secondary); }
+.or-notice { margin-bottom: var(--mac-space-md); }
+
+/* Cards */
+.or-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: var(--mac-space-md); }
+.or-card .card-body { display: flex; flex-direction: column; gap: 10px; }
+.or-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
+.or-kg { font-size: var(--mac-text-xl); font-weight: 700; font-variant-numeric: tabular-nums; }
+.or-kg span { font-size: var(--mac-text-base); font-weight: 400; color: var(--mac-text-secondary); }
+.or-days { font-size: var(--mac-text-sm); color: var(--mac-text-secondary); margin-top: -6px; }
+
+/* Bar: zones 0-1 / 1-2 / 2-4 / 4-5 weeks, dark strip for on hand, marker lines with labels */
+.or-bar-wrap { margin-bottom: 4px; }
+.or-bar { position: relative; height: 26px; background: var(--mac-bg-tertiary); border-radius: 4px; overflow: hidden; }
+.or-zone { position: absolute; top: 0; bottom: 0; }
+.or-zone-critical { background: rgba(166, 27, 27, 0.38); }
+.or-zone-low { background: rgba(247, 150, 40, 0.34); }
+.or-zone-manageable { background: rgba(59, 110, 210, 0.22); }
+.or-zone-good { background: rgba(34, 150, 80, 0.18); }
+.or-bar-fill { position: absolute; left: 0; bottom: 0; height: 10px; background: var(--mac-text); border-radius: 0 3px 3px 0; }
+.or-marker { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: rgba(0, 0, 0, 0.55); }
+.or-bar-labels { position: relative; height: 34px; font-size: var(--mac-text-xs); color: var(--mac-text-secondary); }
+.or-mlabel { position: absolute; top: 2px; transform: translateX(-50%); white-space: nowrap; }
+.or-mlabel-low { top: 18px; }
+
+/* Bags in stock */
+.or-bags { border-top: 1px solid var(--mac-border); padding-top: 10px; }
+.or-bags-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.or-bags-scroll { max-height: 300px; overflow: auto; }
+.or-bags-scroll th { position: sticky; top: 0; background: var(--mac-bg-secondary); z-index: 1; white-space: nowrap; }
+.or-bags-scroll td, .or-bags-scroll th { font-size: var(--mac-text-sm); }
+.or-col-tick { width: 32px; }
+.or-bag-waiting td { color: var(--mac-text-tertiary); background: var(--mac-bg-tertiary); }
+.or-waiting-text { font-weight: 600; color: var(--mac-warning-text); }
+.or-bags-foot { margin-top: 10px; }
+.or-col-weigh { min-width: 180px; }
+
+/* Pills (history, supplier recon) */
+.or-pill { border-radius: var(--mac-radius-pill); font-size: var(--mac-text-xs); font-weight: 600; padding: 3px 10px; white-space: nowrap; }
+.or-pill-amber { background: var(--mac-warning-light); color: var(--mac-warning-text); }
+.or-pill-info { background: var(--mac-info-light); color: var(--mac-info); }
+.or-pill-muted { background: var(--mac-bg-tertiary); color: var(--mac-text-secondary); }
+
+/* Supplier recon (ported from the Grower Intake stylesheet) */
+.or-totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--mac-space-md); margin-bottom: var(--mac-space-md); }
+.or-totals span { display: block; font-size: var(--mac-text-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--mac-text-tertiary); }
+.or-totals strong { font-size: var(--mac-text-xl); font-variant-numeric: tabular-nums; }
+.or-recon-table td, .or-recon-table th { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.or-recon-table td:last-child { white-space: normal; min-width: 180px; }
+.or-recon-total td { font-weight: 700; background: var(--mac-bg-tertiary); }
+.or-recon-flagged td { background: var(--mac-warning-light); }

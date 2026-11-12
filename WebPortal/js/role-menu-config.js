@@ -161,6 +161,7 @@ var _roleMenuConfig = function () {
                     'oil-production-grid',
                     'oil-production-forecast-grid',
                     'supplier-intake-grid',
+                    'oil-raw-materials',
                     'my-day'
                 ]
             },
@@ -174,6 +175,7 @@ var _roleMenuConfig = function () {
                     'stock-management-kernel',
                     'kernel-production-forecast-grid',
                     'stock-management-oil',
+                    'oil-raw-materials',
                     'oil-production-forecast-grid',
                     'grower-intake-grid',
                     'my-day'
@@ -250,7 +252,8 @@ var _roleMenuConfig = function () {
                     'kernel-production-forecast-grid',
                     'oil-production-grid',
                     'oil-production-forecast-grid',
-                    'supplier-intake-grid'
+                    'supplier-intake-grid',
+                    'oil-raw-materials'
                 ]
             }
         },
@@ -423,28 +426,35 @@ var _roleMenuConfig = function () {
             'supplier-intake-grid': {
                 route: 'supplier-intake-grid',
                 icon: 'fas fa-dolly',
-                label: 'Supplier Intake',
+                label: 'Receiving',
+                category: 'oil',
+                parent: 'oilCollapse'
+            },
+            'oil-raw-materials': {
+                route: 'oil-raw-materials',
+                icon: 'fas fa-boxes-stacked',
+                label: 'Raw Materials',
                 category: 'oil',
                 parent: 'oilCollapse'
             },
             'oil-production-grid': {
                 route: 'oil-production-grid',
                 icon: 'fas fa-industry',
-                label: 'Oil Production',
+                label: 'Production',
                 category: 'oil',
                 parent: 'oilCollapse'
             },
             'stock-management-oil': {
                 route: 'stock-management-oil',
                 icon: 'fas fa-warehouse',
-                label: 'Stock (Oil & Protein)',
+                label: 'Stock on Hand',
                 category: 'oil',
                 parent: 'oilCollapse'
             },
             'oil-dispatch-grid': {
                 route: 'oil-dispatch-grid',
                 icon: 'fas fa-box-open',
-                label: 'Oil & Protein Dispatch',
+                label: 'Dispatch and Sales',
                 category: 'oil',
                 parent: 'oilCollapse'
             },
@@ -572,6 +582,7 @@ var _roleMenuConfig = function () {
             'stock-management-kernel',
             'kernel-dispatch-grid',
             'supplier-intake-grid',
+            'oil-raw-materials',
             'oil-production-grid',
             'stock-management-oil',
             'oil-dispatch-grid',

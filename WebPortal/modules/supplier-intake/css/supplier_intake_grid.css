@@ -156,30 +156,6 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* Tabs: Deliveries / Raw material stock / Oil cake (Mike, 29 Oct 2026). */
-.si-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--mac-border); margin-bottom: var(--mac-space-md); }
-.si-tab {
-    min-height: 44px;
-    padding: 0 16px;
-    background: transparent;
-    border: none;
-    border-bottom: 3px solid transparent;
-    color: var(--mac-text-secondary);
-    font-weight: 500;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-}
-.si-tab[aria-selected="true"] { border-bottom-color: var(--mac-green); color: var(--mac-text); font-weight: 700; }
-.si-tab-badge {
-    background: var(--mac-danger);
-    color: var(--mac-bg-secondary);
-    border-radius: var(--mac-radius-pill);
-    font-size: var(--mac-text-xs);
-    font-weight: 700;
-    padding: 2px 8px;
-}
-
 /* Raw material stock */
 .si-stock-head { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; }
 .si-stock-head-side { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
@@ -221,3 +197,16 @@
 .si-recon-total td { font-weight: 700; background: var(--mac-bg-tertiary); }
 .si-recon-flagged td { background: var(--mac-warning-light); }
 .si-cake-pill-sold { background: var(--mac-info-light); color: var(--mac-info); }
+
+/* Receiving table: one compact ~30px line per bag, no wrapped cells */
+.si-compact-table th, .si-compact-table td { white-space: nowrap; }
+.si-compact-table tbody td { padding-top: 0.15rem; padding-bottom: 0.15rem; line-height: 1.2; height: 30px; vertical-align: middle; }
+.si-compact-table thead th { padding-top: 0.35rem; padding-bottom: 0.35rem; font-size: 0.8125rem; }
+.si-compact-table .supplier-intake-col-no { width: 1%; }
+.si-compact-table .supplier-intake-col-qty { width: 1%; font-variant-numeric: tabular-nums; }
+.si-compact-table .supplier-intake-col-ffa { width: 110px; }
+.si-compact-table .supplier-intake-col-result { width: 1%; }
+.si-compact-table .supplier-intake-group-row td.supplier-intake-group-cell { padding: 0.3rem 0.6rem; white-space: nowrap; }
+.si-compact-table .si-delivery-ffa-btn { padding-top: 0.05rem; padding-bottom: 0.05rem; }
+.si-compact-table .mac-table-actions .btn { padding: 0.05rem 0.45rem; line-height: 1.2; }
+.si-ffa-inline { width: 90px; margin-left: auto; padding-top: 0.1rem; padding-bottom: 0.1rem; height: 26px; }

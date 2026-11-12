@@ -113,3 +113,16 @@
 }
 .op-pd-section-title + .table-responsive { margin-bottom: 0.5rem; }
 .op-pd-section-title + .row { margin-bottom: 0.5rem; }
+
+/* Tabs: Production / Oil cake (moved from Grower Intake, Mike 12 Nov 2026). */
+.op-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--mac-border); margin-bottom: var(--mac-space-md); }
+.op-tab { min-height: 44px; padding: 0 16px; background: transparent; border: none; border-bottom: 3px solid transparent; color: var(--mac-text-secondary); font-weight: 500; display: inline-flex; align-items: center; gap: 8px; }
+.op-tab[aria-selected="true"] { border-bottom-color: var(--mac-green); color: var(--mac-text); font-weight: 700; }
+.op-cake-month { width: auto; }
+.op-cake-totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--mac-space-md); margin-bottom: var(--mac-space-md); }
+.op-cake-totals span { display: block; font-size: var(--mac-text-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--mac-text-tertiary); }
+.op-cake-totals strong { font-size: var(--mac-text-xl); font-variant-numeric: tabular-nums; }
+.op-cake-kind.active { background: var(--mac-green); border-color: var(--mac-green); color: var(--mac-bg-secondary); }
+.op-cake-pill { border-radius: var(--mac-radius-pill); font-size: var(--mac-text-xs); font-weight: 600; padding: 3px 10px; }
+.op-cake-pill-produced { background: var(--mac-success-light); color: var(--mac-silo-high-text); }
+.op-cake-pill-sold { background: var(--mac-info-light); color: var(--mac-info); }
