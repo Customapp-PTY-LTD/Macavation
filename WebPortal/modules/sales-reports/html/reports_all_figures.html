@@ -1,0 +1,28 @@
+<div id="rafRoot" class="raf rf-root">
+    <div class="raf-period" id="rafPeriodBar">
+        <div class="raf-chips" id="rafModeChips" role="group" aria-label="Period">
+            <button type="button" class="btn btn-sm" data-mode="day">Day</button>
+            <button type="button" class="btn btn-sm" data-mode="week">Week</button>
+            <button type="button" class="btn btn-sm active" data-mode="month">Month</button>
+            <button type="button" class="btn btn-sm" data-mode="quarter">Quarter</button>
+            <button type="button" class="btn btn-sm" data-mode="year">Financial year</button>
+        </div>
+        <div class="raf-stepper">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="rafPrev" title="Previous" aria-label="Previous period">&lsaquo;</button>
+            <div class="raf-label"><span id="rafLabel"></span><span class="raf-range" id="rafRange"></span></div>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="rafNext" title="Next" aria-label="Next period">&rsaquo;</button>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="rafToday">Today</button>
+        <span class="raf-loading d-none" id="rafLoading" role="status"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Loading&hellip;</span>
+    </div>
+    <div id="rafAlert" class="d-none"></div>
+    <div class="raf-jump"><b>Kernel:</b>
+        <a href="#rafK1" data-jump="rafK1">Procurement</a><a href="#rafK2" data-jump="rafK2">Storage</a><a href="#rafK3" data-jump="rafK3">Production</a><a href="#rafK4" data-jump="rafK4">Finished stock</a><a href="#rafK5" data-jump="rafK5">Sales</a>
+    </div>
+    <div class="raf-jump raf-jump-oil"><b>Oil:</b>
+        <a href="#rafO1" data-jump="rafO1">Procurement</a><a href="#rafO2" data-jump="rafO2">Raw material stock</a><a href="#rafO3" data-jump="rafO3">Production</a><a href="#rafO4" data-jump="rafO4">Finished stock</a><a href="#rafO5" data-jump="rafO5">Sales</a>
+    </div>
+
+    <!-- Streams and sections are painted here by ReportFigures.paint (js/report_figures.js). -->
+    <div id="rafSections"></div>
+</div>

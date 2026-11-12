@@ -131,15 +131,6 @@
             ],
             "css": []
         },
-        "stock-alert-rules-grid": {
-            "description": "Stock Alert Rules",
-            "path": "stock-alert-rules",
-            "html": "html/stock_alert_rules_grid.html",
-            "js": [
-                "js/stock_alert_rules_grid.js"
-            ],
-            "css": []
-        },
         "messaging-compose-grid": {
             "description": "Send Message",
             "path": "messaging-compose",
@@ -650,14 +641,26 @@
             "css": []
         },
         "sales-forecasting-grid": {
-            "description": "Sales &amp; Production Reports",
+            "description": "Management reports",
             "path": "sales-reports",
             "html": "html/report_list.html",
             "js": [
+                "js/report-metric-line.js",
+                "js/report-pdf-builder.js",
+                "js/report-whatsapp-send.js",
+                "js/report-whatsapp-history.js",
+                "js/report_editor.js",
+                "../management-dashboard/js/mgmt_dashboard_common.js",
+                "js/report_figures.js",
+                "js/report-figures-pdf.js",
+                "js/report_view.js",
+                "js/reports_page.js",
+                "js/reports_all_figures.js",
                 "js/report_list_grid.js"
             ],
             "css": [
-                "css/sales_reports.css"
+                "css/sales_reports.css",
+                "css/reports_all_figures.css"
             ]
         },
         "sales-report-editor": {
@@ -669,6 +672,7 @@
                 "js/report-pdf-builder.js",
                 "js/report-whatsapp-send.js",
                 "js/report-whatsapp-history.js",
+                "js/report-figures-pdf.js",
                 "js/report_editor.js"
             ],
             "css": [
@@ -692,7 +696,8 @@
             "html": "html/kernel_pipeline_settings_grid.html",
             "js": [
                 "js/kernel_pipeline_settings_grid.js",
-                "../kernel-style-prices/js/kernel_style_prices.js"
+                "../kernel-style-prices/js/kernel_style_prices.js",
+                "../stock-alert-rules/js/stock_alert_rules_grid.js"
             ],
             "css": [
                 "css/kernel_pipeline_settings_grid.css",
@@ -883,10 +888,12 @@
             "html": "html/batch_journey_grid.html",
             "js": [
                 "js/batch_journey_grid.js",
-                "js/batch_journey_detail.js"
+                "js/batch_journey_detail.js",
+                "../document-management/js/document_management_grid.js"
             ],
             "css": [
-                "css/batch_journey_grid.css"
+                "css/batch_journey_grid.css",
+                "../document-management/css/document_management_grid.css"
             ]
         }
     }

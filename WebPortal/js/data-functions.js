@@ -2474,11 +2474,17 @@ var _dataFunctions = function () {
             }, token);
         },
 
-        /** Step 5. sent=false undoes it. */
-        markKernelDispatchInvoiceSent: async function (orderId, sent, note, token = null) {
+        /** Step 5. sent=false undoes it (the PO / invoice numbers and files are kept).
+         *  paper = { poReference, invoiceReference, poDocuments[], invoiceDocuments[] }; both numbers are required to tick it. */
+        markKernelDispatchInvoiceSent: async function (orderId, sent, note, paper, token = null) {
             this.clearCachePattern('kernel_dispatch_orders_list');
+            var p = paper || {};
             return this._rpcWrite('mark_kernel_dispatch_invoice_sent', {
-                p_order_id: orderId, p_sent: sent !== false, p_note: note || null
+                p_order_id: orderId, p_sent: sent !== false, p_note: note || null,
+                p_po_reference: p.poReference || null,
+                p_invoice_reference: p.invoiceReference || null,
+                p_po_documents: p.poDocuments || [],
+                p_invoice_documents: p.invoiceDocuments || []
             }, token);
         },
 
@@ -6624,6 +6630,62 @@ var _dataFunctions = function () {
             });
         },
 
+        // Reports tabs (migrations/20261106180000 + 20261106180200). The function names contain none of
+        // create/update/delete/deactivate, so callFunction's offline queue never captures them (the
+        // queue decides by those substrings at the isWriteOperation check) - offline they simply fail.
+        // ensureReportDrafts writes (it creates this week's / month's draft) but is idempotent.
+        ensureReportDrafts: async function () {
+            const params = { p_actor_user_id: this.getCurrentUserId() || undefined };
+            const result = await this.callFunction('ensure_report_drafts', params, null, { useCache: false });
+            this.clearCachePattern('report_list_');
+            this.clearCachePattern('report_history_');
+            this.clearCachePattern('report_view_');
+            this.clearCachePattern('report_instance_');
+            return result;
+        },
+
+        listReportHistory: async function (periodType, limit = 26, forceRefresh = false) {
+            const pt = (periodType != null ? String(periodType) : '').trim();
+            if (!pt) throw new Error('listReportHistory: periodType is required.');
+            const params = { p_period_type: pt, p_limit: limit || 26 };
+            const cacheKey = 'report_history_' + params.p_period_type + '_' + params.p_limit;
+            return await this.callFunction('list_report_history', params, null, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        // Reports v2 (migrations/20261107090000): one call returns the report the Reports tabs render -
+        // the frozen snapshot for a published report, a live build for a draft, legacy:true for older ones.
+        getReportView: async function (reportInstanceId, forceRefresh = false) {
+            const id = (reportInstanceId != null ? String(reportInstanceId) : '').trim();
+            if (!id) throw new Error('getReportView: reportInstanceId is required.');
+            const params = { p_report_instance_id: id };
+            const cacheKey = 'report_view_' + id;
+            return await this.callFunction('get_report_view', params, null, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        getReportsAllFigures: async function (fromDate, toDate, forceRefresh = false) {
+            const from = (fromDate != null ? String(fromDate) : '').trim();
+            const to = (toDate != null ? String(toDate) : '').trim();
+            if (!from || !to) throw new Error('getReportsAllFigures: fromDate and toDate are required.');
+            const params = { p_from: from, p_to: to };
+            const cacheKey = 'report_figures_' + from + '_' + to;
+            return await this.callFunction('get_reports_all_figures', params, null, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
         createReportInstance: async function (templateId, periodDate, token = null) {
             const tid = (templateId != null ? String(templateId) : '').trim();
             const pdate = (periodDate != null ? String(periodDate) : '').trim();
@@ -6639,6 +6701,8 @@ var _dataFunctions = function () {
             const result = await this.callFunction('create_report_instance', params, token, { useCache: false });
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
+            this.clearCachePattern('report_history_');
+            this.clearCachePattern('report_view_');
             return result;
         },
 
@@ -6673,6 +6737,8 @@ var _dataFunctions = function () {
             const result = await this.callFunction('override_report_metric_value', params, token, { useCache: false });
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
+            this.clearCachePattern('report_history_');
+            this.clearCachePattern('report_view_');
             return result;
         },
 
@@ -6685,6 +6751,8 @@ var _dataFunctions = function () {
             const result = await this.callFunction('clear_report_metric_override', params, token, { useCache: false });
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
+            this.clearCachePattern('report_history_');
+            this.clearCachePattern('report_view_');
             return result;
         },
 
@@ -6710,6 +6778,8 @@ var _dataFunctions = function () {
             });
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
+            this.clearCachePattern('report_history_');
+            this.clearCachePattern('report_view_');
             return result;
         },
 
@@ -6727,6 +6797,8 @@ var _dataFunctions = function () {
             });
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
+            this.clearCachePattern('report_history_');
+            this.clearCachePattern('report_view_');
             return result;
         },
 
@@ -6737,6 +6809,8 @@ var _dataFunctions = function () {
             const result = await this.callFunction('refresh_report_instance', params, token, { useCache: false });
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
+            this.clearCachePattern('report_history_');
+            this.clearCachePattern('report_view_');
             return result;
         },
 
@@ -6749,6 +6823,8 @@ var _dataFunctions = function () {
             const result = await this.callFunction('delete_report_instance', params, token, { useCache: false });
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
+            this.clearCachePattern('report_history_');
+            this.clearCachePattern('report_view_');
             return result;
         },
 
@@ -6764,6 +6840,8 @@ var _dataFunctions = function () {
             const result = await this.callFunction('publish_report_instance', params, token, { useCache: false });
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
+            this.clearCachePattern('report_history_');
+            this.clearCachePattern('report_view_');
             return result;
         },
 
@@ -6780,6 +6858,8 @@ var _dataFunctions = function () {
             const result = await this.callFunction('supersede_report_instance', params, token, { useCache: false });
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
+            this.clearCachePattern('report_history_');
+            this.clearCachePattern('report_view_');
             return result;
         },
 

@@ -267,10 +267,5 @@ var _stockAlertRulesGrid = function () {
 
 window._stockAlertRulesGrid = _stockAlertRulesGrid;
 
-$(document).ready(function () {
-    var start = Date.now();
-    (function tryInit() {
-        if (typeof dataFunctions !== 'undefined') { _stockAlertRulesGrid.init(); return; }
-        if (Date.now() - start < 5000) setTimeout(tryInit, 50);
-    })();
-});
+// No self-start: since 6 Nov 2026 this lives in Kernel Pipeline Settings' "Stock alerts" tab,
+// which calls _stockAlertRulesGrid.init() the first time that tab is opened.

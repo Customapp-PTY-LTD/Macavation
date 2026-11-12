@@ -1,0 +1,200 @@
+#!/usr/bin/env node
+/**
+ * reports-tabs:verify - static checks on the Reports tabs migrations and data-functions wrappers.
+ *
+ * Hermetic: pure fs reads, no database, no network. It pins the conventions the three migrations
+ * rely on (SECURITY DEFINER + fixed search_path + anon grant on every function, SAST dates only,
+ * race-safe draft creation, the 400-day guard) and that the three portal wrappers exist.
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.join(__dirname, '..');
+const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').split('\r\n').join('\n');
+
+const failures = [];
+let passCount = 0;
+function check(name, ok, detail) {
+  if (ok) passCount++;
+  else failures.push(`${name}${detail ? ': ' + detail : ''}`);
+}
+
+const FILES = {
+  drafts: 'migrations/20261106180000_reports_auto_drafts.sql',
+  order: 'migrations/20261106180100_reports_section_order.sql',
+  figures: 'migrations/20261106180200_reports_all_figures.sql',
+  v2: 'migrations/20261107090000_reports_v2_snapshot.sql',
+};
+const sql = {};
+for (const [k, rel] of Object.entries(FILES)) {
+  try {
+    sql[k] = read(rel);
+  } catch (e) {
+    failures.push(`${rel}: cannot read (${e.message})`);
+  }
+}
+
+// Strip -- comments so prose in headers cannot satisfy or trip a check.
+const code = (s) => s.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
+
+for (const k of ['drafts', 'figures', 'v2']) {
+  if (!sql[k]) continue;
+  const body = code(sql[k]);
+  const rel = FILES[k];
+  const fns = [...body.matchAll(/CREATE OR REPLACE FUNCTION\s+public\.(\w+)\s*\(([\s\S]*?)\)\s*RETURNS[\s\S]*?\bAS\s+\$/g)];
+  check(`${rel}: defines functions`, fns.length > 0);
+  for (const m of fns) {
+    const name = m[1];
+    const header = m[0];
+    check(`${rel}: ${name} is SECURITY DEFINER`, /SECURITY DEFINER/.test(header));
+    check(`${rel}: ${name} sets search_path = public`, /SET search_path = public/.test(header));
+    const sig = m[2].split(',').map((p) => p.trim()).filter(Boolean)
+      .map((p) => p.replace(/\s+DEFAULT\s+.*$/i, '').split(/\s+/).slice(1).join(' ')).join(', ');
+    const grant = new RegExp(String.raw`GRANT EXECUTE ON FUNCTION public\.${name}\(${sig}\)\s+TO[^;]*\banon\b`);
+    check(`${rel}: ${name} is granted to anon`, grant.test(body), `expected GRANT EXECUTE ON FUNCTION public.${name}(${sig}) TO anon, ...`);
+  }
+  check(`${rel}: uses report_sast_today()`, /report_sast_today\(\)/.test(body));
+  check(`${rel}: never uses the bare UTC date function`, !/CURRENT_DATE/i.test(body));
+}
+
+if (sql.drafts) {
+  const body = code(sql.drafts);
+  check('drafts: EXCEPTION WHEN unique_violation in ensure_report_drafts', /EXCEPTION WHEN unique_violation/.test(body));
+  check('drafts: pg_advisory_xact_lock present', /pg_advisory_xact_lock\(hashtext\('ensure_report_drafts'\)\)/.test(body));
+  check('drafts: cron job ensure-report-drafts at 0 4 * * *', /cron\.schedule\('ensure-report-drafts', '0 4 \* \* \*'/.test(body));
+  check('drafts: cron is unscheduled first (idempotent)', /cron\.unschedule/.test(body));
+  check('drafts: cron guarded on pg_extension', /pg_extension WHERE extname = 'pg_cron'/.test(body));
+  check('drafts: limit clamped to 1..60', /GREATEST\(1, LEAST\(COALESCE\(p_limit, 26\), 60\)\)/.test(body));
+}
+
+if (sql.order) {
+  const body = code(sql.order);
+  check('order: updates template sections', /UPDATE public\.report_template_sections/.test(body));
+  check('order: updates only DRAFT instance sections', /UPDATE public\.report_instance_sections[\s\S]*ri\.status = 'draft'/.test(body));
+}
+
+if (sql.figures) {
+  const body = code(sql.figures);
+  check('figures: 400-day guard present', /p_to - p_from > 400/.test(body));
+  check('figures: reports_live_from setting seeded idempotently', /'reports_live_from'[\s\S]*ON CONFLICT \(key\) DO NOTHING/.test(body));
+  check('figures: headline totals use resolve_report_metric_value', (body.match(/resolve_report_metric_value\(/g) || []).length >= 8);
+  check('figures: oil sales skip register-linked local lines', /export_register_id IS NULL/.test(body));
+}
+
+if (sql.v2) {
+  const body = code(sql.v2);
+  check('v2: ADD COLUMN IF NOT EXISTS report_snapshot', /ADD COLUMN IF NOT EXISTS report_snapshot jsonb/.test(body));
+  check('v2: ADD COLUMN IF NOT EXISTS snapshot_sha256', /ADD COLUMN IF NOT EXISTS snapshot_sha256 text/.test(body));
+  const pub = body.match(/CREATE OR REPLACE FUNCTION public\.publish_report_instance\([\s\S]*?\n\$\$;/);
+  check('v2: redefines publish_report_instance', !!pub);
+  if (pub) {
+    check('v2: publish writes report_snapshot', /report_snapshot\s*=\s*v_snap/.test(pub[0]));
+    check('v2: publish writes snapshot_sha256', /snapshot_sha256\s*=\s*encode\(sha256\(/.test(pub[0]));
+    check('v2: publish has the figures refusal branch', /Figures could not be read: /.test(pub[0]) && /RETURN QUERY SELECT 0, 'Figures could not be read/.test(pub[0]));
+  }
+  for (const fn of ['_report_headlines', 'get_report_comparison', 'get_report_coming_up', 'report_build_snapshot', 'get_report_view']) {
+    check(`v2: defines ${fn}`, new RegExp(String.raw`CREATE OR REPLACE FUNCTION public\.${fn}\(`).test(body));
+  }
+}
+
+let dataFns = '';
+try {
+  dataFns = read('WebPortal/js/data-functions.js');
+} catch (e) {
+  failures.push(`WebPortal/js/data-functions.js: cannot read (${e.message})`);
+}
+for (const [wrapper, rpc] of [
+  ['ensureReportDrafts', 'ensure_report_drafts'],
+  ['listReportHistory', 'list_report_history'],
+  ['getReportsAllFigures', 'get_reports_all_figures'],
+  ['getReportView', 'get_report_view'],
+]) {
+  check(`data-functions: ${wrapper} exists`, new RegExp(String.raw`${wrapper}:\s*async function`).test(dataFns));
+  check(`data-functions: ${wrapper} calls ${rpc}`, dataFns.includes(`'${rpc}'`));
+}
+check('data-functions: storeReportPdf wrapper is gone (no store_only mode on the edge function)', !/storeReportPdf/.test(dataFns));
+
+// New-look PDF (Reports v2).
+const JS_DIR = 'WebPortal/modules/sales-reports/js/';
+const pdfJs = read(JS_DIR + 'report-figures-pdf.js');
+const editorJs = read(JS_DIR + 'report_editor.js');
+check('report-figures-pdf.js exposes build', /ReportFiguresPdf\s*=\s*\{[^}]*\bbuild\s*:/.test(pdfJs));
+check('report-figures-pdf.js exposes ensureLib', /ReportFiguresPdf\s*=\s*\{[^}]*\bensureLib\s*:/.test(pdfJs));
+check('report_editor.js uses view.pdfBase64 when embedded', /embedded\s*&&\s*embeddedView[\s\S]{0,200}pdfBase64/.test(editorJs) && /embeddedView\.pdfBase64\(\)/.test(editorJs));
+for (const f of ['report_view.js', 'report_figures.js', 'report-figures-pdf.js']) {
+  const txt = read(JS_DIR + f);
+  check(`${f}: no .innerHTML = assignment`, !/\.innerHTML\s*=/.test(txt));
+  check(`${f}: no .html( call`, !/\.html\(/.test(txt));
+}
+check('report-figures-pdf.js: no arrow glyphs', !/[▲▼]/.test(pdfJs));
+// Reports v2 review fixes.
+const figJs = read(JS_DIR + 'report_figures.js');
+const viewJs = read(JS_DIR + 'report_view.js');
+const compareFn = (figJs.match(/function compareTile\([\s\S]*?\n    \}\n/) || [''])[0];
+const chartFn = (figJs.match(/function chartImages\([\s\S]*?\n    \}\n/) || [''])[0];
+check('compareTile found', compareFn.length > 0);
+check('chartImages found', chartFn.length > 0);
+for (const f of ['report_figures.js', 'report_view.js', 'report-figures-pdf.js']) {
+  check(`${f}: ytd_prior is not referenced`, !/ytd_prior/.test(read(JS_DIR + f)));
+}
+check('compareTile handles ytd_actual_on_target', /ytd_actual_on_target/.test(compareFn) && /ytd_target_periods/.test(compareFn) && /ytd_periods/.test(compareFn));
+check('chartImages does not multiply the canvas size by scale', !/\*\s*scale/.test(chartFn.replace(/\/\/.*$/gm, '')));
+check('chartImages sets canvas.width = w', /canvas\.width = w;/.test(chartFn) && /canvas\.height = h;/.test(chartFn));
+check('report-figures-pdf.js: no keepWithNext', !/keepWithNext\s*:/.test(pdfJs.replace(/\/\/.*$/gm, '')));
+check('report-figures-pdf.js: pageBreakBefore present', /pageBreakBefore\s*:\s*function[\s\S]{0,400}headlineLevel !?== 1/.test(pdfJs));
+check('report-figures-pdf.js: table title is a header row (headerRows: 2)', /headerRows: 2/.test(pdfJs));
+check('report_view.js: no "trucks" count wording', !/' trucks'/.test(viewJs));
+check('report_view.js: overdue wording', /still marked as not dispatched/.test(viewJs) && !/overdue and still waiting/.test(viewJs));
+check('report_editor.js: applyView destroys the view for legacy reports', /if \(host && !used\) \{[\s\S]{0,200}embeddedView\.destroy\(\)/.test(editorJs));
+// Print palette exception: colour literals are allowed ONLY inside ReportFigures' printColors().
+const palRe = /function printColors\(\) \{[\s\S]*?\n    \}\n/;
+check('report_figures.js: printColors() exists and is exposed', palRe.test(figJs) && /\bprintColors: printColors\b/.test(figJs));
+for (const f of ['report_figures.js', 'report_view.js', 'report-figures-pdf.js']) {
+  const txt = read(JS_DIR + f).replace(palRe, '').split('\n').filter((l) => !/^\s*(\*|\/\/|\/\*)/.test(l)).join('\n');
+  check(`${f}: no colour literals outside the print palette`, !/#[0-9a-fA-F]{3,8}\b|rgba?\(\s*\d/.test(txt.replace(/\/\*[\s\S]*?\*\//g, '')));
+}
+
+check('data-functions: report_view_ cache is cleared alongside report_history_', (dataFns.match(/clearCachePattern\('report_view_'\)/g) || []).length >= 5);
+check('data-functions: ensureReportDrafts clears report_history_ cache', /ensureReportDrafts[\s\S]{0,600}clearCachePattern\('report_history_'\)/.test(dataFns));
+
+// Weekly report v2 (Mike, 12 Nov 2026): two pages, line-by-line figures, monthly / 4 target fallback.
+const WEEKLY_MIG = 'migrations/20261112110000_weekly_report_v2.sql';
+let weeklySql = '';
+try {
+  weeklySql = code(read(WEEKLY_MIG));
+} catch (e) {
+  failures.push(`${WEEKLY_MIG}: cannot read (${e.message})`);
+}
+if (weeklySql) {
+  const fns = [...weeklySql.matchAll(/CREATE OR REPLACE FUNCTION\s+public\.(\w+)\s*\(([\s\S]*?)\)\s*RETURNS[\s\S]*?\bAS\s+\$/g)];
+  for (const name of ['_report_target_exact', 'report_period_target', 'get_report_comparison', 'get_report_weekly_detail', 'report_build_snapshot']) {
+    const m = fns.find((f) => f[1] === name);
+    check(`weekly: defines ${name}`, !!m);
+    if (!m) continue;
+    check(`weekly: ${name} is SECURITY DEFINER with search_path = public`, /SECURITY DEFINER/.test(m[0]) && /SET search_path = public/.test(m[0]));
+    const sig = m[2].split(',').map((p) => p.trim()).filter(Boolean).map((p) => p.split(/\s+/).slice(1).join(' ')).join(', ');
+    check(`weekly: ${name} is granted to anon`, new RegExp(String.raw`GRANT EXECUTE ON FUNCTION public\.${name}\(${sig}\)\s+TO[^;]*\banon\b`).test(weeklySql));
+  }
+  check('weekly: target falls back to monthly / 4', /round\(v_val \/ 4, 2\)/.test(weeklySql));
+  check('weekly: food grade target also reads oil_ev_produced_kg', /'oil_food_grade_produced_kg', 'oil_ev_produced_kg'/.test(weeklySql));
+  check('weekly: comparison uses report_period_target', /v_target := public\.report_period_target\(v_mk, p_period_type, v_from\)/.test(weeklySql));
+  check('weekly: snapshot adds the weekly block for weekly reports only', /IF p_period_type = 'weekly' THEN\s+v_out := v_out \|\| jsonb_build_object\('weekly'/.test(weeklySql));
+  check('weekly: line lists are capped', /LIMIT c_max_lines/.test(weeklySql));
+  check('weekly: register-linked oil lines are skipped', /export_register_id IS NULL/.test(weeklySql));
+  check('weekly: never uses the bare UTC date function', !/CURRENT_DATE/i.test(weeklySql));
+}
+check('report_view.js: weekly lists capped at 8 lines', /var MAX_LINES = 8;/.test(viewJs));
+check('report_view.js: weekly layout only when snapshot.weekly succeeded', /snap\.weekly && snap\.weekly\.success === true\) return weeklyParts\(payload\)/.test(viewJs));
+check('report-figures-pdf.js: weekly report is one page per stream', /function buildWeekly\(/.test(pdfJs) && /node\.pageBreak = 'before'/.test(pdfJs) && /if \(parts\.weekly\) content = buildWeekly\(/.test(pdfJs));
+const pageJs = read(JS_DIR + 'reports_page.js');
+check('reports_page.js: "Overdue" chip renamed to "Not sent yet"', /text: 'Not sent yet'/.test(pageJs) && !/text: 'Overdue'/.test(pageJs));
+check('reports_page.js: report picker replaces the history list', /#reportsHistorySelect/.test(pageJs) && !/js-reports-history-row/.test(pageJs));
+
+if (failures.length) {
+  console.error(`reports-tabs:verify FAILED (${failures.length} problem(s), ${passCount} passed)`);
+  for (const f of failures) console.error('  - ' + f);
+  process.exit(1);
+}
+console.log(`reports-tabs:verify PASS (${passCount} checks)`);
