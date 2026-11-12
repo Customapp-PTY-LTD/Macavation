@@ -4348,6 +4348,58 @@ var _dataFunctions = function () {
         getOilRawStock: async function (token = null) {
             return this._kpUnwrap(await this.callFunction('get_oil_raw_stock', {}, token, { useCache: false }));
         },
+        /**
+         * Oil Raw Materials page (migration 20261112090000). Material keys: crude_kernel, food_grade_kernel,
+         * kernel_dust, cracker_dust, crush, cake.
+         * getOilRawMaterials -> { success, today, count_date, daily_source, recipe_date, recipe_today, settings,
+         *   materials: [{ material, count_kg, received_kg, used_kg, on_hand_kg, daily_kg, week_kg, weeks, days,
+         *   level: 'critical'|'low'|'manageable'|'good'|null }] }
+         */
+        getOilRawMaterials: async function (token = null) {
+            return this._kpUnwrap(await this.callFunction('get_oil_raw_materials', {}, token, { useCache: false }));
+        },
+        /** -> { success, count_date, weeks: [{ week_start, week_end, to_date, from_count, materials: { <key>: { start_kg, received_kg, used_kg, end_kg, daily_kg, weeks, level } } }], counts: [...] } */
+        getOilRawWeekly: async function (weeks, material, token = null) {
+            return this._kpUnwrap(await this.callFunction('get_oil_raw_weekly', {
+                p_weeks: Number(weeks) || 8, p_material: material || null
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
+        /** counted: { <all six keys>: kg }. Becomes the new stock starting point. -> { success, expected, counted } */
+        saveOilRawCount: async function (countDateIso, counted, notes, token = null) {
+            return this._kpUnwrap(await this.callFunction('save_oil_raw_count', {
+                p_count_date: countDateIso, p_counted: counted, p_notes: notes || null,
+                p_actor_user_id: this.getCurrentUserId() || null
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
+        /** materials: { <key>: kg } in the configured unit; unchanged=true copies the last recipe (materials ignored). */
+        saveOilDailyRecipe: async function (dateIso, materials, unchanged, token = null) {
+            return this._kpUnwrap(await this.callFunction('save_oil_daily_recipe', {
+                p_date: dateIso, p_materials: unchanged ? null : materials, p_unchanged: !!unchanged,
+                p_actor_user_id: this.getCurrentUserId() || null
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
+        /** -> { success, today, settings, latest, daily_now: { source, recipe_date, daily }, recipes: [{ recipe_date, materials, unit, bins_per_day, unchanged, entered_at, entered_by_name }] } */
+        getOilDailyRecipes: async function (days, token = null) {
+            return this._kpUnwrap(await this.callFunction('get_oil_daily_recipes', { p_days: Number(days) || 30 }, token, { useCache: false }));
+        },
+        /** settings: { recipe_unit?: 'per_day'|'per_bin', bins_per_day?: number|null, count_reminder_days?: 0-15 } */
+        setOilRawMaterialsSettings: async function (settings, token = null) {
+            return this._kpUnwrap(await this.callFunction('set_oil_raw_materials_settings', {
+                p_settings: settings, p_actor_user_id: this.getCurrentUserId() || null
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
+        /** Next oil raw batch number (last one + 1, skipping used ones), as a string, or '' if unavailable. */
+        suggestOilBatchNumber: async function (token = null) {
+            try {
+                const r = await this.callFunction('suggest_oil_batch_number', {}, token, { useCache: false });
+                if (r == null) return '';
+                if (typeof r === 'string') return r;
+                if (r.data != null && typeof r.data === 'string') return r.data;
+                if (r.suggest_oil_batch_number != null) return String(r.suggest_oil_batch_number);
+                if (Array.isArray(r) && r.length > 0 && typeof r[0] === 'string') return r[0];
+                return '';
+            } catch (e) { return ''; }
+        },
         /** settings: { count_date?, materials?: { oil_kernel|kernel_dust|cracker_dust: { daily_kg?, count_kg?, count_food_grade_kg? } } }. */
         setOilRawStockSettings: async function (settings, token = null) {
             return this._kpUnwrap(await this.callFunction('set_oil_raw_stock_settings', {

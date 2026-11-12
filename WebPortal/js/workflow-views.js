@@ -467,7 +467,8 @@ var _workflowViews = function () {
             dispatch_invoice: 'Send a dispatch invoice', customer_prices_expiring: 'Customer prices ending',
             truck_late: 'Truck is late', truck_unconfirmed: 'Truck not confirmed', style_prices_stale: 'Style prices need a look',
             nis_runway_low: 'Nut in shell runs out soon', nis_unplaced: 'Nut in shell not placed',
-            oil_ffa_decision: 'Oil raw FFA out of spec'
+            oil_ffa_decision: 'Oil raw FFA out of spec',
+            oil_daily_recipe: 'Oil recipe for today', oil_stock_count: 'Oil month-end count'
         },
 
         _kindAction: function (task) {
@@ -482,6 +483,8 @@ var _workflowViews = function () {
                 case 'style_prices_stale': return { label: 'Update prices', route: 'kernel-pipeline-settings', params: { tab: 'prices' } };
                 case 'dispatch_approve': return { label: 'Confirm pricing', panel: true, route: 'kernel-dispatch-grid', params: { openOrderId: sid } };
                 case 'dispatch_invoice': return { label: 'Open the dispatch', route: 'kernel-dispatch-grid', params: { openOrderId: sid } };
+                case 'oil_daily_recipe': return { label: 'Enter the recipe', route: 'oil-raw-materials', params: { tab: 'recipe' } };
+                case 'oil_stock_count': return { label: 'Enter the count', route: 'oil-raw-materials', params: { tab: 'count' } };
                 case 'customer_prices_expiring': return { label: 'Update prices', route: 'kernel-pipeline-settings', params: { tab: 'prices', customerId: sid } };
             }
             return null;
@@ -509,6 +512,10 @@ var _workflowViews = function () {
                 btns += '<button type="button" class="btn btn-outline-danger" onclick="workflowViews.decideOilFfa(\'' + id + '\', \'reject\')">Reject bag</button>' +
                     '<button type="button" class="btn btn-primary" onclick="workflowViews.decideOilFfa(\'' + id + '\', \'accept\')">Accept for production</button>';
             }
+            // Daily oil recipe (migration 20261112090000): one tap when nothing changed.
+            if (task.kind === 'oil_daily_recipe') {
+                btns += '<button type="button" class="btn btn-outline-primary" onclick="workflowViews.oilRecipeUnchanged(\'' + id + '\')">Recipe unchanged</button>';
+            }
             if (act) {
                 btns += '<button type="button" class="btn btn-primary" id="wvActBtn-' + id + '" onclick="workflowViews.' +
                     (usePanel ? 'toggleApprovePanel' : 'runTaskAction') + '(\'' + id + '\')"' + (usePanel ? ' aria-expanded="false"' : '') + '>' + esc(act.label) + '</button>';
@@ -521,6 +528,22 @@ var _workflowViews = function () {
                 '</div><div class="task-actions">' + btns + '</div>' +
                 (usePanel ? '<div class="wv-approve-panel d-none" id="wvPanel-' + id + '"></div>' : '') +
                 '</div>';
+        },
+
+        /** "Recipe unchanged" on the daily oil recipe task: copies the last recipe to today. */
+        oilRecipeUnchanged: async function (taskId) {
+            var task = this._findTask(taskId);
+            if (!task || typeof dataFunctions === 'undefined' || !dataFunctions.saveOilDailyRecipe) return;
+            var m = /oil_daily_recipe:(\d{4}-\d{2}-\d{2})/.exec(String(task.dedupe_key || ''));
+            var d = new Date();
+            var iso = m ? m[1] : (d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2));
+            var r = await dataFunctions.saveOilDailyRecipe(iso, null, true);
+            if (!r || r.success === false) {
+                if (typeof Swal !== 'undefined') Swal.fire({ icon: 'warning', text: (r && r.error) || 'Could not save. Open Raw Materials to enter the recipe.' });
+                return;
+            }
+            this._wvToast('Recipe unchanged, saved');
+            await this.refreshMyDay();
         },
 
         /** Accept or reject an out-of-spec oil raw bag. A reason is required to reject. */
