@@ -2416,6 +2416,24 @@ var _dataFunctions = function () {
             }, token);
         },
 
+        /** Find a batch: take one delivery bag off a batch with a reason (spilled / wet / damaged /
+         *  mistake / other). A bag in a storage area leaves it; a bag in a silo or cracked is refused.
+         *  Migration 20261112150000. */
+        removeKernelBag: async function (kernelId, bagNo, reason, note, token = null) {
+            return this._rpcWrite('remove_kernel_bag', {
+                p_kernel_id: kernelId, p_bag_no: parseInt(bagNo, 10), p_reason: reason, p_note: note || null
+            }, token);
+        },
+
+        /** Find a batch: add one bag to a batch's delivery with a reason (found / missed / other).
+         *  It gets the next bag number and starts as "Not placed yet". Migration 20261112150000. */
+        addKernelBag: async function (kernelId, weightKg, description, reason, note, token = null) {
+            return this._rpcWrite('add_kernel_bag', {
+                p_kernel_id: kernelId, p_weight_kg: Number(weightKg), p_description: description || null,
+                p_reason: reason, p_note: note || null
+            }, token);
+        },
+
         setNisStorageAreaCapacity: async function (code, capacityKg, token = null) {
             return this._rpcWrite('set_nis_storage_area_capacity', {
                 p_code: code, p_capacity_kg: (capacityKg === '' || capacityKg == null) ? null : Number(capacityKg)
