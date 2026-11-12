@@ -807,6 +807,20 @@ var _modal_batch_history = (function () {
                         }
                         html += '</tbody></table>';
                     }
+                    // Bags removed / added after book-in, with their reasons (remove_kernel_bag / add_kernel_bag, 20261112150000).
+                    var bagChanges = Array.isArray(intake.bag_changes) ? intake.bag_changes : [];
+                    if (bagChanges.length) {
+                        html += '<p class="small fw-semibold mb-1">Bag changes</p>';
+                        html += '<table class="table align-middle table-bordered mt-0"><thead><tr><th>When</th><th>Bag</th><th>Weight (kg)</th><th>Reason</th><th>By</th></tr></thead><tbody>';
+                        bagChanges.forEach(function (c) {
+                            if (!c) return;
+                            var what = (c.action === 'added' ? 'Added' : 'Removed') + ' ' + (c.no != null ? c.no : '');
+                            var why = (c.reason_label || c.reason || '') + (c.note ? ': ' + c.note : '');
+                            html += '<tr><td>' + historyFmtProductionDate(c.at ? String(c.at).split('T')[0] : null, nil) + '</td><td>' + fmt(what) +
+                                '</td><td>' + historyFmtKg(c.weight_kg, nil) + '</td><td>' + fmt(why) + '</td><td>' + fmt(c.by_name) + '</td></tr>';
+                        });
+                        html += '</tbody></table>';
+                    }
                     var dlvDocs = historyFileLinksHtml(dlv && dlv.documents);
                     if (dlvDocs) html += '<p class="small mb-1"><strong>Documents:</strong> ' + dlvDocs + '</p>';
                     html += '</div>';
