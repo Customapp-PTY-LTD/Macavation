@@ -242,15 +242,182 @@ var _modal_supplier_receiver_checklist = (function () {
         return out;
     }
 
+    // ---- Transport documents (consignment note, delivery note, other) ----
+    // Saved on every bag in intake_data: consignment_ref + documents[{ file_id, file_link, name, kind }].
+    var DOC_FOLDER = 'Macavation/OilDeliveries';
+    var DOC_KINDS = [
+        { kind: 'consignment', chips: 'srcConsignmentChips' },
+        { kind: 'delivery_note', chips: 'srcDeliveryNoteChips' },
+        { kind: 'other', chips: 'srcOtherChips' }
+    ];
+    // Entries: { file_id, file_link, name } when uploaded, { name, failed: true, error } when an upload failed.
+    var docState = { consignment: [], delivery_note: [], other: [] };
+    var docUploads = 0;
+
+    function resetDocState() { docState = { consignment: [], delivery_note: [], other: [] }; }
+
+    function docFileAllowed(file) {
+        var t = (file.type || '').toLowerCase();
+        if (t.indexOf('image/') === 0 || t === 'application/pdf') return true;
+        return !t && /\.pdf$/i.test(file.name || '');
+    }
+
+    function isHttpsLink(u) { return typeof u === 'string' && u.indexOf('https://') === 0; }
+
+    function refreshDocsStatus() {
+        var failed = [];
+        DOC_KINDS.forEach(function (d) {
+            docState[d.kind].forEach(function (f) { if (f.failed) failed.push(f.name + ': ' + (f.error || 'Upload failed')); });
+        });
+        var err = document.getElementById('srcDocsError');
+        if (err) {
+            err.textContent = failed.length ? failed.join(' | ') + ' - remove it and attach it again before saving.' : '';
+            err.classList.toggle('d-none', !failed.length);
+        }
+        var up = document.getElementById('srcDocsUploading');
+        if (up) up.classList.toggle('d-none', docUploads <= 0);
+    }
+
+    /** Chips are built with jQuery .text()/.attr(), so file names never reach markup unescaped. */
+    function renderDocChips(kind) {
+        if (typeof $ === 'undefined') return;
+        var def = DOC_KINDS.filter(function (d) { return d.kind === kind; })[0];
+        if (!def) return;
+        var $box = $('#' + def.chips).empty();
+        docState[kind].forEach(function (f, idx) {
+            var $chip = $('<span class="src-doc-chip">');
+            if (f.failed) {
+                $chip.css({ borderColor: 'var(--mac-danger)', color: 'var(--mac-danger)' });
+                $chip.append($('<span class="src-doc-name">').text(f.name + ' - upload failed'));
+            } else if (isHttpsLink(f.file_link)) {
+                $chip.append($('<a target="_blank" rel="noopener noreferrer">').attr('href', f.file_link).text(f.name));
+            } else {
+                $chip.append($('<span class="src-doc-name">').text(f.name));
+            }
+            $chip.append($('<button type="button" class="src-doc-remove" aria-label="Remove file">')
+                .attr('data-kind', kind).attr('data-idx', idx).append('<i class="fas fa-times"></i>'));
+            $box.append($chip);
+        });
+        refreshDocsStatus();
+    }
+
+    async function uploadDocFiles(kind, files) {
+        for (var i = 0; i < files.length; i++) {
+            var file = files[i];
+            if (!docFileAllowed(file)) {
+                docState[kind].push({ name: file.name || 'file', failed: true, error: 'Only images or PDF files are allowed' });
+                renderDocChips(kind);
+                continue;
+            }
+            var safeName = (file.name || 'file').replace(/[^\w.-]/g, '_');
+            var fileId = 'oildel_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6) + '_' + safeName;
+            pendingUploads++;
+            docUploads++;
+            refreshDocsStatus();
+            try {
+                var res = (typeof _common !== 'undefined' && _common.uploadFile)
+                    ? await _common.uploadFile({ file: file, resourceFolder: DOC_FOLDER, fileId: fileId })
+                    : { Success: false, LastErrorDescription: 'Upload not available' };
+                if (!res || !res.Success) {
+                    docState[kind].push({ name: file.name || safeName, failed: true, error: (res && res.LastErrorDescription) || 'Upload failed' });
+                } else {
+                    var data = res.Data;
+                    docState[kind].push({
+                        file_id: (data && data[0] && (data[0].fileId || data[0].key)) || (data && data.fileId) || fileId,
+                        file_link: (data && data[0] && data[0].fileLink) || (data && data.fileLink) || null,
+                        name: file.name || safeName
+                    });
+                }
+            } catch (e) {
+                docState[kind].push({ name: file.name || safeName, failed: true, error: (e && e.message) ? e.message : 'Upload failed' });
+            } finally {
+                pendingUploads--;
+                docUploads--;
+            }
+            renderDocChips(kind);
+        }
+    }
+
+    function hasFailedDocs() {
+        return DOC_KINDS.some(function (d) { return docState[d.kind].some(function (f) { return f.failed; }); });
+    }
+
+    function collectDocuments() {
+        var out = [];
+        DOC_KINDS.forEach(function (d) {
+            docState[d.kind].forEach(function (f) {
+                if (f.failed) return;
+                out.push({ file_id: f.file_id, file_link: f.file_link, name: f.name, kind: d.kind });
+            });
+        });
+        return out;
+    }
+
+    function parseIntakeObj(v) {
+        if (typeof v === 'string') { try { v = JSON.parse(v); } catch (e) { return {}; } }
+        return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
+    }
+
+    /**
+     * createSupplierIntakeBatch / updateSupplierIntakeBatch build intake_data from a fixed list of keys, so
+     * consignment_ref and documents would be dropped. Merge them into the saved row afterwards (same
+     * read-merge-upsert the release function uses). Returns true when saved.
+     */
+    async function saveDeliveryExtras(oilId, consignmentRef, documents) {
+        if (!oilId || typeof dataFunctions === 'undefined' || !dataFunctions.getOilBatchById || !dataFunctions.callFunction) return false;
+        var row = await dataFunctions.getOilBatchById(oilId);
+        var intake = parseIntakeObj(row && row.intake_data);
+        var merged = Object.assign({}, intake, { consignment_ref: consignmentRef || null, documents: documents });
+        var params = { p_oil_id: oilId, p_status: (row && row.status) || 'awaiting_test', p_intake_data: merged };
+        var uid = dataFunctions.getCurrentUserId ? dataFunctions.getCurrentUserId() : null;
+        if (uid) params.p_updated_by = uid;
+        var res = await dataFunctions.callFunction('upsert_oil_batch', params, null, { useCache: false });
+        var resolved = res && (res.data !== undefined ? res.data : res);
+        if (dataFunctions.clearCachePattern) { dataFunctions.clearCachePattern('supplier_intake'); dataFunctions.clearCachePattern('oil_batches'); }
+        return !!resolved && resolved.success !== false;
+    }
+
+    /** Edit: load the consignment ref and documents already saved on the bag, since the grid row does not carry them. */
+    async function loadSavedExtras(oilId) {
+        try {
+            var row = await dataFunctions.getOilBatchById(oilId);
+            var intake = parseIntakeObj(row && row.intake_data);
+            var ref = document.getElementById('srcConsignmentRef');
+            if (ref) ref.value = intake.consignment_ref ? String(intake.consignment_ref) : '';
+            resetDocState();
+            (Array.isArray(intake.documents) ? intake.documents : []).forEach(function (d) {
+                if (!d || !d.name) return;
+                var kind = (d.kind === 'consignment' || d.kind === 'delivery_note') ? d.kind : 'other';
+                docState[kind].push({ file_id: d.file_id || null, file_link: d.file_link || null, name: String(d.name) });
+            });
+            DOC_KINDS.forEach(function (d) { renderDocChips(d.kind); });
+        } catch (e) { console.warn('[Receiver checklist] could not load saved documents', e); }
+    }
+
+    // ---- Suggested batch number (first bag row) ----
+    async function applySuggestedBatch(force) {
+        if (_editingBatchId || typeof $ === 'undefined') return;
+        if (typeof dataFunctions === 'undefined' || !dataFunctions.suggestOilBatchNumber) return;
+        var suggested = '';
+        try { suggested = await dataFunctions.suggestOilBatchNumber(); } catch (e) { suggested = ''; }
+        suggested = (suggested || '').toString().trim();
+        if (!suggested) return;
+        var $first = $('#srcItemsTableBody tr:first [name="batch"]');
+        if (!$first.length) return;
+        if (!force && ($first.val() || '').trim() !== '') return;
+        $first.val(suggested).attr('data-suggested', suggested);
+        $('#srcBatchSuggestWrap').removeClass('d-none');
+    }
+
     function optionForProductType(selected) {
         var opts = [
             { v: '', l: 'Select product…' },
-            { v: 'oil_kernel:crude', l: 'Oil kernel (crude grade)' },
-            { v: 'oil_kernel:food_grade', l: 'Oil kernel (food grade)' },
-            { v: 'cracker_dust', l: 'Cracker dust' },
-            { v: 'kernel_dust', l: 'Kernel dust' },
+            { v: 'oil_kernel:crude', l: 'Crude Grade Oil Kernel' },
+            { v: 'oil_kernel:food_grade', l: 'Food Grade Oil Kernel' },
+            { v: 'kernel_dust', l: 'Kernel Dust' },
+            { v: 'cracker_dust', l: 'Cracker Dust' },
             { v: 'crush', l: 'Crush' },
-            { v: 'cake', l: 'Cake' }
+            { v: 'cake', l: 'Oil Cake' }
         ];
         var h = '';
         opts.forEach(function (o) {
@@ -524,6 +691,35 @@ var _modal_supplier_receiver_checklist = (function () {
                     checkState[key].photos.splice(idx, 1);
                     renderThumbs(c);
                 });
+                [['srcConsignmentAttachBtn', 'srcConsignmentFile', 'consignment'],
+                 ['srcDeliveryNoteAttachBtn', 'srcDeliveryNoteFile', 'delivery_note'],
+                 ['srcOtherAttachBtn', 'srcOtherFile', 'other']].forEach(function (t) {
+                    $(document).off('click.srcDocBtn', '#' + t[0]).on('click.srcDocBtn', '#' + t[0], function (e) {
+                        e.preventDefault();
+                        var inp = document.getElementById(t[1]);
+                        if (inp) inp.click();
+                    });
+                    $(document).off('change.srcDocFile', '#' + t[1]).on('change.srcDocFile', '#' + t[1], function () {
+                        var files = Array.prototype.slice.call(this.files || []);
+                        this.value = '';
+                        if (files.length) uploadDocFiles(t[2], files);
+                    });
+                });
+                $(document).off('click.srcDocRm', '.src-doc-remove').on('click.srcDocRm', '.src-doc-remove', function () {
+                    var kind = $(this).attr('data-kind');
+                    var idx = parseInt($(this).attr('data-idx'), 10);
+                    if (!docState[kind]) return;
+                    docState[kind].splice(idx, 1);
+                    renderDocChips(kind);
+                });
+                $(document).off('click.srcBatchSuggest', '#srcBatchSuggestRefresh').on('click.srcBatchSuggest', '#srcBatchSuggestRefresh', function (e) {
+                    e.preventDefault();
+                    applySuggestedBatch(true);
+                });
+                $(document).off('input.srcBatchTyped', '#srcItemsTableBody [name="batch"]').on('input.srcBatchTyped', '#srcItemsTableBody [name="batch"]', function () {
+                    if ($(this).closest('tr').index() !== 0) return;
+                    if (this.value.trim() !== (this.getAttribute('data-suggested') || '')) $('#srcBatchSuggestWrap').addClass('d-none');
+                });
                 $(document).off('click.srcCreateBatchesBtn', '#srcCreateBatchesBtn').on('click.srcCreateBatchesBtn', '#srcCreateBatchesBtn', function (e) {
                     e.preventDefault();
                     api.createBatches();
@@ -603,6 +799,7 @@ var _modal_supplier_receiver_checklist = (function () {
                 syncAllChecks();
 
                 await loadSuppliers(editingBatch.supplier_id || null);
+                await loadSavedExtras(editingBatch.id);
 
                 if (typeof $ !== 'undefined') {
                     var editManufacturedIso = getEditManufacturedIso(editingBatch);
@@ -626,6 +823,7 @@ var _modal_supplier_receiver_checklist = (function () {
                 if (dateEl) dateEl.value = fromISO(todayISO);
                 await loadSuppliers(null);
                 ensureAtLeastOneRow();
+                applySuggestedBatch(false); // not awaited: a failed suggestion must never block the delivery
             }
 
             var modalEl = document.getElementById(CONTAINER_ID);
@@ -656,6 +854,9 @@ var _modal_supplier_receiver_checklist = (function () {
             refreshBagTotals();
             refreshFfaOutcomes();
             resetCheckState();
+            resetDocState();
+            DOC_KINDS.forEach(function (d) { renderDocChips(d.kind); });
+            $('#srcBatchSuggestWrap').addClass('d-none');
             TRUCK_CHECKS.forEach(function (c) {
                 var thumbs = document.getElementById(c.name + 'Thumbs');
                 if (thumbs) thumbs.innerHTML = '';
@@ -770,6 +971,7 @@ var _modal_supplier_receiver_checklist = (function () {
             var deliveryNoteRef = (document.getElementById('srcDeliveryNoteRef') && document.getElementById('srcDeliveryNoteRef').value) || null;
             var supplierId = (document.getElementById('srcSupplierDetails') && document.getElementById('srcSupplierDetails').value) || null;
             var supplierDetails = getSupplierDetailsText();
+            var consignmentRef = ((document.getElementById('srcConsignmentRef') && document.getElementById('srcConsignmentRef').value) || '').trim() || null;
 
             var vehicle_clean = (document.querySelector('input[name="srcVehicleClean"]:checked') && document.querySelector('input[name="srcVehicleClean"]:checked').value) || null;
             var vehicle_enclosed = (document.querySelector('input[name="srcVehicleEnclosed"]:checked') && document.querySelector('input[name="srcVehicleEnclosed"]:checked').value) || null;
@@ -784,7 +986,7 @@ var _modal_supplier_receiver_checklist = (function () {
             // Every problem in one list inside the form, like the nut-in-shell Receiving Checklist.
             var missing = [];
             if (!dateReceived) missing.push('Enter the date received');
-            if (!deliveryNoteRef || !String(deliveryNoteRef).trim()) missing.push('Enter the delivery note / PO number');
+            if (!deliveryNoteRef || !String(deliveryNoteRef).trim()) missing.push('Enter the delivery note reference');
             if (!supplierId) missing.push('Choose the supplier');
             if (!_editingBatchId) {
                 TRUCK_CHECKS.forEach(function (c) { if (!answerOf(c)) missing.push('Answer "' + c.label + '"'); });
@@ -800,11 +1002,13 @@ var _modal_supplier_receiver_checklist = (function () {
                 if (!r.manufactured_date) missing.push(label + ': enter a manufactured date (best before is worked out as +18 months)');
                 if (!_editingBatchId && r.ffa != null && isNaN(r.ffa)) missing.push(label + ': FFA must be a number from 0 to 100, or left blank');
             });
-            if (pendingUploads > 0) missing.push('Wait for the photo uploads to finish');
+            if (pendingUploads > 0) missing.push('Wait for the photo and document uploads to finish');
+            if (hasFailedDocs()) missing.push('A document did not upload: remove it and attach it again');
             if (missing.length) { showMessage(missing); return; }
             showMessage(null);
 
             var checkExtras = collectCheckExtras();
+            var documents = collectDocuments();
 
             var createBtn = document.getElementById('srcCreateBatchesBtn');
             if (createBtn) createBtn.disabled = true;
@@ -854,6 +1058,9 @@ var _modal_supplier_receiver_checklist = (function () {
                     if (res && res.success === false) {
                         throw new Error(res.error || res.message || 'Failed to update batch');
                     }
+                    // updateSupplierIntakeBatch rewrites intake_data whole, so put the documents back.
+                    var extrasOkEdit = await saveDeliveryExtras(_editingBatchId, consignmentRef, documents);
+                    if (!extrasOkEdit) throw new Error('The batch was saved but its consignment reference and documents were not. Open Edit and save again.');
                     if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Saved', text: 'Batch updated.', timer: 2500, showConfirmButton: false });
                 } else {
                     if (typeof dataFunctions === 'undefined' || !dataFunctions.createSupplierIntakeBatch) {
@@ -861,7 +1068,7 @@ var _modal_supplier_receiver_checklist = (function () {
                         return;
                     }
                     var deliveryGroupId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : (function () { var d = new Date().getTime(); return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) { var r = (d + Math.random() * 16) % 16 | 0; d = Math.floor(d / 16); return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16); }); })();
-                    var created = 0, ready = 0, held = 0, ffaFailed = [];
+                    var created = 0, ready = 0, held = 0, ffaFailed = [], extrasFailed = [];
                     for (var i = 0; i < rows.length; i++) {
                         var r = rows[i];
                         var payload = {
@@ -894,6 +1101,14 @@ var _modal_supplier_receiver_checklist = (function () {
                             throw new Error(res.error || res.message || 'Failed to create batch');
                         }
                         created++;
+                        if ((consignmentRef || documents.length) && res && res.id) {
+                            try {
+                                if (!(await saveDeliveryExtras(res.id, consignmentRef, documents))) extrasFailed.push(r.batch_number);
+                            } catch (xe) {
+                                console.error('[Receiver checklist] documents save failed', xe);
+                                extrasFailed.push(r.batch_number);
+                            }
+                        }
                         // Same rule as Sample test: in spec -> Ready, not in spec -> waits for an exec.
                         if (r.ffa != null && res && res.id && dataFunctions.completeSupplierIntakeFirstSampleFfa) {
                             try {
@@ -913,7 +1128,8 @@ var _modal_supplier_receiver_checklist = (function () {
                     if (waiting) parts.push(waiting + ' in Awaiting tests');
                     var savedText = 'Delivery saved: ' + created + ' bag' + (created === 1 ? '' : 's') + ' (' + parts.join(', ') + ').';
                     if (typeof Swal !== 'undefined') {
-                        if (ffaFailed.length) Swal.fire({ icon: 'warning', title: 'Saved, but some FFA results were not', text: savedText + ' Record FFA again for: ' + ffaFailed.join(', ') + '.' });
+                        if (extrasFailed.length) Swal.fire({ icon: 'warning', title: 'Saved, but documents were not', text: savedText + ' The consignment reference and documents were not saved on: ' + extrasFailed.join(', ') + '. Use Edit on those bags to attach them again.' });
+                        else if (ffaFailed.length) Swal.fire({ icon: 'warning', title: 'Saved, but some FFA results were not', text: savedText + ' Record FFA again for: ' + ffaFailed.join(', ') + '.' });
                         else Swal.fire({ icon: 'success', title: 'Created', text: savedText, timer: held ? 4000 : 2500, showConfirmButton: false });
                     }
                 }
