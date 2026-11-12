@@ -27,6 +27,7 @@
     var PAGE_W = 595.28 - 2 * MARGIN;           // 523.28pt usable
     var FULL_FIT = [515, 202];                  // 840 x 330 image (CSS px -> ~7pt axis text)
     var HALF_FIT = [250, 149];                  // 420 x 250 image
+    var WEEKLY_HALF_FIT = [250, 125];           // the same image, a little shorter, in the two-page weekly report
     var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
     // ------------------------------------------------------------------
@@ -303,6 +304,81 @@
     }
 
     // ------------------------------------------------------------------
+    // Weekly report v2: exactly one page per stream (Kernel Processing, then Oil Processing), plain like
+    // Mike's workbook - logo, title, dates, then compact tables and two charts. parts.weekly is set by
+    // report_view.js; parts.up ("coming up") is screen-only and left out. Sections carry no headlineLevel,
+    // so pageBreakBefore never moves anything: the only break is the one before the Oil page.
+    // ------------------------------------------------------------------
+
+    function weeklyHeader(st, inst, parts, pal, first) {
+        var color = st.key === 'oil' ? pal.tan : pal.green;
+        var mark = parts.logo
+            ? { image: parts.logo, fit: [54, 54], width: 60 }
+            : colorize({ text: 'MACAVATION', fontSize: 12, bold: true, width: 100, margin: [0, 14, 0, 0] }, color);
+        var dates = [];
+        if (inst.period_start) dates.push({ text: [{ text: 'Start date: ', bold: true }, { text: prettyDate(inst.period_start) }], fontSize: 9 });
+        if (inst.period_end) dates.push({ text: [{ text: 'End date: ', bold: true }, { text: prettyDate(inst.period_end) }], fontSize: 9 });
+        if (inst.period_label) dates.push(colorize({ text: fmt(inst.period_label), fontSize: 8 }, pal.muted));
+        var node = {
+            columns: [
+                mark,
+                { stack: [
+                    { text: 'Macavation Weekly Report', fontSize: 16, bold: true },
+                    colorize({ text: fmt(st.title), fontSize: 13, bold: true, margin: [0, 2, 0, 0] }, color)
+                ], width: '*', margin: [8, 4, 0, 0] },
+                { stack: dates, width: 'auto', alignment: 'right', margin: [0, 6, 0, 0] }
+            ],
+            columnGap: 6,
+            margin: [0, 0, 0, 4]
+        };
+        if (!first) node.pageBreak = 'before';
+        return [node, { canvas: [{ type: 'line', x1: 0, y1: 0, x2: PAGE_W, y2: 0, lineWidth: 1.2, lineColor: color }], margin: [0, 0, 0, 8] }];
+    }
+
+    function weeklySectionBlocks(sec, imgs, pal) {
+        var out = [];
+        out.push(colorize({ text: fmt(sec.title).toUpperCase(), fontSize: 9, bold: true, margin: [0, 4, 0, 3] }, sec.oil ? pal.tan : pal.green));
+        if (sec.notice && sec.notice.text) out.push(colorize({ text: fmt(sec.notice.text), fontSize: 8, italics: true, margin: [0, 0, 0, 3] }, pal.muted));
+        if (sec.tiles && sec.tiles.length) out.push(tilesTable(sec.tiles, pal));
+        (sec.grids || []).forEach(function (g) {
+            gridBlocks(g, imgs, pal).forEach(function (b) {
+                // The card title repeats the section heading: drop the table's spanning title row, and
+                // tighten the rows so each stream fits on one A4 page.
+                if (b.table && b.table.headerRows === 2) {
+                    b.table.body.shift();
+                    b.table.headerRows = 1;
+                    b.layout.hLineWidth = function () { return 0.5; };
+                    b.layout.paddingTop = function () { return 1; };
+                    b.layout.paddingBottom = function () { return 1; };
+                }
+                // Charts two-up, a little shorter than in the monthly report.
+                (b.columns || []).forEach(function (c) {
+                    (c.stack || []).forEach(function (n) { if (n.image) n.fit = WEEKLY_HALF_FIT; });
+                });
+                b.margin = [0, 0, 0, 4];
+                out.push(b);
+            });
+        });
+        if (sec.source) out.push({ text: fmt(sec.source), fontSize: 8, bold: true, margin: [0, 0, 0, 3] });
+        if (sec.fine) out.push(colorize({ text: fmt(sec.fine), fontSize: 7, italics: true, margin: [0, 0, 0, 3] }, pal.muted));
+        return out;
+    }
+
+    function buildWeekly(view, imgs, parts, pal) {
+        var inst = view.instance || {};
+        var content = [];
+        var summary = s(inst.executive_summary).trim();
+        ((parts.top && parts.top.streams) || []).forEach(function (st, i) {
+            weeklyHeader(st, inst, parts, pal, i === 0).forEach(function (b) { content.push(b); });
+            if (i === 0 && summary) content.push({ text: summary, fontSize: 8, margin: [0, 0, 0, 6] });
+            (st.sections || []).forEach(function (sec) {
+                weeklySectionBlocks(sec, imgs, pal).forEach(function (b) { content.push(b); });
+            });
+        });
+        return content;
+    }
+
+    // ------------------------------------------------------------------
     // build()
     // ------------------------------------------------------------------
 
@@ -334,6 +410,8 @@
         [parts.top, parts.sections, parts.up].forEach(function (blk) {
             streamBlocks(blk, imgs, pal).forEach(function (b) { content.push(b); });
         });
+        // The two-page weekly report replaces all of the above.
+        if (parts.weekly) content = buildWeekly(view, imgs, parts, pal);
 
         var whenIso = inst.published_at || snap.built_at || '';
         var when = whenIso ? prettyDate(whenIso) : prettyDate(new Date().toISOString());
