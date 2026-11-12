@@ -386,6 +386,8 @@ input.nd-est { color: var(--mac-info); font-style: italic; }
 .gi-truck-card.is-late { border-color: var(--mac-danger); }
 .gi-truck-card.is-today { border-color: var(--mac-green); }
 .gi-truck-card .btn { justify-self: start; margin-top: 0.25rem; min-height: 36px; }
+.gi-truck-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.gi-truck-actions .btn { margin-top: 0.25rem; }
 .gi-truck-card-top { display: flex; align-items: center; gap: 0.35rem; }
 .gi-truck-when { font-size: var(--mac-text-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--mac-text-tertiary); }
 .gi-truck-card.is-late .gi-truck-when { color: var(--mac-danger); }
