@@ -159,6 +159,39 @@ for (const f of ['report_figures.js', 'report_view.js', 'report-figures-pdf.js']
 check('data-functions: report_view_ cache is cleared alongside report_history_', (dataFns.match(/clearCachePattern\('report_view_'\)/g) || []).length >= 5);
 check('data-functions: ensureReportDrafts clears report_history_ cache', /ensureReportDrafts[\s\S]{0,600}clearCachePattern\('report_history_'\)/.test(dataFns));
 
+// Weekly report v2 (Mike, 12 Nov 2026): two pages, line-by-line figures, monthly / 4 target fallback.
+const WEEKLY_MIG = 'migrations/20261112090000_weekly_report_v2.sql';
+let weeklySql = '';
+try {
+  weeklySql = code(read(WEEKLY_MIG));
+} catch (e) {
+  failures.push(`${WEEKLY_MIG}: cannot read (${e.message})`);
+}
+if (weeklySql) {
+  const fns = [...weeklySql.matchAll(/CREATE OR REPLACE FUNCTION\s+public\.(\w+)\s*\(([\s\S]*?)\)\s*RETURNS[\s\S]*?\bAS\s+\$/g)];
+  for (const name of ['_report_target_exact', 'report_period_target', 'get_report_comparison', 'get_report_weekly_detail', 'report_build_snapshot']) {
+    const m = fns.find((f) => f[1] === name);
+    check(`weekly: defines ${name}`, !!m);
+    if (!m) continue;
+    check(`weekly: ${name} is SECURITY DEFINER with search_path = public`, /SECURITY DEFINER/.test(m[0]) && /SET search_path = public/.test(m[0]));
+    const sig = m[2].split(',').map((p) => p.trim()).filter(Boolean).map((p) => p.split(/\s+/).slice(1).join(' ')).join(', ');
+    check(`weekly: ${name} is granted to anon`, new RegExp(String.raw`GRANT EXECUTE ON FUNCTION public\.${name}\(${sig}\)\s+TO[^;]*\banon\b`).test(weeklySql));
+  }
+  check('weekly: target falls back to monthly / 4', /round\(v_val \/ 4, 2\)/.test(weeklySql));
+  check('weekly: food grade target also reads oil_ev_produced_kg', /'oil_food_grade_produced_kg', 'oil_ev_produced_kg'/.test(weeklySql));
+  check('weekly: comparison uses report_period_target', /v_target := public\.report_period_target\(v_mk, p_period_type, v_from\)/.test(weeklySql));
+  check('weekly: snapshot adds the weekly block for weekly reports only', /IF p_period_type = 'weekly' THEN\s+v_out := v_out \|\| jsonb_build_object\('weekly'/.test(weeklySql));
+  check('weekly: line lists are capped', /LIMIT c_max_lines/.test(weeklySql));
+  check('weekly: register-linked oil lines are skipped', /export_register_id IS NULL/.test(weeklySql));
+  check('weekly: never uses the bare UTC date function', !/CURRENT_DATE/i.test(weeklySql));
+}
+check('report_view.js: weekly lists capped at 8 lines', /var MAX_LINES = 8;/.test(viewJs));
+check('report_view.js: weekly layout only when snapshot.weekly succeeded', /snap\.weekly && snap\.weekly\.success === true\) return weeklyParts\(payload\)/.test(viewJs));
+check('report-figures-pdf.js: weekly report is one page per stream', /function buildWeekly\(/.test(pdfJs) && /node\.pageBreak = 'before'/.test(pdfJs) && /if \(parts\.weekly\) content = buildWeekly\(/.test(pdfJs));
+const pageJs = read(JS_DIR + 'reports_page.js');
+check('reports_page.js: "Overdue" chip renamed to "Not sent yet"', /text: 'Not sent yet'/.test(pageJs) && !/text: 'Overdue'/.test(pageJs));
+check('reports_page.js: report picker replaces the history list', /#reportsHistorySelect/.test(pageJs) && !/js-reports-history-row/.test(pageJs));
+
 if (failures.length) {
   console.error(`reports-tabs:verify FAILED (${failures.length} problem(s), ${passCount} passed)`);
   for (const f of failures) console.error('  - ' + f);

@@ -4,7 +4,8 @@
  *
  * Contract with the rest of the module:
  *   - report_list.html provides #reportsTabs, #reportsPaneReport (shared by Weekly + Monthly),
- *     #reportsPaneAll / #reportsAllHost, #reportsHistoryList, #reportsEditorHost and the bar ids.
+ *     #reportsPaneAll / #reportsAllHost, the report picker (#reportsHistorySelect, #reportsPrevBtn,
+ *     #reportsNextBtn), #reportsEditorHost and the bar ids.
  *   - report_list_grid.js (the router entry) calls _reportsPage.init() and routes "open this
  *     report" to _reportsPage.openInstance(id).
  *   - Data: dataFunctions.ensureReportDrafts() and dataFunctions.listReportHistory(type, limit, force).
@@ -75,8 +76,10 @@ var _reportsPage = function () {
             sent: 'bg-success-subtle text-success-emphasis',
             muted: 'bg-secondary-subtle text-secondary-emphasis'
         };
+        // "Overdue" confused people (Mike, 12 Nov 2026): it means the report has not gone out on WhatsApp
+        // by its due date. Publishing alone, or a test send to yourself, does not count as sent.
         if (item.overdue && (item.status === 'draft' || item.send_state === 'not_sent' || !item.send_state)) {
-            return { text: 'Overdue', cls: cls.danger };
+            return { text: 'Not sent yet', cls: cls.danger };
         }
         if (item.status === 'draft') return { text: 'Draft', cls: cls.draft };
         switch (item.send_state) {
@@ -120,22 +123,45 @@ var _reportsPage = function () {
     // History list + bar.
     // ------------------------------------------------------------------
 
+    // The report picker in the bar (a <select> plus older / newer buttons). Items are newest first.
+    function setPickerMessage(text) {
+        $('#reportsHistorySelect').empty().prop('disabled', true).append($('<option>').val('').text(text));
+        $('#reportsPrevBtn, #reportsNextBtn').prop('disabled', true);
+    }
+
     function renderHistory() {
-        var $list = $('#reportsHistoryList').empty();
         var items = state.items[state.tab] || [];
         $('#reportsHistoryHeading').text(state.tab === 'monthly' ? 'Monthly reports' : 'Weekly reports');
         if (!items.length) {
-            $list.append($('<div class="small text-muted px-2 py-3">').text('No reports yet.'));
+            setPickerMessage('No reports yet');
             return;
         }
-        items.forEach(function (item) {
-            var $row = $('<button type="button" class="list-group-item list-group-item-action d-flex align-items-center flex-wrap gap-1 px-2 js-reports-history-row">')
-                .attr('data-report-id', item.id)
-                .toggleClass('active', item.id === state.selectedId);
-            $row.append($('<span class="fw-semibold small">').text(itemLabel(item)));
-            $row.append(chipEl(item).addClass('ms-auto'));
-            $list.append($row);
+        var $sel = $('#reportsHistorySelect').empty().prop('disabled', false);
+        var idx = -1;
+        items.forEach(function (item, i) {
+            if (item.id === state.selectedId) idx = i;
+            $sel.append($('<option>').val(item.id).text(itemLabel(item) + ' · ' + statusChip(item).text));
         });
+        if (idx >= 0) $sel.val(state.selectedId);
+        $('#reportsPrevBtn').prop('disabled', idx < 0 || idx >= items.length - 1);
+        $('#reportsNextBtn').prop('disabled', idx <= 0);
+    }
+
+    function pickReport(id) {
+        if (!isUuid(id) || id === state.selectedId) return;
+        state.selectedId = id;
+        state.userPicked = true;
+        renderHistory();
+        renderBar(findItem(id));
+        openSelected();
+    }
+
+    // step +1 = older, -1 = newer.
+    function stepReport(step) {
+        var items = state.items[state.tab] || [];
+        var i = items.findIndex(function (x) { return x.id === state.selectedId; });
+        var next = items[i + step];
+        if (i >= 0 && next) pickReport(next.id);
     }
 
     function renderBar(item) {
@@ -158,9 +184,9 @@ var _reportsPage = function () {
         }
         var due = fmtDay(item.due_date);
         if (due) {
-            parts.push(item.period_type === 'monthly' || state.tab === 'monthly'
-                ? 'Aim to send by ' + due
-                : 'Due: end of ' + due);
+            if (statusChip(item).text === 'Not sent yet') parts.push('Was due ' + due + ' · sent means sent on WhatsApp');
+            else if (item.period_type === 'monthly' || state.tab === 'monthly') parts.push('Aim to send by ' + due);
+            else parts.push('Due: end of ' + due);
         }
         $sub.text(parts.join(' · '));
         $del.attr('data-report-id', item.id).toggleClass('d-none', item.status !== 'draft');
@@ -195,10 +221,7 @@ var _reportsPage = function () {
         opts = opts || {};
         var token = ++state.historyToken;
         var type = state.tab;
-        var $list = $('#reportsHistoryList');
-        if (!state.items[type].length) {
-            $list.empty().append($('<div class="small text-muted px-2 py-3">').text('Loading…'));
-        }
+        if (!state.items[type].length) setPickerMessage('Loading…');
         return fetchHistory(type, force).then(function (items) {
             if (token !== state.historyToken || type !== state.tab) return;
             state.items[type] = items;
@@ -224,8 +247,7 @@ var _reportsPage = function () {
         }).catch(function (err) {
             if (token !== state.historyToken) return;
             console.warn('[reports] listReportHistory failed', err);
-            $list.empty().append($('<div class="alert alert-warning m-2" role="alert">')
-                .text('Could not load the report history. Try again with "Reload list".'));
+            setPickerMessage('Could not load reports');
             clearEditor();
             showAlert($('#reportsEditorHost'), 'Could not load the report history: ' + (err && err.message ? err.message : 'unknown error') + '.');
         });
@@ -399,15 +421,11 @@ var _reportsPage = function () {
         $(document).on('click.reportsPage', '#reportsTabs [data-reports-tab]', function () {
             showTab($(this).attr('data-reports-tab'));
         });
-        $(document).on('click.reportsPage', '.js-reports-history-row', function () {
-            var id = String($(this).attr('data-report-id') || '');
-            if (!isUuid(id) || id === state.selectedId) return;
-            state.selectedId = id;
-            state.userPicked = true;
-            renderHistory();
-            renderBar(findItem(id));
-            openSelected();
+        $(document).on('change.reportsPage', '#reportsHistorySelect', function () {
+            pickReport(String($(this).val() || ''));
         });
+        $(document).on('click.reportsPage', '#reportsPrevBtn', function () { stepReport(1); });
+        $(document).on('click.reportsPage', '#reportsNextBtn', function () { stepReport(-1); });
         // A WhatsApp send finished: the history chips (Sent / Send failed) are now out of date.
         $(document).on('reportWhatsappSend:completed.reportsPage', function () {
             loadHistory(true, { keepSelection: true });
