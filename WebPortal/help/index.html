@@ -74,46 +74,123 @@
 
   <section id="modal-batch-history" class="guide-section" data-guide-id="modal-batch-history">
     <h2>Batch History (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+<p class="guide-lead">Read-only history of a kernel batch: its dispatches, intake, production and end sample (QA). Opens from Production when you press a batch row or card. It has no Save button and changes nothing.</p>
+    <p class="guide-how">On the Production screen press a batch's row in the table, or the body of its card on the board (not a button on it). The batch number and its status show at the top.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open to read the audit-style history of status changes and user actions on a batch.</li>
-      <li>Use during investigations; do not edit history entries.</li>
-    </ol>
+    <h3 class="guide-subhead">What the tabs show</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Dispatch</strong>: "Kernel dispatches (this batch)", the orders this batch went on. It opens first when the batch has orders.</li>
+      <li><strong>Intake</strong>: the receiving checklist and the samples, in order. <strong>Production</strong>: the production days and the job card. <strong>End sample (QA)</strong>: the end sample results.</li>
+      <li>A tab with nothing to show is hidden. If a tab has no data it says "No intake data for this batch", "No production or job card data for this batch" or "No end sample (QA) data for this batch".</li>
+      <li>"Cannot load batch history" means the history could not be read. Close and open it again.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li>History cannot be edited here. To correct a figure, open the batch in <strong>Find a batch</strong> and press <strong>Edit</strong> on the section that is wrong.</li>
+      <li>Press <strong>Close</strong> (or the cross) to leave.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-batch-history.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
   </section>
 
   <section id="batch-journey-grid" class="guide-section" data-guide-id="batch-journey-grid">
-    <h2>Batch Journey (module)</h2>
-<p class="guide-lead">Cross-batch search and status across intake, production, QA, and dispatch.</p>
-    <p class="guide-how">Search by batch or filters, open a row’s detail, then jump to owning module for the next action. Ideal when you know the batch ID but not where it sits.</p>
+    <h2>Find a batch (module)</h2>
+<p class="guide-lead">Find any kernel or oil batch by number or grower, see its status, and open it or the screen that owns its next step. Also archive a batch or fix its details. Press a kernel batch to open its own page.</p>
+    <p class="guide-how">Open <strong>Find a batch</strong> from the sidebar. There are tabs for <strong>Kernel</strong>, <strong>Oil &amp; Protein</strong> and <strong>Documents</strong> (only if your role can see documents). Use it when you know the batch number or grower but not which screen holds the batch.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Find a kernel batch</h3>
     <ol class="guide-page-steps">
-      <li>Open <strong>Batch journey</strong> when you know a batch id or grower but not which module currently owns the work.</li>
-      <li>Type in the search field (batch, grower, etc.); set <strong>Status</strong> and <strong>Sort</strong> (newest, by status, by grower, weight, moisture) to shorten the list.</li>
-      <li>Read the <strong>Status</strong> column for Intake, Receiving, Production, QA, Dispatch, or Complete.</li>
-      <li>On the <strong>Kernel</strong> tab, click a row to open the <strong>batch page</strong>: key figures (wet NIS, moisture, cracked so far, packed, dispatched), where the batch is in its journey, and one section per stage — Batch details, Receiving, Intake samples, Production days, Job card, End sample (QA) and Dispatch.</li>
-      <li>Press <strong>Edit</strong> on a section, change the values, then <strong>Save</strong> that section — only that section is saved. Delivery: change the delivery note, consignment ref, transporter, rate, collection points and bags (a bag already placed in a storage area or silo keeps its weight until it is taken out on Receiving). Production days: pick a day, then edit Washing or Sorting here; Cracking opens Production's own sheet (it is filled from the silo Cracking log, and a note shows when the two differ). Once the job card is approved, packed quantities are changed on the job card. The job card is saved as a draft only (it can be started early, with a warning). Dispatch: change this batch's cartons on any order that has not been dispatched.</li>
-      <li>Use <strong>Back to Find a batch</strong> to return to the list with your search, filter and sort as you left them, or <strong>Open in …</strong> to jump to the module that owns the batch's next step.</li>
+      <li>On the <strong>Kernel</strong> tab type in <strong>Search</strong> (batch or grower), pick a <strong>Status</strong>, and choose <strong>Sort by</strong>: Newest First, Oldest First, By Status, By Grower, By Weight (Heaviest) or By Moisture Level. <strong>Clear</strong> resets them. The count shows how many batches match.</li>
+      <li>The columns are Batch #, Grower, Status, Received, Weight (kg), Moisture, Total Yield (kg), then an <strong>Open</strong> button and an <strong>Actions</strong> menu.</li>
+      <li>Press <strong>Open</strong> to go to the screen that owns the batch's next step: Receiving, Production or Stock on Hand. For a batch with everything dispatched it opens the batch in Find a batch.</li>
+      <li>Press anywhere else on a row to open the batch page (see "Find a batch: the batch page").</li>
     </ol>
+
+    <h3 class="guide-subhead">What the statuses mean</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Receiving</strong>: the receiving checklist is not done. <strong>Samples</strong>: a sample is still to take. <strong>Needs a decision</strong>: samples are in but something is out of spec, waiting for someone to release it.</li>
+      <li><strong>Ready to crack</strong>: released to production, no production recorded yet. <strong>In production</strong>: production has started.</li>
+      <li><strong>Awaiting lab results</strong>: production is finished but the end sample is not done. <strong>Ready for stock</strong>: production and end sample are done.</li>
+      <li><strong>In stock</strong>: kernel is on hand. <strong>All dispatched</strong>: nothing left to send.</li>
+      <li>The Status filter also has <strong>All grower intake</strong> and <strong>All production / QA</strong> to group these.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Oil &amp; Protein and Documents</h3>
+    <ul class="guide-page-steps">
+      <li>The <strong>Oil &amp; Protein</strong> tab lists oil production batches with Search, <strong>Status</strong> (Awaiting tests, Ready for Oil Production, In oil production, In stock, Dispatched) and Sort by. Columns: Batch #, Supplier, Status, Production date, Total oil (L). The supplier link <strong>View ingredients</strong> shows the raw material batches used. The <strong>Actions</strong> menu has the next-step screen, <strong>Edit batch details</strong> and <strong>History</strong>.</li>
+      <li>The <strong>Documents</strong> tab is the document list, moved here from the Support menu.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Wrong batch details:</strong> <strong>Actions</strong> &rsaquo; <strong>Edit batch details</strong> (kernel or oil), change them and save. For deeper changes open the batch page.</li>
+      <li><strong>Batch should not exist:</strong> <strong>Actions</strong> &rsaquo; <strong>Archive</strong> and confirm "Archive kernel batch?". It leaves the active lists. Restore it from Stock &rsaquo; <strong>View archive</strong>. Its batch number can then be used again.</li>
+      <li><strong>Batch in the wrong stage:</strong> a status cannot be changed here. Do the missing step on the screen <strong>Open</strong> takes you to.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/batch-journey-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
   </section>
 
+  <section id="batch-journey-detail" class="guide-section" data-guide-id="batch-journey-detail">
+    <h2>Find a batch: the batch page</h2>
+<p class="guide-lead">Open a kernel batch from Find a batch to see all of it on one page: key figures, where it is in its journey, and one section per stage. Edit and save one section at a time, add or remove a bag, or archive the batch.</p>
+    <p class="guide-how">Press a row on the <strong>Kernel</strong> tab. <strong>Back to Find a batch</strong> returns to the list with your search, filter and sort as you left them. <strong>Open in</strong> (Receiving, Production or Stock on Hand) jumps to the screen that owns the next step, and <strong>Archive</strong> archives the batch. Below the batch number you see the grower, the received date and the delivery note.</p>
+
+    <h3 class="guide-subhead">What you see</h3>
+    <ul class="guide-page-steps">
+      <li>Figures: <strong>Wet NIS received</strong>, <strong>Intake moisture</strong>, <strong>Cracked so far</strong>, <strong>Sound kernel packed</strong> and <strong>Dispatched</strong>, then a bar showing which stages are done.</li>
+      <li>Sections: <strong>Batch details</strong>, <strong>Delivery</strong>, <strong>Receiving</strong>, <strong>Intake samples</strong>, <strong>Production days</strong>, <strong>Job card</strong>, <strong>End sample</strong> and <strong>Dispatch</strong>.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Change something</h3>
+    <ol class="guide-page-steps">
+      <li>Press <strong>Edit</strong> on the section (<strong>Add checklist</strong> or <strong>Add samples</strong> if nothing is recorded yet).</li>
+      <li>Change the values and press the <strong>Save</strong> button of that section. Only that section is saved. <strong>Cancel</strong> drops your changes.</li>
+    </ol>
+    <ul class="guide-page-steps">
+      <li><strong>Delivery:</strong> delivery note, consignment reference, transporter, collection points and bags. Only bags not yet placed can be re-weighed. Documents stay as they are. Needs the permission to book in deliveries.</li>
+      <li><strong>Production days:</strong> pick a day and edit <strong>Washing</strong> or <strong>Sorting</strong> here. Cracking opens the full production sheet with <strong>Open full sheet</strong>. Without permission to edit production stages you see "Your role cannot edit production stages."</li>
+      <li><strong>Job card:</strong> saved as a draft only. It is never approved from here.</li>
+      <li><strong>End sample:</strong> saving asks you to confirm "Save and update stock".</li>
+      <li><strong>Dispatch:</strong> <strong>Edit cartons</strong> changes this batch's cartons on an order that has not been dispatched. Buyer, dates and the other batches on the order are changed on Dispatch and Sales (<strong>Open Dispatch and Sales</strong>).</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake with bags</h3>
+    <ul class="guide-page-steps">
+      <li>In <strong>Edit</strong> on <strong>Delivery</strong>, press <strong>Remove</strong> beside a bag, choose why (<strong>Spilled</strong>, <strong>Wet</strong>, <strong>Damaged</strong>, <strong>Booked by mistake</strong> or <strong>Other</strong>, which needs a note) and press <strong>Remove bag</strong>. The weighed total drops by that bag. This saves straight away and is listed under <strong>Bag changes</strong>.</li>
+      <li>Press <strong>Add a bag</strong>, choose the reason (<strong>Found an extra bag</strong>, <strong>Missed at book-in</strong> or <strong>Other</strong>), type its weight in kg and press <strong>Add bag</strong>. It gets the next number and starts as Not placed yet: place it on Receiving.</li>
+      <li>A bag already cracked cannot be removed. A bag in a silo must first be undone on the Silos screen. Bags can only be changed while the batch is still in intake or production.</li>
+    </ul>
+  </section>
+
   <section id="modal-batch-summary" class="guide-section" data-guide-id="modal-batch-summary">
     <h2>Batch Summary (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+<p class="guide-lead">Totals for a kernel batch added up over all its production days: nut in shell received, kernel cracked, cracking yield, and what was washed, sorted and packed. Opens from Production, and is where you finish a batch's production.</p>
+    <p class="guide-how">On the Production screen open the batch's row (or card) menu and press <strong>Batch summary</strong>. It also opens with the <strong>Batch summary</strong> button inside the production days dialog.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">What it shows</h3>
+    <ul class="guide-page-steps">
+      <li>The batch number, its status and the grower, and how many production days are recorded.</li>
+      <li>Cards for <strong>NIS Received (kg)</strong>, <strong>Kernel Cracked (kg)</strong>, <strong>Cracking Yield</strong> and <strong>Total Packed (kg)</strong>.</li>
+      <li>Then the totals for <strong>Cracking</strong>, <strong>Washing</strong>, <strong>Sorting</strong> and <strong>Packing</strong>, with the waste and reject lines under each.</li>
+      <li>"No production days to summarize. Add days and save data first." means nothing is recorded yet.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Finish batch production</h3>
     <ol class="guide-page-steps">
-      <li>Open from batch cards or journey views to see consolidated batch metadata.</li>
-      <li>Use it to confirm grower, weights, moisture, and status before answering customer queries.</li>
+      <li>Check the totals. The <strong>Finish batch production</strong> button shows only while the batch is not finished.</li>
+      <li>Press it and confirm "Finish batch production?" ("This will mark the batch production as complete").</li>
+      <li>You see "Production finished". Empty job card lines are filled in from the production days. Open the job card, check the quantities and press <strong>Jobcard approved</strong> before releasing to stock.</li>
     </ol>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li>The summary only adds up what was saved, so a wrong total means a wrong day. Correct the day on Production (or with <strong>Edit</strong> on <strong>Production days</strong> in Find a batch), then open the summary again.</li>
+      <li>"Unable to load batch data. Please try again." means the figures could not be read. Close the dialog and reopen it.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-batch-summary.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -390,15 +467,33 @@
   </section>
 
   <section id="modal-grower-create-kernel-batch" class="guide-section" data-guide-id="modal-grower-create-kernel-batch">
-    <h2>Grower Create Kernel Batch (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h2>Book in a truck (dialog)</h2>
+<p class="guide-lead">Book in a delivery of nut in shell: choose the supplier, enter the supplier's declared weight and the bags, add the transport details and save. Opens from Receiving with <strong>+ Book in a truck</strong>, or with <strong>Book in</strong> on an expected truck.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Fill it in</h3>
     <ol class="guide-page-steps">
-      <li>Open from grower intake via <strong>Create kernel batch</strong>.</li>
-      <li>Enter grower, delivery metadata, and wet NIS details as prompted—tie to CRM NIS suppliers where pickers exist.</li>
-      <li>Save to create the intake batch; you will return to the board/table to run checklist and tests.</li>
+      <li><strong>Batch details.</strong> Set <strong>Date Received</strong> and the <strong>Supplier</strong>. Booking in from an expected truck fills these in. The <strong>+</strong> next to Supplier adds a new one: <strong>Company name</strong> and a <strong>Supplier code</strong> from 0 to 99 are required, and the code must be different for each supplier because it goes into the batch number. Then press <strong>Add supplier</strong>.</li>
+      <li><strong>Batch Number</strong> is suggested for you. <strong>Refresh suggested</strong> works it out again. If your role is not allowed to change it, the box is locked. Use a number that no other batch has.</li>
+      <li><strong>Supplier's declared weight (kg)</strong> is what the supplier says they sent.</li>
+      <li><strong>Bags.</strong> Every bag is one row with its <strong>Weight (Kg)</strong>. Press <strong>+ Add</strong> for more rows (the box next to it says how many, up to 500) and the cross at the end of a row to remove that bag. The footer shows the weighed total and bag count. One bag is one pallet. If the weighed total differs from the declared weight you see how many kg less or more. Both figures are kept and you can still save.</li>
+      <li><strong>If bags are weighed at the silo</strong> (a setting in Kernel Pipeline Settings), a <strong>Number of bags</strong> box appears with a button like "Add 32 bags at 937.50 kg each". Bags you do not weigh get the average (declared weight divided by bag count) and are marked <strong>est.</strong> Type a weight in a row and it counts as weighed.</li>
+      <li><strong>Transport.</strong> Choose the <strong>Transporter</strong> (or <strong>+ Add transport company</strong>), type the <strong>Delivery Note Reference</strong> from the transporter's paperwork, choose the <strong>Transport Type</strong>, and add the <strong>Consignment Reference</strong> from the supplier's delivery note if there is one. You do not enter the transport rate here: saving sends a task to My Day for the roles that enter it.</li>
+      <li><strong>Collection Point(s)</strong>: tick one or more of the supplier's addresses from CRM. <strong>Supporting Documents</strong>: attach the delivery note, proof of delivery and so on.</li>
+      <li><strong>Where did the bags go?</strong> Choose the storage area. If part went elsewhere, press <strong>+ Some bags went somewhere else</strong>, choose the area and how many of the last bags. This is optional. Bags with no area show as Not placed yet on Receiving and can be moved later.</li>
+      <li>Press <strong>Save delivery</strong>. A truck from the plan then shows as Received on the plan with its real kg, and its "Truck due today" task closes.</li>
     </ol>
+
+    <h3 class="guide-subhead">If it will not save</h3>
+    <ul class="guide-page-steps">
+      <li>A box "Please check the delivery" lists what is missing: Date Received, Supplier, Batch Number, at least one bag with a weight above 0, Delivery Note Reference, a Transporter, a Transport Type. It also says if documents are still uploading, or if the second area is the same as the first.</li>
+      <li>"Batch created, delivery details not saved" means the batch exists but the bag weights, transport, collection points or documents did not save. Open the batch in Find a batch and add them again with <strong>Edit</strong> on <strong>Delivery</strong>.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Before saving:</strong> change any box, or press <strong>Cancel</strong> to leave without saving.</li>
+      <li><strong>After saving:</strong> this form cannot be reopened. Change the supplier, date, batch number, weights or transport with <strong>Edit</strong> on Find a batch. A batch booked in by mistake can be archived from Receiving.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-grower-create-kernel-batch.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -406,34 +501,166 @@
 
   <section id="grower-intake-grid" class="guide-section" data-guide-id="grower-intake-grid">
     <h2>Receiving (module)</h2>
-<p class="guide-lead">Kernel-side intake: receiving checklists, batch testing, and creating kernel batches before production.</p>
-    <p class="guide-how">Work delivery-by-delivery: complete receiving checklists, capture samples if required, then create or link kernel batches so production can start.</p>
+<p class="guide-lead">Book in a delivery truck, do its receiving checklist and its two samples, and send it on to be cracked. Also shows the trucks expected from the procurement plan, and how to fix a mistake: edit the checklist or a sample, release by hand, or archive a batch.</p>
+    <p class="guide-how">Open <strong>Kernel pipeline &rsaquo; 1. Receiving</strong> from the sidebar. At the top are <strong>Procurement plan</strong>, the intake calendar, <strong>+ Book in a truck</strong> and an export button. Below are the search bar, the <strong>Expected trucks</strong> line and the batches, as a <strong>Board</strong> or a <strong>Table</strong>. The bags and the <strong>Storage areas</strong> list are in the next part of this guide.</p>
     <figure class="guide-flow">
       <object data="./assets/kernel-batch-lifecycle.svg" type="image/svg+xml" width="880" height="200" aria-label="Kernel batch lifecycle"></object>
     </figure>
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Book in a truck</h3>
     <ol class="guide-page-steps">
-      <li>Open <strong>Grower intake</strong> from the sidebar.</li>
-      <li>Use <strong>Search</strong>, <strong>Status</strong>, and <strong>Clear</strong> to find the batch; switch <strong>Board</strong> vs <strong>Table</strong> to match how you like to work.</li>
-      <li>For each delivery: complete the <strong>Receiving checklist</strong> (Stage 1) from the batch card or row actions—both batch test and batch sample unlock only after the checklist is done.</li>
-      <li>Use <strong>Create kernel batch</strong> when you need a new intake record; use <strong>Export</strong> for a spreadsheet snapshot when auditing.</li>
-      <li>When quality steps are satisfied, use <strong>Release to production</strong> so Production can receive the batch.</li>
+      <li>If the truck is on the procurement plan, open <strong>Expected trucks</strong> (press <strong>Show</strong>) and press <strong>Book in</strong> on its card. You can also drag the card by its grip handle onto the <strong>Receiving</strong> column. The delivery form opens with the supplier, date and weight filled in. A truck due tomorrow has no <strong>Book in</strong> button yet.</li>
+      <li>For a truck that is not on the plan, press <strong>+ Book in a truck</strong> and fill in the form yourself. See the <strong>Book in a truck</strong> dialog in this guide.</li>
+      <li>Press <strong>Save delivery</strong>. The batch appears in the <strong>Receiving</strong> column. If you see "You do not have permission to create kernel intake batches", your role cannot book in trucks.</li>
     </ol>
+
+    <h3 class="guide-subhead">Take a batch through the board</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Receiving:</strong> the receiving checklist is not done yet. Press <strong>Checklist</strong> on the card (<strong>Receiving checklist</strong> in the table).</li>
+      <li><strong>Samples:</strong> the checklist is done, a sample is still to take. Press <strong>Take sample</strong> and save both the ziplock and the 5kg sample.</li>
+      <li><strong>Needs a decision:</strong> both samples are saved but something is out of spec, or the checklist says the vehicle was not clean or pests were found. The batch waits here until a person looks at it and presses <strong>Release</strong>.</li>
+      <li><strong>Ready to crack:</strong> the batch has gone to production and its bags are waiting in storage or a silo. A batch whose checks are all fine moves here by itself as soon as the last sample is saved. Put its bags into a silo on Silo Holding.</li>
+    </ul>
+    <p class="guide-how">To release by hand, press <strong>Release</strong> on the card (in the table: the <strong>Actions</strong> menu &rsaquo; <strong>Release to production</strong>, greyed out until the checklist and samples are done). A box shows the weighed total; press <strong>Release</strong> to confirm. Dragging a card forward only opens the checklist or sample dialog. Cards cannot be dragged backwards.</p>
+
+    <h3 class="guide-subhead">Expected trucks</h3>
+    <ul class="guide-page-steps">
+      <li>The line reads like "2 late, 1 today, 5 in the next 7 days". Press <strong>Show</strong> for one card per late, today and tomorrow truck. A card says "not confirmed" until the plan marks it confirmed.</li>
+      <li>A truck up to 14 days late shows <strong>Late</strong>. Older ones are not listed; the link "never booked in" takes you to the Procurement plan to sort them out.</li>
+      <li>On a late truck, people who can edit the plan also see <strong>Edit</strong> (opens the truck in the Procurement plan) and <strong>Cancel</strong> (asks "Cancel this truck?"; press <strong>Cancel truck</strong>, or <strong>Keep it</strong>).</li>
+      <li>The <strong>Procurement plan</strong> button shows how many trucks are due this week. An amber dot means the next 7 days of the plan take stock under 100 t.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Wrong checklist answer:</strong> press <strong>Edit</strong> in the table's <strong>Actions</strong> menu (or the batch number), change the answer and press <strong>Save Receiving Checklist</strong>. Until the batch is released, saving re-checks it.</li>
+      <li><strong>Wrong sample result:</strong> press the tick button on the card (<strong>Batch sample</strong> in the table), fix the figure and press <strong>Save sample</strong>. Until the batch is released, this re-checks it too.</li>
+      <li><strong>Wrong supplier, date, batch number, delivery note or bag weight:</strong> these cannot be changed here after saving. Open <strong>Find a batch</strong>, open the batch, and press <strong>Edit</strong> on <strong>Batch details</strong> or <strong>Delivery</strong>.</li>
+      <li><strong>Released by mistake:</strong> this screen has no button to undo a release.</li>
+      <li><strong>Batch booked in by mistake:</strong> press the archive button on the card (table: <strong>Actions</strong> &rsaquo; <strong>Archive batch</strong>) and confirm "Archive kernel batch?". It leaves the intake and production lists and can be restored from Stock &rsaquo; <strong>View archive</strong>. Once a batch is Ready to crack, its card has no archive button here. Use <strong>Archive</strong> on Find a batch.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Finding things</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Search</strong> by batch number or grower. <strong>Status</strong> offers Receiving, Samples, Needs a decision and Ready to crack. <strong>Clear</strong> resets both.</li>
+      <li>In the <strong>Table</strong>, the arrow on the weight heading switches between <strong>Supplier's declared</strong>, <strong>Weighed total</strong> and <strong>Both</strong>.</li>
+      <li>The calendar button shades the days batches were received. Press a day to see which batches came in, from which grower, and where each is now. The download button exports the batches.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/grower-intake-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
   </section>
 
-  <section id="modal-grower-link-sample-to-batch" class="guide-section" data-guide-id="modal-grower-link-sample-to-batch">
-    <h2>Grower Link Sample To Batch (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+  <section id="grower-intake-bags" class="guide-section" data-guide-id="grower-intake-bags">
+    <h2>Receiving: bags and storage areas</h2>
+<p class="guide-lead">See where every bag of a delivery is and move bags between storage areas on the Receiving screen. Covers the Bags button, picking bags, Move and Undo, the Storage areas list, the weighed-or-estimated check and Recent moves.</p>
+    <p class="guide-how">Every delivery is a set of numbered bags (one pallet each). A bag is in a storage area, in a silo, cracked, or <strong>Not placed yet</strong>. Silo and cracked are set on the Silos screen and can only be seen here.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">See the bags of a batch</h3>
+    <ul class="guide-page-steps">
+      <li>Press <strong>Bags</strong> on a card (or the arrow at the start of a table row). Press <strong>Hide bags</strong> to close it.</li>
+      <li>The chips at the top count the bags per place, for example "Not placed yet: 12". Each square is one bag with its number and a letter or icon for where it is. Hold the pointer over a square to see its place and kg. A bag marked estimated has not been weighed yet.</li>
+      <li>When some bags are estimated, or were weighed at the silo, a check shows how many bags are weighed, the kg weighed at intake, the kg weighed at the silo, the kg still estimated, and the best figure now against what the supplier declared.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Move bags to another area</h3>
     <ol class="guide-page-steps">
-      <li>Open when linking a lab sample result to an intake batch.</li>
-      <li>Select the correct batch and sample identifiers; do not guess batch numbers.</li>
-      <li>Save so quality status can move to approved/pending per your rules.</li>
+      <li>Pick the bags. Tap one bag, then another to pick everything between them. Press and hold a bag (or Ctrl-click) to add or drop just that one. Tap a place chip to pick all the bags there. Or type numbers in <strong>Bags</strong> [from] <strong>to</strong> [to].</li>
+      <li>Choose the area in <strong>Move to</strong> and press <strong>Move</strong>. If you are moving more than half the batch you are asked "Move N bags?"; press <strong>Move them</strong>.</li>
+      <li>A message says "N bags of the batch moved to the area" with an <strong>Undo</strong> button. It stays for 8 seconds.</li>
     </ol>
+    <p class="guide-how">Only people with the storage-move permission can move bags; everyone else sees "You can see where the bags are. Ask an admin for access to move them." Bags in a silo or already cracked cannot be moved here: you get "Nothing to move. Those bags are already there, or are in a silo or cracked."</p>
+
+    <h3 class="guide-subhead">Storage areas list</h3>
+    <ul class="guide-page-steps">
+      <li>At the bottom of Receiving, each area shows its bags, tonnes and batches, and how full it is. Over 90% shows <strong>Full soon</strong>. The size of each area is set in Kernel Pipeline Settings &rsaquo; <strong>Plant</strong>. Without a size there is no bar.</li>
+      <li>Press an area to list the bags in it, with <strong>Open batch</strong> on each line.</li>
+      <li><strong>Not placed yet</strong> has a <strong>Place them</strong> button. An area with bags has <strong>Move bags</strong>. Choose the batch, the bag numbers (for example 1 to 10) and <strong>Move to</strong>. You are told "Choose a batch", "Enter bag numbers, like 1 to 10" or "None of those bags are here" if something is missing.</li>
+      <li><strong>In silos</strong> links to the Silos screen.</li>
+      <li><strong>Recent moves</strong> (the last 50, newest first) shows when, <strong>Placed</strong>, <strong>Out</strong> or <strong>Moved</strong>, the batch, from where to where, the tonnes, and who did it.</li>
+      <li>Older batches with no bags recorded are not counted. A note under the list says how many.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Moved the wrong bags:</strong> press <strong>Undo</strong> in the message within 8 seconds. After that, pick the same bags and move them back.</li>
+      <li><strong>Bag put in a silo by mistake:</strong> undo it on the Silos screen first (see Silo Holding), then move or remove it.</li>
+      <li><strong>A bag was spilled, or one was missed at book-in:</strong> open the batch in Find a batch, press <strong>Edit</strong> on <strong>Delivery</strong>, then <strong>Remove</strong> or <strong>Add a bag</strong> and give the reason. A bag already cracked cannot be removed.</li>
+    </ul>
+  </section>
+
+  <section id="procurement-plan" class="guide-section" data-guide-id="procurement-plan">
+    <h2>Procurement plan</h2>
+<p class="guide-lead">Plan the trucks of nut in shell coming from growers against what cracking uses, and see when stock will run out. Plan a delivery, mark it confirmed, move or cancel it, book it in, and set days off or shutdowns.</p>
+    <p class="guide-how">Open <strong>Kernel pipeline &rsaquo; Procurement plan</strong>, or press <strong>Procurement plan</strong> on Receiving. Planners edit the plan. Everyone else can look but not change it. <strong>Book in</strong> shows only to people who may book in trucks. Every change is logged with who made it. <strong>Back to Receiving</strong> goes back.</p>
+
+    <h3 class="guide-subhead">Reading the screen</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Tiles:</strong> <strong>Nut in shell on hand</strong>, <strong>Still to come</strong> (trucks and tonnes), <strong>Stock runs out</strong> (it warns when this is inside 30 days) and <strong>Cracking uses</strong> (kg per day).</li>
+      <li><strong>Late trucks</strong> show a banner: book the truck in if it arrived, or move it.</li>
+      <li><strong>Trucks this week and next</strong> lists each truck with its status: <strong>Planned</strong>, <strong>Confirmed</strong>, <strong>Late</strong>, or <strong>Received</strong> (the real weighed kg replace the planned kg).</li>
+      <li><strong>Stock on hand through the season</strong> is a chart of planned stock with a dot for each truck and a low-stock line at 100 t. Choose <strong>3 months</strong>, <strong>6 months</strong>, <strong>Year</strong> or <strong>All</strong>.</li>
+      <li>Below it choose the view (<strong>Day</strong>, <strong>Week</strong>, <strong>Month</strong>, <strong>Year</strong>), a <strong>Storage area</strong>, and the rate for the forecast: <strong>Planned rate</strong> or <strong>Actual average</strong> (greyed out until enough cracking is recorded). The month calendar shows the stock at the start of each day.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Plan a delivery</h3>
+    <ol class="guide-page-steps">
+      <li>Press <strong>+ Plan a delivery</strong>. A panel opens.</li>
+      <li>Choose the <strong>Grower</strong> (or type a name if it is not listed). <strong>Truck name</strong> is numbered for you. Set <strong>Planned date</strong> and <strong>Planned weight (kg)</strong> (it starts at 30,000).</li>
+      <li>For regular trucks set <strong>Repeat</strong> to <strong>Every week</strong> or <strong>Every 2 weeks</strong> and <strong>How many more</strong> (1 to 52).</li>
+      <li>Choose where it <strong>Goes into</strong>, set <strong>Status</strong> to <strong>Planned</strong> or <strong>Confirmed</strong>, add a <strong>Note</strong> and press <strong>Save</strong>. You see "Delivery planned."</li>
+      <li>You are told "Choose a grower", "Choose the planned date" or "Enter the planned weight in kg" if something is missing.</li>
+    </ol>
+
+    <h3 class="guide-subhead">Day to day</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Mark confirmed:</strong> on a planned truck that is not due yet. You see "Truck confirmed."</li>
+      <li><strong>Book in:</strong> on a truck due today or late. It opens Receiving with the book-in form. When the truck is saved there, the plan shows it as Received.</li>
+      <li><strong>Set a day:</strong> press <strong>Working days</strong>, or press a day on the month calendar. Choose <strong>From date</strong> and an optional <strong>To date</strong> for a range, then a <strong>Day type</strong>: Cracking day, Half day, Off, No cracking, Shutdown, Public holiday or Back to normal. Type <strong>Kg cracked</strong> only to override the daily rate. Press <strong>Save day</strong>.</li>
+      <li><strong>Plan settings:</strong> at the bottom of the same panel (press it to open). Set <strong>Planned kg per day</strong> (1 to 100,000) and the <strong>Opening stock</strong>: use the system's stock, or your own count with <strong>Kg counted</strong> and <strong>Counted on</strong>. Press <strong>Save settings</strong>.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Wrong date, weight, grower or area:</strong> press <strong>Edit</strong> on the truck (or <strong>Move date</strong> in the late banner), change it and press <strong>Save</strong> ("Truck updated.").</li>
+      <li><strong>Truck not coming:</strong> in <strong>Edit truck</strong> press <strong>Cancel this truck</strong> and confirm ("It comes off the calendar."; <strong>Keep it</strong> backs out). Only a planned truck that has not been received can be cancelled. A received or cancelled truck can no longer be changed here.</li>
+      <li><strong>Wrong day type:</strong> set the day again, or choose <strong>Back to normal</strong>.</li>
+      <li><strong>Double entries and old trucks:</strong> for planners, a card lists possible doubles and old trucks never booked in, each with <strong>Cancel this truck</strong>. Late means up to 14 days past the date. Older trucks are listed here.</li>
+    </ul>
+  </section>
+
+  <section id="modal-grower-link-sample-to-batch" class="guide-section" data-guide-id="modal-grower-link-sample-to-batch">
+    <h2>Batch sample (dialog)</h2>
+<p class="guide-lead">Record the two samples taken from a delivery: the ziplock bag sample (moisture, peroxide value, free fatty acids) and the 5kg sample (crack-out, float test, unsound kernels). Opens from Receiving with <strong>Take sample</strong>, and is where a wrong result is corrected.</p>
+    <p class="guide-how">Open it on Receiving: press <strong>Take sample</strong> on the card (<strong>Take sample</strong> or <strong>Batch sample</strong> in the table). The <strong>Take sample</strong> button appears once the receiving checklist is saved. The dialog always opens on the first tab. Each tab is saved on its own, and a green tick shows on a saved tab.</p>
+
+    <h3 class="guide-subhead">Ziplock bag sample</h3>
+    <ol class="guide-page-steps">
+      <li>Tick each test that was done: <strong>Moisture</strong> (%), <strong>Peroxide Value</strong> (meqO2/kg), <strong>Free Fatty Acids</strong> (%). At least one must be ticked, and each ticked test needs a result.</li>
+      <li>Type the result. A note under it says <strong>In spec</strong>, <strong>Borderline</strong> or <strong>Out of spec</strong>, or <strong>No limits set</strong>. The limits come from Kernel Pipeline Settings &rsaquo; Intake &amp; quality &rsaquo; Sample spec limits.</li>
+      <li>Press <strong>Save sample</strong>.</li>
+    </ol>
+
+    <h3 class="guide-subhead">5kg sample</h3>
+    <ol class="guide-page-steps">
+      <li><strong>Sample Crack-Out:</strong> weigh <strong>Sound Kernel (Pre-Float Test)</strong> and <strong>Shell</strong> in grams. Unsound Kernel fills in from the breakdown below. At least one crack-out weight is required. If the total is more than 50 g from 5,000 g you get a reminder to check the weights. It never stops you saving.</li>
+      <li><strong>Float Test:</strong> enter the wet weights of <strong>Floating Kernel</strong> and <strong>Sinking Kernel</strong>. The percentages, dry weights and water weight work themselves out. A warning appears if the total wet weight is less than the pre-float weight.</li>
+      <li><strong>Unsound Kernel Breakdown:</strong> enter the grams for Germination, Late Stinkbug, Early Stinkbug, Dark Centre, Mould, Rotten, Immature Split, Shrivelled and Nut Borer. Sinkers are added for you.</li>
+      <li><strong>Final Sample Results</strong> show the sound and unsound kernel yields once both float weights are in. Press <strong>Save sample</strong>.</li>
+    </ol>
+    <p class="guide-how">What you type is also kept on this device every 2 minutes, so a closed window or lost connection does not lose it. It is cleared when you save.</p>
+
+    <h3 class="guide-subhead">What happens when both are saved</h3>
+    <ul class="guide-page-steps">
+      <li><strong>All fine:</strong> the batch moves to <strong>Ready to crack</strong> by itself and you see "Ready to crack". It is held back only if a result is past its green limit (above it, or below it where higher is better), or if the checklist says the vehicle was not clean or pests were found. A test with no limit set never holds a batch. Borderline (yellow) does not hold it.</li>
+      <li><strong>Held:</strong> you see "Needs a decision" with the reasons. The batch waits under <strong>Needs a decision</strong> until someone presses <strong>Release</strong> on Receiving.</li>
+      <li><strong>Checklist not done:</strong> "Both samples complete". The batch moves on once the receiving checklist is saved.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li>Reopen the dialog from the same button, change the figure and press <strong>Save sample</strong>. The saved figures are loaded back in. While the batch is not yet released, saving checks it again, so a mistyped result that held a batch can be corrected.</li>
+      <li>Once a batch is released, Receiving no longer shows its steps. Correct a sample with <strong>Edit</strong> on <strong>Intake samples</strong> in Find a batch.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-grower-link-sample-to-batch.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -441,15 +668,30 @@
 
   <section id="modal-grower-receiving-checklist" class="guide-section" data-guide-id="modal-grower-receiving-checklist">
     <h2>Grower Receiving Checklist (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+<p class="guide-lead">Answer the six receiving checks for a delivery truck: vehicle clean, enclosed, hazards, pests, pallets and raw materials. Opens from Receiving with <strong>Checklist</strong>, and is where a wrong answer is corrected.</p>
+    <p class="guide-how">Open it on Receiving: press <strong>Checklist</strong> on the card, <strong>Receiving checklist</strong> in the table, the batch number of a batch that has no checklist yet, or <strong>Edit</strong> in the table's <strong>Actions</strong> menu. The <strong>Take sample</strong> button appears once this is saved.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Fill it in</h3>
     <ol class="guide-page-steps">
-      <li>Open from a grower intake batch card or row when Stage 1 (receiving) is due.</li>
-      <li>Work through each checklist line (weights, dockets, quality flags) exactly as operations defined.</li>
-      <li>Save; the batch card should show the checklist as complete so batch test and sample actions unlock.</li>
-      <li>If something is wrong with the delivery, record it here and escalate per QA before releasing forward.</li>
+      <li>Answer <strong>Yes</strong> or <strong>No</strong> to every question. All are required: <strong>Is the vehicle clean?</strong>, <strong>Vehicle fully enclosed?</strong>, <strong>Any hazard substances noted on truck?</strong>, <strong>Any signs of pest infestations?</strong>, <strong>Pallets received are in good condition</strong>, <strong>Are raw materials received in good condition?</strong></li>
+      <li>A bad answer opens a box: "What was wrong and what action was taken?". Bad means <strong>No</strong> to clean, enclosed, pallets and raw materials, and <strong>Yes</strong> to hazards and pests. The comment is required. You can add photos.</li>
+      <li>Use <strong>Comments/Actions taken</strong> for anything else.</li>
+      <li>Press <strong>Save Receiving Checklist</strong>. You see "Receiving checklist saved." and the card moves on to Samples.</li>
     </ol>
+    <p class="guide-how">Only two answers raise an alert and hold the batch for a decision: the vehicle is not clean, or pests were found. The other checks still ask what action was taken. Bag weights and the delivery note are entered when the truck is booked in, not here.</p>
+
+    <h3 class="guide-subhead">If it will not save</h3>
+    <ul class="guide-page-steps">
+      <li>The yellow message lists what is missing: <strong>Answer</strong> followed by the question, or <strong>Add a comment for</strong> the question.</li>
+      <li>"Wait for the photo uploads to finish": a photo is still uploading.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li>Reopen the checklist from the same place, change the answer (and its comment) and save again. The saved answers are loaded back in.</li>
+      <li>Until the batch is released, saving checks it again. A truck wrongly marked not clean or with pests can be put right, and a held batch moves on if everything else is in spec.</li>
+      <li>Once the batch is released, Receiving no longer shows its steps. Use <strong>Edit</strong> on <strong>Receiving</strong> in Find a batch.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-grower-receiving-checklist.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -884,14 +1126,8 @@
 
   <section id="modal-receiving-checklist" class="guide-section" data-guide-id="modal-receiving-checklist">
     <h2>Receiving Checklist (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
-
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open from stock or supplier flows when a receiving checklist is required for a movement.</li>
-      <li>Complete quantities, condition checks, and sign-off fields.</li>
-      <li>Save so stock and intake statuses can advance.</li>
-    </ol>
+<p class="guide-lead">This older "Incoming Receiving Checklist" dialog is no longer used. Nothing in the portal opens it now.</p>
+    <p class="guide-how">Its page is still loaded on the oil Receiving screen, but no button or code there asks it to open. The New delivery button on oil Receiving opens the Receiver checklist dialog instead (see that dialog in this guide). For a kernel truck, use the Grower Receiving Checklist dialog on Receiving.</p>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-receiving-checklist.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -1077,6 +1313,42 @@
       <li><strong>Cracking log:</strong> switch between <strong>Day</strong> and <strong>Week</strong>, and use the arrows, the date box or <strong>Today</strong> / <strong>This week</strong> to move around. The week view shows a total per day.</li>
       <li><strong>Calendar:</strong> the calendar button at the top shows the bags allocated and silos cracked each day. Press <strong>Refresh</strong> to load the latest.</li>
       <li><strong>Pre-sizer tally:</strong> shows each allocation's removed pre-sizer kg for the batch. Once the last bag is in, the total becomes the batch's removed pre-sizer figure on the job card and batch history.</li>
+    </ul>
+  </section>
+
+  <section id="kernel-pipeline-settings" class="guide-section" data-guide-id="kernel-pipeline-settings">
+    <h2>Kernel Pipeline Settings</h2>
+<p class="guide-lead">Change the rules the kernel screens use: sample limits, kg per crate, bag weighing and numbering, shelf life, daily target, lab days, transport companies, silo and storage sizes, kernel prices and stock alerts. Each card has its own Save button.</p>
+    <p class="guide-how">Open <strong>Kernel pipeline &rsaquo; Kernel Pipeline Settings</strong>. The tabs you see depend on your role. <strong>Intake &amp; quality</strong> and <strong>Plant</strong> need permission to edit settings, and without it you see "Nothing here for your role" unless you have Prices or Stock alerts. Press <strong>Save</strong> on a card to save only that card. "Nothing to save." means you changed nothing.</p>
+
+    <h3 class="guide-subhead">Intake &amp; quality tab</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Sample spec limits:</strong> for each test choose <strong>Better when</strong> Lower or Higher, then <strong>Green up to</strong> and <strong>Yellow up to</strong>. Above that is Red. (With Higher, they read "green from" and "yellow from".) A blank test shows no colour. The green limit also decides whether a delivery moves straight to Ready to crack or waits under Needs a decision.</li>
+      <li><strong>Kg per crate:</strong> for Washing and Sorting crates, so kg fill in as crates times this. Leave blank to type kg by hand.</li>
+      <li><strong>Batch numbers &amp; bags:</strong> <strong>Bag numbering when a bag is deleted</strong> is <strong>Keep numbers fixed (recommended)</strong> or <strong>Renumber 1..N</strong>. A table of roles chooses who may edit a batch number (super user and admin always can).</li>
+      <li><strong>Bag weights:</strong> <strong>Where are bags weighed?</strong> At New delivery (every bag needs a weight) or At the silo (bags without a weight get an estimate, marked est.). Then choose whether an estimated bag can go into a silo with a warning or must be weighed first. This only affects deliveries booked in from now on.</li>
+      <li><strong>Shelf life:</strong> <strong>Kernel best before</strong> in months (1 to 60) for new batches, and the <strong>Time Left</strong> colours on Kernel Stock: green when more than a number of months, yellow from a number up to green, red below yellow or when expired. Existing best-before dates do not change.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Plant tab</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Daily production target:</strong> kg of nut in shell cracked per working day (1 to 100,000). The 17:30 WhatsApp production report compares the day to it. Blank means no target.</li>
+      <li><strong>Positive release (lab):</strong> <strong>Expected days at the lab</strong> (1 to 60), counted as <strong>Working days</strong> (Monday to Friday) or <strong>Calendar days</strong>. Past this a batch shows as late.</li>
+      <li><strong>Transport:</strong> the lists of transport companies and transport types used when booking in a truck. Type a name and press <strong>Add</strong>. <strong>Rename</strong>, <strong>Deactivate</strong> or <strong>Reactivate</strong> an existing one.</li>
+      <li><strong>Silo capacity:</strong> kg for Silo 1 to Silo 12. <strong>Storage area capacity:</strong> kg per area, used for the fill bars on Receiving. Blank means no limit.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Prices and Stock alerts tabs</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Prices:</strong> the price per kg for each kernel style. A dispatch basket is valued from these. Needs the permission to view kernel prices.</li>
+      <li><strong>Stock alerts:</strong> red-flag levels for kernel and oil stock on hand, with <strong>Add Rule</strong> and <strong>Refresh</strong>. Rules are checked when somebody opens Stock Management, not on a timer.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li>Change the value and press that card's <strong>Save</strong> again. The message says what is wrong, for example "Limits must be numbers of 0 or more" or "Silo capacity must be more than 0".</li>
+      <li>Changes to shelf life and bag weighing apply to new deliveries and batches only. Old batches keep what they had.</li>
+      <li>A transport company or type cannot be deleted here. <strong>Deactivate</strong> it, and <strong>Reactivate</strong> it if you need it back.</li>
     </ul>
   </section>
 

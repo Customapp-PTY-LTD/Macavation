@@ -40,9 +40,6 @@ const PLACEHOLDER_PHRASES = [
 
 // Sections that still hold placeholder text. Remove an id once its section is rewritten.
 const PENDING_PLACEHOLDER = new Set([
-    // kernel intake
-    'modal-batch-history', 'modal-batch-summary', 'modal-grower-create-kernel-batch',
-    'modal-grower-link-sample-to-batch', 'modal-grower-receiving-checklist', 'modal-receiving-checklist',
     // kernel production, quality and dispatch
     'modal-end-sample', 'modal-end-sample-view', 'modal-job-card-view', 'modal-kernel-dispatch',
     'modal-kernel-dispatch-edit', 'modal-kernel-dispatch-form', 'modal-kernel-job-card',
@@ -73,7 +70,7 @@ const ROUTE_ALIASES = {
 
 // Sidebar routes with no section yet. Remove a route once its section exists (id = the route).
 const PENDING_ROUTES = new Set([
-    'kernel-dashboard', 'kernel-pipeline-settings', 'procurement-plan',
+    'kernel-dashboard',
     'oil-dashboard', 'oil-raw-materials',
     'crm-whatsapp-grid', 'amanda-dashboard',
 ]);
