@@ -1041,6 +1041,45 @@
     </figure>
   </section>
 
+  <section id="silo-allocation-grid" class="guide-section" data-guide-id="silo-allocation-grid">
+    <h2>Silo Holding (module)</h2>
+<p class="guide-lead">Put received bags into silos, open a silo to start cracking, and stop it to log the run. Also how to fix a mistake: undo a bag put in the wrong silo, cancel a silo opened by mistake, undo a cracking run, or correct its times.</p>
+    <p class="guide-how">Open <strong>Kernel pipeline &rsaquo; 2. Silo Holding</strong> from the sidebar. The screen has three parts: <strong>Allocate bags</strong> (folds away to one line), <strong>Silos</strong> (one card per silo) and the <strong>Cracking log</strong>. Since 26 Oct 2026 the cracking log is the record of kg cracked: each finished run fills in the batch cracking sheet automatically.</p>
+
+    <h3 class="guide-subhead">Put bags into a silo</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Allocate bags</strong> (press <strong>Show</strong>). Bags appear here once a delivery is released to production on Receiving.</li>
+      <li>Pick the <strong>Batch</strong>. Batches with bags still to allocate are listed first; batches already fully in a silo are listed under <strong>All bags in a silo</strong>.</li>
+      <li>Tick the bags going in, or <strong>Select all</strong>. A bag marked <strong>est.</strong> has an estimated weight from New Delivery: type its real weight in the <strong>Real kg</strong> box. Any other bag can be re-weighed by typing in its <strong>Re-weigh kg</strong> box; leave it empty to keep the weight on record.</li>
+      <li>Choose the silo in <strong>Into silo</strong>. A silo only takes one batch at a time, so silos holding a different batch are greyed out until they are cracked empty. A silo can be filled past its capacity; the list shows how far over it is.</li>
+      <li>Press <strong>Allocate selected</strong>. Enter the kg <strong>taken out at the pre-sizer</strong> for those bags (0 if none) and the weights of any bags being weighed, then save.</li>
+    </ol>
+
+    <h3 class="guide-subhead">Crack a silo</h3>
+    <ol class="guide-page-steps">
+      <li>On the silo card press <strong>Open silo ▶</strong>. The start time fills in with the time now; change it if the silo was opened earlier. The card turns green, shows <strong>Cracking</strong> and a running timer.</li>
+      <li>When cracking stops, press <strong>Stop cracking ■</strong>. Check the start and stop date and time, then enter the <strong>kg left in the silo</strong> (an estimate is fine) and press <strong>Save</strong>, or press <strong>Silo is empty</strong>.</li>
+      <li>The run appears in the <strong>Cracking log</strong> with the kg cracked, kg left, time and kg per hour. A run longer than 16 hours is flagged <strong>Check times</strong>, because it usually means the stop date was left on the next day.</li>
+    </ol>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Bag put in the wrong silo, the wrong batch, or with the wrong pre-sizer kg:</strong> open <strong>Allocate bags</strong>, pick the batch, and open the <strong>Allocated</strong> list under the bags (for example "Allocated: 12 bags · 5,400.00 kg"). Press <strong>Undo</strong> next to each wrong bag. The bag goes back to "still to allocate" and the pre-sizer figure is worked out again. Then allocate it again to the right silo. Undo is one bag at a time.</li>
+      <li><strong>No Undo next to a bag, or Undo says "cracking from it has already started":</strong> some of that bag has already been logged as cracked, so it can't be taken back out of the silo. Undo the cracking runs on that silo first (below, latest run first). Once no run has taken anything from the bag, its <strong>Undo</strong> works again.</li>
+      <li><strong>Silo opened by mistake:</strong> while it is cracking, press <strong>Opened by mistake</strong> on the silo card. The run is removed as if the silo was never opened; the bags stay in the silo and nothing is counted as cracked.</li>
+      <li><strong>Wrong start or stop time on a finished run:</strong> in the Cracking log press <strong>Edit times</strong> on the run, correct the dates and times, and press <strong>Save</strong>. The run is marked <strong>time changed</strong>.</li>
+      <li><strong>Run logged by mistake, or wrong kg left:</strong> in the Cracking log press <strong>Edit times</strong>, then <strong>Undo this run</strong>. The kg cracked go back into the silo and come off the cracking log and the batch cracking sheet. Only the latest run on a silo can be undone (undo later runs first), and not while that silo is open: stop it or use <strong>Opened by mistake</strong> first. To fix the kg left, undo the run, then open and stop the silo again with the right figure and times.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Finding things</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Show a batch:</strong> press a batch button above the silos to highlight every silo it is in and see how many kg are still in silos.</li>
+      <li><strong>Cracking log:</strong> switch between <strong>Day</strong> and <strong>Week</strong>, and use the arrows, the date box or <strong>Today</strong> / <strong>This week</strong> to move around. The week view shows a total per day.</li>
+      <li><strong>Calendar:</strong> the calendar button at the top shows the bags allocated and silos cracked each day. Press <strong>Refresh</strong> to load the latest.</li>
+      <li><strong>Pre-sizer tally:</strong> shows each allocation's removed pre-sizer kg for the batch. Once the last bag is in, the total becomes the batch's removed pre-sizer figure on the job card and batch history.</li>
+    </ul>
+  </section>
+
   <section id="stock-alert-rules-grid" class="guide-section" data-guide-id="stock-alert-rules-grid">
     <h2>Stock Alert Rules (module)</h2>
 <p class="guide-lead">Module <strong>Stock Alert Rules (module)</strong>. Available from the navigation menu when your role includes access. The screenshot below shows the live screen layout.</p>

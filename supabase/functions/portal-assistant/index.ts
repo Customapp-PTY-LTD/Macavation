@@ -342,6 +342,7 @@ const KNOWN_ROUTES: Record<string, string> = {
   "crm-grid": "Open CRM",
   "grower-intake-grid": "Open Receiving",
   "kernel-production-grid": "Open Production",
+  "silo-allocation-grid": "Open Silo Holding",
   "oil-production-grid": "Open Oil Production",
   "stock-management-grid": "Open Stock Management",
   "quality-assurance-grid": "Open Quality Assurance",
@@ -358,6 +359,7 @@ const NAV_BY_ANCHOR: Record<string, string> = {
   "my-day": "my-day",
   "grower-intake-grid": "grower-intake-grid",
   "kernel-production-grid": "kernel-production-grid",
+  "silo-allocation-grid": "silo-allocation-grid",
   "oil-production-grid": "oil-production-grid",
   "stock-management-grid": "stock-management-grid",
   "quality-assurance-grid": "quality-assurance-grid",
@@ -377,7 +379,9 @@ const NAV_BY_ANCHOR_PREFIX: { prefix: string; route: string }[] = [
 const NAV_BY_KEYWORD: { re: RegExp; route: string }[] = [
   { re: /\bcrm\b|\bcustomer\b|\bcontact\b/i, route: "crm-grid" },
   { re: /\bgrower\b|\bintake\b/i, route: "grower-intake-grid" },
-  { re: /\bkernel production\b|\bjob card\b|\bcracking\b/i, route: "kernel-production-grid" },
+  // Cracking is logged on Silo Holding since 26 Oct 2026 (open / stop a silo), not on Production.
+  { re: /\bsilos?\b|\bcracking\b|\bcracked\b|\bpre-?sizer\b/i, route: "silo-allocation-grid" },
+  { re: /\bkernel production\b|\bjob card\b/i, route: "kernel-production-grid" },
   { re: /\boil production\b/i, route: "oil-production-grid" },
   { re: /\bstock\b|\binventory\b|\bsoh\b/i, route: "stock-management-grid" },
   { re: /\bquality\b|\bqa\b|\bfood safety\b/i, route: "quality-assurance-grid" },
