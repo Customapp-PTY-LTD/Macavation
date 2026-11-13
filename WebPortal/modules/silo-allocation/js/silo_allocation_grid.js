@@ -216,6 +216,22 @@ var _siloAllocationGrid = (function () {
         return (b.bags || []).filter(function (x) { return x.silo_number == null; });
     }
 
+    // Oldest batch first (Mike, 13 Nov 2026): by year, then running number - "Bn 55 26 68" before
+    // "Bn 44 26 77". The supplier code (first pair) is ignored. Anything unparseable goes last.
+    function batchOrderKey(b) {
+        var m = /(\d{2})[\s.](\d{2})[\s.](\d+)\s*$/.exec(String(b && b.batch_number || ''));
+        return m ? [Number(m[2]), Number(m[3])] : [Infinity, Infinity];
+    }
+
+    function sortBatchesOldestFirst(list) {
+        return list.slice().sort(function (a, b) {
+            var ka = batchOrderKey(a), kb = batchOrderKey(b);
+            if (ka[0] !== kb[0]) { return ka[0] < kb[0] ? -1 : 1; }
+            if (ka[1] !== kb[1]) { return ka[1] < kb[1] ? -1 : 1; }
+            return String(a.batch_number || '').localeCompare(String(b.batch_number || ''));
+        });
+    }
+
     function currentBatch() {
         var list = state.batches || [];
         for (var i = 0; i < list.length; i++) {
@@ -262,7 +278,7 @@ var _siloAllocationGrid = (function () {
             loadPeriodRuns()
         ]).then(function (res) {
             state.overview = (isOk(res[0]) && Array.isArray(res[0].silos)) ? res[0].silos : null;
-            state.batches = (isOk(res[1]) && Array.isArray(res[1].batches)) ? res[1].batches : null;
+            state.batches = (isOk(res[1]) && Array.isArray(res[1].batches)) ? sortBatchesOldestFirst(res[1].batches) : null;
             state.runs = (isOk(res[2]) && Array.isArray(res[2].runs)) ? res[2].runs : null;
             if (state.overview === null || state.batches === null || state.runs === null) {
                 setNotice(notSetUpHtml());
@@ -398,12 +414,17 @@ var _siloAllocationGrid = (function () {
 
         var h = '<div class="mb-3"><label for="siloBatchSel" class="form-label">Batch</label>' +
             '<select class="form-select" id="siloBatchSel">';
-        state.batches.forEach(function (b) {
+        // Two groups: batches with bags still to allocate, then batches already all in a silo.
+        function opt(b) {
             var hint = batchHint(b);
-            h += '<option value="' + esc(b.kernel_id) + '"' +
+            return '<option value="' + esc(b.kernel_id) + '"' +
                 (String(b.kernel_id) === String(state.batchId) ? ' selected' : '') + '>' +
                 esc(batchLabel(b) + (hint ? ' — ' + hint : '')) + '</option>';
-        });
+        }
+        var waiting = state.batches.filter(function (b) { return unallocated(b).length > 0; });
+        var done = state.batches.filter(function (b) { return unallocated(b).length === 0; });
+        if (waiting.length) { h += '<optgroup label="Still to allocate">' + waiting.map(opt).join('') + '</optgroup>'; }
+        if (done.length) { h += '<optgroup label="All bags in a silo">' + done.map(opt).join('') + '</optgroup>'; }
         h += '</select></div>';
 
         var where = batchSpread()[String(batch.kernel_id)];
