@@ -216,7 +216,7 @@ var _siloAllocationGrid = (function () {
         return (b.bags || []).filter(function (x) { return x.silo_number == null; });
     }
 
-    // Oldest batch first (Billy, 13 Nov 2026): by year, then running number - "Bn 55 26 68" before
+    // Oldest batch first (Mike, 13 Nov 2026): by year, then running number - "Bn 55 26 68" before
     // "Bn 44 26 77". The supplier code (first pair) is ignored. Anything unparseable goes last.
     function batchOrderKey(b) {
         var m = /(\d{2})[\s.](\d{2})[\s.](\d+)\s*$/.exec(String(b && b.batch_number || ''));
