@@ -714,14 +714,8 @@
 
   <section id="modal-job-card-view" class="guide-section" data-guide-id="modal-job-card-view">
     <h2>Job Card View (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
-
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open from production or dispatch when viewing a read-only job card summary.</li>
-      <li>Use it to verify styles and quantities before authorising dispatch or QA.</li>
-      <li>Close when finished—no edits here if the dialog is view-only in your build.</li>
-    </ol>
+<p class="guide-lead">This read-only job card view is no longer used. To see or change a job card, use the Job card dialog on the Production screen.</p>
+    <p class="guide-how">I searched the whole portal for anything that opens this dialog. The Production screen still has an empty place for it, but no button or menu calls it. The same details are now in the <strong>Job card</strong> dialog, opened from <strong>More</strong> (Board) or the row's <strong>Actions</strong> menu (Table) on <strong>Kernel pipeline &rsaquo; 3. Production</strong>. The Batch Journey screen also shows a job card view of its own.</p>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-job-card-view.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -729,14 +723,8 @@
 
   <section id="modal-kernel-dispatch" class="guide-section" data-guide-id="modal-kernel-dispatch">
     <h2>Dispatch and Sales (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
-
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open from kernel dispatch when creating or editing a dispatch basket header (buyer, delivery date).</li>
-      <li>Pick kernel customers from CRM; lines usually come from stock send-to-dispatch.</li>
-      <li>Save before opening line-level or inspection forms.</li>
-    </ol>
+<p class="guide-lead">This old read-only dispatch order box is no longer used. To see a dispatch use View sheet on the Dispatch and Sales screen, and for its pricing use the step boxes.</p>
+    <p class="guide-how">I searched the whole portal for anything that opens this dialog. Its function for showing an order is never called, and the Dispatch and Sales screen now shows <strong>View sheet</strong> instead, which opens the truck sheet (see Truck loaded dialog). Pricing and picking are in the dispatch dialog opened from the amber step box. Both are on <strong>Kernel pipeline &rsaquo; 5. Dispatch and Sales</strong>.</p>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-kernel-dispatch.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -744,18 +732,36 @@
 
   <section id="kernel-dispatch-grid" class="guide-section" data-guide-id="kernel-dispatch-grid">
     <h2>Dispatch and Sales (module)</h2>
-<p class="guide-lead">Kernel finished goods: board/table views, dispatch basket, and inspection forms before despatch.</p>
-    <p class="guide-how">Build the dispatch basket from approved stock, complete inspections, then finalise documents. Fixes to stock usually happen in Stock Management, not here.</p>
+<p class="guide-lead">Follow every kernel dispatch through five steps: dispatch created, stock picked, pricing confirmed, truck loaded and invoice sent. Start a dispatch, see who it is waiting on, and fix a mistake by editing it or undoing a step.</p>
+    <p class="guide-how">Open <strong>Kernel pipeline &rsaquo; 5. Dispatch and Sales</strong>. <strong>Open dispatches</strong> lists every dispatch until its invoice is sent; <strong>Dispatched and invoiced</strong> below it lists the finished ones. Each row has five boxes: a green tick is done, an amber box is the step it is on now, and a grey box is still to come. <strong>Waiting on</strong> says who has to act next. <strong>Board</strong> and <strong>Table</strong> switch the layout; <strong>Refresh</strong> reloads.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">The five steps</h3>
     <ol class="guide-page-steps">
-      <li>Open <strong>Kernel dispatch</strong>; use <strong>Board</strong> vs <strong>Table</strong> and <strong>Refresh</strong> to align with how your despatch team works.</li>
-      <li>Use <strong>Find basket</strong>: type in <strong>Search</strong> to narrow as you go — matches <strong>buyer</strong>, linked <strong>CRM contact</strong> (company / trading / primary name), <strong>grower</strong> on any basket line, and <strong>batch</strong>. A <strong>single letter</strong> uses starts-with on batch numbers and start-of-name (or word after a space) on names; two or more characters use normal “contains” matching. Add <strong>Supplier received</strong> to filter by kernel received date; with both set, only baskets matching both appear. <strong>Clear</strong> shows the full list again.</li>
-      <li>Remember the flow: inventory from finished warehouse <strong>KERNEL R YES</strong> moves to <strong>Kernel customers</strong> and debtors—baskets are built from stock sends.</li>
-      <li>In table view, open <strong>View sheet</strong> to check styles and quantities before loading; use <strong>Dispatch</strong> to complete inspection and dispatch forms.</li>
-      <li>Review the <strong>Baskets marked as dispatched</strong> section for completed paperwork and proof of shipment. If dispatch was recorded by mistake, use <strong>Edit</strong> on a dispatched row or card (or <strong>Edit</strong> on the read-only dispatch sheet) to unlock the basket: dispatch paperwork is cleared and it returns to ready to dispatch so you can correct and dispatch again.</li>
-      <li>If quantities are wrong, fix stock or the basket in <strong>Stock management</strong> rather than forcing a dispatch through.</li>
+      <li><strong>Dispatch created:</strong> press <strong>Send to Dispatch</strong> (see Send to Dispatch dialog).</li>
+      <li><strong>Stock picked:</strong> the Production Manager presses <strong>Confirm picking</strong> and confirms the cartons found on the shelf.</li>
+      <li><strong>Pricing confirmed:</strong> the Sales Exec presses <strong>Confirm pricing</strong>. After that the button reads <strong>View pricing</strong>.</li>
+      <li><strong>Truck loaded:</strong> in the row's <strong>Actions</strong> menu press <strong>Truck loaded</strong> and complete the truck sheet. It will not open until picking and pricing are confirmed ("Not ready for the truck").</li>
+      <li><strong>Invoice sent:</strong> the Palladium Manager presses <strong>Invoice sent</strong> and enters the PO and invoice numbers.</li>
     </ol>
+    <p class="guide-how">Press an amber box to do that step. If your role may not do it, a message says who it is waiting on. Press a green tick to see what happened and press <strong>Open full details</strong> (or <strong>Open the truck sheet</strong> for step 4).</p>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Wrong buyer, collection date or cartons, truck not loaded yet:</strong> in <strong>Actions</strong> press <strong>Edit</strong>. A dispatch that has gone out cannot be edited.</li>
+      <li><strong>Picked wrongly:</strong> the pricing dialog has <strong>Send back to Thando</strong>, which asks you to say what needs another look and puts the dispatch back to picking.</li>
+      <li><strong>Wrong prices or transport cost:</strong> open <strong>View pricing</strong> or <strong>Confirm pricing</strong> and press <strong>Update pricing</strong>. This works until the truck is loaded.</li>
+      <li><strong>Truck loaded by mistake:</strong> press <strong>Undo truck loaded</strong> and confirm "Yes, unlock for editing". The saved truck paperwork, the dispatched time and any invoice-sent tick are cleared and the dispatch goes back to waiting for the truck. It only works on a dispatch that is marked loaded.</li>
+      <li><strong>Invoice marked sent by mistake:</strong> on a finished dispatch press <strong>Undo invoice sent</strong>. Step 5 goes back to waiting and the invoice task opens again.</li>
+      <li><strong>Stock was wrong:</strong> in Edit use <strong>Send back to stock</strong> on the line.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Finding things</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Search</strong> (buyer, grower, batch; the list filters as you type), <strong>Supplier received</strong> date, and <strong>Clear</strong>.</li>
+      <li>The chips above the list filter by stage with a count: <strong>All</strong>, <strong>Waiting for picking</strong>, <strong>Waiting for pricing</strong>, <strong>Waiting for the truck</strong>, <strong>Waiting for the invoice</strong>, <strong>Done</strong> and <strong>Older orders</strong>. Older orders went out before the five steps began and show "Older order" instead of boxes.</li>
+      <li><strong>Dispatch Calendar</strong> shows days with baskets created or dispatched, the buyer and the kg.</li>
+      <li><strong>View sheet</strong> in Actions opens the truck sheet for that dispatch.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/kernel-dispatch-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -763,17 +769,27 @@
 
   <section id="modal-kernel-dispatch-edit" class="guide-section" data-guide-id="modal-kernel-dispatch-edit">
     <h2>Dispatch and Sales Edit (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+<p class="guide-lead">Change a dispatch before the truck is loaded: the buyer, the collection date, the best before date and the cartons on each line. Send a line back to stock, or cancel the whole dispatch by sending back its last line.</p>
+    <p class="guide-how">Open it on <strong>Kernel pipeline &rsaquo; 5. Dispatch and Sales</strong>: press <strong>Edit</strong> in the row's <strong>Actions</strong> menu (or the <strong>Edit</strong> button on a Board card). The dialog is titled <strong>Edit dispatch order</strong>. It is only for dispatches that have not gone out.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Change a dispatch</h3>
     <ol class="guide-page-steps">
-      <li>Open this dialog from the parent screen (toolbar, card, or row action)—not from the sidebar on its own.</li>
-      <li>Read the title and any short instructions; required fields are usually marked (e.g. with <strong>*</strong>).</li>
-      <li>Fill the form using dropdowns, dates, and lookups where offered so values match what the database expects.</li>
-      <li>Click the primary <strong>Save</strong> / <strong>Submit</strong> button to apply changes, or <strong>Cancel</strong> / close (×) to discard.</li>
-      <li>If validation errors appear, fix the highlighted fields and submit again before leaving the dialog.</li>
-      <li><strong>Send back to stock</strong> on a line removes that line from the order and returns its cartons to Stock on Hand immediately — it does not wait for <strong>Save changes</strong>. Sending back the only remaining line cancels the whole order.</li>
+      <li>Change the <strong>Buyer</strong>. It cannot be empty ("Buyer is required").</li>
+      <li>Change the <strong>Planned Collection Date</strong>. A dispatch that already has one cannot have it removed ("Choose a planned collection date").</li>
+      <li>Change <strong>Best before</strong> if needed.</li>
+      <li>In the lines table (Batch, Style, Cartons) type the new <strong>Cartons</strong> for each line.</li>
+      <li>Press <strong>Save changes</strong>. "Dispatch order updated." means it worked. <strong>Cancel</strong> closes without saving.</li>
     </ol>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Line should not be on this dispatch:</strong> press <strong>Send back to stock</strong> on the line and confirm "Yes, send back to stock". The cartons go back to Stock on Hand immediately; they do not wait for Save changes. The button only shows if your role may edit dispatches.</li>
+      <li><strong>Sending back the only remaining line</strong> cancels the whole dispatch and it leaves the list.</li>
+      <li><strong>Send back reloads the dialog:</strong> any buyer, date or carton changes you have not saved are lost, so press Save changes first.</li>
+      <li><strong>"This order has already been dispatched":</strong> the truck is loaded. On the Dispatch and Sales screen press <strong>Undo truck loaded</strong> first, then edit or send a line back.</li>
+      <li><strong>"This order changed while the window was open":</strong> someone else changed it. Close the dialog, reopen it and try again.</li>
+      <li><strong>"This order was cancelled":</strong> its last line already went back to stock, so there is nothing to edit.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-kernel-dispatch-edit.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -781,30 +797,95 @@
 
   <section id="modal-kernel-dispatch-form" class="guide-section" data-guide-id="modal-kernel-dispatch-form">
     <h2>Dispatch and Sales Form (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+<p class="guide-lead">The truck sheet, step 4 of a dispatch: check the vehicle, record the driver, transport company, delivery note and signature, and save "truck loaded". Once saved it is read-only, with an Edit button if it was recorded by mistake.</p>
+    <p class="guide-how">Open it on <strong>Kernel pipeline &rsaquo; 5. Dispatch and Sales</strong> with <strong>Truck loaded</strong> in the row's <strong>Actions</strong> menu, the amber step 4 box, or <strong>View sheet</strong>. The title is <strong>Truck loaded: Inspection of Vehicle &amp; Dispatch</strong>. The top shows the basket (Batch, Style, Quantity).</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Complete the truck sheet</h3>
     <ol class="guide-page-steps">
-      <li>Open when completing inspection and dispatch paperwork for a kernel order.</li>
-      <li>Fill vehicle, seal, weight checks, and sign-offs as your logistics SOP requires.</li>
-      <li>Submit only after physical load matches the basket; fixes go back to stock or the basket, not forged paperwork.</li>
-      <li>When the sheet is read-only after dispatch, <strong>Edit</strong> unlocks the basket (clears saved paperwork, returns to ready to dispatch)—use only when dispatch was recorded in error.</li>
+      <li>Under <strong>Inspection of Vehicle</strong> answer all six checks Yes or No: vehicle clean, vehicle fully enclosed, hazard substances on the truck, signs of pest infestations, pallets in good condition and identified, truck bin locked before departing.</li>
+      <li>A failed check (No to clean, enclosed, pallets and bin locked; Yes to hazard substances and pests) opens a box: write what was wrong and what action was taken. It is required. <strong>Add photo</strong> is optional.</li>
+      <li>Under <strong>Dispatch</strong> fill in <strong>Attention</strong>, <strong>Date dispatched</strong>, <strong>Time</strong>, <strong>Cell number</strong>, <strong>Truck Registration</strong> and <strong>Driver's Name</strong>. <strong>Attention</strong> and <strong>Dispatched to</strong> fill from the customer record when they are known.</li>
+      <li>Choose the <strong>Transport company</strong>. If it is not listed press <strong>+</strong>, type the name and press <strong>Add</strong>.</li>
+      <li>Enter the <strong>Delivery note / Invoice number</strong> and <strong>Dispatched to</strong>. Sign in <strong>Sender's Signature</strong> (<strong>Clear</strong> starts again).</li>
+      <li>Press <strong>Add images or documents</strong> for any attachments (images and PDF, up to 6 MB each). If a file is still uploading you are asked to wait.</li>
+      <li>Press <strong>Save: truck loaded</strong>. Step 4 is done and an invoice task is opened. Messages starting "Check the inspection" name what is missing.</li>
     </ol>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Wrong details on a truck sheet already saved:</strong> the sheet opens read-only, titled "(dispatched)". Press <strong>Edit</strong> and confirm "Yes, unlock for editing". The saved paperwork, the dispatched time and any invoice-sent tick are cleared and the dispatch goes back to waiting for the truck. Then complete the sheet again. Use this only when the dispatch was recorded in error.</li>
+      <li><strong>Same thing from the list:</strong> <strong>Undo truck loaded</strong> in the Actions menu does the same.</li>
+      <li><strong>Wrong cartons or customer:</strong> they cannot be changed on this sheet. Use <strong>Edit</strong> on the Dispatch and Sales screen after unlocking.</li>
+      <li><strong>Wrong signature:</strong> press <strong>Clear</strong> and sign again before saving.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-kernel-dispatch-form.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
   </section>
 
+  <section id="modal-kernel-dispatch-approve" class="guide-section" data-guide-id="modal-kernel-dispatch-approve">
+    <h2>Dispatch Approve (dialog)</h2>
+<p class="guide-lead">Picking, pricing and invoicing for one dispatch. Confirm the cartons picked and add substitutes, confirm the prices and transport cost, or enter the PO and invoice numbers and mark the invoice as sent. Also how to send it back for another look.</p>
+    <p class="guide-how">Open it on <strong>Kernel pipeline &rsaquo; 5. Dispatch and Sales</strong> with <strong>Confirm picking</strong>, <strong>Confirm pricing</strong>, <strong>View pricing</strong>, <strong>Invoice sent</strong> or <strong>Progress</strong> in the row, or the amber step box. The title is "Dispatch to" and the customer; below it are the five steps and the collection date. What you can do depends on the step and on your role: without permission the dialog is read-only.</p>
+
+    <h3 class="guide-subhead">Step 2: confirm picking</h3>
+    <ol class="guide-page-steps">
+      <li>For each line type the <strong>cartons picked</strong>: whole numbers, zero or more, never more than was asked for.</li>
+      <li>If the shelf is short, lower the line and press <strong>+ Substitute</strong>. Choose a batch under <strong>Same style</strong>, or under <strong>Different style: needs Pete's OK</strong>, and type the cartons. Substitutes can only make up the cartons not found, and cannot be more than the batch has left. <strong>Remove</strong> deletes a substitute row.</li>
+      <li>Add a <strong>Note</strong> if you changed anything, then press <strong>Confirm picked</strong>. At least one line must have cartons picked. A short line flags that batch for a stock count.</li>
+    </ol>
+
+    <h3 class="guide-subhead">Step 3: confirm pricing</h3>
+    <ol class="guide-page-steps">
+      <li>Prices fill in per kg from the customer's price list ("Customer price"), or the "Standard price", or show "No price set". Every line needs a price. To change one for this dispatch only, edit it and give a reason (optional).</li>
+      <li>Under <strong>Transport</strong> choose <strong>Macavation</strong> or <strong>Customer collects</strong> for who pays. For Macavation enter the <strong>Total Cost (Excl. VAT)</strong> (or leave blank for now), the <strong>Pallets</strong>, and choose the <strong>Transporter</strong> (<strong>+</strong> adds a new one). The VAT-inclusive cost (15% added) and <strong>Cost per pallet</strong> are worked out.</li>
+      <li>Check the <strong>Sale summary</strong> and press <strong>Confirm pricing</strong>, then confirm. The sale shows on the Kernel Dashboard straight away and the truck can be loaded. A different-style substitute is accepted at the same time.</li>
+    </ol>
+
+    <h3 class="guide-subhead">Step 5: invoice sent</h3>
+    <ol class="guide-page-steps">
+      <li>Once the truck is loaded, enter the <strong>Customer PO number</strong> and <strong>Our invoice number</strong>. Both are required.</li>
+      <li>Press <strong>Attach the PO</strong> and <strong>Attach the invoice</strong> to add a PDF or photo (up to 6 MB). Add a <strong>Note</strong> if you like.</li>
+      <li>Press <strong>Invoice sent</strong>. A file still uploading must finish first. When done, "All five steps are done."</li>
+    </ol>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Picking looks wrong:</strong> while pricing, press <strong>Send back to Thando</strong>, say what needs another look (required) and send. The dispatch returns to picking.</li>
+      <li><strong>Prices wrong after confirming:</strong> press <strong>Update pricing</strong> any time before the truck is loaded.</li>
+      <li><strong>Invoice marked sent by mistake:</strong> on the Dispatch and Sales screen use <strong>Undo invoice sent</strong>.</li>
+    </ul>
+  </section>
+
   <section id="modal-kernel-job-card" class="guide-section" data-guide-id="modal-kernel-job-card">
     <h2>Kernel Job Card (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+<p class="guide-lead">The job card for one batch: what came in, moisture, packing dates, cartons and kg per style, waste and the mass balance. Check it, press Save job card to keep a draft, and press Jobcard approved to put the cartons into stock on hand.</p>
+    <p class="guide-how">Open it from <strong>Kernel pipeline &rsaquo; 3. Production</strong>: press <strong>Approve job card</strong> on a Ready for stock card, or choose <strong>Job card</strong> in the <strong>More</strong> menu (Board) or the row's <strong>Actions</strong> menu (Table). When you press <strong>Finish batch production</strong>, empty style lines are prefilled from the production days. The dialog is titled <strong>Production Job Card</strong>.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Check and approve a job card</h3>
     <ol class="guide-page-steps">
-      <li>Open from kernel production for a batch entering or progressing production.</li>
-      <li>Fill job card fields (styles, yields, equipment) per your factory standard.</li>
-      <li>Save; downstream release-to-stock steps depend on accurate job card data.</li>
+      <li>Check <strong>Batch Information</strong> (Batch Number, Supplier, Received Date) and <strong>Receiving</strong>. <strong>Total Weight (kg)</strong> must be above 0. <strong>Balance (kg)</strong> is the total weight minus <strong>Removed Pre-Sizer (kg)</strong>. If a note says the supplier is not in the contacts list, pick the supplier yourself.</li>
+      <li>Under <strong>Moisture</strong> enter <strong>Receiving (%)</strong> and <strong>Packing (%)</strong>. <strong>Removed (%)</strong> is receiving minus packing.</li>
+      <li>Under <strong>Packing</strong> set the <strong>Start Date</strong> and <strong>Completion Date</strong>. <strong>Best Before Date</strong> is worked out from the start date and you cannot type it.</li>
+      <li>In <strong>Sound Kernel</strong> and <strong>Butter Grade</strong> press <strong>Add Style</strong> for each style and enter <strong>Cartons</strong> and <strong>Weight (kg)</strong>. The × button removes a row. Totals show under each table.</li>
+      <li>Check <strong>Stock on hand (from this job card)</strong>. This is only a preview. Stock on hand changes after you press <strong>Jobcard approved</strong>, not before.</li>
+      <li>Enter the <strong>Waste</strong> kg (Oil Kernel, Shell Fines, Compost, Shell). <strong>Mass Balance</strong> shows <strong>In</strong>, <strong>Out</strong> (styles plus waste) and <strong>Balance (%)</strong>.</li>
+      <li>Press <strong>Jobcard approved</strong>. A tick then shows on the job card button in Production, and <strong>Release to stock</strong> can be used when the batch is ready. If you do not have permission to approve, the button is greyed out.</li>
     </ol>
+
+    <h3 class="guide-subhead">Saving</h3>
+    <ul class="guide-page-steps">
+      <li>Changes are saved as a draft about a second after you stop typing; the status at the bottom shows "Saved". A draft does not change stock.</li>
+      <li><strong>Save job card</strong> saves it straight away. On an already approved job card it also updates the stock quantities ("Your changes were saved and stock quantities were updated").</li>
+      <li>If dates changed though nobody edited them, <strong>Check the dates</strong> appears: <strong>Keep saved dates</strong>, <strong>Use dates on screen</strong> or <strong>Cancel</strong>.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Wrong cartons or kg:</strong> open the job card, correct the row and press <strong>Save job card</strong> (or <strong>Jobcard approved</strong> again). Because stock follows the approved job card, correct it here and not in Stock on Hand.</li>
+      <li><strong>"Approval not saved":</strong> add at least one style line with cartons or kg, then press <strong>Jobcard approved</strong> again.</li>
+      <li><strong>"Batch not found":</strong> the batch is no longer in Production. On Stock on Hand use <strong>Send back to production</strong>, refresh Production, and open the job card again.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-kernel-job-card.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -812,18 +893,43 @@
 
   <section id="kernel-production-grid" class="guide-section" data-guide-id="kernel-production-grid">
     <h2>Production (module)</h2>
-<p class="guide-lead">Production workflow: job cards, production stages, batch summaries, and QA hand-offs.</p>
-    <p class="guide-how">Drive job cards through stages; use board or list views as your site prefers. QA and stock hand-offs depend on accurate stage completion.</p>
+<p class="guide-lead">Start production on a received batch, record each day's cracking, washing, sorting and packing, enter the lab result, approve the job card and release the batch to stock. Also how to fix a mistake: archive a batch, send it for a retest, reprocess it, or correct its details.</p>
+    <p class="guide-how">Open <strong>Kernel pipeline &rsaquo; 3. Production</strong> from the sidebar. A batch appears here once its delivery is released to production on Receiving. The <strong>Board</strong> has four columns, left to right: <strong>Ready to crack</strong>, <strong>In production</strong>, <strong>Awaiting lab results</strong> and <strong>Ready for stock</strong>. Press <strong>Table</strong> for a list instead.</p>
     <figure class="guide-flow">
       <object data="./assets/kernel-batch-lifecycle.svg" type="image/svg+xml" width="880" height="200" aria-label="Kernel batch lifecycle"></object>
     </figure>
-    <h3 class="guide-subhead">How to use this screen</h3>
+
+    <h3 class="guide-subhead">Move a batch through production</h3>
     <ol class="guide-page-steps">
-      <li>Open <strong>Kernel production</strong> from the menu.</li>
-      <li>Search and filter batches; use <strong>Clear</strong> to reset. Toggle <strong>Board</strong>, <strong>Table</strong>, or <strong>Approved jobcards</strong> as needed. Open the <strong>Production Calendar</strong> from the toolbar when you need day-by-day activity.</li>
-      <li>Open a batch card or row to manage job cards, production stages, and QA hand-offs—complete stages in order so stock and release status stay truthful.</li>
-      <li>Use <strong>Export</strong> for reporting; when release-ready, follow the in-app actions to send finished product toward stock and dispatch per your process.</li>
+      <li>On a <strong>Ready to crack</strong> card press <strong>Start production</strong>. The Production dialog opens (see Production dialog). Once the batch has production entered, the same button reads <strong>Production</strong>.</li>
+      <li>When all production days are done, open <strong>Batch summary</strong> from <strong>More</strong> and press <strong>Finish batch production</strong>. The batch moves to <strong>Awaiting lab results</strong>.</li>
+      <li>Press <strong>End sample</strong>. After the sample goes to the lab, the card shows a line such as "Day 3 of 10 · due Fri 20 Nov" (red, with "days late", when the lab is overdue). Press <strong>Enter lab results</strong> when they come back.</li>
+      <li>A batch moves to <strong>Ready for stock</strong> once its lab results are entered on the End sample as <strong>Passed</strong>. Press <strong>Approve job card</strong>, check the quantities, and press <strong>Jobcard approved</strong> in the job card.</li>
+      <li>Press <strong>Release to stock</strong> and confirm. The stock on hand then matches the saved job card style quantities. The button only works when the job card is approved and the lab result is Passed; the grey button explains what is missing when you press it.</li>
     </ol>
+
+    <h3 class="guide-subhead">Lab results that do not pass</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Failed a lab test:</strong> the card says "Failed a lab test" and shows <strong>Send for retest</strong>. The failed test goes back to Waiting and the day count starts again from today. Enter the retest result on the End sample.</li>
+      <li><strong>Failed the retest:</strong> choose <strong>Reprocess and test again</strong> (the batch goes back into production with the same batch number and needs a new End sample and lab test; earlier results are kept) or <strong>Reject</strong>. Reject asks for a reason, and a rejected batch can never be released to stock.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Wrong supplier, weight or other batch detail:</strong> open <strong>More</strong> (Board) or the row's <strong>Actions</strong> menu (Table) and press <strong>Edit batch details</strong>.</li>
+      <li><strong>Wrong production figures for a day:</strong> open the Production dialog and change that day. Changes save by themselves.</li>
+      <li><strong>Batch should not be here:</strong> in Table view press <strong>Archive batch</strong> in the row's Actions menu and confirm "Yes, archive". It leaves the production lists and can be restored from Stock &rarr; <strong>View archive</strong>.</li>
+      <li><strong>Batch moved too far on the Board:</strong> dragging only works forward. A batch cannot be dragged back, cannot jump from Ready to crack to Ready for stock, and cannot move to Ready for stock until its lab result is Passed.</li>
+      <li><strong>Released to stock by mistake:</strong> this screen cannot undo a release. The job card's own message points to <strong>Send back to production</strong> on Stock on Hand.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Finding things</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Search</strong> by batch number, grower or status. <strong>Status</strong> narrows to one column. <strong>Approved job cards only</strong> shows release-ready batches with an approved job card. <strong>Clear</strong> resets all three.</li>
+      <li><strong>Production Calendar</strong> (the calendar button): days with saved production are highlighted. Press a day to see which batches were processed and whether cracking, washing, sorting or packing was done.</li>
+      <li><strong>Sheet to finish</strong> (red button): silo runs for that batch reached the cracking log but no shell bags are entered on the cracking sheet yet. Press it to open the sheet.</li>
+      <li><strong>Export</strong> downloads the batch list with batch number, supplier, received date, best before date, weighed total and status. A tick in the Table menu shows that step is done.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/kernel-production-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -831,16 +937,31 @@
 
   <section id="kernel-production-forecast-grid" class="guide-section" data-guide-id="kernel-production-forecast-grid">
     <h2>Kernel Production Forecast (module)</h2>
-<p class="guide-lead">Module <strong>Kernel Production Forecast (module)</strong>. Available from the navigation menu when your role includes access. The screenshot below shows the live screen layout.</p>
-    <p class="guide-how">Typical use: open the screen from the menu when your role allows it, narrow the list with filters, then use toolbar buttons or row actions to add, edit, export, or move work forward. The screenshot shows the usual layout.</p>
+<p class="guide-lead">Record what customers are asking for, in cartons per style, and compare it with the stock on hand. Add, edit or delete a forecast line, and see at a glance which styles are short.</p>
+    <p class="guide-how">Open <strong>Forecasting &rsaquo; Kernel forecast</strong> from the sidebar. The screen has two tables: <strong>Open demand vs stock by style</strong> and <strong>Forecast lines</strong>. Stock on hand is the total released stock for that style on Stock on Hand, shared by all lines (it is not set aside for any one line). Press <strong>Refresh</strong> to reload forecasts and stock.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Add a forecast line</h3>
     <ol class="guide-page-steps">
-      <li>Open this module from the sidebar when your role includes access.</li>
-      <li>Use search, filters, and <strong>Clear</strong> (if shown) to find the rows you need.</li>
-      <li>Use toolbar buttons (add, export, refresh) for actions that create new records or refresh the whole list.</li>
-      <li>Use row actions or links inside each row to open detail, edit, or the next step in the workflow.</li>
+      <li>Press <strong>Add line</strong>. The <strong>New forecast line</strong> box opens.</li>
+      <li>Type the <strong>Customer / label</strong> and, if you want, an <strong>Order summary</strong> (for example "100 cartons style 4L").</li>
+      <li>Choose the <strong>Style</strong>: SP, 0, 1, 1S, 4L, 5, 6, 7/8, Butter High Oil or Butter Low Oil. Type the <strong>Quantity (cartons)</strong> and the <strong>Due date</strong>.</li>
+      <li>Set the <strong>Status</strong>: Open, In progress, Fulfilled or Cancelled. Add <strong>Notes</strong> if needed. <strong>Sort order</strong> is optional.</li>
+      <li>Press <strong>Save</strong>. The line appears in <strong>Forecast lines</strong>.</li>
     </ol>
+
+    <h3 class="guide-subhead">Read the demand table</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Open forecast (ctns)</strong> adds up the lines whose status is Open or In progress, per style. Fulfilled and Cancelled lines are not counted.</li>
+      <li><strong>Stock on hand (ctns)</strong> is the cartons in stock for that style.</li>
+      <li><strong>Gap (open − SOH)</strong> is demand minus stock. Red means demand is higher than stock (you are short); green means you have more stock than demand. Styles with no demand and no stock are not listed.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Wrong quantity, style, date or status:</strong> open the line's <strong>Actions</strong> menu, press <strong>Edit</strong>, change it and press <strong>Save</strong>.</li>
+      <li><strong>Order filled or called off:</strong> edit the line and set its status to <strong>Fulfilled</strong> or <strong>Cancelled</strong>. It then drops out of the open demand but stays on the list.</li>
+      <li><strong>Line entered by mistake:</strong> press <strong>Delete</strong> in the Actions menu and confirm. A deleted line is removed from the list; there is no undo, so add it again if you need it back.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/kernel-production-forecast-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -1050,14 +1171,26 @@
 
   <section id="modal-production-stages" class="guide-section" data-guide-id="modal-production-stages">
     <h2>Production Stages (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+<p class="guide-lead">Enter one production day for a batch: cracking runs and shell waste, washing, sorting and packing. Add a cracking run, fix its times, and open the Batch summary to finish the batch's production.</p>
+    <p class="guide-how">Open it on <strong>Kernel pipeline &rsaquo; 3. Production</strong> with <strong>Start production</strong> or <strong>Production</strong> on a batch card, or <strong>Production stages</strong> in the <strong>More</strong> menu. Dragging a card from Ready to crack to In production also opens it. It has four tabs: <strong>Cracking</strong>, <strong>Washing</strong>, <strong>Sorting</strong> and <strong>Packing</strong>. Each day has its own <strong>Date</strong>. Changes save by themselves; the status at the bottom shows "Saved".</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Enter a day</h3>
     <ol class="guide-page-steps">
-      <li>Open from kernel production to advance or edit production stages for a batch.</li>
-      <li>Move stages in order; do not skip mandatory QA stages if the UI enforces them.</li>
-      <li>Save after each meaningful change so the board reflects true floor status.</li>
+      <li><strong>Cracking:</strong> set the <strong>Date</strong> first (it is required). Under <strong>Cracking runs today</strong> each silo run for this batch on that day is listed with Silo, Started, Stopped, In silo at start, Left, Cracked and kg / hour. These rows come from the Silo Holding screen. Under <strong>Shell Waste</strong> enter each bag's <strong>Bag #</strong> and <strong>Quantity (kg)</strong>; press <strong>+ Add bag</strong> for more.</li>
+      <li><strong>Washing:</strong> enter Crates In, Floater and Sinker crates and kg out, the three <strong>Peracetic Acid Testing</strong> times with <strong>Pass</strong>, and the Shell Fines and Compost waste. The crate and quantity differences are worked out for you.</li>
+      <li><strong>Sorting:</strong> enter the crates and kg for each style out (0, 1, 1S, 4L, 5, 6, 7/8), the Butter Low Oil figures, and the oil and compost quantities. Where a kg per crate is set in Kernel Pipeline Settings, the kg fill in by themselves.</li>
+      <li><strong>Packing:</strong> enter <strong>Cartons</strong> and <strong>Quantity (kg)</strong> for each Sound Kernel and Butter style, then sign in <strong>Packed by (signature)</strong>. <strong>Clear</strong> redraws the signature.</li>
+      <li>When all days are done press <strong>Batch summary</strong>, check the totals, and press <strong>Finish batch production</strong>. Confirm "Finish batch production?" with <strong>Finish</strong>. The batch moves on to End sample and the job card is prefilled.</li>
     </ol>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Silo run left out:</strong> press <strong>+ Add cracking run</strong>. Choose the silo, the <strong>Started at</strong> and <strong>Stopped at</strong> times and the <strong>Kg left in silo</strong> (0 if empty). Stopped must be after Started, and the kg left cannot be more than the silo held. Saving empties the silo by the same amount, as if Stop cracking had been pressed. If no silo holds this batch it says to allocate the batch to a silo first.</li>
+      <li><strong>Wrong run times:</strong> press <strong>Edit</strong> on the run, change <strong>Started at</strong> and <strong>Stopped at</strong> and press <strong>Save</strong>. The run is marked <strong>time changed</strong>. To undo a run completely use the Silo Holding screen.</li>
+      <li><strong>Wrong figures on a day:</strong> pick that day's date and change the fields. Clearing everything on a day removes that day's production data ("Production data cleared for this day").</li>
+      <li><strong>"Nothing to save":</strong> a date on its own does not count as production. Enter some figures first.</li>
+      <li><strong>"Not permitted":</strong> you need permission to edit production stages. Without it the Add and Edit buttons are hidden.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-production-stages.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -1065,13 +1198,8 @@
 
   <section id="modal-production-stages-view" class="guide-section" data-guide-id="modal-production-stages-view">
     <h2>Production Stages View (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
-
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open to review stage history and timestamps without changing current state (if configured as read-only).</li>
-      <li>Use it during investigations when dispatch or QA questions where a batch stalled.</li>
-    </ol>
+<p class="guide-lead">This read-only view of production days is no longer used. To see or change a day's cracking, washing, sorting or packing, use the Production dialog.</p>
+    <p class="guide-how">I searched the whole portal for anything that opens this dialog. The Production screen has an empty place for it, and the Production dialog has a function that would fill it, but no button, menu or other code ever calls that function. Use the <strong>Production</strong> dialog (<strong>Start production</strong> or <strong>Production</strong> on a batch card) to see every day, or the <strong>Production Calendar</strong> button on <strong>Kernel pipeline &rsaquo; 3. Production</strong> to see which stages were done on each day.</p>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-production-stages-view.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -1249,14 +1377,31 @@
 
   <section id="modal-send-to-dispatch" class="guide-section" data-guide-id="modal-send-to-dispatch">
     <h2>Send To Dispatch (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+<p class="guide-lead">Start a kernel dispatch in two steps: choose the customer and collection date, then type how many cartons of each style from each batch. Add a new customer or fix a customer's details on the way.</p>
+    <p class="guide-how">Open it with <strong>Send to Dispatch</strong> at the top of <strong>Kernel pipeline &rsaquo; 5. Dispatch and Sales</strong>. You only see that button if your role may create dispatches. The dialog title shows <strong>Step 1 of 2</strong>, then <strong>Step 2 of 2</strong>.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Send stock to dispatch</h3>
     <ol class="guide-page-steps">
-      <li>Open from <strong>Stock management</strong> (kernel) after selecting finished kernel lines to move toward dispatch.</li>
-      <li>Confirm customer, delivery date, and quantities match what sales agreed.</li>
-      <li>Submit; the basket should appear in <strong>Kernel dispatch</strong> for final inspection.</li>
+      <li>Step 1: choose the <strong>Customer</strong> (required). Their details show under <strong>Customer details</strong> and come from Contacts.</li>
+      <li>Choose the <strong>Planned Collection Date</strong> (required).</li>
+      <li>Press <strong>Select Stock &rarr;</strong>. If the customer or date is missing you are asked to select it.</li>
+      <li>Step 2: the grid lists batches with <strong>Best Before</strong> and <strong>Time Left</strong>, oldest first, and a column for each style (SP, 0, 1, 1S, 4L, 5, 6, 7/8, Butter HO, Butter LO). Type whole cartons in the box for each batch and style. The kg show under each entry at 11.34 kg per carton.</li>
+      <li>A box turns red if you type more than is left ("max 20") or anything but a whole number. The <strong>Positive release</strong> row shows batches still at the lab: "At the lab. Can't be sent yet."</li>
+      <li>Check the basket and the <strong>Total</strong> (cartons and kg). Press <strong>Send Dispatch Order</strong>. It stays greyed out until at least one carton is chosen.</li>
+      <li>The dispatch then appears under <strong>Open dispatches</strong> as step 1, <strong>Dispatch created</strong>, and waits for picking.</li>
     </ol>
+
+    <h3 class="guide-subhead">Customers</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Customer not in the list:</strong> press the <strong>+</strong> next to Customer. Enter the <strong>Company name</strong> (required), and if you like Province, Area / City, Contact name and Notes, then press <strong>Add customer</strong>.</li>
+      <li><strong>Wrong phone, email, VAT or address:</strong> press <strong>Edit</strong> in Customer details, change the fields and press <strong>Save to Contacts</strong>. This saves straight to Contacts, not just to this dispatch. An email that does not look right is refused.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Wrong cartons before sending:</strong> change the box, or press <strong>← Back</strong> to change the customer or date. <strong>Cancel</strong> closes without sending anything.</li>
+      <li><strong>Already sent:</strong> on the Dispatch and Sales screen open the row's <strong>Actions</strong> menu and press <strong>Edit</strong>. There you can change the buyer, date and cartons, or press <strong>Send back to stock</strong> for a line.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-send-to-dispatch.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>

@@ -41,10 +41,8 @@ const PLACEHOLDER_PHRASES = [
 // Sections that still hold placeholder text. Remove an id once its section is rewritten.
 const PENDING_PLACEHOLDER = new Set([
     // kernel production, quality and dispatch
-    'modal-end-sample', 'modal-end-sample-view', 'modal-job-card-view', 'modal-kernel-dispatch',
-    'modal-kernel-dispatch-edit', 'modal-kernel-dispatch-form', 'modal-kernel-job-card',
-    'kernel-production-forecast-grid', 'modal-production-stages', 'modal-production-stages-view',
-    'modal-quality-test', 'modal-send-to-dispatch',
+    'modal-end-sample', 'modal-end-sample-view',
+    'modal-quality-test',
     // stock
     'stock-alert-rules-grid', 'modal-stock-take', 'modal-raw-material-issued',
     // oil
