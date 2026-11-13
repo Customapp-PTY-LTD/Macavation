@@ -39,6 +39,7 @@
     'crm-grid': 'CRM',
     'grower-intake-grid': 'Receiving',
     'kernel-production-grid': 'Production',
+    'silo-allocation-grid': 'Silo Holding',
     'oil-production-grid': 'Oil Production',
     'stock-management-grid': 'Stock',
     'quality-assurance-grid': 'Quality Assurance',
