@@ -93,6 +93,11 @@ async function rpcScalar<T = string>(sb: SupabaseClient, fn: string, params: Rec
 const MAX_TOKENS = 1024;
 const KB_SEARCH_TOP_N = 3;
 const KB_SNIPPET_MAX = 400;
+// The AI gets the full text of each matched section (not just its 200-char
+// summary), so it can quote the real steps and button names. Capped per
+// section and in total to keep a question around 3-4k input tokens.
+const KB_SECTION_BODY_MAX = 6000;
+const KB_CONTEXT_TOTAL_MAX = 12000;
 const DEFAULT_MODEL = "claude-sonnet-4-6";
 const ESTIMATED_COST_CENTS = 2; // ~$0.02 rough pre-flight budget guard.
 
@@ -271,16 +276,41 @@ const HARD_RULES = [
     "containing 2-3 short, relevant follow-up questions the user could ask next. Omit it if you have no good suggestions. Never show this comment as visible text.",
 ].join("\n");
 
-function buildSystemPrompt(hits: AnyRow[]): string {
+function buildSystemPrompt(hits: AnyRow[], bodies: Map<string, string> = new Map()): string {
   const lines = [HARD_RULES, "", "Relevant Macavation user-guide snippets for this question:"];
   if (!hits.length) {
     lines.push("(no matching snippets found — tell the user you could not find this in the guide)");
   } else {
     for (const h of hits) {
-      lines.push(`- #${h.section_anchor} — ${h.title}: ${String(h.snippet || "").slice(0, KB_SNIPPET_MAX)}`);
+      const anchor = String(h.section_anchor);
+      const text = bodies.get(anchor) || String(h.snippet || "").slice(0, KB_SNIPPET_MAX);
+      lines.push(`- #${anchor} — ${h.title}: ${text}`);
     }
   }
   return lines.join("\n");
+}
+
+/** Full text of each hit's guide section, within KB_SECTION_BODY_MAX / KB_CONTEXT_TOTAL_MAX. */
+async function loadSectionBodies(sb: SupabaseClient, hits: AnyRow[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  let total = 0;
+  for (const h of hits) {
+    const anchor = String(h.section_anchor || "").trim();
+    if (!anchor || out.has(anchor) || total >= KB_CONTEXT_TOTAL_MAX) continue;
+    try {
+      const section = await runKbGetSection(sb, anchor);
+      let body = section.sections.map((s) => String(s.body || "").trim()).filter(Boolean).join("\n\n");
+      body = body.slice(0, Math.min(KB_SECTION_BODY_MAX, KB_CONTEXT_TOTAL_MAX - total));
+      if (body) {
+        out.set(anchor, body);
+        total += body.length;
+      }
+    } catch (e) {
+      // Fall back to the search snippet for this hit.
+      console.warn("[portal-assistant] loading section body failed:", anchor, e);
+    }
+  }
+  return out;
 }
 
 // ── Citation parsing ───────────────────────────────────────────────────────
@@ -630,12 +660,14 @@ async function handleChat(sb: SupabaseClient, body: AnyRow, session: SessionUser
             .filter(Boolean);
           if (bodies.length) {
             chunkTitle = String(section.sections[0]?.title || chunkTitle);
-            let combined = bodies.join("\n\n");
-            if (combined.length > FAST_PATH_CHUNK_ANSWER_MAX) {
-              combined = combined.slice(0, FAST_PATH_CHUNK_ANSWER_MAX).trim() +
-                "\n\n(See the linked guide section for the full detail.)";
+            const combined = bodies.join("\n\n");
+            // Only answer straight from the guide when the whole section fits.
+            // A longer section cut at the limit loses whatever the question was
+            // about (Mike's "opened silo by mistake" got the allocate-bags steps),
+            // so it goes to the AI, which picks out the relevant part.
+            if (combined.length <= FAST_PATH_CHUNK_ANSWER_MAX) {
+              chunkAnswer = combined;
             }
-            chunkAnswer = combined;
           }
         }
       } catch (e) {
@@ -685,7 +717,7 @@ async function handleChat(sb: SupabaseClient, body: AnyRow, session: SessionUser
     }, 402);
   }
 
-  const system = buildSystemPrompt(hits);
+  const system = buildSystemPrompt(hits, await loadSectionBodies(sb, hits));
   const knownAnchors = new Set(hits.map((h) => String(h.section_anchor)));
 
   const t0 = Date.now();
