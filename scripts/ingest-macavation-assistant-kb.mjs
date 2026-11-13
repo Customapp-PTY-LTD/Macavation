@@ -106,6 +106,7 @@ const SECTION_KEYWORDS = {
   'stock-alert-rules-grid': 'stock alert rules',
   'stock-management-grid': 'stock management, adjust stock, stock take, warehouse stock, kernel batch journey by style',
   'stock-history': 'stock on hand history, stock trend chart, executive dashboard stock chart',
+  'raw-material-runway': 'raw material runway, run out of nut-in-shell, when will we run out, depletion rate, runway forecast chart',
   'modal-stock-take': 'stock take, stock adjustment, count physical stock',
   'supplier-intake-grid': 'supplier intake, receiver checklist, supplier oil batch, oil intake',
   'modal-supplier-intake-adjust-stock': 'supplier intake adjust stock',
