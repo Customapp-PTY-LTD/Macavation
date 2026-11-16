@@ -95,11 +95,27 @@ var _modal_grower_create_kernel_batch = (function () {
         }, 0);
     }
 
-    /** Mike's rule: supplier's weight / number of bags. null when either is missing. */
-    function averageBagKg() {
+    /** A bag the user gave its own estimate (typed, then tagged est.): it keeps its figure. */
+    function isOwnEstimate(b) {
+        return !!(b && b.est && b.own && numOrNull(b.kg) != null && numOrNull(b.kg) > 0);
+    }
+
+    /**
+     * Mike's rule: supplier's weight / number of bags. Bags with their own estimate (Mike 16 Nov)
+     * keep it, and the remaining bags share what is left. null when nothing is left to share.
+     */
+    function spreadKg(bags, n) {
         var declared = numOrNull(byId('intakeBatchWetNis') && byId('intakeBatchWetNis').value);
-        if (declared == null || declared <= 0 || !_bags.length) return null;
-        return Math.round(declared / _bags.length * 100) / 100;
+        if (declared == null || declared <= 0 || !(n > 0)) return null;
+        var own = bags.filter(isOwnEstimate);
+        var left = declared - own.reduce(function (s, b) { return s + numOrNull(b.kg); }, 0);
+        var share = n - own.length;
+        if (share <= 0 || left <= 0) return null;
+        return Math.round(left / share * 100) / 100;
+    }
+
+    function averageBagKg() {
+        return spreadKg(_bags, _bags.length);
     }
 
     function estimatesAllowed() { return _bagWhere === 'silo'; }
@@ -192,9 +208,11 @@ var _modal_grower_create_kernel_batch = (function () {
                     var idx = parseInt(t.getAttribute('data-bag-idx'), 10);
                     if (isNaN(idx) || !_bags[idx]) return;
                     if (t.getAttribute('data-bag-field') === 'kg') {
-                        // Typing a weight means this bag was weighed.
-                        _bags[idx].kg = t.value;
-                        if (_bags[idx].est) { _bags[idx].est = false; api._paintBagRow(idx); }
+                        // Typing a weight means this bag was weighed - unless it is already the user's own estimate.
+                        var tb = _bags[idx];
+                        tb.kg = t.value;
+                        if (tb.est && !tb.own) { tb.est = false; api._paintBagRow(idx); }
+                        else if (tb.est && tb.own) { api._paintBagRow(idx); api._syncEstimates(); }
                         api._updateCalcs();
                     }
                 });
@@ -204,8 +222,10 @@ var _modal_grower_create_kernel_batch = (function () {
                     var idx = parseInt(t.getAttribute('data-bag-idx'), 10);
                     if (isNaN(idx) || !_bags[idx]) return;
                     // Cleared again: back to the average (only where estimates are allowed).
-                    if (String(t.value || '').trim() === '' && estimatesAllowed() && averageBagKg() != null) {
+                    if (String(t.value || '').trim() === '' && estimatesAllowed() &&
+                        numOrNull(byId('intakeBatchWetNis') && byId('intakeBatchWetNis').value) > 0) {
                         _bags[idx].est = true;
+                        _bags[idx].own = false;
                         api._syncEstimates();
                         api._paintBagRow(idx);
                         api._updateCalcs();
@@ -219,6 +239,12 @@ var _modal_grower_create_kernel_batch = (function () {
                     if (t.getAttribute('data-bag-field') === 'desc') _bags[idx].desc = t.value;
                 });
                 bagsBody.addEventListener('click', function (e) {
+                    var tog = e.target && e.target.closest ? e.target.closest('[data-bag-toggle]') : null;
+                    if (tog) {
+                        e.preventDefault();
+                        api._toggleBagEstimate(parseInt(tog.getAttribute('data-bag-toggle'), 10));
+                        return;
+                    }
                     var btn = e.target && e.target.closest ? e.target.closest('[data-bag-del]') : null;
                     if (!btn) return;
                     e.preventDefault();
@@ -430,8 +456,30 @@ var _modal_grower_create_kernel_batch = (function () {
         },
 
         _tagHtml: function (b) {
-            if (b.est) return '<span class="badge nd-badge-est">est.</span>';
-            return numOrNull(b.kg) != null && numOrNull(b.kg) > 0 ? '<span class="badge nd-badge-weighed">Weighed</span>' : '';
+            var i = _bags.indexOf(b);
+            var hasKg = numOrNull(b.kg) != null && numOrNull(b.kg) > 0;
+            // Own estimate or weighed: the tag is a button that switches between the two (Mike 16 Nov).
+            // Both ways: any est. bag (own or average) can be marked Weighed, and any Weighed bag est.
+            var canToggle = hasKg && i >= 0 && estimatesAllowed();
+            var label = b.est ? 'est.' : 'Weighed';
+            var cls = b.est ? 'nd-badge-est' : 'nd-badge-weighed';
+            if (!b.est && !hasKg) return '';
+            if (!canToggle) return '<span class="badge ' + cls + '">' + label + '</span>';
+            var tip = b.est ? 'Estimate. Click to mark this bag as weighed at this figure.' : 'Click to mark this weight as an estimate.';
+            return '<button type="button" class="badge border-0 nd-tag-toggle ' + cls + '" data-bag-toggle="' + i + '" title="' + tip + '">' + label + '</button>';
+        },
+
+        /** Weighed <-> own estimate for one bag; the average bags re-share what is left. */
+        _toggleBagEstimate: function (idx) {
+            var b = _bags[idx];
+            if (!b || !estimatesAllowed() || !(numOrNull(b.kg) > 0)) return;
+            // est. (own or average) -> Weighed at the figure shown; Weighed -> the bag's own estimate.
+            if (b.est) { b.est = false; b.own = false; }
+            else { b.est = true; b.own = true; }
+            api._paintBagRow(idx);
+            api._syncEstimates();
+            api._updateCalcs();
+            api._updateSpread();
         },
 
         /** One row's estimate styling and tag, without re-rendering (keeps focus while typing). */
@@ -441,7 +489,8 @@ var _modal_grower_create_kernel_batch = (function () {
             var input = document.querySelector('#intakeBagsBody input[data-bag-idx="' + idx + '"][data-bag-field="kg"]');
             if (input) {
                 input.classList.toggle('nd-est', !!b.est);
-                if (b.est) input.value = numOrNull(b.kg) != null ? fmtKg(b.kg) : '';
+                // Only the average is written back; an own estimate keeps what the user is typing.
+                if (b.est && !b.own) input.value = numOrNull(b.kg) != null ? fmtKg(b.kg) : '';
             }
             var tag = document.querySelector('#intakeBagsBody [data-bag-tag="' + idx + '"]');
             if (tag) tag.innerHTML = api._tagHtml(b);
@@ -451,7 +500,8 @@ var _modal_grower_create_kernel_batch = (function () {
         _syncEstimates: function () {
             var avg = averageBagKg();
             _bags.forEach(function (b, i) {
-                if (!b.est) return;
+                // Own estimates are left alone (even mid-retype); clearing one hands it back to the average on blur.
+                if (!b.est || b.own) return;
                 b.kg = avg != null ? String(avg) : '';
                 api._paintBagRow(i);
             });
@@ -476,18 +526,25 @@ var _modal_grower_create_kernel_batch = (function () {
             var btn = byId('intakeSpreadBtn');
             var ok = n > 0 && n <= 500 && declared != null && declared > 0;
             if (btn) btn.disabled = !ok;
+            var kept = ok ? _bags.slice(0, n) : [];
+            var ownBags = kept.filter(isOwnEstimate);
+            var ownN = ownBags.length;
+            var ownKg = ownBags.reduce(function (s, b) { return s + numOrNull(b.kg); }, 0);
             setText('intakeSpreadBtnText', ok
-                ? (_bags.some(function (b) { return numOrNull(b.kg) != null || b.est; }) ? 'Make it ' : 'Add ') + n + ' bags at ' + fmtKg(Math.round(declared / n * 100) / 100) + ' kg each'
+                ? (_bags.some(function (b) { return numOrNull(b.kg) != null || b.est; }) ? 'Make it ' : 'Add ') + n + ' bags at ' + fmtKg(spreadKg(kept, n) || 0) + ' kg each'
                 : 'Add bags at the average weight');
             var note = byId('intakeSpreadNote');
             if (note) {
                 note.innerHTML = ok
-                    ? 'Average bag weight: <strong>supplier\'s weight ' + esc(fmtKg(declared)) + ' kg \u00f7 ' + n + ' bags = ' + esc(fmtKg(Math.round(declared / n * 100) / 100)) + ' kg</strong>. Every bag not weighed gets the average, marked <strong>est.</strong>, and is weighed at the silo.'
+                    ? (ownN
+                        ? 'Average bag weight: <strong>supplier\'s weight ' + esc(fmtKg(declared)) + ' kg, less ' + ownN + ' bag(s) with your own estimate (' + esc(fmtKg(ownKg)) + ' kg), \u00f7 ' + (n - ownN) + ' bags = ' + esc(fmtKg(spreadKg(kept, n) || 0)) + ' kg</strong>.'
+                        : 'Average bag weight: <strong>supplier\'s weight ' + esc(fmtKg(declared)) + ' kg \u00f7 ' + n + ' bags = ' + esc(fmtKg(Math.round(declared / n * 100) / 100)) + ' kg</strong>.') +
+                      ' Every bag not weighed gets the average, marked <strong>est.</strong>, and is weighed at the silo. To give one bag its own estimate, type its weight, then click its <strong>Weighed</strong> tag to change it to <strong>est.</strong>'
                     : 'Bags are weighed at the silo. Enter the supplier\'s weight and the number of bags: every bag not weighed gets the average, marked <strong>est.</strong>';
             }
         },
 
-        /** "Add 32 bags at 937.50 kg each": exactly n bags; weighed ones keep their weight, the rest get the average. */
+        /** "Add 32 bags at 937.50 kg each": exactly n bags; weighed bags and own estimates keep their weight, the rest get the average. */
         _spreadBags: function () {
             var n = parseInt((byId('intakeSpreadCount') && byId('intakeSpreadCount').value) || '', 10);
             if (!(n > 0 && n <= 500) || averageBagKg() == null && !(numOrNull(byId('intakeBatchWetNis') && byId('intakeBatchWetNis').value) > 0)) return;
@@ -496,7 +553,7 @@ var _modal_grower_create_kernel_batch = (function () {
             for (var i = 0; i < n; i++) {
                 var old = _bags[i];
                 var weighed = old && !old.est && numOrNull(old.kg) != null && numOrNull(old.kg) > 0;
-                next.push(weighed ? old : { no: old ? old.no : null, desc: old ? old.desc : desc, kg: '', est: true });
+                next.push(weighed || isOwnEstimate(old) ? old :{ no: old ? old.no : null, desc: old ? old.desc : desc, kg: '', est: true });
             }
             var maxNo = next.reduce(function (m, b) { return b.no != null && b.no > m ? b.no : m; }, 0);
             next.forEach(function (b) { if (b.no == null) { maxNo += 1; b.no = maxNo; } });
