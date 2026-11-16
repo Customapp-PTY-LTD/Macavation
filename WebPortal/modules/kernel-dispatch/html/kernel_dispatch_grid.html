@@ -111,6 +111,35 @@
     <p class="text-muted small mb-4">Older orders (before the steps started) show "Older order" instead of tick boxes.</p>
     </div><!-- /kdTableCards -->
 
+    <!-- Returns (Mike, 16 Nov 2026): stock a customer sent back after the truck was loaded.
+         Held aside until Pete or Mike decides; Joslyn records the credit note or refund. -->
+    <div class="card mb-4 mac-table-actions-card" id="kdReturnsCard">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="mb-0"><i class="fas fa-rotate-left me-2"></i>Returns</h5>
+            <span id="kdReturnsSummary" class="small text-muted"></span>
+        </div>
+        <p class="card-text text-muted small px-3 pt-2 mb-0">Stock a customer sent back. To record one, open <strong>Actions</strong> on a dispatch whose truck has been loaded and choose <strong>Record a return</strong>. The sale comes off the sales figures straight away. The cartons are held aside until Pete or Mike decides: back into stock, or write them off. Joslyn then records the credit note or refund.</p>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table align-middle table-hover" id="kdReturnsTable">
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Came back</th>
+                            <th>Why</th>
+                            <th class="text-end">Cartons</th>
+                            <th class="text-end kd-ret-value-col">Value</th>
+                            <th>Stock</th>
+                            <th>Credit note / refund</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="kdReturnsTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <!-- How the five steps work -->
     <div class="kd-steps kd-steps-5 mb-4">
         <div class="kd-step kd-step-1"><div class="kd-step-title">1 &middot; Dispatch created</div><div class="kd-step-text">Pete or Mike uses Send to Dispatch. A "Pick a dispatch" task opens for the Production Manager.</div></div>

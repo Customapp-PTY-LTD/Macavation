@@ -35,6 +35,8 @@ var _kernelDispatchGrid = function () {
         /** Workflow state by order id: { workflow_stage, status, invoice_sent_at, picked_by_label, has_pick_changes,
          *  substitutes, needs_approval }. Legacy orders have no entry. */
         stages: {},
+        /** Customer returns (not cancelled), newest first. See "Returns" further down. */
+        returns: [],
         _handlersBound: false,
         currentView: 'table',
         /** Stage filter chip: 'all' | 'picking' | 'approval' | 'truck' | 'invoice' | 'done' | 'legacy'. */
@@ -78,7 +80,8 @@ var _kernelDispatchGrid = function () {
             var handoff = (typeof _appRouter !== 'undefined' && _appRouter.takeHandoff) ? _appRouter.takeHandoff('kernel-dispatch-grid') : null;
             var handoffStage = handoff && handoff.stage === 'approved' ? 'truck' : (handoff && handoff.stage);
             scope.stageFilter = (handoffStage && ['picking', 'approval', 'truck', 'invoice', 'done', 'legacy'].indexOf(handoffStage) >= 0) ? handoffStage : 'all';
-            scope._pendingOpenOrderId = (handoff && handoff.openOrderId) || null;
+            scope._pendingOpenOrderId = (handoff && handoff.openOrderId && !handoff.showReturns) ? handoff.openOrderId : null;
+            scope._pendingShowReturns = !!(handoff && handoff.showReturns);
             $('#kdStageChips').off('click.kdStage').on('click.kdStage', '[data-stage]', function () {
                 scope.stageFilter = String($(this).data('stage'));
                 scope.render();
@@ -148,6 +151,31 @@ var _kernelDispatchGrid = function () {
                 $(document).on('click', '.js-kd-invoice-undo', function () {
                     scope.undoInvoiceSent($(this).data('order-id'));
                 });
+                // Returns (Mike, 16 Nov 2026)
+                $(document).on('click', '.js-kd-return-record', function (e) {
+                    e.preventDefault();
+                    scope.openRecordReturn($(this).data('order-id'));
+                });
+                $(document).on('click', '.js-kd-return-view', function (e) {
+                    e.preventDefault();
+                    scope.showReturn($(this).data('return-id'));
+                });
+                $(document).on('click', '.js-kd-return-decide', function (e) {
+                    e.preventDefault();
+                    scope.openDecideReturn($(this).data('return-id'));
+                });
+                $(document).on('click', '.js-kd-return-undo-decision', function (e) {
+                    e.preventDefault();
+                    scope.undoReturnDecision($(this).data('return-id'));
+                });
+                $(document).on('click', '.js-kd-return-settle', function (e) {
+                    e.preventDefault();
+                    scope.openSettleReturn($(this).data('return-id'));
+                });
+                $(document).on('click', '.js-kd-return-cancel', function (e) {
+                    e.preventDefault();
+                    scope.cancelReturn($(this).data('return-id'));
+                });
                 $(document).on('click', '.js-kd-clear-filters', function (e) {
                     e.preventDefault();
                     if (scope._kdFilterDebounce) clearTimeout(scope._kdFilterDebounce);
@@ -181,6 +209,11 @@ var _kernelDispatchGrid = function () {
                 if (typeof _modal_kernel_dispatch_approve !== 'undefined' && _modal_kernel_dispatch_approve.init) _modal_kernel_dispatch_approve.init();
             });
             await scope.loadOrders();
+            if (scope._pendingShowReturns) {
+                scope._pendingShowReturns = false;
+                var card = document.getElementById('kdReturnsCard');
+                if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
             // the modal loads above are not awaited here, so wait for the approve modal's markup
             Promise.all(loadPromises).catch(function () { }).then(function () { scope._openPendingOrder(); });
         },
@@ -547,6 +580,7 @@ var _kernelDispatchGrid = function () {
                     var stageRows = await dataFunctions.getKernelDispatchStages(scope.orders.map(function (o) { return o.id; })) || [];
                     stageRows.forEach(function (r) { if (r && r.id && r.workflow_stage) scope.stages[r.id] = r; });
                 }
+                await scope.loadReturns();
                 scope.render();
             } catch (e) {
                 console.error('[Kernel Dispatch] loadOrders failed:', e);
@@ -560,6 +594,393 @@ var _kernelDispatchGrid = function () {
                 scope.orders = [];
                 scope.render();
             }
+        },
+
+        // ---- Returns (Mike, 16 Nov 2026) ---------------------------------------------------------
+        // A customer sends stock back after the truck was loaded. Recording it takes the sale off the
+        // sales figures; the cartons are held aside until Pete/Mike (kernel_dispatch.approve) decide
+        // back-into-stock or write-off; Joslyn records the credit note or refund. Server checks the
+        // same permissions (record/decide/settle_kernel_dispatch_return, migration 20261116120000).
+
+        loadReturns: async function () {
+            var scope = _kernelDispatchGrid;
+            scope.returns = [];
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.getKernelDispatchReturns) return;
+            var res = await dataFunctions.getKernelDispatchReturns(null);
+            scope.returns = (res && Array.isArray(res.returns)) ? res.returns : [];
+        },
+
+        returnsFor: function (orderId) {
+            return this.returns.filter(function (r) { return String(r.order_id) === String(orderId); });
+        },
+
+        returnMenuItems: function (o) {
+            if (!o || String(o.status || '').toLowerCase() !== 'dispatched' || !can('kernel_dispatch.return')) return [];
+            return [{ label: 'Record a return', className: 'js-kd-return-record', icon: 'fas fa-rotate-left', dataAttrs: { 'order-id': o.id || '' } }];
+        },
+
+        /** Small "Return" badge under the customer name (static text only). */
+        returnBadge: function (o) {
+            var list = o ? this.returnsFor(o.id) : [];
+            if (!list.length) return '';
+            var waiting = list.some(function (r) { return r.status === 'waiting'; });
+            return '<div class="mt-1"><span class="badge ' + (waiting ? 'bg-warning text-dark' : 'bg-secondary') + '">'
+                + (waiting ? 'Return waiting for a decision' : (list.length === 1 ? 'Return recorded' : list.length + ' returns recorded')) + '</span></div>';
+        },
+
+        _rand: function (n) { return 'R ' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); },
+        _cartons: function (n) { var v = Number(n || 0); return (Math.round(v * 100) / 100).toLocaleString('en-US', { maximumFractionDigits: 2 }); },
+        _todayIso: function () {
+            var d = new Date();
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        },
+        _isGuid: function (v) { return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(v || '')); },
+        _findReturn: function (id) {
+            return this.returns.filter(function (r) { return String(r.id) === String(id); })[0] || null;
+        },
+        _toast: function (title) {
+            if (typeof Swal !== 'undefined') Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: title, showConfirmButton: false, timer: 2800 });
+        },
+        _after: function (res, okTitle) {
+            var scope = _kernelDispatchGrid;
+            if (res && res.success !== false) {
+                scope._toast(okTitle);
+                scope.loadOrders(true);
+                return true;
+            }
+            if (typeof Swal !== 'undefined') Swal.fire('Could not save', (res && res.error) || 'Please try again.', 'error');
+            return false;
+        },
+
+        /** Text cells for the Stock column. */
+        _returnStockText: function (r) {
+            if (r.status === 'waiting') return 'Held aside · waiting for Pete or Mike';
+            var back = 0, off = 0;
+            (r.lines || []).forEach(function (l) { back += Number(l.back_cartons || 0); off += Number(l.write_off_cartons || 0); });
+            var parts = [];
+            if (back > 0) parts.push(this._cartons(back) + ' back in stock');
+            if (off > 0) parts.push(this._cartons(off) + ' written off');
+            return parts.join(', ') || 'Decided';
+        },
+
+        _returnSettleText: function (r) {
+            if (r.settle_type) return (r.settle_type === 'refund' ? 'Refund ' : 'Credit note ') + (r.settle_reference || '');
+            return Number(r.value_zar || 0) > 0 ? 'Not done yet' : '—';
+        },
+
+        renderReturns: function () {
+            var scope = this;
+            var $body = $('#kdReturnsTableBody');
+            if (!$body.length) return;
+            var showValue = can('kernel_prices.view');
+            $('#kdReturnsTable .kd-ret-value-col').toggleClass('d-none', !showValue);
+            var waiting = scope.returns.filter(function (r) { return r.status === 'waiting'; }).length;
+            var unpaid = scope.returns.filter(function (r) { return !r.settle_type && Number(r.value_zar || 0) > 0; }).length;
+            $('#kdReturnsSummary').text(scope.returns.length
+                ? waiting + ' waiting for a decision · ' + unpaid + ' without a credit note or refund'
+                : '');
+            $body.empty();
+            if (!scope.returns.length) {
+                $body.append($('<tr></tr>').append($('<td colspan="8" class="text-center text-muted py-4"></td>')
+                    .text('No returns. Use Record a return on a dispatch whose truck has been loaded.')));
+                return;
+            }
+            var frag = document.createDocumentFragment();
+            scope.returns.forEach(function (r) {
+                var items = [{ label: 'Details', className: 'js-kd-return-view', icon: 'fas fa-eye', dataAttrs: { 'return-id': r.id } }];
+                if (r.status === 'waiting' && can('kernel_dispatch.approve')) {
+                    items.push({ label: 'Decide: back into stock or write off', className: 'js-kd-return-decide', icon: 'fas fa-scale-balanced', dataAttrs: { 'return-id': r.id } });
+                }
+                if (r.status === 'decided' && can('kernel_dispatch.approve')) {
+                    items.push({ label: 'Undo the decision', className: 'js-kd-return-undo-decision', dataAttrs: { 'return-id': r.id } });
+                }
+                if (can('kernel_dispatch.return')) {
+                    items.push({ label: r.settle_type ? 'Change credit note / refund' : 'Credit note or refund', className: 'js-kd-return-settle', icon: 'fas fa-file-invoice-dollar', dataAttrs: { 'return-id': r.id } });
+                    if (r.status === 'waiting' && !r.settle_type) {
+                        items.push({ label: 'Cancel this return (recorded by mistake)', className: 'js-kd-return-cancel', danger: true, dataAttrs: { 'return-id': r.id } });
+                    }
+                }
+                var $tr = $('<tr></tr>');
+                $tr.append($('<td></td>').append($('<strong></strong>').text(r.buyer_name || '—'))
+                    .append($('<div class="kd-step-of"></div>').text(r.invoice_reference ? 'Invoice ' + r.invoice_reference : '')));
+                $tr.append($('<td></td>').text(formatDate(r.returned_on)));
+                $tr.append($('<td></td>').text(r.reason_label || '').append(r.note ? $('<div class="kd-step-of kd-ret-note"></div>').text(r.note) : null));
+                $tr.append($('<td class="text-end"></td>').text(scope._cartons(r.total_cartons)));
+                $tr.append($('<td class="text-end kd-ret-value-col"></td>').toggleClass('d-none', !showValue).text(scope._rand(r.value_zar)));
+                $tr.append($('<td></td>').append($('<span class="badge"></span>')
+                    .addClass(r.status === 'waiting' ? 'bg-warning text-dark' : 'bg-secondary').text(scope._returnStockText(r))));
+                $tr.append($('<td></td>').text(scope._returnSettleText(r)));
+                $tr.append($('<td class="mac-table-actions-col"></td>').html(MacTableActions.render({ id: 'kdReturnActions' + r.id, items: items })));
+                frag.appendChild($tr[0]);
+            });
+            $body[0].appendChild(frag);
+            MacTableActions.init(document.getElementById('kdReturnsTable'));
+        },
+
+        /** Read-only details of one return. */
+        showReturn: function (id) {
+            var scope = this;
+            var r = scope._findReturn(id);
+            if (!r || typeof Swal === 'undefined') return;
+            var $box = $('<div class="kd-step-info text-start"></div>');
+            var add = function (k, v) {
+                if (v === null || v === undefined || String(v).trim() === '') return;
+                $box.append($('<div class="kd-step-info-row"></div>')
+                    .append($('<span class="kd-step-info-label"></span>').text(k))
+                    .append($('<span class="kd-step-info-value"></span>').text(String(v))));
+            };
+            add('Customer', r.buyer_name);
+            add('Came back on', formatDate(r.returned_on));
+            add('Why', r.reason_label);
+            add('Note', r.note);
+            add('Recorded by', r.created_by_label);
+            (r.lines || []).forEach(function (l) {
+                var txt = scope._cartons(l.cartons) + ' cartons (' + _common.formatKg(l.quantity_kg) + ' kg)';
+                if (r.status === 'decided') {
+                    txt += ': ' + scope._cartons(l.back_cartons) + ' back in stock, ' + scope._cartons(l.write_off_cartons) + ' written off';
+                }
+                add(fmtBatch(l.batch_number) + ' ' + (l.style || ''), txt);
+            });
+            if (can('kernel_prices.view')) add('Taken off sales', scope._rand(r.value_zar));
+            add('Stock', scope._returnStockText(r));
+            if (r.status === 'decided') { add('Decided by', r.decided_by_label); add('Decision note', r.decision_note); }
+            add('Credit note / refund', scope._returnSettleText(r));
+            if (r.settle_type) { add('Recorded by', r.settled_by_label); add('Note', r.settle_note); }
+            Swal.fire({ title: 'Return', html: $box[0], confirmButtonText: 'Close' });
+        },
+
+        /** Record a return on a sale whose truck has been loaded. */
+        openRecordReturn: async function (orderId) {
+            var scope = _kernelDispatchGrid;
+            if (!scope._isGuid(orderId) || typeof Swal === 'undefined' || !dataFunctions.getKernelDispatchReturnLines) return;
+            if (!can('kernel_dispatch.return')) {
+                Swal.fire({ icon: 'info', title: 'Record a return', text: 'Only Mike, Pete or Joslyn can record a return.' });
+                return;
+            }
+            var data = await dataFunctions.getKernelDispatchReturnLines(orderId);
+            if (!data || !Array.isArray(data.lines)) { Swal.fire('Not available', 'Could not load this sale. Please refresh.', 'error'); return; }
+            var lines = data.lines.filter(function (l) { return Number(l.returnable_cartons) > 0; });
+            if (!lines.length) { Swal.fire({ icon: 'info', title: 'Nothing left to return', text: 'Every carton on this sale is already on a return.' }); return; }
+            var showPrice = can('kernel_prices.view');
+            var today = scope._todayIso();
+
+            var $form = $('<div class="kd-ret-form text-start"></div>');
+            $form.append($('<p class="small text-muted mb-2"></p>').text('Customer: ' + ((data.order && data.order.buyer_name) || '—')
+                + '. The cartons are held aside until Pete or Mike decides: back into stock, or write them off.'));
+            var $row = $('<div class="row g-2 mb-2"></div>');
+            var $reason = $('<select class="form-select" id="kdRetReason"></select>')
+                .append($('<option value=""></option>').text('Choose…'))
+                .append($('<option value="rejected"></option>').text('Rejected by the customer'))
+                .append($('<option value="returned"></option>').text('Returned'))
+                .append($('<option value="not_ordered"></option>').text('Not ordered'))
+                .append($('<option value="damaged"></option>').text('Damaged'))
+                .append($('<option value="other"></option>').text('Other (say why in the note)'));
+            $row.append($('<div class="col-sm-7"></div>').append($('<label class="form-label" for="kdRetReason">Why did it come back?</label>')).append($reason));
+            $row.append($('<div class="col-sm-5"></div>').append($('<label class="form-label" for="kdRetDate">Came back on</label>'))
+                .append($('<input type="date" class="form-control" id="kdRetDate">').attr('max', today).val(today)));
+            $form.append($row);
+            $form.append($('<label class="form-label" for="kdRetNote">Note</label>'))
+                .append($('<textarea class="form-control mb-3" id="kdRetNote" rows="2" maxlength="1000" placeholder="e.g. Wedgewood rejected it: moisture too high"></textarea>'));
+
+            var $table = $('<table class="table table-sm align-middle mb-1"></table>');
+            $table.append('<thead><tr><th>Batch</th><th>Style</th><th class="text-end">Sent</th><th class="text-end">Cartons back</th></tr></thead>');
+            var $tb = $('<tbody></tbody>');
+            lines.forEach(function (l) {
+                var sentTxt = scope._cartons(l.cartons) + (Number(l.returned_cartons) > 0 ? ' (' + scope._cartons(l.returned_cartons) + ' already back)' : '');
+                if (showPrice && l.price_per_kg != null) sentTxt += ' · ' + scope._rand(l.price_per_kg) + '/kg';
+                $tb.append($('<tr></tr>')
+                    .append($('<td></td>').text(fmtBatch(l.batch_number)))
+                    .append($('<td></td>').text(l.style || ''))
+                    .append($('<td class="text-end small"></td>').text(sentTxt))
+                    .append($('<td class="text-end"></td>').append(
+                        $('<input type="number" class="form-control form-control-sm text-end kd-ret-cartons" min="0" step="1" inputmode="numeric">')
+                            .attr({ 'data-index': l.index, 'data-max': l.returnable_cartons, max: l.returnable_cartons, 'aria-label': 'Cartons back, ' + fmtBatch(l.batch_number) + ' ' + (l.style || '') })
+                            .attr('placeholder', '0 of ' + scope._cartons(l.returnable_cartons)))));
+            });
+            $table.append($tb);
+            $form.append($table);
+
+            var res = await Swal.fire({
+                title: 'Record a return',
+                html: $form[0],
+                width: 720,
+                showCancelButton: true,
+                confirmButtonText: 'Record the return',
+                cancelButtonText: 'Cancel',
+                focusConfirm: false,
+                preConfirm: function () {
+                    var reason = $('#kdRetReason').val();
+                    var note = String($('#kdRetNote').val() || '').trim();
+                    var on = String($('#kdRetDate').val() || '');
+                    if (!reason) { Swal.showValidationMessage('Choose why the stock came back.'); return false; }
+                    if (reason === 'other' && !note) { Swal.showValidationMessage('Add a note saying why the stock came back.'); return false; }
+                    if (!on) { Swal.showValidationMessage('Enter the date it came back.'); return false; }
+                    if (on > today) { Swal.showValidationMessage('The date cannot be in the future.'); return false; }
+                    var out = [], bad = '';
+                    $('.kd-ret-cartons').each(function () {
+                        var raw = String($(this).val() || '').trim();
+                        if (!raw) return;
+                        var n = Number(raw), max = Number($(this).data('max'));
+                        if (!isFinite(n) || n < 0) { bad = 'Cartons must be a number of 0 or more.'; return; }
+                        if (n > max) { bad = 'One line has more cartons than can still come back (' + scope._cartons(max) + ').'; return; }
+                        if (n > 0) out.push({ index: Number($(this).data('index')), cartons: n });
+                    });
+                    if (bad) { Swal.showValidationMessage(bad); return false; }
+                    if (!out.length) { Swal.showValidationMessage('Enter how many cartons came back on at least one line.'); return false; }
+                    return dataFunctions.recordKernelDispatchReturn({ orderId: orderId, reason: reason, note: note, returnedOn: on, lines: out })
+                        .then(function (r) {
+                            if (!r || r.success === false) { Swal.showValidationMessage((r && r.error) || 'Could not save. Please try again.'); return false; }
+                            return r;
+                        });
+                }
+            });
+            if (res && res.isConfirmed) {
+                scope._toast('Return recorded. Pete or Mike will decide where the stock goes.');
+                scope.loadOrders(true);
+            }
+        },
+
+        /** Pete / Mike: per line, how many go back into stock; the rest is written off. */
+        openDecideReturn: async function (id) {
+            var scope = _kernelDispatchGrid;
+            var r = scope._findReturn(id);
+            if (!r || typeof Swal === 'undefined') return;
+            var $form = $('<div class="text-start"></div>');
+            $form.append($('<p class="small text-muted mb-2"></p>').text((r.buyer_name || 'The customer') + ' sent back ' + scope._cartons(r.total_cartons)
+                + ' cartons (' + (r.reason_label || '') + (r.note ? ': ' + r.note : '') + '). Cartons put back go into Stock on Hand on the same batch. The rest is written off.'));
+            var $table = $('<table class="table table-sm align-middle mb-2"></table>');
+            $table.append('<thead><tr><th>Batch</th><th>Style</th><th class="text-end">Came back</th><th class="text-end">Back into stock</th><th class="text-end">Write off</th></tr></thead>');
+            var $tb = $('<tbody></tbody>');
+            (r.lines || []).forEach(function (l) {
+                var $off = $('<td class="text-end kd-ret-off"></td>').text(scope._cartons(l.cartons));
+                var $in = $('<input type="number" class="form-control form-control-sm text-end kd-ret-back" min="0" step="1" inputmode="numeric">')
+                    .attr({ 'data-index': l.index, 'data-max': l.cartons, max: l.cartons, 'aria-label': 'Back into stock, ' + fmtBatch(l.batch_number) + ' ' + (l.style || '') })
+                    .val('0')
+                    .on('input', function () {
+                        var n = Number($(this).val() || 0);
+                        $off.text(isFinite(n) ? scope._cartons(Math.max(0, Number(l.cartons) - n)) : '?');
+                    });
+                $tb.append($('<tr></tr>')
+                    .append($('<td></td>').text(fmtBatch(l.batch_number)))
+                    .append($('<td></td>').text(l.style || ''))
+                    .append($('<td class="text-end"></td>').text(scope._cartons(l.cartons)))
+                    .append($('<td class="text-end"></td>').append($in))
+                    .append($off));
+            });
+            $table.append($tb);
+            $form.append($('<div class="d-flex gap-2 mb-2"></div>')
+                .append($('<button type="button" class="btn btn-sm btn-outline-secondary">All back into stock</button>').on('click', function () {
+                    $('.kd-ret-back').each(function () { $(this).val($(this).data('max')).trigger('input'); });
+                }))
+                .append($('<button type="button" class="btn btn-sm btn-outline-secondary">Write it all off</button>').on('click', function () {
+                    $('.kd-ret-back').val('0').trigger('input');
+                })));
+            $form.append($table);
+            $form.append($('<label class="form-label" for="kdRetDecisionNote">Note (optional)</label>'))
+                .append($('<textarea class="form-control" id="kdRetDecisionNote" rows="2" maxlength="1000" placeholder="e.g. Checked: moisture fine, back on the shelf"></textarea>'));
+
+            var res = await Swal.fire({
+                title: 'Back into stock or write off?',
+                html: $form[0],
+                width: 720,
+                showCancelButton: true,
+                confirmButtonText: 'Save the decision',
+                cancelButtonText: 'Cancel',
+                focusConfirm: false,
+                preConfirm: function () {
+                    var out = [], bad = '';
+                    $('.kd-ret-back').each(function () {
+                        var n = Number(String($(this).val() || '0').trim() || 0), max = Number($(this).data('max'));
+                        if (!isFinite(n) || n < 0 || n > max) { bad = 'Back into stock must be between 0 and the cartons that came back.'; return; }
+                        out.push({ index: Number($(this).data('index')), back_cartons: n });
+                    });
+                    if (bad) { Swal.showValidationMessage(bad); return false; }
+                    return dataFunctions.decideKernelDispatchReturn(r.id, out, String($('#kdRetDecisionNote').val() || '').trim())
+                        .then(function (x) {
+                            if (!x || x.success === false) { Swal.showValidationMessage((x && x.error) || 'Could not save. Please try again.'); return false; }
+                            return x;
+                        });
+                }
+            });
+            if (res && res.isConfirmed) {
+                scope._toast('Saved. Stock on Hand is updated.');
+                scope.loadOrders(true);
+            }
+        },
+
+        undoReturnDecision: function (id) {
+            var scope = _kernelDispatchGrid;
+            var r = scope._findReturn(id);
+            if (!r || typeof Swal === 'undefined') return;
+            Swal.fire({
+                title: 'Undo the decision?',
+                text: 'Any cartons put back into stock are taken out again, and the return goes back to "held aside". This is refused if those cartons have already been sent out again.',
+                icon: 'warning', showCancelButton: true, confirmButtonText: 'Undo', cancelButtonText: 'Cancel', focusCancel: true
+            }).then(function (x) {
+                if (!x.isConfirmed) return;
+                dataFunctions.undoKernelDispatchReturnDecision(r.id).then(function (res) { scope._after(res, 'Decision undone.'); });
+            });
+        },
+
+        /** Joslyn: credit note or refund, with its number. */
+        openSettleReturn: async function (id) {
+            var scope = _kernelDispatchGrid;
+            var r = scope._findReturn(id);
+            if (!r || typeof Swal === 'undefined') return;
+            var $form = $('<div class="text-start"></div>');
+            $form.append($('<p class="small text-muted mb-2"></p>').text((r.buyer_name || 'The customer') + ' sent back ' + scope._cartons(r.total_cartons) + ' cartons on ' + formatDate(r.returned_on)
+                + (can('kernel_prices.view') ? ', worth ' + scope._rand(r.value_zar) + ' (excl. VAT)' : '') + '.'));
+            var $type = $('<div class="mb-2"></div>');
+            [['credit_note', 'Credit note'], ['refund', 'Refund']].forEach(function (t) {
+                var rid = 'kdRetSettle_' + t[0];
+                $type.append($('<div class="form-check form-check-inline"></div>')
+                    .append($('<input class="form-check-input" type="radio" name="kdRetSettleType">').attr({ id: rid, value: t[0] }).prop('checked', (r.settle_type || 'credit_note') === t[0]))
+                    .append($('<label class="form-check-label"></label>').attr('for', rid).text(t[1])));
+            });
+            $form.append($type);
+            $form.append($('<label class="form-label" for="kdRetSettleRef">Credit note number or refund reference</label>'))
+                .append($('<input type="text" class="form-control mb-2" id="kdRetSettleRef" maxlength="100">').val(r.settle_reference || ''));
+            $form.append($('<label class="form-label" for="kdRetSettleNote">Note (optional)</label>'))
+                .append($('<textarea class="form-control" id="kdRetSettleNote" rows="2" maxlength="1000"></textarea>').val(r.settle_note || ''));
+            var res = await Swal.fire({
+                title: 'Credit note or refund',
+                html: $form[0],
+                showCancelButton: true,
+                showDenyButton: !!r.settle_type,
+                denyButtonText: 'Clear it',
+                confirmButtonText: 'Save',
+                cancelButtonText: 'Cancel',
+                focusConfirm: false,
+                preConfirm: function () {
+                    var type = $('input[name="kdRetSettleType"]:checked').val();
+                    var ref = String($('#kdRetSettleRef').val() || '').trim();
+                    if (!type) { Swal.showValidationMessage('Choose credit note or refund.'); return false; }
+                    if (!ref) { Swal.showValidationMessage(type === 'refund' ? 'Enter the refund reference.' : 'Enter the credit note number.'); return false; }
+                    return dataFunctions.settleKernelDispatchReturn(r.id, type, ref, String($('#kdRetSettleNote').val() || '').trim())
+                        .then(function (x) {
+                            if (!x || x.success === false) { Swal.showValidationMessage((x && x.error) || 'Could not save. Please try again.'); return false; }
+                            return x;
+                        });
+                }
+            });
+            if (res && res.isConfirmed) { scope._toast('Saved.'); scope.loadOrders(true); }
+            else if (res && res.isDenied) {
+                dataFunctions.settleKernelDispatchReturn(r.id, null).then(function (x) { scope._after(x, 'Cleared.'); });
+            }
+        },
+
+        cancelReturn: function (id) {
+            var scope = _kernelDispatchGrid;
+            var r = scope._findReturn(id);
+            if (!r || typeof Swal === 'undefined') return;
+            Swal.fire({
+                title: 'Cancel this return?',
+                text: 'Use this only if the return was recorded by mistake. The sale goes back on the sales figures as it was.',
+                icon: 'warning', showCancelButton: true, confirmButtonText: 'Cancel the return', cancelButtonText: 'Keep it', focusCancel: true
+            }).then(function (x) {
+                if (!x.isConfirmed) return;
+                dataFunctions.cancelKernelDispatchReturn(r.id).then(function (res) { scope._after(res, 'Return cancelled.'); });
+            });
         },
 
         confirmRevertDispatchOrder: (orderId) => {
@@ -627,10 +1048,11 @@ var _kernelDispatchGrid = function () {
                         items.push({ label: 'Edit', className: 'js-edit-dispatch-order', dataAttrs: { 'order-id': o.id || '' } });
                         if (key === 'truck' || key === 'legacy') items.push({ label: 'Truck loaded', className: 'js-dispatch-order', icon: 'fas fa-truck', dataAttrs: { 'order-id': o.id || '' } });
                     } else {
+                        items = items.concat(scope.returnMenuItems(o));
                         items.push({ label: 'Undo truck loaded', className: 'js-edit-dispatched-basket', dataAttrs: { 'order-id': o.id || '' } });
                     }
                     var actions = MacTableActions.render({ id: 'kdPendingActions' + (o.id || ''), items: items });
-                    pendingTbody.append('<tr><td><strong>' + buyer + '</strong><div class="kd-step-of">' + lineCount + ' line' + (lineCount === 1 ? '' : 's') + '</div></td><td>' + collectionStr + '</td><td class="text-end">' + _common.formatKg(totalKg) + ' kg</td>' + scope.stepCells(o) + '<td>' + scope.waitingOn(o) + '</td><td class="mac-table-actions-col">' + actions + '</td></tr>');
+                    pendingTbody.append('<tr><td><strong>' + buyer + '</strong><div class="kd-step-of">' + lineCount + ' line' + (lineCount === 1 ? '' : 's') + '</div>' + scope.returnBadge(o) + '</td><td>' + collectionStr + '</td><td class="text-end">' + _common.formatKg(totalKg) + ' kg</td>' + scope.stepCells(o) + '<td>' + scope.waitingOn(o) + '</td><td class="mac-table-actions-col">' + actions + '</td></tr>');
                 });
             }
 
@@ -653,13 +1075,15 @@ var _kernelDispatchGrid = function () {
                     if (scope.stageKey(o) === 'done' && can('kernel_dispatch.invoice')) {
                         items.push({ label: 'Undo invoice sent', className: 'js-kd-invoice-undo', dataAttrs: { 'order-id': o.id || '' } });
                     }
+                    items = items.concat(scope.returnMenuItems(o));
                     items.push({ label: 'Undo truck loaded', className: 'js-edit-dispatched-basket', dataAttrs: { 'order-id': o.id || '' } });
                     var actions = MacTableActions.render({ id: 'kdDispatchedActions' + (o.id || ''), items: items });
-                    dispatchedTbody.append('<tr><td><strong>' + buyer + '</strong><div class="kd-step-of">' + lineCount + ' line' + (lineCount === 1 ? '' : 's') + '</div></td><td>' + collectionStr + '</td><td class="text-end">' + _common.formatKg(totalKg) + ' kg</td>' + scope.stepCells(o) + '<td>' + scope.waitingOn(o) + '</td><td class="mac-table-actions-col">' + actions + '</td></tr>');
+                    dispatchedTbody.append('<tr><td><strong>' + buyer + '</strong><div class="kd-step-of">' + lineCount + ' line' + (lineCount === 1 ? '' : 's') + '</div>' + scope.returnBadge(o) + '</td><td>' + collectionStr + '</td><td class="text-end">' + _common.formatKg(totalKg) + ' kg</td>' + scope.stepCells(o) + '<td>' + scope.waitingOn(o) + '</td><td class="mac-table-actions-col">' + actions + '</td></tr>');
                 });
             }
             MacTableActions.init(document.getElementById('kernelDispatchTable'));
             MacTableActions.init(document.getElementById('kernelDispatchedTable'));
+            scope.renderReturns();
         },
 
         toggleView: (view) => {
@@ -685,6 +1109,7 @@ var _kernelDispatchGrid = function () {
             if (typeof KanbanHelper === 'undefined') return;
             scope.updateFilterEmptyBanner();
             scope.renderStageChips();
+            scope.renderReturns();
 
             KanbanHelper.render('kdKanbanBoard', DISPATCH_KANBAN_COLUMNS, scope.visibleOrders(), function (o) {
                 return o.status === 'dispatched' ? 'dispatched' : 'confirmed';
@@ -699,7 +1124,7 @@ var _kernelDispatchGrid = function () {
 
                 var html = '<div class="kanban-card" data-order-id="' + (o.id || '') + '">';
                 html += '<div class="kanban-card-title">' + buyer + '</div>';
-                html += scope.stageBadge(o);
+                html += scope.stageBadge(o) + scope.returnBadge(o);
                 html += '<div class="kanban-card-meta">';
                 if (collectionStr) html += '<div class="kanban-card-meta-item"><i class="fas fa-calendar-plus"></i> Collect ' + esc(collectionStr) + '</div>';
                 html += '<div class="kanban-card-meta-item"><i class="fas fa-list"></i> ' + lineCount + ' lines</div>';
@@ -713,6 +1138,7 @@ var _kernelDispatchGrid = function () {
                     html += '<button type="button" class="btn btn-sm btn-outline-secondary js-edit-dispatch-order me-1" data-order-id="' + (o.id || '') + '">Edit</button>';
                     if (key === 'truck' || key === 'legacy') html += '<button type="button" class="btn btn-sm btn-primary js-dispatch-order" data-order-id="' + (o.id || '') + '"><i class="fas fa-truck me-1"></i>Truck loaded</button>';
                 } else {
+                    if (can('kernel_dispatch.return')) html += '<button type="button" class="btn btn-sm btn-outline-secondary js-kd-return-record me-1" data-order-id="' + (o.id || '') + '"><i class="fas fa-rotate-left me-1"></i>Return</button>';
                     html += '<button type="button" class="btn btn-sm btn-outline-secondary js-edit-dispatched-basket me-1" data-order-id="' + (o.id || '') + '" title="Undo truck loaded: unlock the basket (clears the truck paperwork)">Undo truck</button>';
                 }
                 html += '</div>';

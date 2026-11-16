@@ -468,6 +468,7 @@ var _workflowViews = function () {
             truck_late: 'Truck is late', truck_unconfirmed: 'Truck not confirmed', style_prices_stale: 'Style prices need a look',
             nis_runway_low: 'Nut in shell runs out soon', nis_unplaced: 'Nut in shell not placed',
             oil_ffa_decision: 'Oil raw FFA out of spec',
+            dispatch_return_decide: 'Decide on returned stock', dispatch_return_credit: 'Credit note for a return',
             oil_daily_recipe: 'Oil recipe for today', oil_stock_count: 'Oil month-end count'
         },
 
@@ -483,6 +484,8 @@ var _workflowViews = function () {
                 case 'style_prices_stale': return { label: 'Update prices', route: 'kernel-pipeline-settings', params: { tab: 'prices' } };
                 case 'dispatch_approve': return { label: 'Confirm pricing', panel: true, route: 'kernel-dispatch-grid', params: { openOrderId: sid } };
                 case 'dispatch_invoice': return { label: 'Open the dispatch', route: 'kernel-dispatch-grid', params: { openOrderId: sid } };
+                case 'dispatch_return_decide': return { label: 'Decide', route: 'kernel-dispatch-grid', params: { showReturns: true, openOrderId: sid } };
+                case 'dispatch_return_credit': return { label: 'Open Returns', route: 'kernel-dispatch-grid', params: { showReturns: true, openOrderId: sid } };
                 case 'oil_daily_recipe': return { label: 'Enter the recipe', route: 'oil-raw-materials', params: { tab: 'recipe' } };
                 case 'oil_stock_count': return { label: 'Enter the count', route: 'oil-raw-materials', params: { tab: 'count' } };
                 case 'customer_prices_expiring': return { label: 'Update prices', route: 'kernel-pipeline-settings', params: { tab: 'prices', customerId: sid } };
