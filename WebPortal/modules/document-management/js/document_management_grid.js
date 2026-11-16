@@ -134,6 +134,12 @@ var _documentManagementGrid = (function () {
                 scope.renderExplorer();
             });
 
+            // List / Icons view toggle
+            $(document).off('click.docView', '[data-doc-view]').on('click.docView', '[data-doc-view]', function (e) {
+                e.preventDefault();
+                scope.setDocView($(this).attr('data-doc-view'));
+            });
+
             // Folder row click (delegated)
             $(document).on('click', '[data-folder-navigate]', function (e) {
                 e.preventDefault();
@@ -309,6 +315,8 @@ var _documentManagementGrid = (function () {
                     : (d.category_id === scope.currentFolderId);
             });
 
+            scope.renderIcons(childFolders, childDocs);
+
             if (childFolders.length === 0 && childDocs.length === 0) {
                 var emptyMsg = scope.currentFolderId
                     ? 'This folder is empty. Use New folder or Upload to add content here.'
@@ -365,6 +373,48 @@ var _documentManagementGrid = (function () {
             MacTableActions.init(document.getElementById('documentsTable'));
         },
 
+        // ── Icons view (Mike 16 Nov 2026: "change the view from details to icons") ──
+
+        docView: (function () {
+            try { return localStorage.getItem('mac.docView') === 'icons' ? 'icons' : 'list'; } catch (e) { return 'list'; }
+        })(),
+
+        setDocView: function (view) {
+            var scope = _documentManagementGrid;
+            scope.docView = view === 'icons' ? 'icons' : 'list';
+            try { localStorage.setItem('mac.docView', scope.docView); } catch (e) { /* private window: fine */ }
+            scope.renderExplorer();
+        },
+
+        /** Fills the icons grid; with nothing to show (or in list view) the table - and its empty message - shows instead. */
+        renderIcons: function (folders, docs) {
+            var scope = _documentManagementGrid;
+            var icons = scope.docView === 'icons' && typeof FilePreview !== 'undefined';
+            $('#docViewList').toggleClass('active', !icons).attr('aria-pressed', String(!icons));
+            $('#docViewIcons').toggleClass('active', icons).attr('aria-pressed', String(icons));
+            var $view = $('#documentsIconView').empty();
+            var show = icons && (folders.length + docs.length) > 0;
+            $view.toggleClass('d-none', !show);
+            $('#documentsTable').closest('.table-responsive').toggleClass('d-none', show);
+            if (!show) return;
+            var $grid = $('<div class="fp-grid fp-lg"></div>').appendTo($view);
+            folders.forEach(function (cat) {
+                var $tile = $('<div class="fp-tile"></div>').attr('title', cat.name || 'Folder');
+                $('<a href="#" class="fp-thumb doc-icon-folder"></a>')
+                    .attr('data-folder-navigate', cat.id).attr('aria-label', 'Open folder ' + (cat.name || ''))
+                    .append('<i class="fas fa-folder fp-icon" aria-hidden="true"></i>')
+                    .appendTo($tile);
+                $('<a href="#" class="fp-name"></a>').attr('data-folder-navigate', cat.id).text(cat.name || 'Folder').appendTo($tile);
+                $grid.append($tile);
+            });
+            docs.forEach(function (doc) {
+                $grid.append(FilePreview.tile({
+                    name: doc.document_name || doc.file_name || 'File',
+                    file_link: doc.file_link || ''
+                }));
+            });
+        },
+
         renderSearchResults: function (q) {
             var scope = _documentManagementGrid;
             var tbody = $('#documentsTableBody');
@@ -379,6 +429,8 @@ var _documentManagementGrid = (function () {
             var matchFolders = scope.allCategories.filter(function (c) {
                 return (c.name || '').toLowerCase().indexOf(lq) !== -1;
             });
+
+            scope.renderIcons(matchFolders, matchDocs);
 
             if (matchFolders.length === 0 && matchDocs.length === 0) {
                 tbody.html('<tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-search me-2"></i>No results for &ldquo;' + escapeHtml(q) + '&rdquo;</td></tr>');

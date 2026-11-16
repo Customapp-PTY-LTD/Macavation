@@ -284,7 +284,16 @@ var _modal_supplier_receiver_checklist = (function () {
         var def = DOC_KINDS.filter(function (d) { return d.kind === kind; })[0];
         if (!def) return;
         var $box = $('#' + def.chips).empty();
+        // Uploaded files show as preview tiles (photo / PDF page 1 / icon) - Mike 16 Nov 2026; failed ones stay chips.
+        var $grid = typeof FilePreview !== 'undefined' ? $('<div class="fp-grid w-100"></div>').appendTo($box) : null;
         docState[kind].forEach(function (f, idx) {
+            if ($grid && !f.failed) {
+                var $tile = FilePreview.tile({ name: f.name, file_link: isHttpsLink(f.file_link) ? f.file_link : '' });
+                $tile.append($('<button type="button" class="src-doc-remove fp-remove" aria-label="Remove file" title="Remove">')
+                    .attr('data-kind', kind).attr('data-idx', idx).append('<i class="fas fa-xmark" aria-hidden="true"></i>'));
+                $grid.append($tile);
+                return;
+            }
             var $chip = $('<span class="src-doc-chip">');
             if (f.failed) {
                 $chip.css({ borderColor: 'var(--mac-danger)', color: 'var(--mac-danger)' });
