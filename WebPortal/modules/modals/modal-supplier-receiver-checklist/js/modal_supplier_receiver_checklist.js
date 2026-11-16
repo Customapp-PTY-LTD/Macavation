@@ -685,6 +685,31 @@ var _modal_supplier_receiver_checklist = (function () {
                         this.value = '';
                         if (files.length) uploadDocFiles(t[2], files);
                     });
+                    // The box is a drop zone too: drag files onto it, or Enter/Space opens the picker.
+                    $(document).off('keydown.srcDocBtn', '#' + t[0]).on('keydown.srcDocBtn', '#' + t[0], function (e) {
+                        if (e.key !== 'Enter' && e.key !== ' ') return;
+                        e.preventDefault();
+                        var inp = document.getElementById(t[1]);
+                        if (inp) inp.click();
+                    });
+                    $(document).off('dragenter.srcDocDrop dragover.srcDocDrop', '#' + t[0]).on('dragenter.srcDocDrop dragover.srcDocDrop', '#' + t[0], function (e) {
+                        e.preventDefault();
+                        var dt = e.originalEvent && e.originalEvent.dataTransfer;
+                        if (dt) dt.dropEffect = 'copy';
+                        this.classList.add('src-drop--over');
+                    });
+                    $(document).off('dragleave.srcDocDrop', '#' + t[0]).on('dragleave.srcDocDrop', '#' + t[0], function (e) {
+                        var rel = e.originalEvent && e.originalEvent.relatedTarget;
+                        if (rel && this.contains(rel)) return;
+                        this.classList.remove('src-drop--over');
+                    });
+                    $(document).off('drop.srcDocDrop', '#' + t[0]).on('drop.srcDocDrop', '#' + t[0], function (e) {
+                        e.preventDefault();
+                        this.classList.remove('src-drop--over');
+                        var dt = e.originalEvent && e.originalEvent.dataTransfer;
+                        var files = Array.prototype.slice.call((dt && dt.files) || []);
+                        if (files.length) uploadDocFiles(t[2], files);
+                    });
                 });
                 $(document).off('click.srcDocRm', '.src-doc-remove').on('click.srcDocRm', '.src-doc-remove', function () {
                     var kind = $(this).attr('data-kind');
