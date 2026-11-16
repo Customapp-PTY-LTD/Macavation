@@ -567,7 +567,7 @@ var _stockManagementGrid = function () {
                 $('#kernelStockSearch').off('input.ksSearch').on('input.ksSearch', function () {
                     var q = ($(this).val() || '').trim();
                     $('#kernelStockByStyleBody tr').each(function () {
-                        // Either batch-number form finds the batch (BN.01.26.05 or Bn 01 26 05).
+                        // Either batch-number form finds the batch (BN 01.26.05 or Bn 01 26 05).
                         this.style.display = (!q || macBatchNo.matches($(this).text() || '', q)) ? '' : 'none';
                     });
                     scope.applyKernelZebra();
@@ -2346,7 +2346,7 @@ var _stockManagementGrid = function () {
                     '</div>',
                     '<div>',
                     '<label for="swalShellSourceBatch">Source kernel batch</label>',
-                    '<input id="swalShellSourceBatch" class="mac-input" placeholder="e.g. BN.63.26.20" value="' + escapeHtml(existing && existing.source_batch_number ? macBatchNo.format(existing.source_batch_number) : '') + '">',
+                    '<input id="swalShellSourceBatch" class="mac-input" placeholder="e.g. BN 63.26.20" value="' + escapeHtml(existing && existing.source_batch_number ? macBatchNo.format(existing.source_batch_number) : '') + '">',
                     '</div>',
                     '<div class="row2">',
                     '<div>',
@@ -2815,7 +2815,7 @@ var _stockManagementGrid = function () {
                 title: 'New batch number required',
                 html: 'Batch number <strong>' + escapeHtml(macBatchNo.format(orig)) + '</strong> is already in use by another active batch. Enter a new number for the restored batch.',
                 input: 'text',
-                inputPlaceholder: 'e.g. BN.01.26.05',
+                inputPlaceholder: 'e.g. BN 01.26.05',
                 showCancelButton: true,
                 confirmButtonText: 'Restore with new number',
                 inputValidator: function (value) {
