@@ -68,3 +68,11 @@
 .or-recon-table td:last-child { white-space: normal; min-width: 180px; }
 .or-recon-total td { font-weight: 700; background: var(--mac-bg-tertiary); }
 .or-recon-flagged td { background: var(--mac-warning-light); }
+
+/* Bags list: sortable headers + filter (Mike 16 Nov 2026) */
+.or-sort-btn { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: inherit; white-space: nowrap; cursor: pointer; }
+.or-sort-btn i { color: var(--mac-text-tertiary); font-size: 0.85em; }
+.or-sort-btn.is-on i { color: var(--mac-text); }
+.or-sort-btn:focus-visible { outline: 2px solid var(--mac-green); outline-offset: 2px; }
+.or-bags-scroll th.text-end .or-sort-btn { margin-left: auto; }
+.or-asof input[type="date"] { min-width: 180px; }
