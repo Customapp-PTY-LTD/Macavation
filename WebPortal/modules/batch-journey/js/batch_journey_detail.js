@@ -134,6 +134,18 @@ var _batchJourneyDetail = (function () {
         dispatch: 'Dispatch'
     };
 
+    /** One page per section (tab). Function refs are hoisted declarations below. */
+    var SECTION_RENDERERS = {
+        details: function () { return detailsSectionHtml(); },
+        delivery: function () { return deliverySectionHtml(); },
+        receiving: function () { return receivingSectionHtml(); },
+        samples: function () { return samplesSectionHtml(); },
+        production: function () { return productionSectionHtml(); },
+        jobcard: function () { return jobCardSectionHtml(); },
+        qa: function () { return qaSectionHtml(); },
+        dispatch: function () { return dispatchSectionHtml(); }
+    };
+
     var state = freshState();
 
     function freshState() {
@@ -143,6 +155,7 @@ var _batchJourneyDetail = (function () {
             detail: null,
             hooks: null,
             editing: null,      // 'details' | 'receiving' | 'samples' | 'jobcard' | 'qa' | 'stage'
+            section: 'details', // the one section (tab) on screen; Mike 16 Nov 2026: one page per section, tabs pinned
             dayKey: null,       // selected production day (YYYY-MM-DD)
             openStage: null,    // stage panel shown under the day cards
             stageEditing: false,
@@ -468,13 +481,12 @@ var _batchJourneyDetail = (function () {
                 : '<div class="card"><div class="card-body text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Loading batch…</div></div>');
             return;
         }
+        if (!SECTION_RENDERERS[state.section]) state.section = 'details';
         var html = backLinkHtml() + headerHtml();
-        html += '<div class="row g-3 bjd-body">';
-        html += '<div class="col-12 col-lg-3 col-xxl-2">' + navHtml() + '</div>';
-        html += '<div class="col-12 col-lg-9 col-xxl-10 d-flex flex-column gap-3">';
-        html += detailsSectionHtml() + deliverySectionHtml() + receivingSectionHtml() + samplesSectionHtml() + productionSectionHtml() +
-            jobCardSectionHtml() + qaSectionHtml() + dispatchSectionHtml();
-        html += '</div></div>';
+        html += navHtml();
+        html += '<div class="bjd-body d-flex flex-column gap-3" role="tabpanel" aria-labelledby="bjd-tab-' + state.section + '">';
+        html += SECTION_RENDERERS[state.section]();
+        html += '</div>';
         el.innerHTML = html;
         afterRender();
     }
@@ -537,15 +549,29 @@ var _batchJourneyDetail = (function () {
             (note ? '<div class="small text-muted">' + esc(note) + '</div>' : '') + '</div>';
     }
 
+    /** Section tabs: one section on screen at a time; the bar stays pinned to the top while the page scrolls. */
     function navHtml() {
         var days = productionDays().length;
-        var h = '<nav class="card bjd-nav" aria-label="Batch sections"><div class="bjd-nav-list">';
+        var h = '<nav class="card bjd-nav" aria-label="Batch sections"><div class="bjd-nav-list" role="tablist">';
         Object.keys(SECTION_LABELS).forEach(function (key) {
             var label = SECTION_LABELS[key] + (key === 'production' && days ? ' (' + days + ')' : '');
-            var active = (state.editing === key || (state.editing === 'stage' && key === 'production')) ? ' active' : '';
-            h += '<button type="button" class="bjd-nav-link' + active + '" data-bjd-act="nav" data-section="' + key + '">' + esc(label) + '</button>';
+            var on = state.section === key;
+            h += '<button type="button" role="tab" id="bjd-tab-' + key + '" aria-selected="' + on + '" class="bjd-nav-link' + (on ? ' active' : '') +
+                '" data-bjd-act="nav" data-section="' + key + '">' + esc(label) + '</button>';
         });
         return h + '</div></nav>';
+    }
+
+    /** Switch tab. Leaving a section mid-edit asks first, same as starting an edit elsewhere. */
+    function showSection(key) {
+        if (!SECTION_RENDERERS[key] || key === state.section) return;
+        leaveEditIfAllowed().then(function (ok) {
+            if (!ok) return;
+            state.section = key;
+            state.openStage = null;
+            render();
+            scrollToSection(key);
+        });
     }
 
     /**
@@ -2164,9 +2190,14 @@ var _batchJourneyDetail = (function () {
         $('#' + CONTAINER_ID + ' .bjd-runs-note[data-runs-date]').each(function () { loadRunsNote(this.getAttribute('data-runs-date')); });
     }
 
+    /** Only one section is on screen now; bring its top into view just under the pinned tabs (only if it is above the fold). */
     function scrollToSection(key) {
         var el = document.getElementById('bjd-sec-' + key);
-        if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        var nav = document.querySelector('#' + CONTAINER_ID + ' .bjd-nav');
+        if (!el || !nav) return;
+        var navBottom = nav.getBoundingClientRect().bottom;
+        var top = el.getBoundingClientRect().top;
+        if (top < navBottom) window.scrollBy(0, top - navBottom - 12);
     }
 
     // ------------------------------------------------------------------ loading
@@ -2632,7 +2663,7 @@ var _batchJourneyDetail = (function () {
                 var load = (state.suppliers === undefined && typeof KernelBatchEdit !== 'undefined' && KernelBatchEdit.loadSuppliers)
                     ? KernelBatchEdit.loadSuppliers().then(function (s) { state.suppliers = s; })
                     : Promise.resolve();
-                load.then(function () { state.editing = 'details'; render(); scrollToSection('details'); });
+                load.then(function () { state.editing = 'details'; state.section = 'details'; render(); scrollToSection('details'); });
                 return;
             }
             if (section === 'delivery' || section === 'dispatch') {
@@ -2640,6 +2671,7 @@ var _batchJourneyDetail = (function () {
                 var pre = section === 'delivery' ? loadBagLocations() : loadDispatchFull();
                 pre.then(function () {
                     state.editing = section;
+                    state.section = section;
                     render();
                     scrollToSection(section);
                 }).catch(function (err) { showError((err && err.message) || 'Could not start editing.'); });
@@ -2647,6 +2679,7 @@ var _batchJourneyDetail = (function () {
             }
             state.qaPdf = undefined;
             state.editing = section;
+            if (SECTION_RENDERERS[section]) state.section = section;
             render();
             scrollToSection(section);
         });
@@ -2656,6 +2689,7 @@ var _batchJourneyDetail = (function () {
         leaveEditIfAllowed().then(function (ok) {
             if (!ok) return;
             state.openStage = stageKey;
+            state.section = 'production';
             state.editing = edit ? 'stage' : null;
             state.stageEditing = !!edit;
             render();
@@ -2680,7 +2714,7 @@ var _batchJourneyDetail = (function () {
                     leaveEditIfAllowed().then(function (ok) { if (ok) close(); });
                     break;
                 case 'nav':
-                    scrollToSection($t.attr('data-section'));
+                    showSection($t.attr('data-section'));
                     break;
                 case 'edit':
                     startEdit($t.attr('data-section'));
