@@ -179,6 +179,12 @@ var _modal_end_sample = (function () {
                 var fileName = labTestPdfUrl.split('/').pop() || 'Lab Test PDF';
                 var safeFileName = (typeof _common !== 'undefined' && _common.sanitizeHtml) ? _common.sanitizeHtml(fileName) : fileName;
                 var $previewEl = $('#endSampleLabTestPdfPreview');
+                if (typeof FilePreview !== 'undefined') {
+                    FilePreview.render($previewEl, [{ name: fileName, file_link: labTestPdfUrl }], {
+                        onRemove: function () { labTestPdfUrl = ''; $('#endSampleLabTestPdf').val(''); $previewEl.empty(); }
+                    });
+                    return;
+                }
                 $previewEl.html(
                     '<a href="' + href + '" target="_blank" rel="noopener" class="text-primary">' +
                     '<i class="fas fa-file-pdf me-1"></i>' + safeFileName + '</a> ' +
@@ -226,7 +232,11 @@ var _modal_end_sample = (function () {
                     : { Success: false, LastErrorDescription: 'Upload not available' };
                 if (result && result.Success && result.Data && result.Data.fileLink) {
                     labTestPdfUrl = result.Data.fileLink;
-                    previewEl.html(
+                    if (typeof FilePreview !== 'undefined') {
+                        FilePreview.render(previewEl, [{ name: file.name, file_link: labTestPdfUrl }], {
+                            onRemove: function () { labTestPdfUrl = ''; $('#endSampleLabTestPdf').val(''); previewEl.empty(); }
+                        });
+                    } else previewEl.html(
                         '<a href="' + _common.sanitizeHtml(labTestPdfUrl) + '" target="_blank" rel="noopener" class="text-primary">' +
                         '<i class="fas fa-file-pdf me-1"></i>' + _common.sanitizeHtml(file.name) + '</a> ' +
                         '<button type="button" class="btn btn-sm btn-outline-secondary ms-1" id="endSampleLabTestPdfRemove" title="Remove">' +

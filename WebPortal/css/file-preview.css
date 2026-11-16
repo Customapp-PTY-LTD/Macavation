@@ -1,0 +1,101 @@
+/* FilePreview tiles (js/file-preview.js): attached files shown like a folder in "Large icons" view. */
+.fp-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 4px 0;
+}
+.fp-tile {
+    position: relative;
+    width: 104px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+}
+.fp-thumb {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 104px;
+    height: 104px;
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-sm, 8px);
+    background: var(--mac-bg-tertiary);
+    overflow: hidden;
+    text-decoration: none;
+    transition: box-shadow .15s ease, border-color .15s ease;
+}
+a.fp-thumb:hover,
+a.fp-thumb:focus-visible {
+    border-color: var(--mac-green);
+    box-shadow: var(--mac-shadow-md, 0 4px 12px rgba(0,0,0,.08));
+    outline: none;
+}
+.fp-icon {
+    font-size: 2.4rem;
+    color: var(--mac-text-tertiary);
+}
+.fp-pdf .fp-icon { color: var(--mac-danger); }
+.fp-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity .2s ease;
+}
+/* A PDF's page 1 is shown whole (top-aligned, on white) so the page reads like a page, not a crop. */
+.fp-thumb.fp-pdf .fp-img {
+    object-fit: contain;
+    object-position: top center;
+    background: #fff;
+}
+.fp-thumb.fp-loaded .fp-img { opacity: 1; }
+.fp-thumb.fp-loaded .fp-icon { visibility: hidden; }
+.fp-name {
+    font-size: 0.75rem;
+    line-height: 1.2;
+    color: var(--mac-text-secondary);
+    text-align: center;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+a.fp-name { text-decoration: none; }
+a.fp-name:hover { text-decoration: underline; color: var(--mac-green); }
+.fp-remove {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid var(--mac-border-strong);
+    background: var(--mac-bg-secondary);
+    color: var(--mac-danger);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    padding: 0;
+    box-shadow: var(--mac-shadow-sm, 0 2px 4px rgba(0,0,0,.06));
+    cursor: pointer;
+}
+.fp-remove:hover { background: var(--mac-danger); color: #fff; }
+
+/* Small variant for dense tables (e.g. the intake grid). */
+.fp-grid.fp-sm { gap: 6px; }
+.fp-grid.fp-sm .fp-tile { width: 64px; }
+.fp-grid.fp-sm .fp-thumb { width: 64px; height: 64px; }
+.fp-grid.fp-sm .fp-icon { font-size: 1.6rem; }
+.fp-grid.fp-sm .fp-name { font-size: 0.7rem; }
+
+/* Documents library "Icons" view. */
+.fp-grid.fp-lg { gap: 14px; }
+.fp-grid.fp-lg .fp-tile { width: 132px; }
+.fp-grid.fp-lg .fp-thumb { width: 132px; height: 132px; }

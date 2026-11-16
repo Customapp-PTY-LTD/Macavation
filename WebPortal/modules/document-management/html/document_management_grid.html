@@ -26,6 +26,11 @@
                     </ol>
                 </nav>
                 <div class="d-flex gap-2 ms-auto">
+                    <!-- List / Icons view, like a Windows folder (Mike 16 Nov 2026) -->
+                    <div class="btn-group btn-group-sm" role="group" aria-label="View">
+                        <button type="button" class="btn btn-outline-secondary" id="docViewList" data-doc-view="list" aria-pressed="true" title="List view"><i class="fas fa-list me-1"></i>List</button>
+                        <button type="button" class="btn btn-outline-secondary" id="docViewIcons" data-doc-view="icons" aria-pressed="false" title="Icons view - see a preview of each file"><i class="fas fa-table-cells-large me-1"></i>Icons</button>
+                    </div>
                     <div class="input-group input-group-sm" style="width:240px;">
                         <span class="input-group-text"><i class="fas fa-search"></i></span>
                         <input type="text" class="form-control" id="docSearchInput" placeholder="Search all documents and folders…">
@@ -49,6 +54,9 @@
                     <tbody id="documentsTableBody"></tbody>
                 </table>
             </div>
+
+            <!-- Icons view: folders and file previews (photo / PDF page 1 / icon) -->
+            <div class="doc-icon-view p-3 d-none" id="documentsIconView"></div>
         </div>
     </div>
 </div>

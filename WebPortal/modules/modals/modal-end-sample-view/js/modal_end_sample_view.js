@@ -55,7 +55,8 @@ var _modal_end_sample_view = (function () {
                 html += '<div class="col-md-6"><p class="mb-0"><strong>Signed (Nut Plant Manager):</strong> ' + fmt(ps.nut_plant_manager_signed_by) + '</p></div></div>';
                 if (ps.lab_test_pdf_url) {
                     var pdfHref = (typeof _common !== 'undefined' && _common.sanitizeHtml) ? _common.sanitizeHtml(ps.lab_test_pdf_url) : ps.lab_test_pdf_url;
-                    html += '<div class="mt-2"><a href="' + pdfHref + '" target="_blank" rel="noopener" class="text-primary"><i class="fas fa-file-pdf me-1"></i>Lab Test PDF</a></div>';
+                    if (typeof FilePreview !== 'undefined') html += '<div class="mt-2">' + FilePreview.html({ name: 'Lab Test PDF', file_link: ps.lab_test_pdf_url }) + '</div>';
+                    else html += '<div class="mt-2"><a href="' + pdfHref + '" target="_blank" rel="noopener" class="text-primary"><i class="fas fa-file-pdf me-1"></i>Lab Test PDF</a></div>';
                 }
                 $body.html(html);
             }).catch(() => {
