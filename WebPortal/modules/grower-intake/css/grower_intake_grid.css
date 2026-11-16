@@ -339,6 +339,8 @@ button.gib-chip:hover { border-color: var(--mac-text-tertiary); }
 input.nd-est { color: var(--mac-info); font-style: italic; }
 .nd-badge-est { background: rgba(var(--mac-info-rgb), 0.12); color: var(--mac-info); }
 .nd-badge-weighed { background: rgba(var(--mac-green-rgb), 0.12); color: var(--mac-green); }
+.nd-tag-toggle { cursor: pointer; text-decoration: underline dotted; }
+.nd-tag-toggle:hover { filter: brightness(1.2); }
 .nd-est-text { color: var(--mac-info); }
 /* Recent moves (migration 20261102120000): folded list under the storage areas */
 .gib-moves { margin-top: 0.75rem; }
