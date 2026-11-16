@@ -1,10 +1,10 @@
 /**
- * Kernel batch numbers on screen (Mike, 5 Nov 2026): "BN.01.26.05" instead of "Bn 01 26 05".
+ * Kernel batch numbers on screen (Mike, 5 Nov 2026): "BN 01.26.05" instead of "Bn 01 26 05" (space after BN: Mike, 16 Nov 2026).
  *
  * DISPLAY ONLY. The database keeps "Bn 01 26 05" (get_next_batch_number, imports and the workbook
  * sync all rely on that exact text). So:
- *   - show:   macBatchNo.format(stored)        'Bn 01 26 05' -> 'BN.01.26.05'
- *   - save:   macBatchNo.toStored(typed)       'BN.01.26.05' -> 'Bn 01 26 05'
+ *   - show:   macBatchNo.format(stored)        'Bn 01 26 05' -> 'BN 01.26.05'
+ *   - save:   macBatchNo.toStored(typed)       'BN 01.26.05' -> 'Bn 01 26 05'
  *   - search: macBatchNo.searchKey(text)       both forms    -> '012605'
  * Anything that is not a kernel batch number (oil lots, free text) is returned unchanged.
  * Same rule as public._fmt_batch_number in migrations/20261106120000_dispatch_and_sales_five_steps.sql.
@@ -19,7 +19,7 @@
             if (value === null || value === undefined) return '';
             var s = String(value);
             var m = KERNEL_BN.exec(s);
-            return m ? 'BN.' + m[1] + '.' + m[2] + '.' + m[3] : s;
+            return m ? 'BN ' + m[1] + '.' + m[2] + '.' + m[3] : s;
         },
 
         toStored: function (value) {

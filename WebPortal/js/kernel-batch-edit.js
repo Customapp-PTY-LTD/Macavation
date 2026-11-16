@@ -211,7 +211,7 @@
             // Back to the batch's own supplier: restore its number rather than allocating a new one.
             if (!chosen || String(chosen) === String(originalSupplierId)) {
                 numberEl.value = originalNumber;
-                if (hintEl) hintEl.textContent = 'Changing the supplier suggests a new number (BN.[supplier #].[year].[seq]). You can still type your own.';
+                if (hintEl) hintEl.textContent = 'Changing the supplier suggests a new number (BN [supplier #].[year].[seq]). You can still type your own.';
                 return;
             }
             if (typeof dataFunctions === 'undefined' || !dataFunctions.getNextBatchNumber) return;
