@@ -43,3 +43,32 @@
     padding: 0 4px;
 }
 .src-doc-chip .src-doc-remove:hover { color: var(--mac-danger); }
+
+/* Supporting documents: one drag-and-drop box per kind (click or Enter/Space also opens the picker) */
+.src-drop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 104px;
+    padding: 14px 10px;
+    border: 2px dashed var(--mac-border);
+    border-radius: 10px;
+    background: var(--mac-bg-secondary);
+    color: var(--mac-text-secondary);
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s, background-color .15s, color .15s;
+}
+.src-drop i { font-size: 1.4rem; margin-bottom: 4px; }
+.src-drop .src-drop-title { font-weight: 600; color: var(--mac-text); }
+.src-drop .src-drop-hint { font-size: 0.8125rem; }
+.src-drop:hover,
+.src-drop:focus-visible,
+.src-drop.src-drop--over {
+    border-color: var(--mac-info);
+    color: var(--mac-info);
+    outline: none;
+}
+.src-drop.src-drop--over { background: var(--mac-info-light); }
