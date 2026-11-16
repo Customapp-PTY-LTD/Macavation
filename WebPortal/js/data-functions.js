@@ -2506,6 +2506,47 @@ var _dataFunctions = function () {
             }, token);
         },
 
+        // --- Returns on a completed sale (Mike, 16 Nov 2026; migration 20261116120000) ----------
+        /** { success, returns: [{ id, order_id, buyer_name, returned_on, reason_label, lines, status, settle_type, ... }] } */
+        getKernelDispatchReturns: async function (orderId, token = null) {
+            return this._rpcRead('get_kernel_dispatch_returns', { p_order_id: orderId || null, p_limit: 200 }, token);
+        },
+
+        /** { success, order, lines: [{ index, batch_number, style, cartons, returnable_cartons, price_per_kg, ... }] } */
+        getKernelDispatchReturnLines: async function (orderId, token = null) {
+            return this._rpcRead('get_kernel_dispatch_return_lines', { p_order_id: orderId }, token);
+        },
+
+        /** r = { orderId, reason, note, returnedOn (yyyy-mm-dd), lines: [{ index, cartons }] } */
+        recordKernelDispatchReturn: async function (r, token = null) {
+            return this._rpcWrite('record_kernel_dispatch_return', {
+                p_order_id: r.orderId, p_reason: r.reason, p_note: r.note || null,
+                p_returned_on: r.returnedOn || null, p_lines: r.lines || []
+            }, token);
+        },
+
+        /** lines = [{ index, back_cartons }]; the rest of each line is written off. */
+        decideKernelDispatchReturn: async function (returnId, lines, note, token = null) {
+            return this._rpcWrite('decide_kernel_dispatch_return', {
+                p_return_id: returnId, p_lines: lines || [], p_note: note || null
+            }, token);
+        },
+
+        undoKernelDispatchReturnDecision: async function (returnId, token = null) {
+            return this._rpcWrite('undo_kernel_dispatch_return_decision', { p_return_id: returnId }, token);
+        },
+
+        /** type 'credit_note' | 'refund' | null (clears it). */
+        settleKernelDispatchReturn: async function (returnId, type, reference, note, token = null) {
+            return this._rpcWrite('settle_kernel_dispatch_return', {
+                p_return_id: returnId, p_type: type || null, p_reference: reference || null, p_note: note || null
+            }, token);
+        },
+
+        cancelKernelDispatchReturn: async function (returnId, token = null) {
+            return this._rpcWrite('cancel_kernel_dispatch_return', { p_return_id: returnId }, token);
+        },
+
         /** Open "count needed" flags: { success, flags: [{ id, kernel_id, batch_number, style, asked_cartons, found_cartons, ... }] } */
         getKernelStockCountFlags: async function (token = null) {
             return this._rpcRead('get_kernel_stock_count_flags', {}, token);

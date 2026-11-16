@@ -44,3 +44,8 @@ button.kd-box:focus-visible { outline: 2px solid var(--mac-green); outline-offse
 .kd-step-info-row:last-child { border-bottom: 0; }
 .kd-step-info-label { flex: 0 0 40%; color: var(--mac-text-secondary); }
 .kd-step-info-value { flex: 1 1 auto; font-weight: 500; }
+
+/* Returns (Mike, 16 Nov 2026) */
+.kd-ret-note { white-space: normal; max-width: 260px; }
+.kd-ret-form .table td { vertical-align: middle; }
+.kd-ret-form .kd-ret-cartons, .kd-ret-back { max-width: 110px; margin-left: auto; }
