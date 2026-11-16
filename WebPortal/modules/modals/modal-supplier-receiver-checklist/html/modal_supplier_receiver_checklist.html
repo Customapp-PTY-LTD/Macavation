@@ -59,31 +59,45 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label for="srcConsignmentRef" class="form-label">Consignment reference</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="srcConsignmentRef" autocomplete="off" placeholder="Optional">
-                                    <button type="button" class="btn btn-outline-secondary" id="srcConsignmentAttachBtn"><i class="fas fa-paperclip me-1"></i>Attach consignment note</button>
-                                </div>
-                                <div class="form-text">From the transporter's paperwork.</div>
-                                <input type="file" class="d-none" id="srcConsignmentFile" accept="image/*,application/pdf" multiple>
-                                <div class="d-flex flex-wrap gap-1 mt-1" id="srcConsignmentChips"></div>
+                                <input type="text" class="form-control" id="srcConsignmentRef" autocomplete="off">
+                                <small class="text-muted">From the transporter's paperwork</small>
                             </div>
                             <div class="col-md-6">
-                                <label for="srcDeliveryNoteRef" class="form-label required">Delivery note reference</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="srcDeliveryNoteRef" required autocomplete="off" placeholder="e.g. DN12345">
-                                    <button type="button" class="btn btn-outline-secondary" id="srcDeliveryNoteAttachBtn"><i class="fas fa-paperclip me-1"></i>Attach delivery note</button>
-                                </div>
-                                <div class="form-text">From the supplier.</div>
-                                <input type="file" class="d-none" id="srcDeliveryNoteFile" accept="image/*,application/pdf" multiple>
-                                <div class="d-flex flex-wrap gap-1 mt-1" id="srcDeliveryNoteChips"></div>
+                                <label for="srcDeliveryNoteRef" class="form-label">Delivery note reference <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="srcDeliveryNoteRef" required autocomplete="off" placeholder="e.g. DN12345">
+                                <small class="text-muted">From the supplier</small>
                             </div>
-                            <div class="col-12">
-                                <label class="form-label">Other documents <span class="text-muted fw-normal">(optional)</span></label>
-                                <div>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="srcOtherAttachBtn">+ Attach another document</button>
+                        </div>
+
+                        <h6 class="border-bottom pb-1 mt-4">Supporting documents</h6>
+                        <p class="small text-muted mt-0 mb-2">Drag files onto a box, or click it to pick them. Photos or PDFs.</p>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="src-drop" id="srcConsignmentAttachBtn" role="button" tabindex="0" data-kind="consignment" aria-label="Add consignment note">
+                                    <i class="fas fa-cloud-arrow-up" aria-hidden="true"></i>
+                                    <span class="src-drop-title">Consignment note</span>
+                                    <span class="src-drop-hint">Drop here or click</span>
+                                </div>
+                                <input type="file" class="d-none" id="srcConsignmentFile" accept="image/*,application/pdf" multiple>
+                                <div class="d-flex flex-wrap gap-1 mt-2" id="srcConsignmentChips"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="src-drop" id="srcDeliveryNoteAttachBtn" role="button" tabindex="0" data-kind="delivery_note" aria-label="Add delivery note">
+                                    <i class="fas fa-cloud-arrow-up" aria-hidden="true"></i>
+                                    <span class="src-drop-title">Delivery note</span>
+                                    <span class="src-drop-hint">Drop here or click</span>
+                                </div>
+                                <input type="file" class="d-none" id="srcDeliveryNoteFile" accept="image/*,application/pdf" multiple>
+                                <div class="d-flex flex-wrap gap-1 mt-2" id="srcDeliveryNoteChips"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="src-drop" id="srcOtherAttachBtn" role="button" tabindex="0" data-kind="other" aria-label="Add other documents">
+                                    <i class="fas fa-cloud-arrow-up" aria-hidden="true"></i>
+                                    <span class="src-drop-title">Other documents <span class="fw-normal">(optional)</span></span>
+                                    <span class="src-drop-hint">PODs, weighbridge slips, etc.</span>
                                 </div>
                                 <input type="file" class="d-none" id="srcOtherFile" accept="image/*,application/pdf" multiple>
-                                <div class="d-flex flex-wrap gap-1 mt-1" id="srcOtherChips"></div>
+                                <div class="d-flex flex-wrap gap-1 mt-2" id="srcOtherChips"></div>
                             </div>
                             <div class="col-12">
                                 <div class="text-danger small d-none" id="srcDocsError"></div>
