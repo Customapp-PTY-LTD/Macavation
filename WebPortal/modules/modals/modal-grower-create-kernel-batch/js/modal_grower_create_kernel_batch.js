@@ -459,12 +459,13 @@ var _modal_grower_create_kernel_batch = (function () {
             var i = _bags.indexOf(b);
             var hasKg = numOrNull(b.kg) != null && numOrNull(b.kg) > 0;
             // Own estimate or weighed: the tag is a button that switches between the two (Mike 16 Nov).
-            var canToggle = hasKg && i >= 0 && estimatesAllowed() && (!b.est || b.own);
+            // Both ways: any est. bag (own or average) can be marked Weighed, and any Weighed bag est.
+            var canToggle = hasKg && i >= 0 && estimatesAllowed();
             var label = b.est ? 'est.' : 'Weighed';
             var cls = b.est ? 'nd-badge-est' : 'nd-badge-weighed';
             if (!b.est && !hasKg) return '';
             if (!canToggle) return '<span class="badge ' + cls + '">' + label + '</span>';
-            var tip = b.est ? 'Your estimate. Click if this bag was actually weighed.' : 'Click to mark this weight as an estimate.';
+            var tip = b.est ? 'Estimate. Click to mark this bag as weighed at this figure.' : 'Click to mark this weight as an estimate.';
             return '<button type="button" class="badge border-0 nd-tag-toggle ' + cls + '" data-bag-toggle="' + i + '" title="' + tip + '">' + label + '</button>';
         },
 
@@ -472,9 +473,9 @@ var _modal_grower_create_kernel_batch = (function () {
         _toggleBagEstimate: function (idx) {
             var b = _bags[idx];
             if (!b || !estimatesAllowed() || !(numOrNull(b.kg) > 0)) return;
-            if (b.est && b.own) { b.est = false; b.own = false; }
-            else if (!b.est) { b.est = true; b.own = true; }
-            else return;
+            // est. (own or average) -> Weighed at the figure shown; Weighed -> the bag's own estimate.
+            if (b.est) { b.est = false; b.own = false; }
+            else { b.est = true; b.own = true; }
             api._paintBagRow(idx);
             api._syncEstimates();
             api._updateCalcs();
