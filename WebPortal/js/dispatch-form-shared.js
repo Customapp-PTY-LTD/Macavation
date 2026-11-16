@@ -74,6 +74,12 @@
 
     /** Renders a list of {name,file_link} into $el; optional remove callback(index). */
     function renderFileList($el, files, canRemove, onRemove) {
+        // Preview tiles (photo / PDF page 1 / icon) - Mike 16 Nov 2026. The plain list below stays as
+        // the fallback if file-preview.js did not load.
+        if (typeof FilePreview !== 'undefined') {
+            FilePreview.render($el, files, { onRemove: canRemove ? onRemove : null });
+            return;
+        }
         $el.empty();
         files.forEach(function (f, i) {
             var $row = $('<div class="d-flex align-items-center gap-2 small mb-1"></div>');

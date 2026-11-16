@@ -989,7 +989,12 @@ var _supplierIntakeGrid = function () {
                 Object.keys(checkNames).forEach(function (k) {
                     if (itemComments[k]) html += line(checkNames[k] + ' — what was wrong / action', itemComments[k]);
                     var photos = Array.isArray(itemPhotos[k]) ? itemPhotos[k].filter(function (p) { return p && p.file_link; }) : [];
-                    if (photos.length) {
+                    if (photos.length && typeof FilePreview !== 'undefined') {
+                        html += '<div class="mb-2">' + FilePreview.html(photos.map(function (p, i) {
+                            var ext = (String(p.name || p.file_link).match(/\.[a-z0-9]{2,5}$/i) || [''])[0];
+                            return { name: checkNames[k] + ' photo ' + (i + 1) + ext, file_link: p.file_link };
+                        }), { size: 'sm' }) + '</div>';
+                    } else if (photos.length) {
                         html += '<p>' + photos.map(function (p, i) {
                             return '<a target="_blank" rel="noopener noreferrer" href="' + escapeHtml(p.file_link) + '">' + escapeHtml(checkNames[k] + ' photo ' + (i + 1)) + '</a>';
                         }).join(' · ') + '</p>';

@@ -928,7 +928,7 @@ var _batchJourneyDetail = (function () {
         }
         h += bagChangesHtml();
         var docs = typeof historyFileLinksHtml === 'function' ? historyFileLinksHtml(dlv.documents) : '';
-        if (docs) h += '<p class="small mt-2 mb-0">Documents: ' + docs + '</p>';
+        if (docs) h += '<div class="small mt-2 mb-0">Documents: ' + docs + '</div>';
         return h;
     }
 
@@ -1900,7 +1900,9 @@ var _batchJourneyDetail = (function () {
         h += dlItem('Signed (Supervisor)', hasText(qa.supervisor_signed_by) ? esc(qa.supervisor_signed_by) : '—');
         h += dlItem('Signed (Nut Plant Manager)', hasText(qa.nut_plant_manager_signed_by) ? esc(qa.nut_plant_manager_signed_by) : '—');
         if (/^https?:\/\//i.test(String(qa.lab_test_pdf_url || ''))) {
-            h += dlItem('Lab test PDF', '<a href="' + esc(qa.lab_test_pdf_url) + '" target="_blank" rel="noopener noreferrer"><i class="fas fa-file-pdf me-1"></i>Open</a>');
+            h += dlItem('Lab test PDF', typeof FilePreview !== 'undefined'
+                ? FilePreview.html({ name: 'Lab test PDF', file_link: qa.lab_test_pdf_url }, { size: 'sm' })
+                : '<a href="' + esc(qa.lab_test_pdf_url) + '" target="_blank" rel="noopener noreferrer"><i class="fas fa-file-pdf me-1"></i>Open</a>');
         }
         return h + '</dl>';
     }
@@ -1927,7 +1929,10 @@ var _batchJourneyDetail = (function () {
 
     function qaPdfHtml(url) {
         if (!url) return '<span class="small text-muted">None</span>';
-        var link = /^https?:\/\//i.test(String(url))
+        var isLink = /^https?:\/\//i.test(String(url));
+        var link = isLink && typeof FilePreview !== 'undefined'
+            ? FilePreview.html({ name: 'Lab test PDF', file_link: url }, { size: 'sm' })
+            : isLink
             ? '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer"><i class="fas fa-file-pdf me-1"></i>Open</a>'
             : '<span>' + esc(url) + '</span>';
         return link + '<button type="button" class="btn btn-outline-secondary btn-sm bjd-touch" data-bjd-act="qa-pdf-remove">Remove</button>';

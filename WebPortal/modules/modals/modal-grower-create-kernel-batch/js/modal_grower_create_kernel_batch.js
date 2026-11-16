@@ -749,6 +749,16 @@ var _modal_grower_create_kernel_batch = (function () {
             var ul = byId('intakeDocsList');
             if (!ul) return;
             ul.innerHTML = '';
+            // Preview tiles (photo / PDF page 1 / icon) - Mike 16 Nov 2026.
+            if (typeof FilePreview !== 'undefined' && typeof $ !== 'undefined') {
+                if (!_docs.length) return;
+                var li0 = document.createElement('li');
+                ul.appendChild(li0);
+                FilePreview.render($(li0), _docs.map(function (d) {
+                    return { name: d.name, file_link: d.file_link && /^https?:\/\//i.test(d.file_link) ? d.file_link : '' };
+                }));
+                return;
+            }
             _docs.forEach(function (d) {
                 var li = document.createElement('li');
                 if (d.file_link && /^https?:\/\//i.test(d.file_link)) {

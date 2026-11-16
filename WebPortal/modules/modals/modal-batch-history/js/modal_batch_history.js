@@ -47,6 +47,10 @@ function historyFileLinkHtml(f) {
 
 function historyFileLinksHtml(files) {
     if (!Array.isArray(files) || !files.length) return '';
+    // Preview tiles (photo / PDF page 1 / icon) - Mike 16 Nov 2026. Block-level: callers wrap it in a <div>.
+    if (typeof FilePreview !== 'undefined') {
+        return FilePreview.html(files.filter(function (f) { return f && typeof f === 'object'; }), { size: 'sm' });
+    }
     return files.map(historyFileLinkHtml).filter(Boolean).join(', ');
 }
 
@@ -822,7 +826,7 @@ var _modal_batch_history = (function () {
                         html += '</tbody></table>';
                     }
                     var dlvDocs = historyFileLinksHtml(dlv && dlv.documents);
-                    if (dlvDocs) html += '<p class="small mb-1"><strong>Documents:</strong> ' + dlvDocs + '</p>';
+                    if (dlvDocs) html += '<div class="small mb-1"><strong>Documents:</strong> ' + dlvDocs + '</div>';
                     html += '</div>';
                     entries.push({ type: 'checklist', title: Object.keys(cl).length ? 'Receiving checklist' : 'Delivery', bodyHtml: html, date: recvDate });
                 }
