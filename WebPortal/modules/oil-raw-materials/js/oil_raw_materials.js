@@ -6,6 +6,10 @@
  * Weekly overview, Month-end count, Daily recipe (+ recipe settings), Supplier recon
  * (oil_raw_recon.js). Data comes from migration 20261112090000_oil_raw_materials.sql.
  *
+ * Stock levels can be read "as at" the end of an earlier day (get_oil_raw_materials(p_as_of), 16 Nov 2026).
+ * Bags list: batch #, supplier, received, weight; sort by any column, filter box. The move carries the
+ * day the bags really went in (moved_on), so late ticks land on the right day.
+ *
  * Moving bags to Production calls dataFunctions.releaseSupplierIntakeToProductionWithWeights
  * one bag at a time, exactly like the Receiving "Release to Oil Production" button.
  *
@@ -41,6 +45,8 @@ var _oilRawMaterials = (function () {
         selected: {},        // bag id -> true (ticked for Move to Production)
         moveMat: null,
         moving: false,
+        asOf: null,          // 'YYYY-MM-DD' = stock at the end of that day; null = today
+        bagView: {},         // material key -> { sort: 'received'|'batch'|'supplier'|'weight', dir: 1|-1, q: '' }
         weeklyMat: 'crude_kernel',
         weekly: null,
         weeklyError: '',
@@ -58,6 +64,13 @@ var _oilRawMaterials = (function () {
     function kg(v, dp) { var n = Number(v); return _common.formatKg(isFinite(n) ? n : 0, dp === undefined ? 2 : dp); }
     function pad2(n) { return (n < 10 ? '0' : '') + n; }
     function todayStr() { var d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+    function addDays(iso, n) {
+        var p = String(iso || '').split('T')[0].split('-');
+        if (p.length !== 3) { return ''; }
+        var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]) + n);
+        return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+    }
+    function isPast() { return !!state.asOf && state.asOf < todayStr(); }
     function parts(iso) { var p = String(iso || '').split('T')[0].split('-'); return p.length === 3 ? p : null; }
     function fmtDate(iso) {
         var p = parts(iso);
@@ -113,7 +126,7 @@ var _oilRawMaterials = (function () {
     }
 
     function loadMats() {
-        return safe(dataFunctions.getOilRawMaterials()).then(function (r) {
+        return safe(dataFunctions.getOilRawMaterials(state.tab === 'stock' && isPast() ? state.asOf : null)).then(function (r) {
             if (isOk(r) && Array.isArray(r.materials)) { state.mats = r; state.matsError = ''; }
             else { state.mats = null; state.matsError = errText(r, 'Could not load the stock levels.'); }
         });
@@ -131,6 +144,7 @@ var _oilRawMaterials = (function () {
 
     function loadStock(force) {
         if (!state.mats) { $('#orPane_stock').html('<div class="text-muted p-3">Loading…</div>'); }
+        if (isPast()) { return loadMats().then(function () { if (state.tab === 'stock') { renderStock(); } }); }
         return Promise.all([loadMats(), loadBags(force)]).then(function () { if (state.tab === 'stock') { renderStock(); } });
     }
 
@@ -171,10 +185,35 @@ var _oilRawMaterials = (function () {
     function bagsFor(key) {
         return (state.bags || []).filter(function (b) {
             return bagMaterial(b) === key && (b.status === 'awaiting_test' || b.status === 'release_ready');
-        }).sort(function (a, b) {
-            var da = String(a.date_received || ''), db = String(b.date_received || '');
-            return da < db ? -1 : da > db ? 1 : String(a.batch_number || '').localeCompare(String(b.batch_number || ''));
         });
+    }
+
+    function viewFor(key) {
+        if (!state.bagView[key]) { state.bagView[key] = { sort: 'received', dir: 1, q: '' }; }
+        return state.bagView[key];
+    }
+
+    function cmpText(a, b) { return String(a || '').localeCompare(String(b || ''), undefined, { numeric: true, sensitivity: 'base' }); }
+
+    // Bags for one material after the card's filter box and sort (default: oldest received first).
+    function shownBags(key) {
+        var v = viewFor(key);
+        var q = String(v.q || '').trim().toLowerCase();
+        var list = bagsFor(key).filter(function (b) {
+            if (!q) { return true; }
+            return [b.batch_number, b.supplier_details, fmtDate(b.date_received), b.date_received]
+                .some(function (x) { return String(x || '').toLowerCase().indexOf(q) >= 0; });
+        });
+        list.sort(function (a, b) {
+            var r = 0;
+            if (v.sort === 'batch') { r = cmpText(a.batch_number, b.batch_number); }
+            else if (v.sort === 'supplier') { r = cmpText(a.supplier_details, b.supplier_details); }
+            else if (v.sort === 'weight') { r = (Number(a.quantity_kg) || 0) - (Number(b.quantity_kg) || 0); }
+            else { r = cmpText(String(a.date_received || '').split('T')[0], String(b.date_received || '').split('T')[0]); }
+            if (r === 0 && v.sort !== 'batch') { r = cmpText(a.batch_number, b.batch_number); }
+            return r * v.dir;
+        });
+        return list;
     }
 
     function waitingText(b) {
@@ -182,31 +221,62 @@ var _oilRawMaterials = (function () {
         return (d && d.status === 'pending') ? 'Waiting for a decision' : 'Waiting for FFA';
     }
 
-    function bagsHtml(key) {
-        if (state.bags === null) { return '<div class="small text-muted">The bags in stock could not be loaded.</div>'; }
-        var bags = bagsFor(key);
-        var total = bags.reduce(function (s, b) { return s + (Number(b.quantity_kg) || 0); }, 0);
-        var h = '<div class="or-bags"><div class="or-bags-head"><span class="fw-semibold">Bags in stock (' + esc(bags.length) + ')</span>' +
-            '<span class="small text-muted">' + esc(kg(total)) + ' kg</span></div>';
-        if (!bags.length) { return h + '<div class="small text-muted py-2">No bags waiting.</div></div>'; }
-        h += '<div class="or-bags-scroll"><table class="table table-sm align-middle mb-0"><thead><tr><th class="or-col-tick"><span class="visually-hidden">Select</span></th>' +
-            '<th>Batch #</th><th>Grade / description</th><th>Received</th><th>Supplier</th><th class="text-end">Weight (kg)</th></tr></thead><tbody>';
+    function sortTh(key, col, label, extraClass) {
+        var v = viewFor(key);
+        var on = v.sort === col;
+        var aria = on ? (v.dir > 0 ? 'ascending' : 'descending') : 'none';
+        var icon = on ? (v.dir > 0 ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort';
+        return '<th class="' + (extraClass || '') + '" aria-sort="' + aria + '"><button type="button" class="or-sort-btn' + (on ? ' is-on' : '') + '" data-mat="' + esc(key) +
+            '" data-col="' + esc(col) + '">' + esc(label) + ' <i class="fas ' + icon + '" aria-hidden="true"></i></button></th>';
+    }
+
+    // The table part only, so typing in the filter box does not lose focus.
+    function bagsTableHtml(key) {
+        var bags = shownBags(key);
+        var all = bagsFor(key);
+        if (!all.length) { return '<div class="small text-muted py-2">No bags waiting.</div>'; }
+        if (!bags.length) { return '<div class="small text-muted py-2">No bags match the filter.</div>'; }
+        var ready = bags.filter(function (b) { return b.status === 'release_ready'; });
+        var allTicked = ready.length > 0 && ready.every(function (b) { return state.selected[String(b.id)]; });
+        var h = '<div class="or-bags-scroll"><table class="table table-sm align-middle mb-0"><thead><tr>' +
+            '<th class="or-col-tick"><input type="checkbox" class="form-check-input or-bag-all" data-mat="' + esc(key) + '"' +
+            (ready.length ? '' : ' disabled') + (allTicked ? ' checked' : '') + ' aria-label="Select all bags shown"></th>' +
+            sortTh(key, 'batch', 'Batch #') + sortTh(key, 'supplier', 'Supplier') + sortTh(key, 'received', 'Received') +
+            sortTh(key, 'weight', 'Weight (kg)', 'text-end') + '</tr></thead><tbody>';
         bags.forEach(function (b) {
-            var ready = b.status === 'release_ready';
+            var ok = b.status === 'release_ready';
             var id = String(b.id);
-            var desc = b.description || (b.grade ? String(b.grade).replace(/_/g, ' ') : '') || '';
-            h += '<tr class="' + (ready ? '' : 'or-bag-waiting') + '">' +
+            h += '<tr class="' + (ok ? '' : 'or-bag-waiting') + '">' +
                 '<td><input type="checkbox" class="form-check-input or-bag-tick" data-mat="' + esc(key) + '" data-id="' + esc(id) + '"' +
-                (ready ? '' : ' disabled') + (state.selected[id] ? ' checked' : '') + ' aria-label="Select batch ' + esc(b.batch_number || '') + '"></td>' +
-                '<td class="text-nowrap">' + esc(b.batch_number || '') + '</td>' +
-                '<td>' + (esc(desc) || '&mdash;') + (ready ? '' : '<div class="small or-waiting-text">' + esc(waitingText(b)) + '</div>') + '</td>' +
+                (ok ? '' : ' disabled') + (state.selected[id] ? ' checked' : '') + ' aria-label="Select batch ' + esc(b.batch_number || '') + '"></td>' +
+                '<td class="text-nowrap">' + esc(b.batch_number || '') + (ok ? '' : '<div class="small or-waiting-text">' + esc(waitingText(b)) + '</div>') + '</td>' +
+                '<td>' + (esc(b.supplier_details || '') || '&mdash;') + '</td>' +
                 '<td class="text-nowrap">' + esc(fmtDate(b.date_received)) + '</td>' +
-                '<td>' + esc(b.supplier_details || '') + '</td>' +
                 '<td class="text-end text-nowrap">' + (b.quantity_kg != null && b.quantity_kg !== '' ? esc(kg(b.quantity_kg)) : '&mdash;') + '</td></tr>';
         });
-        h += '</tbody></table></div>' +
-            '<div class="or-bags-foot"><button type="button" class="btn btn-primary or-move-btn" data-mat="' + esc(key) + '" disabled></button></div></div>';
-        return h;
+        return h + '</tbody></table></div>';
+    }
+
+    function bagsHtml(key) {
+        if (state.bags === null) { return '<div class="small text-muted">The bags in stock could not be loaded.</div>'; }
+        var all = bagsFor(key);
+        var total = all.reduce(function (s, b) { return s + (Number(b.quantity_kg) || 0); }, 0);
+        var h = '<div class="or-bags"><div class="or-bags-head"><span class="fw-semibold">Bags in stock (' + esc(all.length) + ')</span>' +
+            '<span class="small text-muted">' + esc(kg(total)) + ' kg</span></div>';
+        if (all.length) {
+            h += '<input type="search" class="form-control form-control-sm or-bag-filter mb-2" data-mat="' + esc(key) + '" value="' + esc(viewFor(key).q) + '" ' +
+                'placeholder="Filter by batch #, supplier or date" aria-label="Filter the ' + esc(matName(key)) + ' bags" autocomplete="off">';
+        }
+        h += '<div class="or-bags-body" data-mat="' + esc(key) + '">' + bagsTableHtml(key) + '</div>';
+        if (all.length) {
+            h += '<div class="or-bags-foot"><button type="button" class="btn btn-primary or-move-btn" data-mat="' + esc(key) + '" disabled></button></div>';
+        }
+        return h + '</div>';
+    }
+
+    function redrawBags(key) {
+        $('.or-bags-body').filter(function () { return $(this).attr('data-mat') === key; }).html(bagsTableHtml(key));
+        updateMoveBtn(key);
     }
 
     function selectedBags(key) {
@@ -221,16 +291,41 @@ var _oilRawMaterials = (function () {
             .text('Move ' + sel.length + (sel.length === 1 ? ' bag' : ' bags') + ' to Production (' + kg(total) + ' kg)');
     }
 
+    function asOfBarHtml(r) {
+        var today = todayStr();
+        var past = isPast();
+        return '<div class="or-asof card mb-3"><div class="card-body">' +
+            '<div class="d-flex flex-wrap gap-2 align-items-end">' +
+            '<div><label for="orAsOf" class="form-label mb-1 fw-semibold">Stock on hand at the end of</label>' +
+            '<input type="date" class="form-control" id="orAsOf" max="' + esc(today) + '" value="' + esc(past ? state.asOf : today) + '"></div>' +
+            (past ? '<button type="button" class="btn btn-outline-secondary" id="orAsOfToday">Back to today</button>' : '') +
+            '</div>' +
+            '<div class="small text-muted mt-2">' + (past
+                ? 'Showing what was on hand at the end of <strong>' + esc(fmtDayMonth(state.asOf)) + '</strong>. Bags moved to production count on the day they were moved, not the day they were ticked.'
+                : 'Pick an earlier day to see what was on hand then. Stock is known from the last count on ' + esc(fmtDate(r && r.count_date)) + '.') +
+            '</div></div></div>';
+    }
+
     function renderStock() {
         var $p = $('#orPane_stock');
         var r = state.mats;
         if (!r) {
-            $p.html('<div class="alert alert-warning">' + esc(state.matsError || 'The stock levels are not available yet.') + '</div>');
+            $p.html(asOfBarHtml(null) + '<div class="alert alert-warning">' + esc(state.matsError || 'The stock levels are not available yet.') + '</div>');
             return;
         }
-        var h = legendHtml();
+        var past = isPast();
+        var h = asOfBarHtml(r);
+        if (r.available === false) {
+            $p.html(h + '<div class="alert alert-warning">There is no stock figure for ' + esc(fmtDate(state.asOf)) + '. Stock is only known from the count on ' +
+                esc(fmtDate(r.count_date)) + ', so pick ' + esc(fmtDate(r.count_date)) + ' or later.</div>');
+            return;
+        }
+        h += legendHtml();
         if (r.daily_source === 'settings') {
             h += '<div class="alert alert-info or-notice">Daily use is coming from the old figures until the first daily recipe is saved on the Daily recipe tab.</div>';
+        }
+        if (past) {
+            h += '<div class="alert alert-info or-notice">To tick bags into production, press <strong>Back to today</strong>.</div>';
         }
         h += '<div class="or-cards">';
         MATS.forEach(function (meta) {
@@ -239,29 +334,49 @@ var _oilRawMaterials = (function () {
             var days = num(m.days);
             h += '<div class="card or-card"><div class="card-body"><div class="or-card-top"><div class="fw-semibold">' + esc(meta.name) + '</div>' +
                 levelChip(m.level) + '</div>' +
-                '<div class="or-kg">' + esc(kg(m.on_hand_kg)) + ' <span>kg on hand</span></div>' +
-                (days != null ? '<div class="or-days">about ' + esc(Math.round(days)) + ' working days left</div>' : '') +
-                barHtml(m) + bagsHtml(meta.key) + '</div></div>';
+                '<div class="or-kg">' + esc(kg(m.on_hand_kg)) + ' <span>kg on hand' + (past ? ' at the end of ' + esc(fmtDayMonth(state.asOf)) : '') + '</span></div>' +
+                (days != null ? '<div class="or-days">about ' + esc(Math.round(days)) + ' working days' + (past ? ' at the time' : ' left') + '</div>' : '') +
+                barHtml(m) + (past ? '' : bagsHtml(meta.key)) + '</div></div>';
         });
         h += '</div>';
         $p.html(h);
-        MATS.forEach(function (meta) { updateMoveBtn(meta.key); });
+        if (!past) { MATS.forEach(function (meta) { updateMoveBtn(meta.key); }); }
     }
 
     // ---- Move to Production ----
+
+    // Earliest day a move may carry: the day after the last stock count (a move on or before the count
+    // would never come off stock), and not before the latest bag in the selection was received.
+    function moveMinDate(sel) {
+        var min = (state.mats && state.mats.count_date) ? addDays(state.mats.count_date, 1) : '';
+        sel.forEach(function (b) {
+            var d = String(b.date_received || '').split('T')[0];
+            if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d > min) { min = d; }
+        });
+        return min;
+    }
 
     function openMoveModal(key) {
         var sel = selectedBags(key);
         if (!sel.length) { return; }
         state.moveMat = key;
-        var h = '<p class="small text-muted">Weigh each bag and confirm its weight before production. This weight comes off raw material stock. ' +
+        var today = todayStr();
+        var min = moveMinDate(sel);
+        if (min > today) { min = today; }
+        var h = '<div class="row g-2 align-items-end mb-3"><div class="col-sm-6 col-md-5">' +
+            '<label for="orMoveDate" class="form-label fw-semibold">Date moved to production</label>' +
+            '<input type="date" class="form-control" id="orMoveDate" value="' + esc(today) + '" max="' + esc(today) + '"' + (min ? ' min="' + esc(min) + '"' : '') + '>' +
+            '</div><div class="col-sm-6 col-md-7 small text-muted">If the bags went in on an earlier day, pick that day so the stock on hand is right for that day.' +
+            (min ? ' Earliest: ' + esc(fmtDate(min)) + '.' : '') + '</div></div>' +
+            '<p class="small text-muted">Weigh each bag and confirm its weight before production. This weight comes off raw material stock. ' +
             'If it is more than <strong>50 kg</strong> below the weight received, a warning is added to the dashboard.</p>' +
-            '<div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>Batch #</th><th>Grade / description</th>' +
+            '<div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>Batch #</th><th>Supplier</th><th>Received</th>' +
             '<th class="text-end">Received (kg)</th><th class="text-end or-col-weigh">Weight before production (kg)</th></tr></thead><tbody>';
         sel.forEach(function (b) {
             var first = Number(b.quantity_kg);
             h += '<tr><td class="text-nowrap">' + esc(b.batch_number || '') + '</td>' +
-                '<td>' + (esc(b.description || '') || '&mdash;') + '</td>' +
+                '<td>' + (esc(b.supplier_details || '') || '&mdash;') + '</td>' +
+                '<td class="text-nowrap">' + esc(fmtDate(b.date_received)) + '</td>' +
                 '<td class="text-end">' + (isFinite(first) && b.quantity_kg != null && b.quantity_kg !== '' ? esc(kg(first)) : '&mdash;') + '</td>' +
                 '<td><input type="text" inputmode="decimal" class="form-control form-control-sm text-end js-kg-input or-move-weight" data-id="' + esc(b.id) + '" ' +
                 'aria-label="Weight before production for batch ' + esc(b.batch_number || '') + '" value="' +
@@ -290,6 +405,15 @@ var _oilRawMaterials = (function () {
         });
         if (bad) { notify('warning', 'Enter the weight before production for every bag (0 or more).'); return; }
         if (!jobs.length) { return; }
+        var $date = $('#orMoveDate');
+        var movedOn = String($date.val() || '');
+        var earliestDay = String($date.attr('min') || '');
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(movedOn) || movedOn > todayStr() || (earliestDay && movedOn < earliestDay)) {
+            $date.addClass('is-invalid');
+            notify('warning', 'Enter the date the bags were moved to production' + (earliestDay ? ' (' + fmtDate(earliestDay) + ' to today).' : ' (today or earlier).'));
+            return;
+        }
+        $date.removeClass('is-invalid');
         state.moving = true;
         $('#orMoveConfirmBtn').prop('disabled', true);
 
@@ -303,7 +427,8 @@ var _oilRawMaterials = (function () {
                 return safe(dataFunctions.releaseSupplierIntakeToProductionWithWeights(j.bag.id, {
                     weight_before_production_kg: j.weight,
                     first_weight_kg: hasFirst ? first : null,
-                    batch_number: j.bag.batch_number || null
+                    batch_number: j.bag.batch_number || null,
+                    moved_on: movedOn
                 })).then(function (result) {
                     var resolved = result && (result.data !== undefined ? result.data : result);
                     if (resolved && resolved.success !== false && !resolved.error) {
@@ -660,8 +785,41 @@ var _oilRawMaterials = (function () {
             .on('change.orMat', '.or-bag-tick', function () {
                 var id = String($(this).attr('data-id') || '');
                 if ($(this).is(':checked')) { state.selected[id] = true; } else { delete state.selected[id]; }
-                updateMoveBtn(String($(this).attr('data-mat') || ''));
+                var k = String($(this).attr('data-mat') || '');
+                updateMoveBtn(k);
+                var shownReady = shownBags(k).filter(function (b) { return b.status === 'release_ready'; });
+                $('.or-bag-all').filter(function () { return $(this).attr('data-mat') === k; })
+                    .prop('checked', shownReady.length > 0 && shownReady.every(function (b) { return state.selected[String(b.id)]; }));
             })
+            .on('change.orMat', '.or-bag-all', function () {
+                var k = String($(this).attr('data-mat') || '');
+                var on = $(this).is(':checked');
+                shownBags(k).forEach(function (b) {
+                    if (b.status !== 'release_ready') { return; }
+                    if (on) { state.selected[String(b.id)] = true; } else { delete state.selected[String(b.id)]; }
+                });
+                redrawBags(k);
+            })
+            .on('click.orMat', '.or-sort-btn', function () {
+                var k = String($(this).attr('data-mat') || '');
+                var col = String($(this).attr('data-col') || 'received');
+                var v = viewFor(k);
+                if (v.sort === col) { v.dir = -v.dir; } else { v.sort = col; v.dir = 1; }
+                redrawBags(k);
+            })
+            .on('input.orMat', '.or-bag-filter', function () {
+                var k = String($(this).attr('data-mat') || '');
+                viewFor(k).q = String($(this).val() || '');
+                redrawBags(k);
+            })
+            .on('change.orMat', '#orAsOf', function () {
+                var d = String($(this).val() || '');
+                if (d && !/^\d{4}-\d{2}-\d{2}$/.test(d)) { return; }
+                state.asOf = (d && d < todayStr()) ? d : null;
+                state.mats = null;
+                loadStock();
+            })
+            .on('click.orMat', '#orAsOfToday', function () { state.asOf = null; state.mats = null; loadStock(); })
             .on('click.orMat', '.or-move-btn', function () { openMoveModal(String($(this).attr('data-mat') || '')); })
             .on('click.orMat', '#orMoveConfirmBtn', confirmMove)
             .on('change.orMat', '#orWeeklyMat', function () { state.weeklyMat = String($(this).val() || 'crude_kernel'); loadWeekly(); })
@@ -685,6 +843,8 @@ var _oilRawMaterials = (function () {
             state.countResult = null;
             state.recipes = null;
             state.moving = false;
+            state.asOf = null;
+            state.bagView = {};
             bindEvents();
             if (typeof _oilRawRecon !== 'undefined') { _oilRawRecon.init(); }
             var tab = 'stock';

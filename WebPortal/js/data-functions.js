@@ -4422,8 +4422,10 @@ var _dataFunctions = function () {
          *   materials: [{ material, count_kg, received_kg, used_kg, on_hand_kg, daily_kg, week_kg, weeks, days,
          *   level: 'critical'|'low'|'manageable'|'good'|null }] }
          */
-        getOilRawMaterials: async function (token = null) {
-            return this._kpUnwrap(await this.callFunction('get_oil_raw_materials', {}, token, { useCache: false }));
+        getOilRawMaterials: async function (asOfIso, token = null) {
+            // asOfIso 'YYYY-MM-DD' = stock at the end of that day (null = today). Adds as_of, available.
+            var params = (typeof asOfIso === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(asOfIso)) ? { p_as_of: asOfIso } : {};
+            return this._kpUnwrap(await this.callFunction('get_oil_raw_materials', params, token, { useCache: false }));
         },
         /** -> { success, count_date, weeks: [{ week_start, week_end, to_date, from_count, materials: { <key>: { start_kg, received_kg, used_kg, end_kg, daily_kg, weeks, level } } }], counts: [...] } */
         getOilRawWeekly: async function (weeks, material, token = null) {
@@ -4948,7 +4950,12 @@ var _dataFunctions = function () {
             var receivingSnapshot = !isNaN(firstKg) ? firstKg : null;
             var merged = Object.assign({}, intake, {
                 weight_before_production_kg: w2,
-                weight_before_production_recorded_at: new Date().toISOString(),
+                // opts.moved_on 'YYYY-MM-DD' = the day the bag really went to production (Raw Materials
+                // lets Simone back-date it). Stored at midday SAST so every stock sum lands it on that day.
+                weight_before_production_recorded_at: (typeof opts.moved_on === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(opts.moved_on))
+                    ? opts.moved_on + 'T12:00:00+02:00'
+                    : new Date().toISOString(),
+                moved_to_production_entered_at: new Date().toISOString(),
                 weight_at_intake_for_comparison_kg: receivingSnapshot != null
                     ? receivingSnapshot
                     : (intake.weight_at_intake_for_comparison_kg != null && !isNaN(Number(intake.weight_at_intake_for_comparison_kg))
