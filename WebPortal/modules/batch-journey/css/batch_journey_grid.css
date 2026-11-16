@@ -189,10 +189,24 @@
     font-weight: 600;
 }
 
-/* Section menu: a column beside the sections from lg up, a scrolling row of chips below that. */
+/* Section tabs: one section per page (Mike, 16 Nov 2026). A horizontal row that stays pinned to the top
+   of the window while the section scrolls; the page itself (window) is the scroll container. */
 .bjd-nav {
+    position: sticky;
+    top: 0;
+    z-index: 20;
     border-radius: var(--mac-radius-lg);
-    padding: 0.5rem;
+    padding: 0.375rem;
+    margin-bottom: 1rem;
+    background: var(--mac-bg-secondary, var(--bs-body-bg));
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+/* Phones: sit under the shell's sticky mobile top bar. */
+@media (max-width: 767.98px) {
+    .bjd-nav {
+        top: 3.25rem;
+    }
 }
 
 .bjd-nav-list {
@@ -200,18 +214,18 @@
     gap: 0.25rem;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
 }
 
 .bjd-nav-link {
     flex: 0 0 auto;
     min-height: 40px;
-    padding: 0.5rem 0.75rem;
+    padding: 0.5rem 0.875rem;
     border: 0;
     border-radius: var(--mac-radius-sm);
     background: transparent;
     color: var(--mac-text);
     font-size: 0.875rem;
-    text-align: left;
     white-space: nowrap;
 }
 
@@ -226,26 +240,10 @@
     font-weight: 600;
 }
 
-@media (min-width: 992px) {
-    .bjd-nav {
-        position: sticky;
-        top: 1rem;
-    }
-
-    .bjd-nav-list {
-        flex-direction: column;
-        overflow-x: visible;
-    }
-
-    .bjd-nav-link {
-        white-space: normal;
-    }
-}
-
 /* Section cards */
 .bjd-section {
     border-radius: var(--mac-radius-lg);
-    scroll-margin-top: 1rem;
+    scroll-margin-top: 5rem;
 }
 
 .bjd-section-header {
