@@ -1,6 +1,10 @@
 /**
- * Generate WebPortal/help/index.html and insert Help links (open guide in new tab) in WebPortal modules.
+ * Insert Help links (open guide in new tab) in WebPortal modules.
  * Run from repo root: node scripts/apply_user_guide_help_links.mjs
+ *
+ * It no longer rewrites WebPortal/help/index.html: that file is hand-maintained since Nov 2026
+ * and is the source of truth for the user guide and the Portal Guide chat (see the comment above
+ * the write below). Pass --overwrite-guide only to deliberately go back to the July 2026 text.
  */
 import fs from "fs";
 import path from "path";
@@ -1017,7 +1021,16 @@ const failedModals = [];
 const anchors = collectAnchors();
 fs.mkdirSync(WEBPORTAL_HELP_DIR, { recursive: true });
 syncHelpAssets();
-writeUtf8(PORTAL_HELP, buildUserGuide(anchors));
+// WebPortal/help/index.html has been edited by hand since July 2026 (screen renames 6 Nov 2026,
+// Silo Holding section 13 Nov 2026, and the full guide rewrite after it). The content in this
+// script is the July text, so regenerating would silently throw all of that away. The guide is
+// now the source of truth; this script only adds Help buttons to screens unless told otherwise.
+if (process.argv.includes("--overwrite-guide")) {
+  writeUtf8(PORTAL_HELP, buildUserGuide(anchors));
+  console.log("Wrote WebPortal/help/index.html (--overwrite-guide)");
+} else {
+  console.log("Left WebPortal/help/index.html alone: it is hand-maintained. Pass --overwrite-guide to regenerate it from the old July 2026 text.");
+}
 upgradeLegacyHelpLinks();
 
 const du = path.join(WEBPORTAL_MODULES, "dashboard", "html", "dashboard_unified.html");
@@ -1089,7 +1102,6 @@ for (const file of walkDir(WEBPORTAL_MODULES)) {
   }
 }
 
-console.log("Wrote WebPortal/help/index.html");
 console.log(`Patched ${patched} files (new inserts only).`);
 if (failedModals.length) {
   console.log("Modals not patched:");
