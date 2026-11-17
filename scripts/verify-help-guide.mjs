@@ -39,21 +39,7 @@ const PLACEHOLDER_PHRASES = [
 ];
 
 // Sections that still hold placeholder text. Remove an id once its section is rewritten.
-const PENDING_PLACEHOLDER = new Set([
-    // kernel production, quality and dispatch
-    'modal-end-sample', 'modal-end-sample-view',
-    'modal-quality-test',
-    // stock
-    'stock-alert-rules-grid', 'modal-stock-take', 'modal-raw-material-issued',
-    // oil
-    'modal-import-oil-lots', 'modal-oil-bulk-add-stock', 'modal-oil-dispatch', 'modal-oil-dispatch-form',
-    'modal-oil-lot', 'oil-production-forecast-grid', 'modal-oil-production-sheet',
-    'modal-send-to-dispatch-oil', 'modal-supplier-intake-adjust-stock', 'modal-supplier-oil-batch',
-    'modal-supplier-receiver-checklist',
-    // admin, CRM and messaging
-    'modal-admin-add-role', 'modal-admin-add-user', 'modal-crm-contact', 'modal-feature',
-    'messaging-compose-grid', 'modal-role', 'modal-role-feature', 'modal-role-permission', 'modal-user',
-]);
+const PENDING_PLACEHOLDER = new Set([]);
 
 // Sidebar routes whose screen is described by a section with a different id.
 const ROUTE_ALIASES = {
@@ -67,11 +53,7 @@ const ROUTE_ALIASES = {
 };
 
 // Sidebar routes with no section yet. Remove a route once its section exists (id = the route).
-const PENDING_ROUTES = new Set([
-    'kernel-dashboard',
-    'oil-dashboard', 'oil-raw-materials',
-    'crm-whatsapp-grid', 'amanda-dashboard',
-]);
+const PENDING_ROUTES = new Set([]);
 
 const failures = [];
 const fail = (msg) => failures.push(msg);
