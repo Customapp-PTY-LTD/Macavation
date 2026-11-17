@@ -58,7 +58,7 @@ var _oilRawRecon = (function () {
         if (!state.from) { state.from = todayStr().slice(0, 4) + '-01-01'; }
         if (!state.to) { state.to = todayStr(); }
         var wanted = state.from + '|' + state.to;
-        $('#orPaneRecon').html('<div class="text-muted p-3">Loading…</div>');
+        $('#orPane_recon').html('<div class="text-muted p-3">Loading…</div>');
         return safe(dataFunctions.getOilSupplierRecon(state.from, state.to)).then(function (r) {
             if (state.from + '|' + state.to !== wanted) { return; }
             state.loaded = true;
@@ -86,7 +86,7 @@ var _oilRawRecon = (function () {
     }
 
     function render() {
-        var $p = $('#orPaneRecon');
+        var $p = $('#orPane_recon');
         var r = state.result;
         var h = '<div class="card mb-3 mac-module-filter-bar"><div class="card-body"><div class="row g-2 align-items-end">' +
             '<div class="col-6 col-md-3 col-lg-2"><label for="orReconFrom" class="form-label">From</label>' +
