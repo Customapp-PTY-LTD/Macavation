@@ -43,14 +43,23 @@
 
   <section id="modal-admin-add-role" class="guide-section" data-guide-id="modal-admin-add-role">
     <h2>Admin Add Role (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+<p class="guide-lead">Create a new role: type a role name and description, choose Active or Inactive, and press Create Role. A role decides which sidebar modules a person sees, so set it up with Customize straight after.</p>
+    <p class="guide-how">Open <strong>User &amp; access</strong> in the sidebar, go to the <strong>Roles &amp; modules</strong> tab and press <strong>Add role</strong>.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Add a role</h3>
     <ol class="guide-page-steps">
-      <li>Open from <strong>User &amp; access</strong> → <strong>Roles &amp; modules</strong> → <strong>Add role</strong> (or equivalent).</li>
-      <li>Enter a clear role name and description other admins will recognise.</li>
-      <li>Save, then use <strong>Customize</strong> on that role to set sidebar modules and their database permissions so menus and APIs match responsibility.</li>
+      <li>Type the <strong>Role Name</strong>. It is required.</li>
+      <li>Add a <strong>Description</strong> so other admins know what the role is for (optional).</li>
+      <li>Leave <strong>Status</strong> on <strong>Active</strong>, or choose <strong>Inactive</strong> if the role is not ready to use yet.</li>
+      <li>Press <strong>Create Role</strong>. You see "Role created successfully", the dialog closes and the new role appears in the Roles list. Press <strong>Cancel</strong> or the close button to leave without saving.</li>
     </ol>
+
+    <h3 class="guide-subhead">After you create it</h3>
+    <ul class="guide-page-steps">
+      <li>Press <strong>Customize</strong> on the new role in the Roles list to choose which modules appear in the sidebar and which database permissions it gets.</li>
+      <li>To change the name, description or Active setting later, press <strong>Edit role</strong> on the role.</li>
+      <li>If you see "Failed to create role" or "Error creating role", nothing was saved. Check the name and try again.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-admin-add-role.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -58,15 +67,14 @@
 
   <section id="modal-admin-add-user" class="guide-section" data-guide-id="modal-admin-add-user">
     <h2>Admin Add User (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+<p class="guide-lead">This small Add New User dialog is no longer used. Adding a person is now done with the Add user button on the People tab, which opens the full User dialog instead.</p>
+    <p class="guide-how">Open <strong>User &amp; access</strong> in the sidebar and stay on the <strong>People</strong> tab. Press <strong>Add user</strong> and follow the steps in the <strong>User (dialog)</strong> section.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open from <strong>User &amp; access</strong> → <strong>People</strong> → <strong>Add user</strong> (or equivalent).</li>
-      <li>Enter name, email/username, and temporary password policy per your organisation.</li>
-      <li>Assign the primary <strong>role</strong> before saving—this controls the menu tree on first login.</li>
-      <li>Send the user your standard onboarding steps (password change, MFA if enabled).</li>
-    </ol>
+    <h3 class="guide-subhead">What replaced it</h3>
+    <ul class="guide-page-steps">
+      <li>The full dialog has first name, last name, email, <strong>Mobile Number</strong>, role, an <strong>Active User</strong> tick box and a password.</li>
+      <li>It is also where you set up WhatsApp access for a person once they are saved.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-admin-add-user.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -290,19 +298,73 @@
 
   <section id="modal-crm-contact" class="guide-section" data-guide-id="modal-crm-contact">
     <h2>Crm Contact (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+<p class="guide-lead">Add or edit a contact: a supplier, oil processor or customer, with company name, contact people, area, status and notes. For oil processors it also holds the rates per kg, and for NIS suppliers the supplier code.</p>
+    <p class="guide-how">Open <strong>Support &rsaquo; CRM &rsaquo; Contacts</strong>. Pick the tab for the kind of contact, then press <strong>Add Contact</strong>, or open the actions on a row and press <strong>Edit</strong>. A new contact starts on the type of the tab you are on.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Add a contact</h3>
     <ol class="guide-page-steps">
-      <li>Open from CRM: <strong>Add contact</strong> or when editing an existing row.</li>
-      <li>Pick or confirm the contact type tab context (NIS supplier, oil customer, etc.) so the record lands in the right list.</li>
-      <li>Complete identity fields, phones, emails, and addresses as your dispatch and finance teams expect.</li>
-      <li>Save; the grid refreshes and downstream modules (intake, dispatch) can pick up the contact immediately.</li>
+      <li>On the <strong>Details</strong> tab choose the <strong>Contact Type</strong>: NIS Supplier, Oil Processor, Oil Ingredient Supplier, Oil &amp; Protein Customer or Kernel Customer. The old Legacy types are still in the list; use the new ones.</li>
+      <li>Type the <strong>Company Name</strong> (required) and, if different, the <strong>Trading Name</strong>.</li>
+      <li>Choose the <strong>Status</strong>: Active, Inactive, Prospect or Suspended. Tick <strong>Key Account</strong> for an important customer.</li>
+      <li>For an NIS Supplier, type the <strong>Supplier code (NIS #)</strong>, a whole number from 0 to 99. It is used in kernel batch numbers.</li>
+      <li>Fill in the <strong>Primary Contact Person</strong> (name, title, email, phone, mobile, birthday) and, if needed, the <strong>Secondary Contact Person</strong>.</li>
+      <li>Add the <strong>Area</strong>, <strong>City</strong>, <strong>Province</strong>, <strong>Postal Code</strong>, an <strong>Account Manager</strong> and any <strong>Notes</strong>.</li>
+      <li>Press <strong>Save Contact</strong>. You see "Contact created successfully" and the list refreshes.</li>
     </ol>
+    <p>Two parts of the form depend on the type. <strong>Oil Processor Rates (R/kg)</strong> shows for oil processors only: crude kernel, food kernel, kernel dust, cracker dust and crush. <strong>Kernel Customer Preferences</strong> (Preferred Styles, separated by commas) shows for kernel customers and oil and protein customers.</p>
+
+    <h3 class="guide-subhead">Edit or fix a contact</h3>
+    <ul class="guide-page-steps">
+      <li>Press <strong>Edit</strong> on the row, change the boxes and press <strong>Save Contact</strong>. You see "Contact updated successfully".</li>
+      <li>"Supplier code must be a whole number (0&ndash;99)" means the code box holds something else. Fix it and save again.</li>
+      <li>To remove a contact, press <strong>Delete</strong> on the row. It only deactivates the contact and asks "Are you sure?" first. The warning says this can be undone.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Other tabs in the dialog</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Prices</strong> shows only for a saved kernel customer, and only if your role may see prices.</li>
+      <li><strong>Communications</strong> and <strong>Quotes</strong> have <strong>Log Communication</strong> and <strong>Create Quote</strong> buttons, but both currently show a "coming soon" message.</li>
+      <li>To message a contact on WhatsApp, press <strong>WhatsApp</strong> in the row actions where it is offered. It opens WhatsApp &amp; Chat. If the contact has no number, you see "This contact has no WhatsApp number on file."</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-crm-contact.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
   </section>
+
+  <section id="crm-whatsapp-grid" class="guide-section" data-guide-id="crm-whatsapp-grid">
+    <h2>WhatsApp &amp; Internal Chat (module)</h2>
+<p class="guide-lead">Read and answer WhatsApp messages from contacts and staff, start a new WhatsApp chat, and chat privately with colleagues. The Contacts tab is the shared WhatsApp inbox. The Internal tab is for colleagues only.</p>
+    <p class="guide-how">Open <strong>Support &rsaquo; CRM &rsaquo; WhatsApp &amp; Chat</strong>. There are two tabs, <strong>Contacts</strong> and <strong>Internal</strong>. Each has a list of conversations on the left and the open chat on the right. You can also arrive here from the <strong>WhatsApp</strong> action on a row in <strong>Support &rsaquo; CRM &rsaquo; Contacts</strong>, which opens that contact's chat straight away.</p>
+
+    <h3 class="guide-subhead">Contacts tab: WhatsApp with contacts and staff</h3>
+    <ol class="guide-page-steps">
+      <li>The list shows the WhatsApp conversations on the company line, including numbers nobody has saved as a contact. A red number shows unread messages. Type in <strong>Search contacts...</strong> to filter by name or message.</li>
+      <li>Press a conversation to open it. Reading it marks it as read.</li>
+      <li>Type in the box at the bottom (<strong>Type a message...</strong>) and press Enter or the paper-plane button to send.</li>
+      <li>To start a new chat press <strong>New chat</strong>, choose a person under <strong>Contacts</strong> or <strong>Staff</strong>, and press <strong>Start Chat</strong>. If the person has no number, you see "No WhatsApp number on file" and Start Chat stays greyed out. Add the number first on the Contacts page or on the person's User record.</li>
+    </ol>
+
+    <h3 class="guide-subhead">What the marks on a message mean</h3>
+    <ul class="guide-page-steps">
+      <li>A clock means queued. One tick means sent, two ticks delivered, and two blue ticks read.</li>
+      <li>A red cross means it failed. Hover over it to see the reason.</li>
+      <li>An orange warning means not connected. The message is saved but not delivered, and a yellow bar says "WhatsApp Business API not reachable" until the connection is back.</li>
+      <li>A small question mark, or a "Not a CRM contact" label, means the number is not saved as a contact. Someone has written to you from a number you have not captured yet.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Internal tab: chat with colleagues</h3>
+    <ol class="guide-page-steps">
+      <li>Press <strong>New chat</strong>, choose a colleague and press <strong>Start Chat</strong>. If you already chat with them, the existing chat opens.</li>
+      <li>Type your message and press Enter or the send button. These messages stay inside the portal and are not sent to WhatsApp.</li>
+      <li>Use <strong>Search colleagues...</strong> to find a chat. An unread count also shows in the sidebar.</li>
+    </ol>
+
+    <h3 class="guide-subhead">Good to know</h3>
+    <ul class="guide-page-steps">
+      <li>Open chats refresh by themselves, about every 15 seconds on the Contacts tab and about every 5 seconds on the Internal tab. The Contacts list refreshes about once a minute.</li>
+      <li>"Failed to start conversation" or "Failed to send message" means nothing was sent. Try again, and check the number.</li>
+    </ul>
+</section>
 
   <section id="dashboard-overview" class="guide-section" data-guide-id="dashboard-overview">
     <h2>Dashboard overview</h2>
@@ -319,6 +381,74 @@
     <figure class="guide-shot">
       <img src="./assets/screenshots/dashboard-overview.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
+  </section>
+
+  <section id="kernel-dashboard" class="guide-section" data-guide-id="kernel-dashboard">
+    <h2>Kernel Dashboard</h2>
+<p class="guide-lead">See how the kernel side of the factory is doing in four parts: Procurement (nut in shell received), Production (kernel cracked, plus a day-by-day Production log), Stock (kernel on hand) and Sales (kernel sold). Pick a financial year, a quarter or your own dates.</p>
+    <p class="guide-how">Open <strong>Home &rsaquo; Kernel Dashboard</strong> from the sidebar. The financial year runs April to March. It is a read-only screen: nothing here changes any records. The <strong>Oil Dashboard</strong> next to it has the same layout for oil and protein.</p>
+
+    <h3 class="guide-subhead">Choose the period</h3>
+    <ol class="guide-page-steps">
+      <li>Pick the <strong>Financial year</strong> (this year and the two before it).</li>
+      <li>Press <strong>Full year</strong>, <strong>Q1</strong> (Apr&ndash;Jun), <strong>Q2</strong> (Jul&ndash;Sep), <strong>Q3</strong> (Oct&ndash;Dec) or <strong>Q4</strong> (Jan&ndash;Mar).</li>
+      <li>Or fill in <strong>Or from</strong> and <strong>to</strong> for your own dates. Press <strong>Clear dates</strong> to go back to the financial year.</li>
+      <li>The period you picked is shown at the top right. Press <strong>Procurement</strong>, <strong>Production</strong>, <strong>Stock</strong> or <strong>Sales</strong> under the filters to jump to that part.</li>
+      <li>The <strong>Stock</strong> part always shows the last 12 months, and the <strong>Production log</strong> has its own picker. Neither follows the filters above.</li>
+    </ol>
+
+    <h3 class="guide-subhead">What each part shows</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Procurement:</strong> tiles for nut in shell received in the period, how many suppliers delivered (and how many above 10 tonnes), the biggest supplier's share, and the month so far. Charts rank the suppliers (filter <strong>All</strong>, <strong>Above 10 t</strong> or <strong>Above 20 t</strong>) and show kg received per month, with a table by quarter.</li>
+      <li><strong>Production:</strong> kernel cracked in the financial year, compared with the same months last year, the best month and the month so far. The chart shows cracked kg per month. The current month is month to date (hollow dot), so a drop there is not a real fall-off.</li>
+      <li><strong>Stock:</strong> kernel on hand now, against a week ago, and how many styles are in stock. A weekly chart and an <strong>On hand by style today</strong> table follow. Tiles <strong>Waiting on Pete</strong> (picked, not yet approved) and <strong>Waiting for picking</strong> (sent to dispatch, not yet picked) count dispatches.</li>
+      <li><strong>Sales:</strong> kernel sold in the period. Switch the unit between <strong>kg</strong> and <strong>R (excl. VAT)</strong> and pick a style or <strong>All styles</strong>. Charts show sold per month, by style and <strong>Top customers</strong>.</li>
+      <li><strong>Prices:</strong> people who may see prices also get the value of kernel on hand, a price per kg per style, <strong>Transport we paid</strong> and a <strong>Sales by style vs price list</strong> table.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Production log</h3>
+    <ol class="guide-page-steps">
+      <li>Inside Production, choose <strong>Nut &amp; shell cracked</strong> or <strong>Sound kernel packed</strong>.</li>
+      <li>Choose <strong>Day</strong>, <strong>Week</strong>, <strong>Month</strong>, <strong>Quarter</strong> or <strong>Year</strong>. Move with the arrows, the date box or the button on the right (<strong>Today</strong>, <strong>This week</strong>, and so on).</li>
+      <li>Cracked shows total cracked, cracking time, average kg per hour and silo runs, and a row per run: silo, batch, supplier, kg cracked, kg left in the silo and times. A run with edited times is tagged <strong>time changed</strong>. The figures come from the Cracking log on Silo Holding, from 26 Oct 2026. Change run times there.</li>
+      <li>Packed shows sound kernel packed (kg and cartons), butter packed and batches packed, with a column per style. Packing appears once the batch's job card is approved. Cartons are kg divided by 11.34.</li>
+      <li>On Month, Quarter and Year, press a row to open that period.</li>
+    </ol>
+
+    <h3 class="guide-subhead">If the figures look old</h3>
+    <ul class="guide-page-steps">
+      <li>Each part says <strong>Data up to</strong> a date. If it is more than 14 days old a warning link says how many days behind it is. Press it to open <strong>Support &rsaquo; Reports &rsaquo; Sales &amp; Production Data</strong> and see what is missing.</li>
+      <li>A message <strong>Not available yet</strong> means that part's figures are not available on this system yet.</li>
+    </ul>
+  </section>
+
+  <section id="oil-dashboard" class="guide-section" data-guide-id="oil-dashboard">
+    <h2>Oil Dashboard</h2>
+<p class="guide-lead">See how the oil and protein side is doing in four parts: Procurement (raw materials in), Production (oil litres and protein kg out, and the yield), Stock (finished oil and protein on hand) and Sales (local sales and exports). Pick a financial year, a quarter or your own dates.</p>
+    <p class="guide-how">Open <strong>Home &rsaquo; Oil Dashboard</strong> from the sidebar. The financial year runs April to March. It is a read-only screen: nothing here changes any records. It has the same layout as the <strong>Kernel Dashboard</strong>.</p>
+
+    <h3 class="guide-subhead">Choose the period</h3>
+    <ol class="guide-page-steps">
+      <li>Pick the <strong>Financial year</strong> (this year and the two before it).</li>
+      <li>Press <strong>Full year</strong>, <strong>Q1</strong> (Apr&ndash;Jun), <strong>Q2</strong> (Jul&ndash;Sep), <strong>Q3</strong> (Oct&ndash;Dec) or <strong>Q4</strong> (Jan&ndash;Mar).</li>
+      <li>Or fill in <strong>Or from</strong> and <strong>to</strong> for your own dates. <strong>Clear dates</strong> goes back to the financial year.</li>
+      <li>The period you picked is shown at the top right. Press <strong>Procurement</strong>, <strong>Production</strong>, <strong>Stock</strong> or <strong>Sales</strong> to jump to that part. The <strong>Stock</strong> part always shows the last 12 months and ignores the filters.</li>
+    </ol>
+
+    <h3 class="guide-subhead">What each part shows</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Procurement:</strong> kg of raw materials received in the period, how many types of material, and the largest. Charts show kg in per month and the split <strong>By type of material</strong>.</li>
+      <li><strong>Production:</strong> <strong>Oil out</strong> in litres, <strong>Protein out</strong> in kg, and the <strong>Yield</strong> in litres of oil per kg of raw material in. The yield needs both raw materials in and oil out for the period. Two charts show oil and protein per month. If a chart says <strong>Nothing captured for this period</strong>, the oil and protein figures have not been entered on the Oil &amp; Protein pipeline production screen for those months.</li>
+      <li><strong>Stock:</strong> finished oil and protein on hand now (with the date), how many streams are in stock (food grade, cosmetic, protein), a weekly chart and an <strong>On hand by stream today</strong> table.</li>
+      <li><strong>Sales:</strong> <strong>Local sales</strong>, <strong>Exports</strong> and the <strong>Total</strong>. Switch between <strong>kg</strong> and <strong>R (excl. VAT)</strong>. Charts show sold per month and local sales by product line. In rand, exports show the rand value recorded per invoice.</li>
+    </ul>
+
+    <h3 class="guide-subhead">If the figures look old</h3>
+    <ul class="guide-page-steps">
+      <li>Each part says <strong>Data up to</strong> a date. If it is more than 14 days old a warning link says how many days behind it is. Press it to open <strong>Support &rsaquo; Reports &rsaquo; Sales &amp; Production Data</strong> and see what is missing.</li>
+      <li>Procurement follows oil Receiving, Production follows oil Production, and Sales follows Oil &amp; Protein sales and the Oil Export Register. Stock comes from the stock history, so it moves when stock is added, dispatched or adjusted on <strong>Oil &amp; Protein pipeline &rsaquo; 4. Stock on Hand</strong>.</li>
+      <li>A message <strong>Not available yet</strong> means that part's figures are not available on this system yet.</li>
+    </ul>
   </section>
 
   <section id="report-targets-grid" class="guide-section" data-guide-id="report-targets-grid">
@@ -374,13 +504,44 @@
 
   <section id="modal-end-sample" class="guide-section" data-guide-id="modal-end-sample">
     <h2>End Sample (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+<p class="guide-lead">Record the end sample of a packed kernel batch: moisture, peroxide, FFA, internal micro and external lab testing, the lab PDF and who signed. Use it to send the sample to the lab, enter the lab pass or fail, and release the batch to stock (positive release).</p>
+    <p class="guide-how">It opens from <strong>Kernel pipeline &rsaquo; 3. Production</strong>. On a batch in the <strong>Awaiting lab results</strong> column press <strong>End sample</strong>. A batch whose End sample is already saved opens a read-only view first (see the End sample view help); press <strong>Edit</strong> there to change it. When a batch is at the lab, press <strong>Enter lab results</strong> on its card. Dragging a card from <strong>In production</strong> to <strong>Awaiting lab results</strong> also opens it. Take the sample as shown at the top: 1 x kernel sample in a ziplock bag, 1 x sterile bag and 1 x 1kg vacuum bag.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Fill in the End sample and send it to the lab</h3>
     <ol class="guide-page-steps">
-      <li>Open from grower or QA flows when closing out a sample workflow.</li>
-      <li>Record final disposition and any retest requirement.</li>
+      <li>For each test you are doing, tick <strong>Required (tick)</strong>. Enter the <strong>Moisture</strong> (%), <strong>Peroxide Value</strong> (meqO2/kg) and <strong>Free Fatty Acids</strong> (%) results when you have them.</li>
+      <li>Tick <strong>Internal Micro</strong> and/or <strong>External lab testing</strong> if the batch goes to a lab. The outcome box starts at <strong>Waiting</strong>. For External lab the <strong>Sent to lab on</strong> date fills in with today; change it if the sample went earlier. It can't be in the future. Add any notes in the result box.</li>
+      <li>The Save button now reads <strong>Save and send to lab</strong>. Press it. The batch is now at the lab and cannot be released to stock yet.</li>
+      <li>Choose the <strong>Signed (Supervisor)</strong> and <strong>Signed (Nut Plant Manager)</strong> names.</li>
     </ol>
+
+    <h3 class="guide-subhead">Enter the lab results</h3>
+    <ol class="guide-page-steps">
+      <li>When the lab report comes back, press <strong>Enter lab results</strong> on the batch (or <strong>End sample</strong> and then <strong>Edit</strong>).</li>
+      <li>Set <strong>Internal Micro</strong> and <strong>External lab testing</strong> to <strong>Passed</strong> or <strong>Failed</strong>. Every ticked lab test needs an outcome.</li>
+      <li>Under <strong>Lab test PDF</strong> choose the lab report (PDF only, up to 10MB). You can't mark External lab as <strong>Passed</strong> until the PDF is attached.</li>
+      <li>Press <strong>Save</strong>. If everything passed you see "Batch is now release ready" and the batch moves to <strong>Ready for stock</strong>. Approve the job card and release it to stock on Production.</li>
+    </ol>
+
+    <h3 class="guide-subhead">The lab rules</h3>
+    <ul class="guide-page-steps">
+      <li>While a lab test says <strong>Waiting</strong> the batch is <strong>At the lab</strong>. The card shows <strong>Day 3 of 10 · due Fri 20 Nov</strong>, and goes red when late. The expected days are set in Kernel Pipeline Settings (working days or calendar days).</li>
+      <li>The database refuses to release the batch to stock until every ticked lab test is <strong>Passed</strong>. The messages are: still at the lab, failed a lab test, or rejected after its lab tests.</li>
+      <li>An End sample saved before lab outcomes existed counts as passed.</li>
+    </ul>
+
+    <h3 class="guide-subhead">If a lab test fails</h3>
+    <ul class="guide-page-steps">
+      <li><strong>First fail:</strong> the card says it failed a lab test. Press <strong>Send for retest</strong> and confirm. The failed test goes back to <strong>Waiting</strong>, the day count starts again from today, and the End sample shows a <strong>Retest</strong> tag. Enter the retest result in the End sample when it comes back.</li>
+      <li><strong>Retest fails too:</strong> press <strong>Reprocess and test again</strong> or <strong>Reject</strong>. Reprocess puts the batch back into production with the same batch number; it needs a new End sample and lab test when packed again, and the earlier results are kept. Reject asks for a reason and the batch can then never be released to stock.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li>Wrong result or name: open the End sample again with <strong>Edit</strong>, correct it and press <strong>Save</strong>. The first completion date is kept.</li>
+      <li>Wrong PDF: choose another file to replace it.</li>
+      <li>Close the dialog with <strong>Cancel</strong> to leave without saving.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-end-sample.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -388,11 +549,22 @@
 
   <section id="modal-end-sample-view" class="guide-section" data-guide-id="modal-end-sample-view">
     <h2>End Sample View (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+<p class="guide-lead">Look at a saved End sample without changing it: the tests ticked, the results, the lab Waiting, Passed or Failed tags, the date sent to the lab, who signed and the lab report. Press Edit to open it for changes.</p>
+    <p class="guide-how">On <strong>Kernel pipeline &rsaquo; 3. Production</strong>, open a batch that already has its End sample (its actions menu shows a tick next to <strong>End sample</strong>). The dialog is titled <strong>PACKING (view)</strong>. If the End sample has not been done yet, the entry form opens instead.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">What you see</h3>
+    <ul class="guide-page-steps">
+      <li>A table with <strong>Moisture</strong>, <strong>Peroxide Value</strong>, <strong>Free Fatty Acids</strong>, <strong>Internal Micro</strong> and <strong>External lab testing</strong>. A tick means the test was required; a dash means it was not. Empty results show a dash.</li>
+      <li>On the two lab tests a coloured tag shows the outcome: <strong>Waiting</strong> (yellow), <strong>Passed</strong> (green) or <strong>Failed</strong> (red). External lab also shows <strong>Sent to lab on</strong> with the date, and <strong>(retest)</strong> if it was a retest.</li>
+      <li>If the batch was rejected after its lab tests, a red <strong>Rejected</strong> line gives the reason.</li>
+      <li><strong>Signed (Supervisor)</strong> and <strong>Signed (Nut Plant Manager)</strong>, and the <strong>Lab Test PDF</strong> if one was attached.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Change something</h3>
     <ol class="guide-page-steps">
-      <li>Open for read-only review of how a sample was closed.</li>
+      <li>Press <strong>Edit</strong>. This view closes and the End sample form opens with the saved figures filled in.</li>
+      <li>Correct what is wrong or enter the lab results, and press <strong>Save</strong>. See the End sample help for the lab rules.</li>
+      <li>Press <strong>Close</strong> if you only wanted to look. A message "End sample not found." means nothing has been saved for this batch yet.</li>
     </ol>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-end-sample-view.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
@@ -418,13 +590,16 @@
 
   <section id="modal-feature" class="guide-section" data-guide-id="modal-feature">
     <h2>Feature (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+<p class="guide-lead">This dialog, for adding or editing a portal feature with a key, name and description, is no longer used from the menu. Which modules a role sees is now chosen with Customize on the Roles &amp; modules tab.</p>
+    <p class="guide-how">Open <strong>User &amp; access</strong> in the sidebar, go to the <strong>Roles &amp; modules</strong> tab and press <strong>Customize</strong> on a role.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open from <strong>Features</strong> grid to define or edit a feature key and description.</li>
-      <li>Use stable keys—changing keys later breaks role assignments.</li>
-    </ol>
+    <h3 class="guide-subhead">Where to do this now</h3>
+    <ul class="guide-page-steps">
+      <li>Press <strong>Customize</strong> on the role's row. The dialog is called <strong>Customize modules</strong>.</li>
+      <li>There you tick the modules that should appear in the sidebar for that role.</li>
+      <li>The old dialog described the Key as the route name used in the sidebar, which had to be unique.</li>
+      <li>If you reached the old dialog from a saved link, close it and use Customize instead.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-feature.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -698,15 +873,28 @@
   </section>
 
   <section id="modal-import-oil-lots" class="guide-section" data-guide-id="modal-import-oil-lots">
-    <h2>Import Oil Lots (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h2>Import Oil Stock from Excel (dialog)</h2>
+<p class="guide-lead">Load oil and protein stock lots from an Excel file: pick the file and sheet, check the preview of the first 10 rows, set default location and category if the file has none, and import.</p>
+    <p class="guide-how">Open it on <strong>Oil &amp; Protein pipeline &rsaquo; 4. Stock on Hand</strong>: in the <strong>Oil &amp; protein stock</strong> card press <strong>More</strong>, then <strong>Import from Excel</strong>.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Import a file</h3>
     <ol class="guide-page-steps">
-      <li>Open from stock when importing oil lots from Excel.</li>
-      <li>Use the template your admin provided; do not rename columns.</li>
-      <li>Preview and confirm row counts before committing.</li>
+      <li>Press the file box and choose an Excel file (.xlsx or .xls). Then pick the <strong>Sheet</strong>.</li>
+      <li>Check the <strong>Preview (first 10 rows)</strong>. The header row is found for you.</li>
+      <li>Under <strong>Import Defaults</strong> you can choose a <strong>Location</strong> (801 or 850) and a <strong>Category</strong> (<strong>Raw Material</strong>, <strong>Finished Good</strong> or <strong>Sold</strong>). Leave them on auto to take them from the file.</li>
+      <li>The columns it understands, any subset, are: Delivery Date, Supplier/Customer, PO Reference, Batch #, Product Description, Grade, FFA, COA Status, Units, Volume, Kilograms, Manufacture Date, BB Date and Status.</li>
+      <li>Press <strong>Import</strong> and confirm <strong>Import N rows?</strong>. You see <strong>Imported</strong> when it is done.</li>
     </ol>
+
+    <h3 class="guide-subhead">If it will not import</h3>
+    <ul class="guide-page-steps">
+      <li>A row needs <strong>Kilograms</strong> and a product or batch to count. With no usable rows you see <strong>No data</strong>. If the Excel reader is missing, refresh the page.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li>The confirmation says the rows can be edited or removed after import. Use <strong>Edit</strong> in a lot's <strong>Actions</strong> menu on the stock screen to correct one (see Oil Stock Lot).</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-import-oil-lots.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -992,18 +1180,36 @@
     </figure>
   </section>
 
+  <section id="amanda-dashboard" class="guide-section" data-guide-id="amanda-dashboard">
+    <h2>Material Journey Dashboard (Pallandium Integrator view)</h2>
+<p class="guide-lead">An older Dashboard view for the Pallandium Integrator and Material Journey roles. It showed active alerts and a card for each batch with its grower, status, step out of 17 and wet NIS received. There is no separate menu item for it any more.</p>
+    <p class="guide-how">The sidebar no longer has a Pallandium or Pallandium Integrator Dashboard item (removed 6 Nov 2026). It is not a screen you open from the menu. Only a person whose role is named Pallandium Integrator or Material Journey sees it, and they reach it by pressing <strong>Home &rsaquo; Dashboard</strong>. Everyone else sees the normal Dashboard.</p>
+
+    <h3 class="guide-subhead">What it showed</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Active Alerts:</strong> a list of alerts, coloured red for critical, yellow for warning and blue for the rest, each with a title, message and batch number. When there are none it says "No active alerts".</li>
+      <li><strong>Batch cards:</strong> one card per batch with the batch number, <strong>Grower</strong>, <strong>Status</strong>, <strong>Step</strong> (for example 3/17) and <strong>Wet NIS</strong> in kg. When there are no batches it says "No batches in system".</li>
+      <li><strong>Refresh</strong> at the top reloads the alerts and cards.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Where to look now</h3>
+    <ul class="guide-page-steps">
+      <li>See also the <strong>Material journey dashboard</strong> section of this guide.</li>
+    </ul>
+</section>
+
   <section id="messaging-compose-grid" class="guide-section" data-guide-id="messaging-compose-grid">
     <h2>Messaging Compose (module)</h2>
-<p class="guide-lead">Module <strong>Messaging Compose (module)</strong>. Available from the navigation menu when your role includes access. The screenshot below shows the live screen layout.</p>
-    <p class="guide-how">Typical use: open the screen from the menu when your role allows it, narrow the list with filters, then use toolbar buttons or row actions to add, edit, export, or move work forward. The screenshot shows the usual layout.</p>
+<p class="guide-lead">Send Message is no longer in the sidebar. It was a page for sending an in-app message to everyone, to one role or to one person. Nothing in the menu opens it now, so use WhatsApp &amp; Chat to talk to people instead.</p>
+    <p class="guide-how">Open <strong>Support &rsaquo; CRM &rsaquo; WhatsApp &amp; Chat</strong>. Its <strong>Internal</strong> tab chats with colleagues, and its <strong>Contacts</strong> tab messages customers and suppliers on WhatsApp.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open this module from the sidebar when your role includes access.</li>
-      <li>Use search, filters, and <strong>Clear</strong> (if shown) to find the rows you need.</li>
-      <li>Use toolbar buttons (add, export, refresh) for actions that create new records or refresh the whole list.</li>
-      <li>Use row actions or links inside each row to open detail, edit, or the next step in the workflow.</li>
-    </ol>
+    <h3 class="guide-subhead">What the old page did</h3>
+    <ul class="guide-page-steps">
+      <li>You picked <strong>Send to</strong>: All users (broadcast), Role or Specific user, typed a Title and a Message, and set Severity to Info, Warning or Critical.</li>
+      <li>You could add a link to a batch or stock lot so the message opened that screen.</li>
+      <li>Press <strong>Send</strong>. The message went to the inbox and showed as "Message delivered to the inbox".</li>
+      <li>People read these messages through the bell at the top of the portal. A <strong>Recent sent</strong> list showed the latest ones.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/messaging-compose-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -1027,51 +1233,74 @@
   </section>
 
   <section id="modal-oil-bulk-add-stock" class="guide-section" data-guide-id="modal-oil-bulk-add-stock">
-    <h2>Oil Bulk Add Stock (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h2>Add stock &mdash; multiple batches (oil dialog)</h2>
+<p class="guide-lead">Add many on-hand oil or protein powder lots at once. Each row needs a batch number and kilograms. The lots are saved as finished stock, on hand, at location 850.</p>
+    <p class="guide-how">Open it on <strong>Oil &amp; Protein pipeline &rsaquo; 4. Stock on Hand</strong> with <strong>Add stock</strong> in the <strong>Oil &amp; protein stock</strong> card.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Add the lots</h3>
     <ol class="guide-page-steps">
-      <li>Open this dialog from the parent screen (toolbar, card, or row action)—not from the sidebar on its own.</li>
-      <li>Read the title and any short instructions; required fields are usually marked (e.g. with <strong>*</strong>).</li>
-      <li>Fill the form using dropdowns, dates, and lookups where offered so values match what the database expects.</li>
-      <li>Click the primary <strong>Save</strong> / <strong>Submit</strong> button to apply changes, or <strong>Cancel</strong> / close (×) to discard.</li>
-      <li>If validation errors appear, fix the highlighted fields and submit again before leaving the dialog.</li>
+      <li>Choose the <strong>Stock type</strong>: <strong>Oil</strong> or <strong>Protein powder</strong>. Protein lots are tagged so they show in the Protein powder table of the stock screen.</li>
+      <li>For each lot type the <strong>Batch #</strong> and <strong>Kg</strong> (both required). <strong>Grade</strong>, <strong>FFA (%)</strong>, <strong>BB date</strong> and <strong>Product description</strong> are optional.</li>
+      <li>Press <strong>Add row</strong> for more lots. A row with no batch number is ignored.</li>
+      <li>Press <strong>Save all lots</strong>. You see <strong>Stock added</strong> with how many lots were created.</li>
     </ol>
+
+    <h3 class="guide-subhead">If it will not save</h3>
+    <ul class="guide-page-steps">
+      <li>You are told which row is wrong: <strong>batch number is required</strong>, <strong>enter kilograms greater than 0</strong>, or <strong>FFA must be a number</strong>. If there are no rows with a batch number, you are asked to add at least one.</li>
+      <li>If the save fails part way, the message names the row and batch. Lots saved before it are already in stock, so check the stock list before saving again.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Before saving:</strong> change a row, or press the red cross at its end (the last row cannot be removed).</li>
+      <li><strong>After saving:</strong> use <strong>Edit</strong> in the lot's <strong>Actions</strong> menu on the stock screen to change a lot (see Oil Stock Lot).</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-oil-bulk-add-stock.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
   </section>
 
   <section id="modal-oil-dispatch" class="guide-section" data-guide-id="modal-oil-dispatch">
-    <h2>Oil Dispatch (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
-
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open from <strong>Oil dispatch</strong> when creating or editing a dispatch basket header (customer, delivery window, references).</li>
-      <li>Pick oil &amp; protein customers from CRM where the form offers a lookup—match the sold-to party on the order.</li>
-      <li>Confirm only <strong>released</strong> oil lots and finished stock lines are referenced; if something is missing, fix it in <strong>Stock management</strong> first.</li>
-      <li>Save the header before opening line inspection or dispatch forms tied to this basket.</li>
-      <li>If validation fails, read the message—usually a missing customer, date, or line mismatch.</li>
-    </ol>
+    <h2>Oil Dispatch Basket (dialog)</h2>
+<p class="guide-lead">This dialog is no longer used. It was a view of a dispatch order's basket. Nothing on the Oil &amp; Protein Dispatch screen opens it now.</p>
+    <p class="guide-how">To see an order's lines, press <strong>View</strong> on its card, or <strong>View sheet</strong> in the row's <strong>Actions</strong> menu, on <strong>Oil &amp; Protein pipeline &rsaquo; 5. Dispatch and Sales</strong>. The sheet that opens lists the batch, product and quantity of every line, above the vehicle inspection and dispatch details.</p>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-oil-dispatch.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
   </section>
 
   <section id="oil-dispatch-grid" class="guide-section" data-guide-id="oil-dispatch-grid">
-    <h2>Oil Dispatch (module)</h2>
-<p class="guide-lead">Oil &amp; protein dispatch: mirror of kernel dispatch for the finished oil/protein warehouse location.</p>
-    <p class="guide-how">Same pattern as kernel dispatch for the oil/protein warehouse: basket, checks, then shipment. Ensure oil lots are released before loading.</p>
+    <h2>Oil &amp; Protein Dispatch (module)</h2>
+<p class="guide-lead">See the oil and protein dispatch orders sent from Stock on Hand, open an order's truck sheet, and complete the vehicle inspection and dispatch details to mark it dispatched. Also how to find an order and what can and cannot be changed afterwards.</p>
+    <p class="guide-how">Open <strong>Oil &amp; Protein pipeline &rsaquo; 5. Dispatch and Sales</strong> from the sidebar (the page is titled <strong>Oil &amp; Protein Dispatch</strong>). Orders are created on <strong>Oil &amp; Protein pipeline &rsaquo; 4. Stock on Hand</strong> with <strong>Send to Dispatch</strong>, not here. Show them as a <strong>Board</strong> (the default) or a <strong>Table</strong>. <strong>Refresh</strong> reloads the orders.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Dispatch an order</h3>
     <ol class="guide-page-steps">
-      <li>Open <strong>Oil &amp; protein dispatch</strong> from the menu (mirror of kernel dispatch for the finished oil/protein warehouse).</li>
-      <li>Use the same board/table pattern and refresh habit as kernel dispatch.</li>
-      <li>Build or review baskets from released oil lots; complete inspection and dispatch forms before the truck leaves.</li>
-      <li>Ensure oil lots are released and available in stock before you add them to a load.</li>
+      <li>On the <strong>Board</strong>, orders waiting for the truck are in <strong>Ready to Dispatch</strong>. Each card shows the buyer, delivery date, number of lines and total kg.</li>
+      <li>Press <strong>Dispatch</strong> on the card. In the <strong>Table</strong> view, open <strong>Actions</strong> on the row in <strong>Dispatch orders (baskets)</strong> and press <strong>Dispatch</strong>. You can also drag the card to the <strong>Dispatched</strong> column. That only opens the same form.</li>
+      <li>Fill in the vehicle inspection and the dispatch details, then press <strong>Save &amp; dispatch</strong>. See the <strong>Inspection of Vehicle &amp; Dispatch</strong> dialog in this guide.</li>
+      <li>The order moves to <strong>Dispatched</strong> (in the Table view, to <strong>Baskets marked as dispatched</strong>).</li>
     </ol>
+
+    <h3 class="guide-subhead">Look at an order</h3>
+    <ul class="guide-page-steps">
+      <li>Press <strong>View</strong> on a card, or <strong>View sheet</strong> in a row's Actions menu. A dispatched order opens read-only with what was recorded.</li>
+      <li>The Table has columns <strong>Buyer</strong>, <strong>Delivery date</strong>, <strong>Created</strong>, <strong>Lines</strong> and <strong>Total (kg)</strong>.</li>
+      <li>With no orders you see a message to go to Stock on Hand, pick the lots and use <strong>Send to Dispatch</strong>.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Finding things</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Search</strong> filters by buyer as you type. <strong>Delivery date</strong> shows orders for one day. <strong>Clear</strong> resets both.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Before pressing Save &amp; dispatch:</strong> change anything in the form, or press <strong>Cancel</strong>. Nothing is saved.</li>
+      <li><strong>After the order is dispatched:</strong> the sheet is read-only. This screen has no button to edit or undo it.</li>
+      <li><strong>Wrong lot, quantity or buyer on the order:</strong> this screen cannot change them. The stock for the lines was taken off Stock on Hand when the order was sent.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/oil-dispatch-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -1079,48 +1308,180 @@
 
   <section id="modal-oil-dispatch-form" class="guide-section" data-guide-id="modal-oil-dispatch-form">
     <h2>Oil Dispatch Form (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+<p class="guide-lead">The truck sheet for an oil or protein dispatch: check the order lines, answer the six vehicle checks, record the driver, transport company, delivery note and signature, and save to mark the order dispatched. Once saved it is read-only.</p>
+    <p class="guide-how">Open it on <strong>Oil &amp; Protein pipeline &rsaquo; 5. Dispatch and Sales</strong> with <strong>Dispatch</strong> or <strong>View</strong> (<strong>View sheet</strong> in the Table). The title is <strong>Inspection of Vehicle &amp; Dispatch</strong>, with the buyer and the collect and deliver dates beside it. <strong>Order Lines</strong> at the top lists batch, product and quantity (litres for oil, with the kg equal, or kg for protein).</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Complete the sheet</h3>
     <ol class="guide-page-steps">
-      <li>Open for oil/protein inspection and despatch paperwork.</li>
-      <li>Complete checks, signatures, and transport details; submit when the load is true.</li>
+      <li>Under <strong>Inspection of Vehicle</strong> answer all six checks Yes or No: vehicle clean, fully enclosed, hazard substances on the truck, signs of pest infestations, pallets loaded in good condition and identified, truck bin locked before departing.</li>
+      <li>A failed check (No to clean, enclosed, pallets and bin locked; Yes to hazard substances and pests) opens a box: write what was wrong and what action was taken. It is required. A photo is optional.</li>
+      <li>Under <strong>Dispatch</strong> fill in <strong>Attention</strong>, <strong>Date dispatched</strong> (today to start with), <strong>Time</strong>, <strong>Cell number</strong>, <strong>Truck Registration</strong> and <strong>Driver's Name</strong>. <strong>Attention</strong>, <strong>Cell number</strong> and <strong>Dispatched to</strong> fill in from the customer record when it is known. You can change them.</li>
+      <li>Choose the <strong>Transport company</strong>. If it is not listed press <strong>+</strong>, type the name and press <strong>Add</strong>.</li>
+      <li>Type the <strong>Delivery note / Invoice number</strong> and check <strong>Dispatched to</strong>. Sign in <strong>Sender's Signature</strong> with a finger, stylus or mouse. <strong>Clear</strong> starts again.</li>
+      <li>Press <strong>Add images or documents</strong> for any attachments (images and PDF, up to 6 MB each). If a file is still uploading you are asked to wait.</li>
+      <li>Press <strong>Save &amp; dispatch</strong>. You see <strong>Dispatched</strong>: the record is saved and the order is marked dispatched. A message starting <strong>Check the inspection</strong> names what is missing.</li>
     </ol>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Before saving:</strong> change any answer or field. Wrong signature: press <strong>Clear</strong> and sign again. Press <strong>Cancel</strong> to leave without saving.</li>
+      <li><strong>After saving:</strong> the title reads "(dispatched)", every field is locked and the button is <strong>Close</strong>. This dialog has no Edit or undo button.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-oil-dispatch-form.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
   </section>
 
   <section id="modal-oil-lot" class="guide-section" data-guide-id="modal-oil-lot">
-    <h2>Oil Lot (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h2>Oil Stock Lot (dialog)</h2>
+<p class="guide-lead">Add one oil or protein stock lot by hand, or edit an existing lot: location, category, status, supplier or customer, batch number, product, grade, FFA, kilograms, litres and dates. For correcting stock on hand one lot at a time.</p>
+    <p class="guide-how">Open it on <strong>Oil &amp; Protein pipeline &rsaquo; 4. Stock on Hand</strong>. To add a lot press <strong>More</strong> in the <strong>Oil &amp; protein stock</strong> card and choose <strong>Add lot (single)</strong>. The title is <strong>Add Oil Stock Lot</strong>. To change a lot press <strong>Edit</strong> in its row's <strong>Actions</strong> menu. The title is then <strong>Edit Oil Stock Lot</strong>.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Add or edit a lot</h3>
     <ol class="guide-page-steps">
-      <li>Open when creating or editing an oil lot record tied to stock.</li>
-      <li>Enter best-before, quantity, and location; align with physical labels on drums or tanks.</li>
-      <li>Save before sending the lot to dispatch.</li>
+      <li>Choose the <strong>Location</strong> (801 or 850) and the <strong>Category</strong> (<strong>Raw Material</strong>, <strong>Finished Good</strong> or <strong>Sold</strong>). Both are required. When adding, the Location and Status start from the filters on the stock screen.</li>
+      <li>Set the <strong>Status</strong>: <strong>On Hand</strong>, <strong>Hold</strong>, <strong>Dispatched</strong> or <strong>Sold</strong>. A new lot starts as On Hand.</li>
+      <li>Fill in what you know: <strong>Supplier/Customer Type</strong> and name, <strong>PO Reference</strong>, <strong>Batch #</strong>, <strong>Product Code</strong>, <strong>Product Description</strong>, <strong>Grade</strong> and <strong>FFA (%)</strong>.</li>
+      <li>Type the <strong>Kilograms</strong> (required, more than 0). <strong>Units</strong> and <strong>Volume</strong> (litres for oil) are optional.</li>
+      <li>Add the <strong>Delivery Date</strong>, <strong>Manufacture Date</strong>, <strong>BB Date</strong>, <strong>COA Status</strong> and <strong>Notes</strong> if needed.</li>
+      <li>Press <strong>Save Oil Lot</strong>. You see <strong>Oil lot created</strong> or <strong>Oil lot updated</strong>. If Location, Category or Kilograms is missing you get a message asking for them.</li>
     </ol>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Wrong figure on a lot:</strong> open it with <strong>Edit</strong>, correct it and press <strong>Save Oil Lot</strong>.</li>
+      <li><strong>Lot marked Sold or Dispatched by mistake:</strong> edit it and set the <strong>Status</strong> back to <strong>On Hand</strong>. Only On Hand and Hold lots can be dispatched.</li>
+      <li><strong>Many lots at once:</strong> use <strong>Add stock</strong> (see Add stock &mdash; multiple batches) or <strong>Import from Excel</strong> instead.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-oil-lot.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
   </section>
 
+  <section id="oil-raw-materials" class="guide-section" data-guide-id="oil-raw-materials">
+    <h2>Raw Materials (oil &amp; protein module)</h2>
+<p class="guide-lead">See how much of each oil raw material is on hand and how long it will last, move ready bags to Production, look back at stock on an earlier day, do the month-end count, and set the daily recipe. Tabs: Stock levels, Weekly overview, Month-end count, Daily recipe, Supplier recon.</p>
+    <p class="guide-how">Open <strong>Oil &amp; Protein pipeline &rsaquo; 2. Raw Materials</strong> from the sidebar (step 2 of 5). Bags arrive in Receiving, wait here until their FFA passes, and move to Production once weighed. The tabs are <strong>Stock levels</strong>, <strong>Weekly overview</strong>, <strong>Month-end count</strong>, <strong>Daily recipe</strong> and <strong>Supplier recon</strong> (next part of this guide).</p>
+
+    <h3 class="guide-subhead">Stock levels</h3>
+    <ul class="guide-page-steps">
+      <li>There is one card per material: Crude Grade Oil Kernel, Food Grade Oil Kernel, Kernel Dust, Cracker Dust, Crush and Oil Cake. Each shows kg on hand, about how many working days are left and a bar.</li>
+      <li>The level chip is <strong>Stock Level Critical</strong> (under 1 week), <strong>Low</strong> (1 to 2 weeks), <strong>Manageable</strong> (2 weeks to 1 month) or <strong>Good</strong> (over a month). One week is daily use times 4 working days. A card says <strong>Set the daily recipe</strong> until a recipe is saved.</li>
+      <li>Under each card, <strong>Bags in stock</strong> lists the bags of that material that are waiting or ready. Filter by batch #, supplier or date, and press a column heading to sort. A bag still waiting shows <strong>Waiting for FFA</strong> or <strong>Waiting for a decision</strong> and cannot be ticked.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Move bags to Production</h3>
+    <ol class="guide-page-steps">
+      <li>Tick the ready bags (or the box in the heading to tick all shown). The button under the list reads like <strong>Move 3 bags to Production (4,500.00 kg)</strong>.</li>
+      <li>Press it. In <strong>Move bags to Production</strong>, set <strong>Date moved to production</strong>. If the bags really went in earlier, pick that day so stock on hand is right for that day. The earliest date is the day after the last count, and not before the latest bag was received. It cannot be in the future.</li>
+      <li>Weigh each bag and check <strong>Weight before production (kg)</strong> (the received weight is filled in). That weight comes off raw stock. Bags more than 50 kg below the received weight add a warning to the dashboard.</li>
+      <li>Press <strong>Move to Production</strong>. The message says how many moved. If some fail, it lists those bags and why.</li>
+    </ol>
+
+    <h3 class="guide-subhead">Stock on hand on an earlier day</h3>
+    <ul class="guide-page-steps">
+      <li>Under <strong>Stock on hand at the end of</strong> pick a past date to see what was on hand at the end of that day. Bags moved to production count on the day they were moved, not the day they were ticked. Press <strong>Back to today</strong> to return.</li>
+      <li>Stock is only known from the last month-end count. For an earlier day the page says there is no stock figure and names the count date to pick or later.</li>
+      <li>While looking at a past day the bag lists are hidden, so you cannot move bags.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Weekly overview</h3>
+    <ul class="guide-page-steps">
+      <li>Choose a <strong>Material</strong>. The last 8 weeks show <strong>Start of week</strong>, <strong>+ Received</strong>, <strong>&ndash; Moved to production</strong>, <strong>Should have</strong> and the stock level. Below are the month-end counts for that material.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Month-end count</h3>
+    <ol class="guide-page-steps">
+      <li>Count each material in the store. Pick <strong>Counted on</strong> (today or earlier) and type the count for every material (0 is fine). A column shows what the portal says should be there.</li>
+      <li>Add a note if you like and press <strong>Save month-end count</strong>. The result shows should have, counted and the difference. A difference over 2% is flagged with a warning triangle.</li>
+      <li>The count becomes the new starting point for stock levels. <strong>Earlier counts</strong> lists past counts. A count cannot be undone on this screen.</li>
+      <li>A My Day task reminds the people set up for it near month end. The <strong>Month-end reminder starts N working days before the last working day</strong> box is on the Daily recipe tab, with the rule for who gets tasks in Role Features.</li>
+    </ol>
+
+    <h3 class="guide-subhead">Daily recipe</h3>
+    <ul class="guide-page-steps">
+      <li>Pick the <strong>Date</strong> and type what goes into the oil plant for each material, in the unit shown (kg per day, or kg per bin times bins a day). Press <strong>Save recipe</strong>. If nothing changed, press <strong>Recipe unchanged</strong>.</li>
+      <li><strong>Recipe history</strong> shows each entry as Changed or Unchanged and who entered it. A recipe date cannot be in the future.</li>
+      <li>Under <strong>Recipe settings</strong> choose <strong>kg per day</strong> or <strong>kg per bin</strong> (then <strong>Bins a day</strong> must be more than 0), set the reminder days (0 to 15) and press <strong>Save settings</strong>.</li>
+      <li>Until the first recipe is saved, daily use comes from the old figures and a blue note says so.</li>
+    </ul>
+  </section>
+
+  <section id="oil-raw-materials-recon" class="guide-section" data-guide-id="oil-raw-materials-recon">
+    <h2>Raw Materials: Supplier recon</h2>
+<p class="guide-lead">Check how many kg each supplier delivered per month, by material, so deliveries can be matched against the suppliers' invoices. Pick a date range and supplier, see totals by supplier and by month, spot loads that need a look, and export the loads.</p>
+    <p class="guide-how">Open <strong>Oil &amp; Protein pipeline &rsaquo; 2. Raw Materials</strong> and press the <strong>Supplier recon</strong> tab. It was on the Receiving screen before 12 Nov 2026. It only reads data: nothing here can be edited.</p>
+
+    <h3 class="guide-subhead">Check a supplier</h3>
+    <ol class="guide-page-steps">
+      <li>Set <strong>From</strong> and <strong>To</strong>. It opens on 1 January of this year to today. The list reloads when you change a date. A <strong>To</strong> date before <strong>From</strong> is refused.</li>
+      <li>Pick a <strong>Supplier</strong>, or press a supplier's name in the <strong>By supplier</strong> table. Choose <strong>All suppliers</strong> to go back.</li>
+      <li>Three boxes at the top show <strong>Bought in</strong>, <strong>Our own material</strong> and <strong>All received</strong>, in kg, with the number of loads.</li>
+      <li>The tables give loads and kg for <strong>Cracker dust</strong>, <strong>Kernel dust</strong>, <strong>FG kernel</strong> and <strong>Crude kernel</strong>. <strong>By month</strong> shows the same per month, with a total row.</li>
+      <li>The <strong>Loads</strong> list shows each load: date, supplier, where it came from (<strong>Portal</strong> with its delivery note, or <strong>Recon sheet</strong>), kg per material, total and a note.</li>
+    </ol>
+
+    <h3 class="guide-subhead">Read the numbers</h3>
+    <ul class="guide-page-steps">
+      <li>Loads up to the date named at the bottom of the tab come from the recon sheet, one line per load. Loads after that day come from <strong>New delivery</strong> in the portal. Bags of one delivery are added together as one load.</li>
+      <li><strong>Our own material</strong> is cracker dust and kernel from our own cracking. It is shown on its own line (marked own cracking) and is not part of <strong>Bought in</strong>.</li>
+      <li>A load marked <strong>Check: possible repeat</strong> or <strong>Date corrected</strong> needs a look. A yellow bar at the top says how many.</li>
+      <li><strong>Export loads</strong> downloads the loads on screen as a spreadsheet. It is greyed out when there are none.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li>A wrong figure here comes from the delivery itself. Fix a portal delivery with <strong>Edit</strong> on the Receiving screen. Loads from the recon sheet cannot be changed on this screen.</li>
+    </ul>
+  </section>
+
   <section id="oil-production-grid" class="guide-section" data-guide-id="oil-production-grid">
     <h2>Oil Production (module)</h2>
-<p class="guide-lead">Oil production sheets and related processing steps for the oil/protein stream.</p>
-    <p class="guide-how">Record production sheets and relate them to lots or batches as the UI prompts. This closes the loop between intake stock and finished oil/protein.</p>
+<p class="guide-lead">Run oil and protein production: see the raw bags in production and mark them empty, start an oil bin or protein batch, link the raw bags used, record an FFA test, send the finished batch to stock, and log oil cake produced and sold. Also how to fix a mistake.</p>
+    <p class="guide-how">Open <strong>Oil &amp; Protein pipeline &rsaquo; 3. Production</strong> from the sidebar. Two tabs: <strong>Production</strong> and <strong>Oil cake</strong>. Top right are <strong>View data</strong> (a read-only summary) and <strong>Refresh</strong>. On the Production tab the sections fold away: press a heading to open it.</p>
     <figure class="guide-flow">
       <object data="./assets/oil-batch-lifecycle.svg" type="image/svg+xml" width="760" height="200" aria-label="Oil and protein batch lifecycle"></object>
     </figure>
-    <h3 class="guide-subhead">How to use this screen</h3>
+
+    <h3 class="guide-subhead">Raw ingredients in production</h3>
+    <ul class="guide-page-steps">
+      <li>Bags appear here once they are released or moved to production (see Receiving and Raw Materials). The list shows batch, supplier, product type, bag FFA, weight and date received.</li>
+      <li>When a bag is finished in the press, open its <strong>Actions</strong> menu, press <strong>Empty</strong> and confirm <strong>Mark bag empty?</strong>. It moves to <strong>Finished (emptied) raw batches</strong>, which lists batch, supplier, FFA, weight and when it was emptied. This screen has no button to bring it back.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Run an oil bin</h3>
     <ol class="guide-page-steps">
-      <li>Open <strong>Oil production</strong> from the menu.</li>
-      <li>Review <strong>Raw ingredients in production</strong> (batches released from Supplier Intake); open a batch to run extraction steps or mark a bag <strong>Empty</strong> when the press run is finished.</li>
-      <li>Expand <strong>Finished (emptied) raw batches</strong> if you need to audit what already left the active list.</li>
-      <li>Open or create a <strong>Production sheet</strong> (Food Grade Oil / Protein Powder / Cosmetic Oil) from the UI—choose form entry vs file upload if both are offered.</li>
-      <li>Use <strong>View data</strong> and <strong>Refresh</strong> on the toolbar for analytics and to reload lists after others have changed data.</li>
+      <li>Open <strong>Oil bin batches (production)</strong> and press <strong>Start oil bin</strong>. Choose <strong>Food grade</strong> or <strong>Cosmetic</strong>, then type the batch number. It is not made for you and cannot be empty.</li>
+      <li>In the row's <strong>Actions</strong> menu press <strong>Ingredients</strong>. Tick the raw batches in production that went into this bin (<strong>Select all</strong> and <strong>Clear</strong> help) and press <strong>Save links</strong>. This is the traceability record. You can open it again to add or change links. Bags already emptied stay listed as linked for audit.</li>
+      <li>Press <strong>Test FFA</strong> on the row. Type the <strong>FFA result (%)</strong> (0 to 100). <strong>Pass</strong> ticks itself when the result is at or below the <strong>Site max FFA %</strong> (0.5 to start with). You can untick or tick it. Press <strong>Save test</strong>. The row shows Pass or Fail and the date.</li>
+      <li>When the bin is done, press <strong>Send to stock</strong> in the Actions menu. Enter the <strong>letrerage (litres)</strong>, more than 0. The batch leaves this list and is added to Stock on Hand (oil, location 801).</li>
     </ol>
+
+    <h3 class="guide-subhead">Run a protein batch</h3>
+    <ul class="guide-page-steps">
+      <li>Open <strong>Protein production (batches)</strong> and press <strong>Start protein batch</strong>. Type the batch number (required).</li>
+      <li>Use <strong>Ingredients</strong> in the Actions menu to link the raw batches, the same way as for oil.</li>
+      <li><strong>Send to stock</strong> asks for the <strong>batch weight (kg)</strong>, more than 0, and adds protein powder to Stock on Hand. The batch leaves this list.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Oil cake tab</h3>
+    <ul class="guide-page-steps">
+      <li>Pick the <strong>Month</strong>. Two boxes show kg produced and kg sold that month.</li>
+      <li>Under <strong>Record oil cake</strong> choose <strong>Production</strong> or <strong>Sale</strong>, then the date, weight (more than 0) and notes. A sale also needs <strong>Sold to</strong>. Press <strong>Save production</strong> or <strong>Save sale</strong>.</li>
+      <li>A wrong entry: press <strong>Remove</strong> on its line and confirm <strong>Remove this oil cake entry?</strong>. Then record it again.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Wrong grade, ingredients text, letrerage or FFA on a bin:</strong> <strong>Edit</strong> in the Actions menu, change them and press <strong>Save</strong>. Set the grade before you send to stock.</li>
+      <li><strong>Oil bin started by mistake:</strong> <strong>Delete</strong> in the Actions menu and confirm. Only a bin still in production, not sent to stock, can be deleted. This screen has no way to take a batch back out of stock once sent.</li>
+      <li><strong>Wrong raw bags linked:</strong> open <strong>Ingredients</strong> again, change the ticks and save.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Consolidated batches</h3>
+    <ul class="guide-page-steps">
+      <li>For people with the right permission. <strong>New consolidated batch</strong> asks for a number. <strong>Search</strong> finds oil batches by number, product, dates or status; press a button on a result to add it to an open consolidated batch. <strong>Lab / edit</strong> records the lab reference, notes and status (Open, Closed or Released).</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/oil-production-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -1128,16 +1489,32 @@
 
   <section id="oil-production-forecast-grid" class="guide-section" data-guide-id="oil-production-forecast-grid">
     <h2>Oil Production Forecast (module)</h2>
-<p class="guide-lead">Module <strong>Oil Production Forecast (module)</strong>. Available from the navigation menu when your role includes access. The screenshot below shows the live screen layout.</p>
-    <p class="guide-how">Typical use: open the screen from the menu when your role allows it, narrow the list with filters, then use toolbar buttons or row actions to add, edit, export, or move work forward. The screenshot shows the usual layout.</p>
+<p class="guide-lead">Record what customers are asking for in oil and protein (stream and kg) and compare the open demand with the stock on hand. Tasks: add a forecast line, change its status, and read the gap per stream.</p>
+    <p class="guide-how">Open <strong>Support &rsaquo; Forecasting &rsaquo; Oil forecast</strong> from the sidebar. The page is titled <strong>Oil &amp; Protein Production Forecast</strong>. It has <strong>Refresh</strong> and <strong>Add line</strong> at the top, the table <strong>Open demand vs stock by stream</strong> and the table <strong>Forecast lines</strong>.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Add a forecast line</h3>
     <ol class="guide-page-steps">
-      <li>Open this module from the sidebar when your role includes access.</li>
-      <li>Use search, filters, and <strong>Clear</strong> (if shown) to find the rows you need.</li>
-      <li>Use toolbar buttons (add, export, refresh) for actions that create new records or refresh the whole list.</li>
-      <li>Use row actions or links inside each row to open detail, edit, or the next step in the workflow.</li>
+      <li>Press <strong>Add line</strong>. The dialog is titled <strong>New forecast line</strong>.</li>
+      <li>Fill in <strong>Customer / label</strong>, <strong>Due date</strong> and <strong>Order summary</strong> (for example "2000 kg food grade").</li>
+      <li>Choose the <strong>Stream</strong>: <strong>Food grade oil</strong>, <strong>Cosmetic oil</strong> or <strong>Protein powder</strong>, and type the <strong>Quantity (kg)</strong>.</li>
+      <li>Set the <strong>Status</strong>: <strong>Open</strong>, <strong>In progress</strong>, <strong>Fulfilled</strong> or <strong>Cancelled</strong>. <strong>Sort order</strong> and <strong>Notes</strong> are optional.</li>
+      <li>Press <strong>Save</strong>.</li>
     </ol>
+
+    <h3 class="guide-subhead">Read the tables</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Open demand vs stock by stream</strong> shows, per stream, the <strong>Open forecast (kg)</strong>, the <strong>Stock on hand (kg)</strong> and the <strong>Gap (open &ndash; SOH)</strong>. Only lines that are <strong>Open</strong> or <strong>In progress</strong> count as open demand. A gap above zero is shown in red: you need more than you have. Below zero is green.</li>
+      <li>Stock on hand is all the on-hand kg from Stock on Hand for that stream. Food grade, cosmetic and protein are told apart by the lot's grade and product text. Stock is shared across all lines. It is not set aside for any one line.</li>
+      <li><strong>Forecast lines</strong> lists every line with customer, order summary, stream, forecast kg, stock for that stream, due date, status badge and notes.</li>
+      <li><strong>Refresh</strong> reloads forecasts and stock.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Wrong quantity, stream or date:</strong> open the line's <strong>Actions</strong> menu, press <strong>Edit</strong> (the dialog is titled <strong>Edit forecast line</strong>), change it and press <strong>Save</strong>.</li>
+      <li><strong>Order done or called off:</strong> edit the line and set the status to <strong>Fulfilled</strong> or <strong>Cancelled</strong>. It then drops out of the open demand.</li>
+      <li><strong>Line entered by mistake:</strong> <strong>Delete</strong> in the Actions menu and confirm <strong>Delete this line?</strong>.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/oil-production-forecast-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -1145,15 +1522,8 @@
 
   <section id="modal-oil-production-sheet" class="guide-section" data-guide-id="modal-oil-production-sheet">
     <h2>Oil Production Sheet (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
-
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open from oil production when starting or editing a production sheet.</li>
-      <li>Choose <strong>Fill out the form</strong> vs <strong>Upload a file</strong> if both modes exist.</li>
-      <li>Enter yields, losses, and product splits; attach files if the run used external lab results.</li>
-      <li>Save so finished goods and stock can reflect the run.</li>
-    </ol>
+<p class="guide-lead">This dialog is no longer used. No button on any screen opens the Oil Production Sheet any more, and the Production sheet form on the Oil Production screen has no button either.</p>
+    <p class="guide-how">Oil production is now recorded on <strong>Oil &amp; Protein pipeline &rsaquo; 3. Production</strong>: start an oil bin or protein batch, link the raw bags used, record an FFA test and send the batch to stock. Oil cake produced and sold is logged on the <strong>Oil cake</strong> tab of the same screen.</p>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-oil-production-sheet.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -1215,32 +1585,37 @@
 
   <section id="quality-assurance-grid" class="guide-section" data-guide-id="quality-assurance-grid">
     <h2>Quality Assurance (module)</h2>
-<p class="guide-lead">Quality tests, thresholds, and food-safety related records.</p>
-    <p class="guide-how">Log tests against the referenced batch or item; failed or out-of-spec results may block the next step depending on configuration—follow local QA rules.</p>
+<p class="guide-lead">The Quality Assurance page is no longer in the menu. It was taken out of the sidebar on 6 Nov 2026 and nothing on the screens links to it now. Quality checks are done where the work happens: at Receiving, on Production (End sample and lab results) and on the oil Receiving screen.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open <strong>Quality assurance</strong> from the menu.</li>
-      <li>Use <strong>Search</strong>, <strong>Test type</strong>, <strong>Result</strong>, and <strong>Clear</strong> to find the right record.</li>
-      <li>Click <strong>New quality test</strong> to log a new sample, batch, or final-product test as your process requires.</li>
-      <li>Open a row to enter results, attachments, or sign-off; failed or conditional results may block release depending on configuration—follow your local QA playbook.</li>
-      <li>Use <strong>Export</strong> when auditors or customers need evidence outside the app.</li>
-    </ol>
-    <figure class="guide-shot">
-      <img src="./assets/screenshots/quality-assurance-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
-    </figure>
+    <h3 class="guide-subhead">Where each quality job is done now</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Samples on a kernel delivery:</strong> <strong>Kernel pipeline &rsaquo; 1. Receiving</strong>. Press <strong>Take sample</strong> and save the ziplock and the 5kg sample. A batch with out-of-spec results waits for a person to decide.</li>
+      <li><strong>End sample on packed kernel:</strong> <strong>Kernel pipeline &rsaquo; 3. Production</strong>. Press <strong>End sample</strong> to record moisture, peroxide, FFA, internal micro and external lab testing. See the End sample help.</li>
+      <li><strong>Lab results and positive release:</strong> also on <strong>3. Production</strong>. A batch that is at the lab cannot be released to stock until every required lab test is <strong>Passed</strong>. A failed test is sent for a retest; if the retest fails you reprocess or reject the batch. Kernel still at the lab shows on <strong>4. Stock on Hand</strong>.</li>
+      <li><strong>Oil raw material sample:</strong> <strong>Oil &amp; Protein pipeline &rsaquo; 1. Receiving</strong>. Press <strong>Sample test</strong> on a bag to record its official FFA, once.</li>
+      <li><strong>Spec limits (for example FFA) and the days a batch should spend at the lab:</strong> <strong>Kernel pipeline &rsaquo; Kernel Pipeline Settings</strong>.</li>
+      <li><strong>History of a batch:</strong> <strong>Home &rsaquo; Find a batch</strong> shows a batch's journey and its documents.</li>
+    </ul>
   </section>
 
   <section id="modal-quality-test" class="guide-section" data-guide-id="modal-quality-test">
     <h2>Quality Test (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+<p class="guide-lead">Record the official FFA of an oil raw material bag in the Sample test dialog. It opens from <strong>Sample test</strong> on Oil &amp; Protein pipeline &rsaquo; 1. Receiving. The old full Quality Test form (with its tabs) can no longer be reached, because the Quality Assurance page that opened it is gone from the menu.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Record the sample test</h3>
     <ol class="guide-page-steps">
-      <li>Open from QA grid when logging or editing a specific test result.</li>
-      <li>Choose pass/fail/conditional and attach evidence files if required.</li>
-      <li>Save; failed tests may block release depending on configuration.</li>
+      <li>Open <strong>Oil &amp; Protein pipeline &rsaquo; 1. Receiving</strong>. On a bag that has no official FFA yet, press <strong>Sample test</strong> (on the card, or in the row's actions menu).</li>
+      <li>The <strong>Sample test</strong> dialog opens with one box, <strong>Official FFA (%)</strong>. Enter the FFA and press <strong>Save</strong>. Without a number you get "FFA (%) is required".</li>
+      <li>If the FFA is within spec the bag is ready for Oil Production, and you release it when you are ready.</li>
+      <li>If it is not in spec, the bag stays in Awaiting tests. The message says Mark, Pete or Mike must accept or reject it, and each has a task in My Day.</li>
     </ol>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li>This is a one-time test. Once the official FFA is saved, <strong>Sample test</strong> is no longer offered for the bag. Pressing it again would say "Already recorded".</li>
+      <li>The dialog cannot change the figure a second time, so check the number before you press <strong>Save</strong>.</li>
+      <li>Press <strong>Cancel</strong> or the close button to leave without saving.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-quality-test.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -1248,13 +1623,13 @@
 
   <section id="modal-raw-material-issued" class="guide-section" data-guide-id="modal-raw-material-issued">
     <h2>Raw Material Issued (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+<p class="guide-lead">The Raw Material Stock Issued dialog is no longer used. The button that opened it has been removed from Stock on Hand, so nothing opens it now.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open when recording raw material issued to production from stock.</li>
-      <li>Link to the correct batch or job; quantities reduce raw stock when saved.</li>
-    </ol>
+    <h3 class="guide-subhead">Where raw materials are handled now</h3>
+    <ul class="guide-page-steps">
+      <li>Oil raw materials are kept on <strong>Oil &amp; Protein pipeline &rsaquo; 2. Raw Materials</strong>.</li>
+      <li>To correct finished oil or protein stock, use <strong>Adjust stock</strong> on a lot on <strong>Oil &amp; Protein pipeline &rsaquo; 4. Stock on Hand</strong>.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-raw-material-issued.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -1271,13 +1646,23 @@
 
   <section id="modal-role" class="guide-section" data-guide-id="modal-role">
     <h2>Role (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+<p class="guide-lead">Edit an existing role: change its name and description, or switch it on and off with the Active Role tick box. Press Save Role when done. Modules and permissions are set separately with Customize.</p>
+    <p class="guide-how">Open <strong>User &amp; access</strong> in the sidebar, go to the <strong>Roles &amp; modules</strong> tab and press <strong>Edit role</strong> in the actions on the role's row. To create a new role use <strong>Add role</strong> instead (see <strong>Admin Add Role</strong>).</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Edit a role</h3>
     <ol class="guide-page-steps">
-      <li>Open from <strong>Roles</strong> grid when adding or editing a role inline.</li>
-      <li>Match naming conventions your organisation uses for SSO or audits.</li>
+      <li>Change the <strong>Role Name</strong> (required) or the <strong>Description</strong>.</li>
+      <li>Untick <strong>Active Role</strong> to switch the role off, or tick it to switch it back on.</li>
+      <li>Press <strong>Save Role</strong>. You see "Role updated successfully" and the list refreshes. <strong>Cancel</strong> leaves everything as it was.</li>
     </ol>
+
+    <h3 class="guide-subhead">Good to know</h3>
+    <ul class="guide-page-steps">
+      <li>Which sidebar modules a role sees, and its database permissions, are not set here. The dialog itself says they are managed per module under <strong>Customize</strong> on the Roles &amp; modules list.</li>
+      <li>"Role name is required" means the name box is empty.</li>
+      <li>Only super users may edit the super user role. Other people see "View only" on that row.</li>
+      <li>The Users column shows how many people are on each role. Check it before you switch a role off.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-role.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -1285,13 +1670,15 @@
 
   <section id="modal-role-feature" class="guide-section" data-guide-id="modal-role-feature">
     <h2>Role Feature (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+<p class="guide-lead">This dialog, for tying a feature to a role as Enabled or Disabled, is no longer used from the menu. Choosing which modules a role can see is now done with Customize on the Roles &amp; modules tab.</p>
+    <p class="guide-how">Open <strong>User &amp; access</strong> in the sidebar, go to the <strong>Roles &amp; modules</strong> tab and press <strong>Customize</strong> on a role.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open from <strong>Role features</strong> to tie a feature flag to a role.</li>
-      <li>Toggle once per combination; document the change.</li>
-    </ol>
+    <h3 class="guide-subhead">Where to do this now</h3>
+    <ul class="guide-page-steps">
+      <li>Press <strong>Customize</strong> on the role's row. The dialog is called <strong>Customize modules</strong>.</li>
+      <li>There you choose which modules appear in the sidebar for that role.</li>
+      <li>If you reached the old dialog from a saved link, close it and use Customize instead.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-role-feature.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -1317,13 +1704,16 @@
 
   <section id="modal-role-permission" class="guide-section" data-guide-id="modal-role-permission">
     <h2>Role Permission (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+<p class="guide-lead">This dialog, for giving a role a permission such as Create, Read, Update or Delete on one object, is no longer used from the menu. Database permissions are now set per module with Customize on the Roles &amp; modules tab.</p>
+    <p class="guide-how">Open <strong>User &amp; access</strong> in the sidebar, go to the <strong>Roles &amp; modules</strong> tab and press <strong>Customize</strong> on a role.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open from <strong>Role permissions</strong> when mapping a role to a database object.</li>
-      <li>Pick object type, object name, and allowed operations—grant least privilege.</li>
-    </ol>
+    <h3 class="guide-subhead">Where to do this now</h3>
+    <ul class="guide-page-steps">
+      <li>Press <strong>Customize</strong> on the role's row. The dialog is called <strong>Customize modules</strong>.</li>
+      <li>There you grant the database permissions inside each module for that role. Use the filter box to find an action or permission.</li>
+      <li>Give a role only what it needs.</li>
+      <li>If you reached the old dialog from a saved link, close it and use Customize instead.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-role-permission.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -1416,15 +1806,31 @@
   </section>
 
   <section id="modal-send-to-dispatch-oil" class="guide-section" data-guide-id="modal-send-to-dispatch-oil">
-    <h2>Send To Dispatch Oil (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h2>Send to Dispatch (Oil &amp; Protein dialog)</h2>
+<p class="guide-lead">Create an oil and protein dispatch order: choose the buyer and delivery date, then add stock lots to a basket (oil in litres, protein powder in kg) and send it. The lots come off Stock on Hand and the order appears on Oil &amp; Protein Dispatch.</p>
+    <p class="guide-how">Open it on <strong>Oil &amp; Protein pipeline &rsaquo; 4. Stock on Hand</strong> with <strong>Send to Dispatch</strong> in the <strong>Oil &amp; protein stock</strong> card. It has two steps.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Create the order</h3>
     <ol class="guide-page-steps">
-      <li>Open from oil stock when sending finished oil/protein lots toward oil dispatch.</li>
-      <li>Verify lot numbers, best-before, and quantities against the warehouse.</li>
-      <li>Submit; complete oil dispatch forms from the dispatch module.</li>
+      <li>Step 1: type the <strong>Buyer</strong> name (required), or pick one under <strong>Buyer (from contacts)</strong>. To add a new buyer press <strong>+</strong>, type the <strong>Company name</strong>, choose the <strong>CRM type</strong> (Customer or Customer &amp; supplier), add a contact person, province, area or notes if you like, and press <strong>Add buyer</strong>.</li>
+      <li>Choose the <strong>Date of delivery</strong> (required) and press <strong>Next: Select lots</strong>.</li>
+      <li>Step 2: the basket starts empty. The <strong>Oil (letrerage)</strong> table lists lots with location, batch, product, grade and <strong>Available (L)</strong>. The <strong>Protein powder (kg)</strong> table lists protein lots with <strong>Available (kg)</strong>.</li>
+      <li>Press <strong>Add</strong> on a lot to add everything available, or change <strong>Qty to send</strong> first for part of it. The quantity cannot be more than what is available. An oil lot with no litres on file cannot be added.</li>
+      <li>The <strong>Basket</strong> lists batch, product and quantity, with a total. Press <strong>Remove</strong> to take a lot out.</li>
+      <li>Press <strong>Send Dispatch Order</strong>. It stays greyed out until the basket has a lot. A message says the order is created and points to <strong>Oil &amp; Protein Dispatch</strong>.</li>
     </ol>
+
+    <h3 class="guide-subhead">What happens to stock</h3>
+    <ul class="guide-page-steps">
+      <li>Sending the order takes the quantities off the lots straight away. A lot used up completely becomes <strong>Dispatched</strong>. A part-used lot stays on hand with the smaller balance.</li>
+      <li>Only lots that are <strong>On Hand</strong> or on <strong>Hold</strong> can be dispatched. If a lot has changed since you opened the list you get an error such as insufficient stock for that batch.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Before sending:</strong> press <strong>Back</strong> to change the buyer or date, or <strong>Remove</strong> a lot from the basket. <strong>Cancel</strong> closes the dialog without creating anything.</li>
+      <li><strong>After sending:</strong> the order and its stock deduction cannot be undone from this dialog or from Oil &amp; Protein Dispatch.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-send-to-dispatch-oil.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -1506,40 +1912,121 @@
   </section>
 
   <section id="stock-alert-rules-grid" class="guide-section" data-guide-id="stock-alert-rules-grid">
-    <h2>Stock Alert Rules (module)</h2>
-<p class="guide-lead">Module <strong>Stock Alert Rules (module)</strong>. Available from the navigation menu when your role includes access. The screenshot below shows the live screen layout.</p>
-    <p class="guide-how">Typical use: open the screen from the menu when your role allows it, narrow the list with filters, then use toolbar buttons or row actions to add, edit, export, or move work forward. The screenshot shows the usual layout.</p>
+    <h2>Stock alerts (Kernel Pipeline Settings tab)</h2>
+<p class="guide-lead">Set the low-stock red flags for kernel, oil, protein and shell waste: add a rule, change its limit or severity, turn it off, or delete it. When stock falls to the limit, an alert is raised on the dashboard.</p>
+    <p class="guide-how">Stock Alert Rules is no longer a menu item. It is the <strong>Stock alerts</strong> tab of <strong>Kernel pipeline &rsaquo; Kernel Pipeline Settings</strong>. The tab only shows for roles that were given access to alert rules. Old links to Stock Alert Rules land on this tab.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">What triggers an alert</h3>
+    <ul class="guide-page-steps">
+      <li>A rule says: when the stock of this product (and style) is <strong>at or below</strong> the <strong>Alert below</strong> number, raise an alert.</li>
+      <li>The alert is titled <strong>Low stock</strong> followed by the product and style, and takes the rule's severity. Only one alert per rule is raised per day.</li>
+      <li>When the stock goes back above the limit, the alert is cleared by itself.</li>
+      <li><strong>The rules are checked when somebody opens Stock on Hand</strong> (kernel or oil), not on a timer. A quiet week on those screens means no alerts that week.</li>
+      <li>A rule for a single style is used before a rule for <strong>Any style</strong> of the same product.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Add a rule</h3>
     <ol class="guide-page-steps">
-      <li>Open this module from the sidebar when your role includes access.</li>
-      <li>Use search, filters, and <strong>Clear</strong> (if shown) to find the rows you need.</li>
-      <li>Use toolbar buttons (add, export, refresh) for actions that create new records or refresh the whole list.</li>
-      <li>Use row actions or links inside each row to open detail, edit, or the next step in the workflow.</li>
+      <li>Open the <strong>Stock alerts</strong> tab and press <strong>Add Rule</strong>. A new row appears at the bottom, starting at 100 kg, warning, active.</li>
+      <li>Choose the <strong>Product</strong>. The <strong>Style</strong> list only works for kernel (SP, 0, 1, 1S, 4L, 5, 6, 7/8, Butter High Oil, Butter Low Oil, or <strong>Any style</strong>). For the other products the style is fixed at Any style.</li>
+      <li>Type the number in <strong>Alert below</strong> and pick the <strong>Unit</strong> (kg, L or t). The unit is only a label on the alert; it does not change how stock is compared, so enter the number in the same unit the stock screen uses.</li>
+      <li>Pick the <strong>Severity</strong>: info, warning or critical.</li>
+      <li>Open the row's <strong>Actions</strong> menu and press <strong>Save</strong>. You see <strong>Rule saved.</strong> The row is not kept until you save.</li>
     </ol>
-    <figure class="guide-shot">
-      <img src="./assets/screenshots/stock-alert-rules-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
-    </figure>
+
+    <h3 class="guide-subhead">Change, turn off or delete a rule</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Change a rule:</strong> edit the row, then press <strong>Save</strong> in its Actions menu.</li>
+      <li><strong>Turn a rule off without losing it:</strong> untick <strong>Active</strong> and press <strong>Save</strong>. Only active rules raise alerts.</li>
+      <li><strong>Delete a rule:</strong> press <strong>Delete</strong> in the row's Actions menu. A saved rule is removed straight away (<strong>Rule deleted.</strong>), so use Active if you may want it back. A new row you have not saved is simply dropped.</li>
+      <li><strong>Red warning under a style, or a banner above the table:</strong> the style on that rule is one the alert checker does not recognise, so the rule can never fire. Pick a style from the list and save.</li>
+      <li><strong>Refresh</strong> reloads the list.</li>
+    </ul>
   </section>
 
   <section id="stock-management-grid" class="guide-section" data-guide-id="stock-management-grid">
-    <h2>Stock Management (module)</h2>
-<p class="guide-lead">Warehouse views for kernel and oil/protein stock; filters, export, send to dispatch, and oil lot management.</p>
-    <p class="guide-how">Confirm location and product filters before transactions. Send-to-dispatch and oil-lot actions should only run when physical stock matches the system.</p>
+    <h2>Stock on Hand &ndash; Kernel (module)</h2>
+<p class="guide-lead">See the finished kernel on hand, batch by batch and style by style, and see what is still at the lab waiting for release. Correct a count, add a batch, archive or send a batch back to production, and look after shell waste lots.</p>
+    <p class="guide-how">Open <strong>Kernel pipeline &rsaquo; 4. Stock on Hand</strong> from the sidebar. (The Dashboard's <strong>Stock Movement</strong> button opens the same screen.) The oil and protein side has its own screen, <strong>Oil &amp; Protein pipeline &rsaquo; 4. Stock on Hand</strong>. The grid shows cartons: where a batch only has kg on record, it shows the kg divided by 11.34. Only batches with stock in at least one style are listed. Sending kernel to a buyer is done on <strong>Kernel pipeline &rsaquo; 5. Dispatch and Sales</strong>, not here.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Read the grid</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Rows and columns:</strong> one row per batch (with the grower under the batch number), one column per style (SP, 0, 1, 1S, 4L, 5, 6, 7/8, Butter High Oil, Butter Low Oil), then <strong>FFA</strong>, <strong>Best Before Date</strong> and <strong>Time Left</strong>. The <strong>Total</strong> row sits under the headings. Press a heading to sort; press again to flip the order.</li>
+      <li><strong>Search:</strong> type a batch number and the rows narrow down. <strong>Clear</strong> shows them all again. <strong>Refresh</strong> reloads the stock.</li>
+      <li><strong>Colours:</strong> a legend under the grid shows the limits. FFA is green when within spec, yellow when borderline and red when out of spec (limits from Kernel Pipeline Settings). Time Left is green with plenty of shelf life, yellow when getting short and red when under the shortest band.</li>
+      <li><strong>Count needed:</strong> a yellow tag under a batch number means a picker found less on the shelf than was asked for at dispatch. Once it has been counted, press <strong>Counted</strong> (shown to people who may clear it).</li>
+    </ul>
+
+    <h3 class="guide-subhead">Kernel still at the lab (positive release)</h3>
     <ol class="guide-page-steps">
-      <li>Open <strong>Stock management</strong>; note whether you are on the <strong>Kernel</strong> or <strong>Oil &amp; protein</strong> stream (subtitle and filters adapt).</li>
-      <li>For the main stock table: use <strong>Search</strong>, <strong>Status</strong>, <strong>Product type</strong>, and <strong>Location</strong> (warehouse section); click <strong>Clear</strong> to reset.</li>
-      <li>On <strong>Kernel batch journey</strong>: use <strong>By style</strong> / <strong>Weekly</strong> / <strong>Overview</strong>; in <strong>Adjust Stock</strong> you can enter cartons or kg and the system calculates boxes before saving. Use <strong>Send to Dispatch</strong> only when physical stock matches the system.</li>
-      <li>For oil: add or import oil lots (e.g. from Excel) and monitor days-remaining from best-before where shown; use export when you need a file copy.</li>
-      <li>For shell waste lots: use <strong>Movement history</strong> from the row menu to see all movements (created, adjusted, dispatched, written off) for a lot, with timestamps, quantities, and references.</li>
-      <li>Use <strong>Import historical</strong> only for the controlled kernel historical load your admin approved—never as a substitute for normal intake and production postings.</li>
-      <li>Click <strong>History</strong> (top right) to see who changed stock on hand and when—stock in, dispatches out and adjustments, across kernel, oil &amp; protein and shell waste. Filter by stock type, kind of change, date range, or search a batch, style, person or reason. Quantities shown are the change to on hand, so a negative figure means stock left. Rows marked with an information icon were reconstructed from existing records when the audit trail was introduced: their time is approximate and the person was never recorded. This is the audit trail—for the dashboard's stock-level chart see <em>Stock on hand history</em> below.</li>
+      <li>When packed batches are at the lab or waiting for release, three tiles appear above the grid: <strong>On hand now</strong>, <strong>Positive release</strong> (with the number of batches and how many are late, in red) and <strong>Total available</strong>.</li>
+      <li>Under the grid, grey rows under <strong>Positive release: at the lab or waiting for release</strong> list those batches with their cartons per style. They are counted from the packing sheet and can't be sent to dispatch yet.</li>
+      <li>The status on each row reads, for example, <strong>Day 3 of 10 · due Fri 20 Nov</strong> (a second test starts with <strong>Test 2</strong>), <strong>N days late</strong> in red, <strong>Lab passed · waiting for release</strong>, <strong>Failed a lab test · retest due</strong> or <strong>Failed the retest · needs a decision</strong>.</li>
+      <li>Two rows add it up: <strong>Positive release total</strong> and <strong>Total available</strong> (on hand plus positive release).</li>
+      <li>A batch moves into the normal grid once it is released to stock on <strong>Kernel pipeline &rsaquo; 3. Production</strong>. The lab results are entered there (see the End sample help).</li>
     </ol>
+
+    <h3 class="guide-subhead">Correct a count</h3>
+    <ol class="guide-page-steps">
+      <li>Press <strong>Correct stock</strong>. The style cells are highlighted.</li>
+      <li>Press the cell for the batch and style you want to change. The <strong>Adjust Stock</strong> box opens.</li>
+      <li>Type <strong>+</strong> or <strong>-</strong>, enter the amount, and choose <strong>Boxes (cartons)</strong> or <strong>Kg</strong>. The box shows the calculated boxes. Add a <strong>Reason</strong> if you wish, then press <strong>Save adjustment</strong>.</li>
+      <li>Press <strong>Correct stock</strong> again to switch correction off. You need permission to adjust stock; without it you are told so.</li>
+      <li>There is no undo button. If you got it wrong, make the opposite adjustment. Every change is kept under <strong>History</strong>.</li>
+    </ol>
+
+    <h3 class="guide-subhead">Batch actions, archive and add</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Send back to production:</strong> on the row's actions menu. After you confirm, the batch reappears in the Production queue so its production data can be corrected.</li>
+      <li><strong>Edit:</strong> on the same menu, opens the batch details to change.</li>
+      <li><strong>Archive:</strong> removes the batch from the active lists after you confirm. Press <strong>View archive</strong> to see archived batches and restore one; a restore may ask you for a new batch number.</li>
+      <li><strong>Add Batch:</strong> type a batch number. A completed batch that matches is listed; press it to bring it back into the grid. Otherwise fill in <strong>Supplier</strong>, <strong>Received date</strong>, the kg for each style and press <strong>Continue</strong> to create a historical batch. <strong>Import historical</strong> is for administrators loading old figures.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Shell waste, history, calendar and export</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Shell waste:</strong> press the recycle button at the top of the grid. The lots show <strong>Lot</strong>, <strong>Source batch</strong>, <strong>Kg</strong> and <strong>Status</strong>. Press <strong>Add lot</strong> to add one (leave the lot number blank to have one made). Each lot's actions are <strong>Movement history</strong>, <strong>Dispatch</strong> (asks for the customer or reference), <strong>Edit</strong> (status: In stock, Dispatched or Written off) and <strong>Delete</strong> (asks you to confirm). These need shell waste permission.</li>
+      <li><strong>History:</strong> who changed stock on hand, and when. Filter by stock type, kind of change (Stock in, Dispatched out, Adjusted), dates, or search. A negative figure means stock left.</li>
+      <li><strong>Calendar:</strong> days shaded green had stock changes; press a day to see which batches went in, went out or were adjusted.</li>
+      <li><strong>Export</strong> downloads the stock list.</li>
+      <li>Each time this screen loads it also checks the stock alert rules (see the Stock alerts help).</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/stock-management-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
+  </section>
+
+  <section id="stock-management-oil-tab" class="guide-section" data-guide-id="stock-management-oil-tab">
+    <h2>Stock on Hand &ndash; Oil &amp; Protein (module)</h2>
+<p class="guide-lead">See the finished oil and protein powder on hand, lot by lot. Add stock one lot at a time, many at once or from Excel, adjust a lot's kilograms, delete a lot, and see how many days of shelf life each lot has left.</p>
+    <p class="guide-how">Open <strong>Oil &amp; Protein pipeline &rsaquo; 4. Stock on Hand</strong> from the sidebar. The screen is called <strong>Stock (Oil &amp; Protein)</strong>. Oil is listed on top and protein powder below. Only lots with the status On Hand or Hold are listed. The kernel side has its own screen, <strong>Kernel pipeline &rsaquo; 4. Stock on Hand</strong>.</p>
+
+    <h3 class="guide-subhead">Read the tables</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Columns:</strong> <strong>Location</strong>, <strong>Category</strong>, <strong>Batch #</strong>, <strong>Grade</strong>, <strong>FFA</strong>, <strong>Kg</strong>, <strong>BB Date</strong> (best before), <strong>Days left</strong>, <strong>Status</strong> and <strong>Actions</strong>.</li>
+      <li><strong>Days left</strong> is counted from the best before date. It turns amber and bold under 30 days and red and bold once the date has passed.</li>
+      <li><strong>Search:</strong> type a batch, grade or supplier above the tables. <strong>Refresh</strong> reloads the stock.</li>
+      <li><strong>History</strong> (who changed stock, and when), the <strong>Calendar</strong> and <strong>Export</strong> are at the top right, the same as on the kernel screen. History can be filtered to Oil &amp; protein.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Add stock</h3>
+    <ol class="guide-page-steps">
+      <li><strong>Many lots at once:</strong> press <strong>Add stock</strong>. Choose <strong>Oil</strong> or <strong>Protein powder</strong>, then fill one row per batch: <strong>Batch #</strong> and <strong>Kg</strong> are required; <strong>Grade</strong>, <strong>FFA (%)</strong>, <strong>BB date</strong> and <strong>Product description</strong> are optional. Press <strong>Add row</strong> for more, then <strong>Save all lots</strong>. These are saved as on-hand finished stock at warehouse 850.</li>
+      <li><strong>One lot with all the details:</strong> press <strong>More</strong> &rsaquo; <strong>Add lot (single)</strong>. The form has location (801 or 850), category, status, supplier or customer, PO reference, batch, product, grade, FFA, units, kilograms, dates and notes. Press <strong>Save Oil Lot</strong>.</li>
+      <li><strong>From a spreadsheet:</strong> press <strong>More</strong> &rsaquo; <strong>Import from Excel</strong>, choose the file and the sheet, check the import defaults (location and category) and press <strong>Import</strong>.</li>
+    </ol>
+
+    <h3 class="guide-subhead">Fix a lot</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Wrong kilograms:</strong> open the row's actions menu and choose <strong>Adjust stock</strong>. Pick <strong>Plus to stock</strong> or <strong>Minus from stock</strong>, enter the <strong>Kg</strong>, add a <strong>Reason</strong> if you wish and press <strong>Save adjustment</strong>. It will not let stock go below zero. You need permission to adjust stock. To undo, adjust the other way; the change is kept in History.</li>
+      <li><strong>Wrong details:</strong> choose <strong>Edit</strong> on the row to open the lot form.</li>
+      <li><strong>Lot added by mistake:</strong> choose <strong>Delete</strong> and confirm. The lot is hidden from the stock view; it is not wiped from the records.</li>
+      <li><strong>What went into a batch:</strong> choose <strong>Ingredients</strong> on the row to see the ingredients of that batch.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Send to dispatch</h3>
+    <p class="guide-how">Press <strong>Send to Dispatch</strong> to create an Oil &amp; Protein dispatch order. Dispatch orders are looked after on <strong>Oil &amp; Protein pipeline &rsaquo; 5. Dispatch and Sales</strong>. Only send what is physically on the shelf.</p>
+    <p class="guide-how">Each time this screen loads it also checks the stock alert rules for oil and protein (see the Stock alerts help).</p>
   </section>
 
   <section id="stock-history" class="guide-section" data-guide-id="stock-history">
@@ -1586,14 +2073,14 @@
 
   <section id="modal-stock-take" class="guide-section" data-guide-id="modal-stock-take">
     <h2>Stock Take (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+<p class="guide-lead">The Stock Take - Physical Count dialog is no longer used. No button on any screen opens it now. To fix a stock count, use the correction tools on Stock on Hand instead.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open from stock management when running a stock-take or adjustment workflow.</li>
-      <li>Count physically first, then enter counted quantities; explain variances in notes if required.</li>
-      <li>Submit for approval if your workflow includes a reviewer.</li>
-    </ol>
+    <h3 class="guide-subhead">What to do instead</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Kernel:</strong> on <strong>Kernel pipeline &rsaquo; 4. Stock on Hand</strong> press <strong>Correct stock</strong>, press the batch and style cell that is wrong, and enter a plus or minus in boxes or kg.</li>
+      <li><strong>Oil and protein:</strong> on <strong>Oil &amp; Protein pipeline &rsaquo; 4. Stock on Hand</strong> open the lot's actions menu and choose <strong>Adjust stock</strong>.</li>
+      <li>Every correction is recorded with who made it and when. Press <strong>History</strong> on Stock on Hand to see them.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-stock-take.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -1601,36 +2088,111 @@
 
   <section id="supplier-intake-grid" class="guide-section" data-guide-id="supplier-intake-grid">
     <h2>Supplier Intake (module)</h2>
-<p class="guide-lead">Oil &amp; protein intake: supplier oil batches and receiver checklists tied to CRM suppliers.</p>
-    <p class="guide-how">Register supplier oil batches and receiver checklists; they must tie to CRM suppliers. Downstream stock and production consume these records.</p>
+<p class="guide-lead">Oil &amp; protein receiving: log a delivery with New delivery (truck checks, documents and one line per bag), add stock without truck checks with Quick stock entry, find a delivery, and fix or remove a bag. FFA results and release to production are in the next part of this guide.</p>
+    <p class="guide-how">Open <strong>Oil &amp; Protein pipeline &rsaquo; 1. Receiving</strong> from the sidebar. At the top are <strong>Quick stock entry</strong>, <strong>New delivery</strong> and <strong>Export</strong>, then the <strong>Raw Materials</strong> button, the search bar and the bags. The bags show as a <strong>Table</strong> (the default) or a <strong>Board</strong>. Every bag is its own line, grouped under its supplier, delivery note and date.</p>
     <figure class="guide-flow">
       <object data="./assets/oil-batch-lifecycle.svg" type="image/svg+xml" width="760" height="200" aria-label="Oil and protein batch lifecycle"></object>
     </figure>
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Log a delivery</h3>
     <ol class="guide-page-steps">
-      <li>Open <strong>Supplier intake</strong> from the menu.</li>
-      <li>Use search, status filter, and <strong>Clear</strong>; choose <strong>Board</strong>, <strong>Table</strong>, <strong>Weekly</strong>, or <strong>Overview</strong> from the view toggle.</li>
-      <li>Start new oil-side deliveries with <strong>Receiver checklist</strong>; that creates the batch you will track through sample tests.</li>
-      <li>Complete sample tests from the card/table when the UI enables them; status moves toward ready for oil production.</li>
-      <li>Use <strong>Export</strong> when you need to share the current intake list outside the app.</li>
+      <li>Press <strong>New delivery</strong>. The form asks for the supplier, delivery note, documents, one line per bag and six truck checks. See the <strong>New delivery</strong> dialog in this guide.</li>
+      <li>Press <strong>Save delivery</strong>. Each bag appears as its own batch. A bag saved with an in-spec FFA goes straight to <strong>Ready for Oil Production</strong>. A bag with no FFA waits in <strong>Awaiting tests</strong>.</li>
+      <li>For stock counts and corrections without a truck, use <strong>Quick stock entry</strong> instead. It asks <strong>Adding</strong> (new bags with no checklist) or <strong>Editing</strong> (pick one existing batch and open its full form).</li>
     </ol>
+
+    <h3 class="guide-subhead">Read the table</h3>
+    <ul class="guide-page-steps">
+      <li>Each delivery has a heading line: supplier, delivery note, date, number of bags, total kg and how many documents are attached. Under it, one line per bag: <strong>Batch #</strong>, <strong>Description</strong>, <strong>Weight (kg)</strong>, <strong>FFA %</strong> and <strong>Result</strong>.</li>
+      <li><strong>Waiting</strong> means no FFA yet. <strong>In spec · Ready</strong> means the bag can go to production. <strong>Out of spec · needs a decision</strong> means an exec must accept or reject it. <strong>Rejected</strong> means it will not go to production.</li>
+      <li>Press a batch number to see all its details: delivery, dates, FFA, any decision, the truck checks, comments and photos.</li>
+      <li>The <strong>Board</strong> has two columns: <strong>Awaiting tests</strong> and <strong>Ready for Oil Production</strong>.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Finding things</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Search</strong> by batch number, supplier, delivery note or product. <strong>Status</strong> offers <strong>Awaiting tests</strong> and <strong>Ready for Oil Production</strong>. <strong>Clear</strong> resets both.</li>
+      <li><strong>Export</strong> downloads the bags on screen as a spreadsheet.</li>
+      <li><strong>Raw Materials</strong> takes you to the next step, where ready bags are weighed and moved to production.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Wrong supplier, date, delivery note, batch number, weight, description or manufactured date on one bag:</strong> open the bag's <strong>Actions</strong> menu and press <strong>Edit</strong>. The form opens as <strong>Edit batch</strong>. Change it and press <strong>Save changes</strong>. The FFA box is locked there and the bag keeps its status.</li>
+      <li><strong>Wrong FFA result:</strong> there is no button on this screen to change an FFA once it is saved.</li>
+      <li><strong>Bag entered by mistake:</strong> press <strong>Delete</strong> in the Actions menu (the bin button on a Board card) and confirm <strong>Remove batch?</strong>. It works only for bags still in <strong>Awaiting tests</strong> or <strong>Ready for Oil Production</strong>. A bag already sent to Oil Production cannot be removed here and you get an error.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/supplier-intake-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
   </section>
 
-  <section id="modal-supplier-intake-adjust-stock" class="guide-section" data-guide-id="modal-supplier-intake-adjust-stock">
-    <h2>Supplier Intake Adjust Stock (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+  <section id="supplier-intake-bags" class="guide-section" data-guide-id="supplier-intake-bags">
+    <h2>Receiving (oil): FFA results and release</h2>
+<p class="guide-lead">Record the FFA result of each oil or protein bag, deal with out-of-spec bags, and release a bag to Oil Production after weighing it. Covers typing FFA in the table, FFA for a whole delivery, the exec decision, Sample test and the weight before production.</p>
+    <p class="guide-how">On <strong>Oil &amp; Protein pipeline &rsaquo; 1. Receiving</strong>, a bag stays in <strong>Awaiting tests</strong> until its FFA is recorded. The limit is the FFA setting on <strong>Kernel Pipeline Settings</strong>. If no limit is set, every FFA result counts as in spec.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Type FFA in the table</h3>
     <ol class="guide-page-steps">
-      <li>Open this dialog from the parent screen (toolbar, card, or row action)—not from the sidebar on its own.</li>
-      <li>Read the title and any short instructions; required fields are usually marked (e.g. with <strong>*</strong>).</li>
-      <li>Fill the form using dropdowns, dates, and lookups where offered so values match what the database expects.</li>
-      <li>Click the primary <strong>Save</strong> / <strong>Submit</strong> button to apply changes, or <strong>Cancel</strong> / close (×) to discard.</li>
-      <li>If validation errors appear, fix the highlighted fields and submit again before leaving the dialog.</li>
+      <li>In the <strong>FFA %</strong> column, type the result for each bag that is waiting. Press Enter to jump to the next bag.</li>
+      <li>The <strong>Result</strong> column updates as you type: <strong>In spec · Ready</strong>, <strong>Out of spec · needs a decision</strong>, or <strong>Enter 0 to 100</strong> if the number is not valid.</li>
+      <li>Press <strong>Save N FFA results</strong> above the table. A message says how many are ready for Oil Production and how many wait for an exec decision. If some do not save, the message lists why and keeps what you typed for them.</li>
     </ol>
+
+    <h3 class="guide-subhead">FFA for a whole delivery</h3>
+    <ul class="guide-page-steps">
+      <li>On a delivery's heading line press <strong>FFA for this delivery · N waiting</strong>. The dialog <strong>Record FFA for this delivery</strong> lists every bag still waiting.</li>
+      <li>If every bag has the same result, type it next to <strong>Same result for every bag?</strong> and press <strong>Fill all</strong>. Or type each one.</li>
+      <li>A bag left blank stays waiting. Press <strong>Save results</strong>.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Out-of-spec bags</h3>
+    <ul class="guide-page-steps">
+      <li>A bag over the FFA limit stays in <strong>Awaiting tests</strong>, shows <strong>Out of spec · needs a decision</strong> (<strong>Awaiting decision</strong> on the Board) and is not released.</li>
+      <li>The three execs (production, sales and procurement) each get a My Day task <strong>Oil raw FFA out of spec</strong> with two buttons: <strong>Accept for production</strong> (a note is optional) and <strong>Reject bag</strong> (a reason is required).</li>
+      <li>Accept moves the bag to <strong>Ready for Oil Production</strong>. Reject leaves it in Awaiting tests, marked <strong>Rejected</strong>, and it will not go to production. Only the first answer counts: anyone else sees who already decided.</li>
+      <li>A rejected bag that is sent back can be removed with <strong>Delete</strong>.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Sample test (one bag)</h3>
+    <ul class="guide-page-steps">
+      <li>For a bag with no FFA yet, open its <strong>Actions</strong> menu and press <strong>Sample test</strong> (a button on Board cards). Type the <strong>FFA (%)</strong> and press <strong>Save</strong>. The same in-spec or exec-decision rule applies.</li>
+      <li>FFA is recorded once. After that you get <strong>Already recorded</strong>.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Release to Oil Production</h3>
+    <ol class="guide-page-steps">
+      <li>A bag that is <strong>Ready for Oil Production</strong> has <strong>Release to Oil Production</strong> in its <strong>Actions</strong> menu.</li>
+      <li>The <strong>Weight before production</strong> dialog opens with the intake weight filled in. Weigh the bag and change the figure only if the scale shows something different. That weight comes off raw material stock.</li>
+      <li>If it is more than 50 kg below the intake weight, a note says a warning will go to the dashboard so someone can check for spillage or a short delivery.</li>
+      <li>Press <strong>Release to Oil Production</strong>. The bag leaves this list and a dialog offers to open Oil Production.</li>
+      <li>You can also tick several ready bags on <strong>Oil &amp; Protein pipeline &rsaquo; 2. Raw Materials</strong> and move them together with a move date.</li>
+    </ol>
+  </section>
+
+  <section id="modal-supplier-intake-adjust-stock" class="guide-section" data-guide-id="modal-supplier-intake-adjust-stock">
+    <h2>Quick stock entry (oil &amp; protein dialog)</h2>
+<p class="guide-lead">Add oil or protein bags to Receiving without a truck or receiving checklist, for stock counts and corrections. Type the supplier, one line per bag with batch number, weight and manufactured date, and save. A bag with an FFA result is saved as ready for production.</p>
+    <p class="guide-how">On <strong>Oil &amp; Protein pipeline &rsaquo; 1. Receiving</strong> press <strong>Quick stock entry</strong> and choose <strong>Adding</strong>, then <strong>Continue</strong>. The dialog is titled <strong>Adjust stock &mdash; add bags</strong>. Choosing <strong>Editing</strong> instead asks <strong>Edit which batch?</strong> and opens the full New delivery form for that bag.</p>
+
+    <h3 class="guide-subhead">Add bags</h3>
+    <ol class="guide-page-steps">
+      <li>Type the <strong>Supplier name</strong> as on the paperwork (required). <strong>Date received</strong> and <strong>Delivery note / PO</strong> are optional.</li>
+      <li>For each bag choose the <strong>Description</strong> (oil kernel crude or food grade, cracker dust, kernel dust, crush or cake), then type the <strong>Batch #</strong>, <strong>Weight (kg)</strong> and <strong>Manufactured date</strong>. Best before is worked out as 18 months later.</li>
+      <li>Type an <strong>FFA (%)</strong> only if you have one. With an FFA the bag is saved as <strong>Ready for Oil Production</strong>. Without one it waits in <strong>Awaiting tests</strong>. Unlike New delivery, this dialog does not check the FFA against the limit.</li>
+      <li>To add more lines, type how many next to <strong>+ Add</strong> and press it. New lines copy the description, date and batch number (numbered on). The weight starts blank.</li>
+      <li>Press <strong>Save batches</strong>. A message says how many were added. Lines with no weight are left out.</li>
+    </ol>
+
+    <h3 class="guide-subhead">If it will not save</h3>
+    <ul class="guide-page-steps">
+      <li>You are told what is missing: <strong>Enter the supplier name</strong>, <strong>Enter the weight of at least one bag</strong>, or the bag number that needs a batch number or manufactured date.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Before saving:</strong> remove a line with the cross at its end, or change it.</li>
+      <li><strong>After saving:</strong> use <strong>Edit</strong> in the bag's Actions menu on the Receiving screen, or <strong>Delete</strong> if the bag should not exist. Bags saved here have no truck checks, and their comment reads "Adjust stock (no receiving checklist)".</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-supplier-intake-adjust-stock.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -1638,30 +2200,42 @@
 
   <section id="modal-supplier-oil-batch" class="guide-section" data-guide-id="modal-supplier-oil-batch">
     <h2>Supplier Oil Batch (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
-
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open from supplier intake row actions when editing batch header details.</li>
-      <li>Adjust only fields your role is allowed to change after receiving; some values may be locked post-test.</li>
-      <li>Save and confirm status still matches physical stock before releasing to production.</li>
-    </ol>
+<p class="guide-lead">This dialog is no longer used. No button on any screen opens it, and its Save button only says it is not used.</p>
+    <p class="guide-how">To log an oil or protein delivery use <strong>New delivery</strong> on <strong>Oil &amp; Protein pipeline &rsaquo; 1. Receiving</strong>. To change a bag that is already saved, press <strong>Edit</strong> in its <strong>Actions</strong> menu. To add stock without a truck use <strong>Quick stock entry</strong>.</p>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-supplier-oil-batch.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
   </section>
 
   <section id="modal-supplier-receiver-checklist" class="guide-section" data-guide-id="modal-supplier-receiver-checklist">
-    <h2>Supplier Receiver Checklist (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h2>New delivery (oil &amp; protein dialog)</h2>
+<p class="guide-lead">Log one oil or protein delivery: supplier, delivery note, supporting documents, one line per bag with weight, batch number and manufactured date, an optional FFA result, and the six truck checks. Each bag becomes its own batch. The same dialog edits one bag as <strong>Edit batch</strong>.</p>
+    <p class="guide-how">Open it on <strong>Oil &amp; Protein pipeline &rsaquo; 1. Receiving</strong> with <strong>New delivery</strong>. To change one bag, press <strong>Edit</strong> in the bag's <strong>Actions</strong> menu, or choose <strong>Editing</strong> under <strong>Quick stock entry</strong>.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Log a delivery</h3>
     <ol class="guide-page-steps">
-      <li>Open from supplier intake via <strong>Receiver checklist</strong> to start a new supplier oil delivery.</li>
-      <li>Capture the delivery note and supplier from CRM, then answer every vehicle &amp; receiving check. A bad answer opens <strong>What was wrong and what action was taken?</strong> (required) and photos; a dirty vehicle or pests raises an alert.</li>
-      <li>Add the bags: type how many next to <strong>+ Add</strong>, then fill in each bag's description, batch #, weight (kg) and manufactured date. New rows copy the last row (batch numbered on) with the weight left blank; rows with no weight are left out when you save.</li>
-      <li>Submit to create the batch that will appear on the board for sample testing and release to oil production.</li>
+      <li>Under <strong>Delivery details</strong> check the <strong>Date received</strong> (today is filled in) and choose the <strong>Supplier</strong>. If it is not listed, press <strong>+</strong>, type the <strong>Company name</strong>, pick the <strong>CRM type</strong> (Supplier or Oil processor), add a contact person if you like and press <strong>Save supplier</strong>.</li>
+      <li>Under <strong>Transport details</strong> type the <strong>Delivery note reference</strong> (required, from the supplier) and the <strong>Consignment reference</strong> (from the transporter, optional).</li>
+      <li>Add <strong>Supporting documents</strong> by dragging files onto a box or clicking it: <strong>Consignment note</strong>, <strong>Delivery note</strong> and <strong>Other documents</strong> (optional, for example weighbridge slips). Photos or PDFs only. A file that fails to upload shows as failed: remove it and attach it again.</li>
+      <li>Under <strong>Bags on this delivery</strong> fill in a line per bag: <strong>Description</strong> (Crude Grade Oil Kernel, Food Grade Oil Kernel, Kernel Dust, Cracker Dust, Crush or Oil Cake), <strong>Batch #</strong>, <strong>Weight (kg)</strong> and <strong>Manufactured date</strong>. Best before is worked out as 18 months later.</li>
+      <li>To add more lines, type how many next to <strong>+ Add</strong> and press it. New lines copy the description, date and the batch number (numbered on) from the last line. The weight starts blank. The first batch number is suggested for you; <strong>Refresh suggested</strong> gets a new one. You can change it.</li>
+      <li>Type the <strong>FFA (%)</strong> of a bag if you have it. The <strong>Goes to</strong> column shows <strong>Ready for Oil Production</strong>, <strong>Needs an exec decision</strong> or <strong>Awaiting tests</strong>, with a count under the table.</li>
+      <li>Under <strong>Truck checks</strong> answer all six Yes or No: vehicle clean, fully enclosed, hazard substances, pest infestations, pallets in good condition, raw materials in good condition. A bad answer opens <strong>What was wrong and what action was taken?</strong> (required) and a photo box. A dirty vehicle or pests raises an alert. Add <strong>Comments/Actions taken</strong> if needed.</li>
+      <li>Press <strong>Save delivery</strong>. A message says how many bags were saved and where they went. Lines with no weight are left out.</li>
     </ol>
+
+    <h3 class="guide-subhead">If it will not save</h3>
+    <ul class="guide-page-steps">
+      <li>A red box at the bottom lists everything missing under <strong>Please complete these before saving</strong>: date, delivery note, supplier, a truck check, a comment for a bad check, at least one bag weight, a batch number, description or manufactured date for a bag, an FFA that is not a number from 0 to 100, or an upload still running.</li>
+      <li>If the bags save but an FFA does not, a warning names the batches. Record FFA again for them on the Receiving screen.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Before saving:</strong> use the cross at the end of a line to remove a bag. Change any field freely.</li>
+      <li><strong>After saving:</strong> open <strong>Edit batch</strong> for that bag. You can change the date, supplier, delivery note, documents, truck check answers and comments, description, batch number, weight and manufactured date. The FFA box is locked and there is no <strong>+ Add</strong>, because the form edits one bag.</li>
+      <li><strong>A bag that should not exist:</strong> use <strong>Delete</strong> on the Receiving screen.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-supplier-receiver-checklist.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
@@ -1687,13 +2261,35 @@
 
   <section id="modal-user" class="guide-section" data-guide-id="modal-user" data-exclude-from-full-guide="1">
     <h2>User (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+<p class="guide-lead">Add a new person or edit an existing one: name, email, mobile number, role, active or not, password, and WhatsApp access. Use it to give someone a login, change their role, reset their password or switch them off.</p>
+    <p class="guide-how">Open <strong>User &amp; access</strong> in the sidebar. On the <strong>People</strong> tab press <strong>Add user</strong>, or open the actions on a person's row and press <strong>Edit user</strong>. Use Search, Role and Status above the list to find the person first.</p>
 
-    <h3 class="guide-subhead">How to use this screen</h3>
+    <h3 class="guide-subhead">Add a person</h3>
     <ol class="guide-page-steps">
-      <li>Open from <strong>Users</strong> when editing profile, role, or activation state.</li>
-      <li>Avoid shared accounts; use reset-password instead of telling another person the password.</li>
+      <li>Fill in <strong>First Name</strong> and <strong>Email Address</strong> (both required). <strong>Last Name</strong> and <strong>Mobile Number</strong> are optional.</li>
+      <li>Choose the <strong>Role</strong>. It is required, and it decides which modules the person sees when they sign in.</li>
+      <li>Type a <strong>Password</strong> and type it again in <strong>Confirm Password</strong>. Both are required for a new person and must match.</li>
+      <li>Leave <strong>Active User</strong> ticked and press <strong>Save User</strong>. You see "User created successfully".</li>
     </ol>
+
+    <h3 class="guide-subhead">Edit a person or fix a mistake</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Change the role, name, email or mobile number:</strong> change the box and press <strong>Save User</strong>. The title reads <strong>Edit User</strong>.</li>
+      <li><strong>Reset a password:</strong> type a new password and the same again in Confirm Password. Leave both empty to keep the current password.</li>
+      <li><strong>Stop someone using the portal:</strong> untick <strong>Active User</strong> and save. They show as Inactive in the list. Tick it again to bring them back.</li>
+      <li><strong>Messages you may see:</strong> "First name is required", "Email is required", "Please enter a valid email address", "Passwords do not match" and "Role is required". Fix the box and press Save User again. "You do not have permission to manage this user" means your role may not edit that person.</li>
+      <li>If you change your own role, your menu refreshes straight away.</li>
+    </ul>
+
+    <h3 class="guide-subhead">WhatsApp access</h3>
+    <p>This part shows only when you edit someone who is already saved. <strong>WhatsApp Access</strong> shows <strong>Enrolled</strong> or <strong>Not enrolled</strong>. You cannot set it by hand.</p>
+    <ol class="guide-page-steps">
+      <li>Make sure the person's <strong>Mobile Number</strong> is saved.</li>
+      <li>Ask them to send any message to the Macavation WhatsApp number.</li>
+      <li>Press <strong>Send enrolment code</strong>. They have about 15 minutes to reply with the 6 digits.</li>
+      <li>Once they reply, the status changes to <strong>Enrolled</strong>. Sending a new code later re-links them to the Mobile Number in the box.</li>
+    </ol>
+    <p>If the code cannot be sent, the dialog shows the reason. It says "Enter a Mobile Number first" when the box is empty. Until a person is enrolled, the dialog says they cannot use WhatsApp yet.</p>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-user.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
