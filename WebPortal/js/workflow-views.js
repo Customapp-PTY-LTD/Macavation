@@ -303,6 +303,7 @@ var _workflowViews = function () {
             if (!container || !data) return;
 
             const { tasks, watching, dueItems, recentActivity, workQueue } = data;
+            var self = this;
             var wq = workQueue || { intake: [], production: [], stockDispatch: [] };
 
             var openCount = (tasks || []).filter(function (t) { return !t.is_snoozed; }).length;
@@ -319,6 +320,22 @@ var _workflowViews = function () {
                         </div>
                         <div class="card-body">
                             ${this.renderWorkflowTasks(tasks)}
+                        </div>
+                    </div>
+
+                    <div class="card mb-4 my-day-history-card">
+                        <div class="card-header d-flex flex-wrap align-items-center gap-2">
+                            <h5 class="mb-0"><i class="fas fa-clock-rotate-left me-2"></i>Task history</h5>
+                            <span class="small text-muted" id="my-day-history-sub"></span>
+                            <select class="form-select form-select-sm ms-auto w-auto" id="my-day-history-days" aria-label="Period" onchange="workflowViews.setHistoryDays(this.value)">
+                                ${[7, 30, 90, 365].map(function (d) {
+                                    return '<option value="' + d + '"' + (d === self._historyDays ? ' selected' : '') + '>' +
+                                        (d === 365 ? 'Last year' : 'Last ' + d + ' days') + '</option>';
+                                }).join('')}
+                            </select>
+                        </div>
+                        <div class="card-body" id="my-day-history-body">
+                            <p class="text-muted text-center py-3 mb-0">Loading task history...</p>
                         </div>
                     </div>
 
@@ -380,6 +397,114 @@ var _workflowViews = function () {
 
             container.innerHTML = html;
             this.bindWorkQueueActions();
+            this.loadTaskHistory();
+        },
+
+        // ---- Task history (migration 20261117090000): who closed which task, and counts per person ----
+        _historyDays: 30,
+        _historyPerson: null,
+        _historyData: null,
+
+        setHistoryDays: function (days) {
+            this._historyDays = parseInt(days, 10) || 30;
+            this.loadTaskHistory();
+        },
+
+        // Click a person to see only their tasks; click again (or "Show everyone") to clear.
+        setHistoryPerson: function (userId) {
+            this._historyPerson = (userId && userId !== this._historyPerson) ? userId : null;
+            this.renderTaskHistory();
+        },
+
+        loadTaskHistory: async function () {
+            var body = document.getElementById('my-day-history-body');
+            if (!body) return;
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.callFunction) return;
+                var userId = typeof Session !== 'undefined' && Session.getUserId ? Session.getUserId() : null;
+                var res = await dataFunctions.callFunction('get_task_history',
+                    { p_role: this.getUserRole(), p_user_id: userId, p_days: this._historyDays }, null, { useCache: false });
+                var data = res && res.data !== undefined ? res.data : res;
+                if (!data || data.success === false) throw new Error((data && data.error) || 'No data');
+                this._historyData = data;
+                this.renderTaskHistory();
+            } catch (e) {
+                console.error('Error loading task history:', e);
+                body.innerHTML = '<p class="text-muted text-center py-3 mb-0">Task history could not be loaded. Please refresh the page.</p>';
+            }
+        },
+
+        renderTaskHistory: function () {
+            var body = document.getElementById('my-day-history-body');
+            var data = this._historyData;
+            if (!body || !data) return;
+            var self = this, esc = this._esc.bind(this);
+            var people = data.people || [];
+            var items = data.items || [];
+            var pick = this._historyPerson;
+            if (pick && pick !== 'auto' && !people.some(function (p) { return p.user_id === pick; })) pick = this._historyPerson = null;
+            if (pick === 'auto' && !data.automatic) pick = this._historyPerson = null;
+
+            var sub = document.getElementById('my-day-history-sub');
+            if (sub) sub.textContent = data.sees_all ? 'Who finished which task, for everyone.' : 'The tasks you finished.';
+
+            var total = items.length;
+            var tally = '<div class="table-responsive"><table class="table table-sm align-middle mb-3 my-day-history-tally">' +
+                '<thead><tr><th>Person</th><th>Role</th><th class="text-end">Done</th><th class="text-end">Dismissed</th>' +
+                '<th class="text-end">Waiting now</th><th>Last one</th></tr></thead><tbody>' +
+                people.map(function (p) {
+                    var on = pick === p.user_id;
+                    return '<tr class="' + (data.sees_all ? 'my-day-history-person' : '') + (on ? ' table-active' : '') + '"' +
+                        (data.sees_all ? ' role="button" tabindex="0" title="Show only ' + esc(p.name) + '\'s tasks"' +
+                            ' onclick="workflowViews.setHistoryPerson(\'' + esc(p.user_id) + '\')"' +
+                            ' onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();workflowViews.setHistoryPerson(\'' + esc(p.user_id) + '\')}"' : '') + '>' +
+                        '<td class="fw-semibold">' + esc(p.name) + '</td>' +
+                        '<td class="text-muted small">' + esc(p.role) + '</td>' +
+                        '<td class="text-end fw-semibold">' + esc(p.done) + '</td>' +
+                        '<td class="text-end">' + esc(p.dismissed) + '</td>' +
+                        '<td class="text-end">' + (p.open_now ? '<span class="badge rounded-pill bg-danger">' + esc(p.open_now) + '</span>' : '0') + '</td>' +
+                        '<td class="small text-muted">' + (p.last_at ? esc(self._fmtWhen(p.last_at)) : '-') + '</td></tr>';
+                }).join('') +
+                (data.sees_all && data.automatic ? '<tr class="text-muted' + (pick === 'auto' ? ' table-active' : '') + ' my-day-history-person" role="button" tabindex="0"' +
+                    ' title="Closed by the system when the work was done somewhere else"' +
+                    ' onclick="workflowViews.setHistoryPerson(\'auto\')"' +
+                    ' onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();workflowViews.setHistoryPerson(\'auto\')}">' +
+                    '<td class="fst-italic">Closed automatically</td><td class="small">System</td>' +
+                    '<td class="text-end">' + esc(data.automatic) + '</td><td class="text-end">-</td><td class="text-end">-</td><td></td></tr>' : '') +
+                '</tbody></table></div>' +
+                '<p class="small text-muted mb-3">Done and Dismissed count the last ' + esc(data.days) + ' days. ' +
+                'Waiting now is what is open for that person\'s role today (tasks belong to a role, so everyone in the role shares them).' +
+                (data.sees_all ? ' Click a person to see only their tasks.' : '') + '</p>';
+
+            var shown = items.filter(function (it) {
+                if (!pick) return true;
+                return pick === 'auto' ? !it.by_user_id : it.by_user_id === pick;
+            });
+            var who = pick === 'auto' ? 'Closed automatically'
+                : (people.filter(function (p) { return p.user_id === pick; })[0] || {}).name;
+
+            var log = '<div class="d-flex align-items-center gap-2 mb-2"><h6 class="mb-0">' +
+                (pick ? esc(who) + ' · ' + shown.length + ' task' + (shown.length === 1 ? '' : 's') : 'Log') + '</h6>' +
+                (pick ? '<button type="button" class="btn btn-sm btn-link p-0 ms-1" onclick="workflowViews.setHistoryPerson(null)">Show everyone</button>' : '') +
+                '</div>';
+            if (!shown.length) {
+                log += '<p class="text-muted text-center py-3 mb-0">No finished tasks in this period.</p>';
+            } else {
+                log += '<ul class="list-group list-group-flush my-day-history-log">' + shown.map(function (it) {
+                    var label = it.kind ? (self._KIND_LABELS[it.kind] || it.kind) : 'Task';
+                    var how = it.status === 'dismissed'
+                        ? '<span class="badge bg-secondary-subtle text-dark border">Dismissed</span>'
+                        : '<span class="badge bg-success-subtle text-dark border">Done</span>';
+                    var by = it.by_user_id ? esc(it.by_name || 'Unknown user') : '<span class="fst-italic text-muted">Closed automatically</span>';
+                    return '<li class="list-group-item px-0 d-flex flex-wrap gap-2 align-items-start">' +
+                        '<div class="my-day-history-when small text-muted">' + esc(self._fmtWhen(it.completed_at)) + '</div>' +
+                        '<div class="flex-grow-1"><div class="small text-muted">' + esc(label) + '</div>' +
+                        '<div class="fw-semibold">' + esc(it.title || it.description || '') + '</div></div>' +
+                        '<div class="text-end small">' + how + '<div>' + by + '</div></div></li>';
+                }).join('') + '</ul>' +
+                (total >= 200 ? '<p class="small text-muted mt-2 mb-0">Showing the latest 200. Pick a shorter period to see further back in detail.</p>' : '');
+            }
+            body.innerHTML = tally + log;
         },
 
         /**
