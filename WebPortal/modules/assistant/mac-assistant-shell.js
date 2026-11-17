@@ -23,30 +23,44 @@
   // modal-grower-create-kernel-batch) and "How do I dispatch kernel to a
   // customer?" (ties kernel-dispatch-grid vs its own basket dialog) - if you
   // add new examples, re-check them the same way before shipping.
+  // 17 Nov 2026: re-checked against the rewritten guide with assistant_kb_search on dev; each
+  // example's top hit is the right section by a clear margin. "How do I upload a document?" and
+  // "How do I open Quality Assurance?" were dropped (both screens left the menu on 6 Nov), and
+  // "check stock on hand" now says kernel (unqualified, the oil Stock on Hand section won).
   var DEFAULT_EXAMPLES = [
     'Where do I create a kernel batch from a grower delivery?',
     'How do I start kernel production?',
-    'How do I check stock on hand?',
-    'How do I upload a document?',
-    'How do I use My Day?',
-    'How do I open Quality Assurance?'
+    'How do I check kernel stock on hand?',
+    'How do I set a low stock alert?',
+    'How do I move raw material bags to production?',
+    'How do I use My Day?'
   ];
   var WELCOME_COPY =
     "Hi, I'm Mac! Ask me anything about the portal and I'll point you in the right direction.";
   var ROUTE_LABELS = {
     dashboard: 'Dashboard',
     'my-day': 'My Day',
-    'crm-grid': 'CRM',
-    'grower-intake-grid': 'Receiving',
-    'kernel-production-grid': 'Production',
+    'kernel-dashboard': 'Kernel Dashboard',
+    'oil-dashboard': 'Oil Dashboard',
+    'batch-journey': 'Find a batch',
+    'crm-grid': 'Contacts',
+    'crm-whatsapp-grid': 'WhatsApp & Chat',
+    'grower-intake-grid': 'Kernel Receiving',
+    'nis-storage': 'Silo Holding',
     'silo-allocation-grid': 'Silo Holding',
+    'kernel-production-grid': 'Kernel Production',
+    'stock-management-kernel': 'Kernel Stock on Hand',
+    'kernel-dispatch-grid': 'Kernel Dispatch and Sales',
+    'kernel-pipeline-settings': 'Kernel Pipeline Settings',
+    'supplier-intake-grid': 'Oil Receiving',
+    'oil-raw-materials': 'Raw Materials',
     'oil-production-grid': 'Oil Production',
-    'stock-management-grid': 'Stock',
-    'quality-assurance-grid': 'Quality Assurance',
-    'kernel-dispatch-grid': 'Dispatch and Sales',
-    'financial-management-grid': 'Financial',
-    'document-management-grid': 'Documents',
-    'users-grid': 'Users'
+    'stock-management-oil': 'Oil Stock on Hand',
+    'oil-dispatch-grid': 'Oil Dispatch and Sales',
+    'oil-production-forecast-grid': 'Oil forecast',
+    'kernel-production-forecast-grid': 'Kernel forecast',
+    'financial-management-grid': 'Financial Management',
+    'admin-grid': 'User & access'
   };
 
   var transcript = [];
