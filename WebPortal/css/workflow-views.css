@@ -214,3 +214,9 @@
 .wv-price-wrap { display: inline-flex; align-items: center; gap: 0.35rem; }
 .wv-price-wrap .wv-price { width: 8rem; min-height: 44px; }
 .wv-approve-net { font-size: 1rem; }
+
+/* My Day task history (migration 20261117090000) */
+.my-day-history-person { cursor: pointer; }
+.my-day-history-person:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: -2px; }
+.my-day-history-when { min-width: 6.5rem; padding-top: 0.15rem; }
+.my-day-history-log { max-height: 28rem; overflow-y: auto; }
