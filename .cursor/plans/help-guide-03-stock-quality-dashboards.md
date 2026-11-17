@@ -20,7 +20,7 @@ further examples of the standard, and do not edit them.
 
 ## What to model it on
 
-`<section id="silo-allocation-grid">` at `WebPortal/help/index.html:1044` was written by hand
+`<section id="silo-allocation-grid">` at `WebPortal/help/index.html:1433` (search for the id if lines have moved again) was written by hand
 on 13 Nov 2026 from `WebPortal/modules/silo-allocation/js/silo_allocation_grid.js`. Use it as
 the template for tone, depth and markup. Every button name in it is copied from the code, and
 its "Fix a mistake" part lists each undo option with the limits the database enforces. Write
