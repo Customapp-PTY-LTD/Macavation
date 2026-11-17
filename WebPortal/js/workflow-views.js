@@ -313,17 +313,7 @@ var _workflowViews = function () {
             // Tasks first and full width: they are what the person has to act on (Henry, 27 Oct 2026).
             const html = `
                 <div class="my-day-dashboard">
-                    <div class="card mb-4 my-day-tasks-card${openCount ? ' has-tasks' : ''}">
-                        <div class="card-header d-flex flex-wrap align-items-center gap-2">
-                            <h4 class="mb-0"><i class="fas fa-list-check me-2"></i>Your tasks</h4>${countPill}
-                            <span class="small text-muted ms-auto">${this.getUserRole() && this.getUserRole() !== 'super_user' && !this._seesAllTasks ? 'For the ' + this._esc(this.getUserRole()) + ' role. ' : ''}Things waiting for you to do. Each new one also shows in the bell.</span>
-                        </div>
-                        <div class="card-body">
-                            ${this.renderWorkflowTasks(tasks)}
-                        </div>
-                    </div>
-
-                    <div class="card mb-4 my-day-history-card">
+                    <div class="card mb-4 my-day-history-card${this._historyOpen ? '' : ' d-none'}" id="my-day-history-card">
                         <div class="card-header d-flex flex-wrap align-items-center gap-2">
                             <h5 class="mb-0"><i class="fas fa-clock-rotate-left me-2"></i>Task history</h5>
                             <span class="small text-muted" id="my-day-history-sub"></span>
@@ -333,9 +323,20 @@ var _workflowViews = function () {
                                         (d === 365 ? 'Last year' : 'Last ' + d + ' days') + '</option>';
                                 }).join('')}
                             </select>
+                            <button type="button" class="btn-close" aria-label="Close task history" onclick="workflowViews.toggleTaskHistory(false)"></button>
                         </div>
                         <div class="card-body" id="my-day-history-body">
                             <p class="text-muted text-center py-3 mb-0">Loading task history...</p>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4 my-day-tasks-card${openCount ? ' has-tasks' : ''}">
+                        <div class="card-header d-flex flex-wrap align-items-center gap-2">
+                            <h4 class="mb-0"><i class="fas fa-list-check me-2"></i>Your tasks</h4>${countPill}
+                            <span class="small text-muted ms-auto">${this.getUserRole() && this.getUserRole() !== 'super_user' && !this._seesAllTasks ? 'For the ' + this._esc(this.getUserRole()) + ' role. ' : ''}Things waiting for you to do. Each new one also shows in the bell.</span>
+                        </div>
+                        <div class="card-body">
+                            ${this.renderWorkflowTasks(tasks)}
                         </div>
                     </div>
 
@@ -397,10 +398,33 @@ var _workflowViews = function () {
 
             container.innerHTML = html;
             this.bindWorkQueueActions();
-            this.loadTaskHistory();
+            this._syncHistoryButton();
+            if (this._historyOpen) this.loadTaskHistory();
         },
 
         // ---- Task history (migration 20261117090000): who closed which task, and counts per person ----
+        // Hidden behind the "Task history" button at the top of My Day (Henry, 17 Nov 2026); only
+        // fetched while open. Stays open across the 5-minute My Day refresh.
+        _historyOpen: false,
+
+        toggleTaskHistory: function (open) {
+            this._historyOpen = typeof open === 'boolean' ? open : !this._historyOpen;
+            var card = document.getElementById('my-day-history-card');
+            if (card) card.classList.toggle('d-none', !this._historyOpen);
+            this._syncHistoryButton();
+            if (this._historyOpen) {
+                this.loadTaskHistory();
+                if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        },
+
+        _syncHistoryButton: function () {
+            var btn = document.getElementById('my-day-history-btn');
+            if (!btn) return;
+            btn.setAttribute('aria-expanded', this._historyOpen ? 'true' : 'false');
+            btn.classList.toggle('active', !!this._historyOpen);
+        },
+
         _historyDays: 30,
         _historyPerson: null,
         _historyData: null,
