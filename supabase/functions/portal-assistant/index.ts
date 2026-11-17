@@ -125,13 +125,10 @@ const FAST_PATH_DISABLED = (Deno.env.get("ASSISTANT_FAST_PATH_DISABLED") || "").
 // Production" module for a generic production question) - never let one of
 // these win the fast path; fall through to the LLM instead, which still sees
 // them via buildSystemPrompt(hits) and can cite whichever is actually right.
-const FAST_PATH_EXCLUDED_ANCHORS = new Set([
-  "kernel-production-forecast-grid",
-  "messaging-compose-grid",
-  "oil-production-forecast-grid",
-  "report-targets-grid",
-  "stock-alert-rules-grid",
-]);
+// Nov 2026: the guide rewrite replaced all five former entries (kernel and oil forecast, targets,
+// stock alerts, messaging) with real sections, so none is excluded now. Add an anchor back here
+// only if its section turns into boilerplate again.
+const FAST_PATH_EXCLUDED_ANCHORS = new Set<string>([]);
 
 const ASSISTANT_ACTIONS = new Set([
   "assistant_chat",
