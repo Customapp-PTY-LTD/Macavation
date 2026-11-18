@@ -83,21 +83,17 @@
                                 <div class="text-danger small d-none" id="oilDspTransportAddError"></div>
                             </div>
                             <div class="col-md-4">
-                                <label for="oilDispatchTransportPayer" class="form-label">Who pays for transport</label>
-                                <select class="form-select js-transport-cost" id="oilDispatchTransportPayer">
-                                    <option value="">Not known yet</option>
-                                    <option value="macavation">Macavation</option>
-                                    <option value="customer">Customer</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
                                 <label for="oilDispatchTransportCost" class="form-label">Transport cost (excl. VAT)</label>
                                 <div class="input-group">
                                     <span class="input-group-text">R</span>
                                     <input type="number" class="form-control js-transport-cost" id="oilDispatchTransportCost" min="0" step="0.01" inputmode="decimal" placeholder="0.00">
                                     <button type="button" class="btn btn-outline-primary d-none" id="oilDispatchTransportSaveBtn">Save</button>
                                 </div>
-                                <small class="text-muted">Can be added after dispatch. Shows in the monthly report.</small>
+                                <div class="form-check mt-1">
+                                    <input class="form-check-input js-transport-cost" type="checkbox" id="oilDispatchCustomerPays">
+                                    <label class="form-check-label" for="oilDispatchCustomerPays">Customer pays transport (no cost to us)</label>
+                                </div>
+                                <small class="text-muted">Can be added after dispatch. A sales cost in the monthly report.</small>
                             </div>
                             <div class="col-md-4">
                                 <label for="oilDispatchDeliveryNote" class="form-label">Delivery note / Invoice number</label>
