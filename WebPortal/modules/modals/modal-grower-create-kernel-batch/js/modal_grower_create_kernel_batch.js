@@ -65,6 +65,10 @@ var _modal_grower_create_kernel_batch = (function () {
     /** Read the proof of delivery: one read at a time; _podSeq drops a reply that arrives after the modal reopened. */
     var _podBusy = false;
     var _podSeq = 0;
+    /** Opened from "POD received on WhatsApp": that inbox row is closed as booked when the delivery saves. */
+    var _pendingPodInboxId = null;
+    /** The pipeline config load started by show(), so a WhatsApp POD can wait for the transporter lists. */
+    var _configReady = Promise.resolve();
 
     function esc(v) {
         if (typeof _common !== 'undefined' && _common.escapeHtml) return _common.escapeHtml(v == null ? '' : String(v));
@@ -152,6 +156,7 @@ var _modal_grower_create_kernel_batch = (function () {
                 modalEl.addEventListener('hidden.bs.modal', function () {
                     _pendingProcurementId = null;
                     _pendingGrowerNameOverride = null;
+                    _pendingPodInboxId = null;
                     api._resetBookInUi();
                 });
                 var splitAdd = document.getElementById('intakeSplitAddBtn');
@@ -311,6 +316,35 @@ var _modal_grower_create_kernel_batch = (function () {
                 el.classList.remove('nd-pod-check');
                 el.classList.remove('nd-pod-filled');
             });
+        },
+
+        /**
+         * Book in from a POD sent on WhatsApp (Grower Intake "POD received on WhatsApp").
+         * item = a get_intake_pod_inbox row. truck/areas = a matching Expected truck, when there is one.
+         * The form opens as usual, then fills from the reading the WhatsApp line already made, with
+         * the photo already in Supporting Documents. Nothing is read again (no second AI call).
+         */
+        showFromPodInbox: async function (item, truck, areas) {
+            if (!item) return;
+            if (truck) api.showFromProcurement(truck, areas);
+            else await api.show();
+            if (!byId('intakePodResult')) return;
+            _pendingPodInboxId = item.id || null;
+            var seq = _podSeq;
+            await _configReady;
+            await api._podSupplierNames();
+            if (seq !== _podSeq) return; // closed / reopened meanwhile
+            if (item.file_link && /^https?:\/\//i.test(item.file_link)) {
+                _docs.push({ file_id: item.file_id || item.file_link, file_link: item.file_link, name: item.file_name || 'POD from WhatsApp' });
+                api._renderDocs();
+            }
+            var html = api._applyPod(item.reading || {});
+            var who = item.sent_by_name ? ' by ' + esc(item.sent_by_name) : '';
+            var res = byId('intakePodResult');
+            if (res) {
+                res.innerHTML = '<div class="text-muted mb-1"><i class="fab fa-whatsapp me-1" aria-hidden="true"></i>Sent on WhatsApp' + who + '.</div>' + html;
+                res.style.display = '';
+            }
         },
 
         _podBusyUi: function (busy) {
@@ -1221,7 +1255,7 @@ var _modal_grower_create_kernel_batch = (function () {
             api._renderBags();
             api._renderCollectionPoints();
             api._applyBatchNumberLock();
-            api._loadConfig().then(function () { api._renderBags(); });
+            _configReady = api._loadConfig().then(function () { api._renderBags(); });
 
             api.populateSupplierDropdown(opts.supplierId);
 
@@ -1307,6 +1341,8 @@ var _modal_grower_create_kernel_batch = (function () {
 
         save: async function () {
             if (!canCreateIntakeBatch()) return;
+            // Captured now: hiding the modal (below) clears it on hidden.bs.modal.
+            var podInboxId = _pendingPodInboxId;
             var batchNumber = macBatchNo.toStored((byId('intakeBatchNumber') && byId('intakeBatchNumber').value || '').trim());
             var receivedDate = byId('intakeBatchReceivedDate') && byId('intakeBatchReceivedDate').value;
             var wetNis = numOrNull(byId('intakeBatchWetNis') && byId('intakeBatchWetNis').value);
@@ -1446,6 +1482,14 @@ var _modal_grower_create_kernel_batch = (function () {
                     if (inst) inst.hide();
                 } else if (typeof $ !== 'undefined' && $.fn.modal) {
                     $('#' + CONTAINER_ID).modal('hide');
+                }
+
+                // Booked from a POD sent on WhatsApp: take it off the "POD received on WhatsApp" list.
+                if (podInboxId && typeof dataFunctions.closeIntakePodInbox === 'function') {
+                    _pendingPodInboxId = null;
+                    try { await dataFunctions.closeIntakePodInbox(podInboxId, 'booked', batchUuid); }
+                    catch (podErr) { console.warn('[New Delivery] Could not close the WhatsApp POD:', podErr); }
+                    document.dispatchEvent(new CustomEvent('mac:pod-inbox-changed'));
                 }
 
                 // If booked in from a planned truck, mark the procurement as converted
