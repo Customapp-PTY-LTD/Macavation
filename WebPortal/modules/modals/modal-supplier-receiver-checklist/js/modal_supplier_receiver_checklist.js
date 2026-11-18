@@ -367,11 +367,109 @@ var _modal_supplier_receiver_checklist = (function () {
         return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
     }
 
+    // ---- Transport: transporter + cost, saved ONCE per delivery (oil_delivery_transport, keyed by
+    // delivery_group_id) because a delivery is one oil row per bag. Read by the monthly report. ----
+    var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    var _transporters = [];
+    var _deliveryGroupId = null;
+    var _savedTransport = null;   // what get_oil_delivery_transport returned on edit (keeps a retired transporter's name)
+
+    function fillTransporterSelect(selId, selName) {
+        var sel = document.getElementById('srcTransporter');
+        if (!sel) return;
+        sel.innerHTML = '';
+        var blank = document.createElement('option');
+        blank.value = ''; blank.textContent = 'Select transporter';
+        sel.appendChild(blank);
+        var found = false;
+        _transporters.forEach(function (t) {
+            var o = document.createElement('option');
+            o.value = String(t.id); o.textContent = String(t.name);
+            if (selId && String(t.id) === String(selId)) { o.selected = true; found = true; }
+            sel.appendChild(o);
+        });
+        if (!found && selName) {   // retired or renamed transporter: keep showing the saved name
+            var keep = document.createElement('option');
+            keep.value = '__saved__'; keep.textContent = String(selName); keep.selected = true;
+            sel.appendChild(keep);
+        }
+    }
+
+    /** Never rejects: a failed list just leaves the select empty and the delivery still saves. */
+    async function loadTransporters() {
+        _transporters = [];
+        try {
+            var cfg = (typeof dataFunctions !== 'undefined' && dataFunctions.getKernelPipelineConfig)
+                ? await dataFunctions.getKernelPipelineConfig() : null;
+            if (cfg && Array.isArray(cfg.transporters)) {
+                _transporters = cfg.transporters.filter(function (t) { return t && t.id && t.is_active !== false; });
+            }
+        } catch (e) { console.warn('[Receiver checklist] transporter list not available', e); }
+    }
+
+    function setTransportEnabled(on) {
+        ['srcTransporter', 'srcTransportCost'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.disabled = !on;
+        });
+        var note = document.getElementById('srcTransportLegacyNote');
+        if (note) note.classList.toggle('d-none', on);
+    }
+
+    async function loadTransportFor(groupId) {
+        _savedTransport = null;
+        var costEl = document.getElementById('srcTransportCost');
+        if (costEl) costEl.value = '';
+        await loadTransporters();
+        if (groupId && UUID_RE.test(String(groupId))) {
+            setTransportEnabled(true);
+            try { _savedTransport = await dataFunctions.getOilDeliveryTransport(groupId); }
+            catch (e) { console.warn('[Receiver checklist] could not load transport', e); }
+        } else {
+            setTransportEnabled(!_editingBatchId);   // new delivery: id is made on save; old bag without one: locked
+        }
+        var t = _savedTransport || {};
+        fillTransporterSelect(t.transporter_id || null, t.transporter_name || null);
+        if (costEl && t.cost_zar != null) costEl.value = Number(t.cost_zar).toFixed(2);
+    }
+
+    /** { id, name, cost, costError } from the form. */
+    function readTransport() {
+        var sel = document.getElementById('srcTransporter');
+        var v = sel ? sel.value : '';
+        var id = null, name = null;
+        if (v === '__saved__' && _savedTransport) { id = _savedTransport.transporter_id || null; name = _savedTransport.transporter_name || null; }
+        else if (v) {
+            var t = _transporters.filter(function (x) { return String(x.id) === String(v); })[0];
+            if (t) { id = t.id; name = t.name; }
+        }
+        var raw = ((document.getElementById('srcTransportCost') || {}).value || '').trim();
+        var cost = raw === '' ? null : Number(raw);
+        var costError = raw !== '' && (!isFinite(cost) || cost < 0);
+        return { id: id, name: name, cost: costError ? null : cost, costError: costError };
+    }
+
+    /** Returns an error text when the transport could not be saved, else null. Never throws. */
+    async function saveTransport(groupId, tr) {
+        if (!groupId || !UUID_RE.test(String(groupId))) return null;
+        // A new delivery with nothing entered needs no row; an edit always saves so a cleared value sticks.
+        if (!_editingBatchId && !tr.id && !tr.name && tr.cost == null) return null;
+        try {
+            var res = await dataFunctions.setOilDeliveryTransport(groupId, tr.id, tr.name, tr.cost);
+            if (res && res.success === false) return res.error || 'Transport was not saved.';
+            return null;
+        } catch (e) {
+            console.error('[Receiver checklist] transport save failed', e);
+            return (e && e.message) || 'Transport was not saved.';
+        }
+    }
+
     /** Edit: load the consignment ref and documents already saved on the bag, since the grid row does not carry them. */
     async function loadSavedExtras(oilId) {
         try {
             var row = await dataFunctions.getOilBatchById(oilId);
             var intake = parseIntakeObj(row && row.intake_data);
+            if (!_deliveryGroupId && intake.delivery_group_id) _deliveryGroupId = String(intake.delivery_group_id);
             var ref = document.getElementById('srcConsignmentRef');
             if (ref) ref.value = intake.consignment_ref ? String(intake.consignment_ref) : '';
             resetDocState();
@@ -814,7 +912,9 @@ var _modal_supplier_receiver_checklist = (function () {
                 syncAllChecks();
 
                 await loadSuppliers(editingBatch.supplier_id || null);
+                _deliveryGroupId = editingBatch.delivery_group_id ? String(editingBatch.delivery_group_id) : null;
                 await loadSavedExtras(editingBatch.id);
+                await loadTransportFor(_deliveryGroupId);
 
                 if (typeof $ !== 'undefined') {
                     var editManufacturedIso = getEditManufacturedIso(editingBatch);
@@ -837,6 +937,8 @@ var _modal_supplier_receiver_checklist = (function () {
                 var dateEl = document.getElementById('srcDateReceived');
                 if (dateEl) dateEl.value = fromISO(todayISO);
                 await loadSuppliers(null);
+                _deliveryGroupId = null;
+                await loadTransportFor(null);
                 ensureAtLeastOneRow();
                 applySuggestedBatch(false); // not awaited: a failed suggestion must never block the delivery
             }
@@ -1019,6 +1121,8 @@ var _modal_supplier_receiver_checklist = (function () {
             });
             if (pendingUploads > 0) missing.push('Wait for the photo and document uploads to finish');
             if (hasFailedDocs()) missing.push('A document did not upload: remove it and attach it again');
+            var transport = readTransport();
+            if (transport.costError) missing.push('Transport cost must be a Rand amount of 0 or more, or left blank');
             if (missing.length) { showMessage(missing); return; }
             showMessage(null);
 
@@ -1048,7 +1152,7 @@ var _modal_supplier_receiver_checklist = (function () {
                         best_before_date: r.best_before_date,
                         // Reference is no longer on the form; keep whatever an older batch already had.
                         reference: (_editingBatchSnapshot && _editingBatchSnapshot.reference) || null,
-                        delivery_group_id: (_editingBatchSnapshot && _editingBatchSnapshot.delivery_group_id) || null,
+                        delivery_group_id: (_editingBatchSnapshot && _editingBatchSnapshot.delivery_group_id) || _deliveryGroupId || null,
                         item_comments: checkExtras.item_comments,
                         item_photos: checkExtras.item_photos,
                         description: null,
@@ -1075,7 +1179,11 @@ var _modal_supplier_receiver_checklist = (function () {
                     if (res && res.success === false) {
                         throw new Error(res.error || res.message || 'Failed to update batch');
                     }
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Saved', text: 'Batch updated.', timer: 2500, showConfirmButton: false });
+                    var trErrEdit = await saveTransport(payload.delivery_group_id, transport);
+                    if (typeof Swal !== 'undefined') {
+                        if (trErrEdit) Swal.fire({ icon: 'warning', title: 'Saved, but not the transport', text: 'Batch updated. Transport: ' + trErrEdit });
+                        else Swal.fire({ icon: 'success', title: 'Saved', text: 'Batch updated.', timer: 2500, showConfirmButton: false });
+                    }
                 } else {
                     if (typeof dataFunctions === 'undefined' || !dataFunctions.createSupplierIntakeBatch) {
                         if (typeof Swal !== 'undefined') Swal.fire('Error', 'Create function not available. Please refresh.', 'error');
@@ -1135,8 +1243,10 @@ var _modal_supplier_receiver_checklist = (function () {
                     if (held) parts.push(held + ' waiting for an exec decision on FFA');
                     if (waiting) parts.push(waiting + ' in Awaiting tests');
                     var savedText = 'Delivery saved: ' + created + ' bag' + (created === 1 ? '' : 's') + ' (' + parts.join(', ') + ').';
+                    var trErr = created ? await saveTransport(deliveryGroupId, transport) : null;
                     if (typeof Swal !== 'undefined') {
-                        if (ffaFailed.length) Swal.fire({ icon: 'warning', title: 'Saved, but some FFA results were not', text: savedText + ' Record FFA again for: ' + ffaFailed.join(', ') + '.' });
+                        if (trErr) Swal.fire({ icon: 'warning', title: 'Saved, but not the transport', text: savedText + ' Transport: ' + trErr + ' Open a bag of this delivery with Edit to enter it again.' });
+                        else if (ffaFailed.length) Swal.fire({ icon: 'warning', title: 'Saved, but some FFA results were not', text: savedText + ' Record FFA again for: ' + ffaFailed.join(', ') + '.' });
                         else Swal.fire({ icon: 'success', title: 'Created', text: savedText, timer: held ? 4000 : 2500, showConfirmButton: false });
                     }
                 }

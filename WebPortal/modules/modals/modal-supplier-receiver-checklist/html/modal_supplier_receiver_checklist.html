@@ -58,6 +58,21 @@
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-6">
+                                <label for="srcTransporter" class="form-label">Transporter</label>
+                                <select class="form-select" id="srcTransporter"><option value="">Select transporter</option></select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="srcTransportCost" class="form-label">Transport cost (excl. VAT)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R</span>
+                                    <input type="number" class="form-control" id="srcTransportCost" min="0" step="0.01" inputmode="decimal" placeholder="0.00">
+                                </div>
+                                <small class="text-muted">For the whole delivery. Shows in the monthly report.</small>
+                            </div>
+                            <div class="col-12 d-none" id="srcTransportLegacyNote">
+                                <small class="text-muted">This is an older delivery saved without a delivery id, so transport cannot be added to it.</small>
+                            </div>
+                            <div class="col-md-6">
                                 <label for="srcConsignmentRef" class="form-label">Consignment reference</label>
                                 <input type="text" class="form-control" id="srcConsignmentRef" autocomplete="off">
                                 <small class="text-muted">From the transporter's paperwork</small>

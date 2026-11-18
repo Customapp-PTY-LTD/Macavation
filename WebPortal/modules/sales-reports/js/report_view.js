@@ -328,6 +328,72 @@ var _reportView = (function () {
     // Page.
     // ------------------------------------------------------------------
 
+    // ------------------------------------------------------------------
+    // Monthly: Transport costs (snapshot.transport from get_report_transport, migration 20261118090000).
+    // Macavation-paid transport only, R excl. VAT, by transporter, split into coming in / going out.
+    // R/kg and R/pallet use only the trips that have a cost, so a missing cost never makes them look cheap.
+    // ------------------------------------------------------------------
+    var TR_STREAM = { kernel: 'Kernel', oil: 'Oil' };
+    var TR_WHAT = { 'in:kernel': 'kernel deliveries in', 'in:oil': 'oil deliveries in',
+        'out:kernel': 'kernel dispatches out', 'out:oil': 'oil dispatches out' };
+
+    function perUnit(cost, qty) {
+        return (U.isNum(cost) && U.isNum(qty) && Number(qty) > 0) ? 'R ' + _common.formatKg(Number(cost) / Number(qty), 2) : U.DASH;
+    }
+
+    function tripsText(trips, priced) {
+        trips = U.num0(trips); priced = U.num0(priced);
+        return priced === trips ? U.intF(trips) : U.intF(trips) + ' (' + U.intF(priced) + ' with a cost)';
+    }
+
+    function transportTable(id, rows, tot, emptyText) {
+        var body = rows.map(function (r) {
+            return [(TR_STREAM[r.stream] || r.stream) + ' · ' + r.transporter, tripsText(r.trips, r.priced_trips),
+                plain2(r.kg), U.isNum(r.cost_zar) ? plain2(r.cost_zar) : 'No cost entered',
+                perUnit(r.cost_zar, r.priced_kg), perUnit(r.cost_zar, r.priced_pallets)];
+        });
+        if (!body.length) body.push([emptyText, '', '', '', '', '']);
+        var total = (tot && U.num0(tot.trips) > 0)
+            ? ['Total', tripsText(tot.trips, tot.priced_trips), plain2(tot.kg), U.isNum(tot.cost_zar) ? plain2(tot.cost_zar) : U.DASH,
+               perUnit(tot.cost_zar, tot.priced_kg), '']
+            : null;
+        return U.tableOf(id, [{ text: 'Transporter' }, { text: 'Trips' }, { text: 'Volume (kg)', num: true },
+            { text: 'Cost (R, excl. VAT)', num: true }, { text: 'R/kg', num: true }, { text: 'R/pallet', num: true }], body, total);
+    }
+
+    function transportStream(tr) {
+        var s = U.newSection('T1', null, 'Transport costs by transporter', 'Kernel and oil, coming in and going out · Rand excl. VAT');
+        if (!tr || tr.success !== true) {
+            U.notice(s, 'Transport costs are not available for this month' + (tr && tr.error ? ': ' + tr.error : '.'));
+            return { key: 'transport', title: 'Transport costs', sub: 'What Macavation paid to move nuts, kernel and oil', sections: [s] };
+        }
+        var rows = Array.isArray(tr.rows) ? tr.rows : [];
+        var tot = tr.totals || {}, all = tot.all || {}, prev = tr.previous || {};
+        var bits = ['Total this month ' + (U.isNum(all.cost_zar) ? U.zarF(all.cost_zar) : 'R 0')];
+        bits.push('coming in ' + U.zarF(U.num0((tot['in'] || {}).cost_zar)) + ', going out ' + U.zarF(U.num0((tot.out || {}).cost_zar)));
+        bits.push('last month ' + (U.isNum(prev.cost_zar) ? U.zarF(prev.cost_zar) : 'no costs entered'));
+        s.source = bits.join(' · ') + '.';
+
+        var missing = (Array.isArray(tr.missing) ? tr.missing : []).map(function (m) {
+            var what = TR_WHAT[m.direction + ':' + m.stream] || (m.stream + ' ' + m.direction);
+            return U.intF(m.trips) + ' ' + what;
+        });
+        if (missing.length) {
+            U.notice(s, 'No transport cost entered yet for ' + missing.join(', ') + '. The totals leave these out until someone enters them.');
+        }
+
+        var inRows = rows.filter(function (r) { return r.direction === 'in'; });
+        var outRows = rows.filter(function (r) { return r.direction === 'out'; });
+        var outTitle = 'Going out (dispatches Macavation pays for)';
+        if (U.num0(tr.customer_paid_trips) > 0) outTitle += ' · ' + U.intF(tr.customer_paid_trips) + ' more paid by the customer';
+        s.grids = [
+            U.grid(1, [U.card('Coming in (grower and supplier deliveries)', null, transportTable('TT1', inRows, tot['in'], 'No deliveries this month'))]),
+            U.grid(1, [U.card(outTitle, null, transportTable('TT2', outRows, tot.out, 'No dispatches with Macavation-paid transport this month'))])
+        ];
+        return { key: 'transport', title: 'Transport costs', sub: 'What Macavation paid to move nuts, kernel and oil',
+            jump: [['T1', 'By transporter']], sections: [s] };
+    }
+
     // The section models for a payload: {top, sections|null, up} - painted on screen by build() and
     // drawn into the PDF by ReportFiguresPdf (so the two never disagree). null when no figures yet.
     function composeParts(payload) {
@@ -359,9 +425,12 @@ var _reportView = (function () {
             headK.grids = [U.grid(2, [U.card('NIS cracked by day (kg)', wc.CW1), U.card('Kernel sales by customer (R)', wc.CW2)])];
             headO.grids = [U.grid(2, [U.card('Oil production by day (kg)', wc.CW3), U.card('Oil sales by product (R)', wc.CW4)])];
         }
+        var sections = monthly ? RF.model(snap.figures || {}, { mode: 'month', from: from, to: to, oilFilter: 'all' }) : null;
+        // Reports published before 18 Nov 2026 have no transport block: leave the section out rather than show zeros.
+        if (sections && snap.transport) sections.streams.push(transportStream(snap.transport));
         return {
             top: { streams: streams },
-            sections: monthly ? RF.model(snap.figures || {}, { mode: 'month', from: from, to: to, oilFilter: 'all' }) : null,
+            sections: sections,
             up: { streams: [{ key: 'upcoming', title: null, sections: [comingUpSection(snap.coming_up, word)] }] }
         };
     }

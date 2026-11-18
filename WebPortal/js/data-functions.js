@@ -6031,6 +6031,33 @@ var _dataFunctions = function () {
             return result;
         },
 
+        // Transport costs for the monthly report's Transport costs section (migration 20261118090000).
+        /** Oil dispatch: { transport_payer: 'macavation'|'customer'|null, transport_cost_zar } or null. */
+        getOilDispatchTransport: async function (orderId, token = null) {
+            const res = this._kpUnwrap(await this.callFunction('get_oil_dispatch_transport', { p_order_id: orderId }, token, { useCache: false }));
+            return res && res.success !== false ? (res.transport || null) : null;
+        },
+        /** Cost is R excl. VAT; the server drops it when the customer pays. */
+        setOilDispatchTransport: async function (orderId, payer, costZar, token = null) {
+            return this._kpUnwrap(await this.callFunction('set_oil_dispatch_transport', {
+                p_order_id: orderId, p_transport_payer: payer || null,
+                p_transport_cost_zar: (costZar === null || costZar === undefined || costZar === '') ? null : Number(costZar)
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
+        /** Oil New delivery: { transporter_id, transporter_name, cost_zar } for a delivery_group_id, or null. */
+        getOilDeliveryTransport: async function (deliveryGroupId, token = null) {
+            const res = this._kpUnwrap(await this.callFunction('get_oil_delivery_transport', { p_delivery_group_id: deliveryGroupId }, token, { useCache: false }));
+            return res && res.success !== false ? (res.transport || null) : null;
+        },
+        setOilDeliveryTransport: async function (deliveryGroupId, transporterId, transporterName, costZar, token = null) {
+            return this._kpUnwrap(await this.callFunction('set_oil_delivery_transport', {
+                p_delivery_group_id: deliveryGroupId, p_transporter_id: transporterId || null,
+                p_transporter_name: transporterName || null,
+                p_cost_zar: (costZar === null || costZar === undefined || costZar === '') ? null : Number(costZar),
+                p_actor_user_id: this.getCurrentUserId() || null
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
+
         // Stock Take Functions
         createStockTake: async function (stockTakeData, token = null) {
             return await this.callFunction('create_stock_take', stockTakeData, token, { useCache: false });
