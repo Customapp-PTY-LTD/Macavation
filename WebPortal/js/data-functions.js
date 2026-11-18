@@ -6044,18 +6044,24 @@ var _dataFunctions = function () {
                 p_transport_cost_zar: (costZar === null || costZar === undefined || costZar === '') ? null : Number(costZar)
             }, token, { useCache: false, preserveNullParams: true }));
         },
-        /** Oil New delivery: { transporter_id, transporter_name, cost_zar } for a delivery_group_id, or null. */
+        /** Oil New delivery: { transporter_id, transporter_name, cost_zar, transport_payer: 'macavation'|'supplier' } or null. */
         getOilDeliveryTransport: async function (deliveryGroupId, token = null) {
             const res = this._kpUnwrap(await this.callFunction('get_oil_delivery_transport', { p_delivery_group_id: deliveryGroupId }, token, { useCache: false }));
             return res && res.success !== false ? (res.transport || null) : null;
         },
-        setOilDeliveryTransport: async function (deliveryGroupId, transporterId, transporterName, costZar, token = null) {
-            return this._kpUnwrap(await this.callFunction('set_oil_delivery_transport', {
+        /** supplierPays = the "Supplier pays transport" tickbox; the server then keeps no cost. */
+        setOilDeliveryTransport: async function (deliveryGroupId, transporterId, transporterName, costZar, supplierPays = false, token = null) {
+            return this._kpUnwrap(await this.callFunction('save_oil_delivery_transport', {
                 p_delivery_group_id: deliveryGroupId, p_transporter_id: transporterId || null,
                 p_transporter_name: transporterName || null,
-                p_cost_zar: (costZar === null || costZar === undefined || costZar === '') ? null : Number(costZar),
+                p_cost_zar: (supplierPays || costZar === null || costZar === undefined || costZar === '') ? null : Number(costZar),
+                p_supplier_pays: !!supplierPays,
                 p_actor_user_id: this.getCurrentUserId() || null
             }, token, { useCache: false, preserveNullParams: true }));
+        },
+        /** Kernel delivery rate task: the grower/supplier paid the transport, so no rate is needed. */
+        setTransportPaidBySupplier: async function (kernelId, token = null) {
+            return this._kpUnwrap(await this.callFunction('set_transport_paid_by_supplier', { p_kernel_id: kernelId }, token, { useCache: false }));
         },
 
         // Stock Take Functions

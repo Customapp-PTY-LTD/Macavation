@@ -407,11 +407,28 @@ var _modal_supplier_receiver_checklist = (function () {
         } catch (e) { console.warn('[Receiver checklist] transporter list not available', e); }
     }
 
+    var _transportEnabled = true;
+
+    function supplierPaysTicked() {
+        var cb = document.getElementById('srcSupplierPaysTransport');
+        return !!(cb && cb.checked);
+    }
+
+    /** Ticking "Supplier pays transport" clears and locks the cost: their transport is not our cost. */
+    function syncSupplierPays() {
+        var costEl = document.getElementById('srcTransportCost');
+        if (!costEl) return;
+        if (supplierPaysTicked()) costEl.value = '';
+        costEl.disabled = !_transportEnabled || supplierPaysTicked();
+    }
+
     function setTransportEnabled(on) {
-        ['srcTransporter', 'srcTransportCost'].forEach(function (id) {
+        _transportEnabled = on;
+        ['srcTransporter', 'srcSupplierPaysTransport'].forEach(function (id) {
             var el = document.getElementById(id);
             if (el) el.disabled = !on;
         });
+        syncSupplierPays();
         var note = document.getElementById('srcTransportLegacyNote');
         if (note) note.classList.toggle('d-none', on);
     }
@@ -420,20 +437,25 @@ var _modal_supplier_receiver_checklist = (function () {
         _savedTransport = null;
         var costEl = document.getElementById('srcTransportCost');
         if (costEl) costEl.value = '';
+        var cb = document.getElementById('srcSupplierPaysTransport');
+        if (cb) {
+            cb.checked = false;
+            if (!cb.dataset.bound) { cb.addEventListener('change', syncSupplierPays); cb.dataset.bound = '1'; }
+        }
         await loadTransporters();
         if (groupId && UUID_RE.test(String(groupId))) {
-            setTransportEnabled(true);
             try { _savedTransport = await dataFunctions.getOilDeliveryTransport(groupId); }
             catch (e) { console.warn('[Receiver checklist] could not load transport', e); }
-        } else {
-            setTransportEnabled(!_editingBatchId);   // new delivery: id is made on save; old bag without one: locked
         }
         var t = _savedTransport || {};
         fillTransporterSelect(t.transporter_id || null, t.transporter_name || null);
+        if (cb) cb.checked = t.transport_payer === 'supplier';
         if (costEl && t.cost_zar != null) costEl.value = Number(t.cost_zar).toFixed(2);
+        // new delivery: its id is made on save; an old bag without one stays locked
+        setTransportEnabled(groupId && UUID_RE.test(String(groupId)) ? true : !_editingBatchId);
     }
 
-    /** { id, name, cost, costError } from the form. */
+    /** { id, name, cost, supplierPays, costError } from the form. */
     function readTransport() {
         var sel = document.getElementById('srcTransporter');
         var v = sel ? sel.value : '';
@@ -443,19 +465,20 @@ var _modal_supplier_receiver_checklist = (function () {
             var t = _transporters.filter(function (x) { return String(x.id) === String(v); })[0];
             if (t) { id = t.id; name = t.name; }
         }
-        var raw = ((document.getElementById('srcTransportCost') || {}).value || '').trim();
+        var supplierPays = supplierPaysTicked();
+        var raw = supplierPays ? '' : ((document.getElementById('srcTransportCost') || {}).value || '').trim();
         var cost = raw === '' ? null : Number(raw);
         var costError = raw !== '' && (!isFinite(cost) || cost < 0);
-        return { id: id, name: name, cost: costError ? null : cost, costError: costError };
+        return { id: id, name: name, cost: costError ? null : cost, supplierPays: supplierPays, costError: costError };
     }
 
     /** Returns an error text when the transport could not be saved, else null. Never throws. */
     async function saveTransport(groupId, tr) {
         if (!groupId || !UUID_RE.test(String(groupId))) return null;
         // A new delivery with nothing entered needs no row; an edit always saves so a cleared value sticks.
-        if (!_editingBatchId && !tr.id && !tr.name && tr.cost == null) return null;
+        if (!_editingBatchId && !tr.id && !tr.name && tr.cost == null && !tr.supplierPays) return null;
         try {
-            var res = await dataFunctions.setOilDeliveryTransport(groupId, tr.id, tr.name, tr.cost);
+            var res = await dataFunctions.setOilDeliveryTransport(groupId, tr.id, tr.name, tr.cost, tr.supplierPays);
             if (res && res.success === false) return res.error || 'Transport was not saved.';
             return null;
         } catch (e) {
