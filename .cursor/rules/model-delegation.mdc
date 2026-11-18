@@ -1,5 +1,5 @@
 ---
-description: Model delegation protocol - Opus 5 architects, Sonnet 5 implements from self-contained briefs, Fable only by named exception; tune effort before switching tiers; protect the prompt cache
+description: Model delegation protocol - Opus 5.5 architects, Sonnet 5.5 implements from self-contained briefs, Fable 5.2 only by named exception; tune effort before switching tiers; protect the prompt cache
 globs:
 alwaysApply: true
 ---
@@ -12,41 +12,46 @@ pinned to Sonnet in `.claude/agents/`.
 
 ## The split (applies to Cursor model choice too)
 
-- **Opus 5 (`claude-opus-5`) - the default top tier**: architecture decisions, writing
+- **Opus 5.5 (`claude-opus-5-5`) - the default top tier**: architecture decisions, writing
   briefs/specs, seam + security review, debugging weird failures, deploy go/no-go. Not typing
-  implementations. **Ask for it by name** - measured 2026-09-12, the bare `opus` alias resolves to
-  `claude-opus-4-8`, a generation behind at the same price, so selecting "opus" does not get you
-  Opus 5. Nothing watches this and it can move on any CLI bump.
-- **Fable 5.1 - named exception only**: genuinely frontier reasoning, or debugging that already
-  defeated Opus 5. $10/$50 per MTok vs Opus 5's $5/$25 (checked 2026-09-12) - 2x on output and
-  cache writes, but NOT on every line item: Fable 5.1 cache reads are $0.25/MTok against Opus 5's
-  $0.50, so on a long cache-read-heavy session its input is the cheaper one. Quote the line item,
-  not "twice the price". Reach for it by naming the reason, never by habit. If the reason is
-  "this is hard", try higher effort on Opus 5 first.
-- **Sonnet 5 - mid tier**: implementation from a self-contained brief, fan-out recon,
+  implementations. **Name the exact id in anything durable** - measured 2026-11-13 on Claude Code
+  2.1.296, the bare `opus` alias resolves to `claude-opus-5-5` (so does `sonnet` -> `claude-sonnet-5-5`),
+  but in September 2026 it lagged on `claude-opus-4-8` for weeks, which is why this rule used to say
+  to name `claude-opus-5` - advice that now pins you BEHIND the alias. Alias is fine in an
+  interactive session; re-check it on any CLI bump.
+- **Fable 5.2 (`claude-fable-5-2`) - named exception only**: genuinely frontier reasoning, or
+  debugging that already defeated Opus 5.5. $8/$40 per MTok vs Opus 5.5's $4/$20 (checked
+  2026-11-13) - 2x on input, output and cache writes, equal on cache reads ($0.20 each). The bare
+  `fable` alias still returns 5.1 ($10/$50, reads $0.25), dearer everywhere, so name 5.2. Reach for
+  it by naming the reason, never by habit. If the reason is "this is hard", try higher effort on
+  Opus 5.5 first.
+- **Sonnet 5.5 - mid tier**: implementation from a self-contained brief, fan-out recon,
   docs from a spec. Runs its own verification before reporting done.
-- **Haiku 4.5 / small models**: mechanical transforms only - below the bar for this repo's
-  conventions. Haiku 4.5 also rejects the effort setting outright and holds 200K context, not 1M.
+- **Haiku 5.5 / small models**: mechanical transforms only - below the bar for this repo's
+  conventions. Haiku 5.5 takes effort (default medium) and holds 1M context.
 
 ## Effort before tier
 
 Raise or lower the effort setting before switching models - it is cheaper than a tier switch, and
-it is the only one of the two with a cache-free form. **The default is `high`**, so "tune the
-effort" is as often down as up. Low for recon and mechanical work, high/xhigh for coding and
-agentic work, max only when correctness beats cost. Effort cannot fix a price tier, and does not
-exist at all on Haiku 4.5.
+it is the only one of the two with a cache-free form. The API default is `high` on Sonnet 5.5 and
+Fable but `medium` on Opus 5.5 and Haiku 5.5; Claude Code sets its own interactive default
+(`xhigh`), so in a session you are usually tuning down, while unattended API/SDK callers must pin
+effort explicitly. Low for recon and mechanical work, high/xhigh for coding and agentic work
+(start Sonnet 5.5 agentic coding at medium and measure), max only when correctness beats cost.
+Effort cannot fix a price tier.
 
 Note a top-level effort change mid-session DOES invalidate the messages cache. The per-message
-form does not - available on Opus 5 and Fable 5.1, not on Sonnet 5.
+form does not - available on Opus 5.5, Sonnet 5.5, Haiku 5.5 and Fable.
 
 ## Protect the prompt cache
 
-Cache reads cost ~0.1x base input; cache writes cost 1.25x-2x. Continue sessions rather than
+Cache reads are priced per model (Opus 5.5 $0.20, Sonnet 5.5 $0.10, Fable 5.2 $0.20 per MTok,
+roughly 0.05x base); cache writes cost 1.25x-2x. Continue sessions rather than
 restarting them, do not switch models mid-session (caches are model-scoped), and keep the early
 part of the prompt frozen - editing a rules file mid-session invalidates everything after it.
 On a top-tier model, wasted cache writes are routinely the largest line on the bill.
 
-**Default an architect session to Opus 5 and tune effort; default delegated work to Sonnet.** This
+**Default an architect session to Opus 5.5 and tune effort; default delegated work to Sonnet.** This
 reverses the earlier "default to Sonnet, escalate when needed" advice, which fought the paragraph
 above it: you discover you need to escalate MID-session (that is what "stuck debugging" means),
 and switching then discards the prefix you already paid to write. Picking the tier when you OPEN
@@ -57,7 +62,7 @@ DEFAULT, not a lock. Choosing at session start overrides it for free. The pin go
 nobody thought about - which skew trivial and belong on the cheap tier - while this rule governs
 the ones you did.
 
-Discovered mid-session that you need more? In order: raise the effort (per-message form on Opus 5
+Discovered mid-session that you need more? In order: raise the effort (per-message form on Opus 5.5
 costs no cache), then delegate to a subagent or a separate session on the tier you need (its
 context is its own, so your prefix survives), and only then switch the session model - saying out
 loud that you did, because escalation is sticky and quietly stays on for the next twenty easy

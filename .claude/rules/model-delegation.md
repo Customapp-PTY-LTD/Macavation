@@ -6,9 +6,10 @@ Proven split (claim-report pipeline, 12 Jul 2026): four Sonnet agents did ~810k 
 implementation; the architect session spent roughly a tenth of that on specs, seam review, one
 security fix, and verification. The ratio comes from discipline, not a switch.
 
-**Read that as a TOKEN ratio, not a cost ratio.** Sonnet 5 is $2/$10 against Opus 5's $5/$25 -
-2.5x, not 10x - and Sonnet 5 emits roughly 30% more tokens than Sonnet 4.5 for the same text, so a
-per-token price cut does not translate 1:1 into a cheaper delegation. Judge **cost per completed
+**Read that as a TOKEN ratio, not a cost ratio.** Sonnet 5.5 is $2/$10 against Opus 5.5's $4/$20 -
+2x, not 10x - and Sonnet 5's tokenizer (which Sonnet 5.5 shares) emits roughly 30% more tokens than
+Sonnet 4.5 did for the same text, so a per-token price cut does not translate 1:1 into a cheaper
+delegation. Judge **cost per completed
 task**, not per token: a cheaper agent that needs three rounds to land the work is not cheaper.
 The bigger saving is not the rate at all - it is that a file read inside a throwaway subagent is
 paid for once, where the same file read into the architect's own window is re-paid on every
@@ -19,20 +20,25 @@ rate is a bonus on top of it.
 
 | Tier | Does | Does NOT |
 |---|---|---|
-| **Opus 5** (`claude-opus-5`, architect - the default top tier) | Exploration synthesis, architecture decisions, writing briefs, seam + security review, debugging weird failures, deploy go/no-go, user-facing narrative | Type implementations, re-read agent output wholesale, mechanical edits |
-| **Fable 5.1** (`claude-fable-5-1`, named exception only) | Genuinely frontier reasoning: multi-hour autonomous runs, debugging that already defeated Opus 5, work where correctness beats cost outright | Routine architecture, review passes, anything Opus 5 has not visibly failed at |
-| **Sonnet 5** (`builder`, `recon` in `.claude/agents/`) | Implementation from a brief, fan-out recon, docs from a spec, self-verification | Renegotiate contracts, explore beyond the read-first list, commit/deploy |
-| **Haiku 4.5** | Genuinely mechanical transforms only | Anything touching this repo's conventions. It also **rejects `output_config.effort`** (400) and holds **200K context**, not the 1M the others have - so "tune effort before tier" below does not apply to it |
+| **Opus 5.5** (`claude-opus-5-5`, architect - the default top tier) | Exploration synthesis, architecture decisions, writing briefs, seam + security review, debugging weird failures, deploy go/no-go, user-facing narrative | Type implementations, re-read agent output wholesale, mechanical edits |
+| **Fable 5.2** (`claude-fable-5-2`, named exception only; the bare `fable` alias still returns 5.1) | Genuinely frontier reasoning: multi-hour autonomous runs, debugging that already defeated Opus 5.5, work where correctness beats cost outright | Routine architecture, review passes, anything Opus 5.5 has not visibly failed at |
+| **Sonnet 5.5** (`builder`, `recon` in `.claude/agents/`) | Implementation from a brief, fan-out recon, docs from a spec, self-verification | Renegotiate contracts, explore beyond the read-first list, commit/deploy |
+| **Haiku 5.5** (`claude-haiku-5-5`) | Genuinely mechanical transforms only | Anything touching this repo's conventions. It takes `effort` (default `medium`), holds 1M context, and costs $0.10/$0.50 per MTok up to 100K-token prompts, 5x that beyond |
 
-**Name the model; the bare `opus` alias is not Opus 5.** Measured 2026-09-12 on Claude Code
-2.1.215: `--model opus` resolves to **`claude-opus-4-8`**, a generation behind, while `sonnet`
-correctly gives `claude-sonnet-5`. Same price either way, so this costs capability, not money - but
-it means the instruction below does not survive the obvious keystroke. Ask for **`claude-opus-5`**
-by name. Nothing watches this, and it can move on any CLI bump, so re-check rather than trust it:
-`claude -p "Reply with ONLY your exact model ID string, nothing else." --model opus`, and run the
-other aliases as controls - if all three answer the same, the test is broken, not the aliases.
+**Name the exact id in anything durable; the alias is right today but has lagged before.**
+Measured 2026-11-13 on Claude Code 2.1.296: `opus` -> `claude-opus-5-5`, `sonnet` ->
+`claude-sonnet-5-5`, `haiku` -> `claude-haiku-5-5`, `fable` -> `claude-fable-5-1`. An explicit id
+passes through unchanged (`--model claude-opus-5` still gives `claude-opus-5`). In September 2026
+(Claude Code 2.1.215) `opus` resolved to `claude-opus-4-8` for weeks, which is why the previous
+version of this rule said to name `claude-opus-5` - advice that now pins you BEHIND the alias. So
+in settings, hooks, scripts, briefs and anything else that outlives a session, write the exact id
+you mean (`claude-opus-5-5` today) and re-run the alias check whenever the CLI bumps; in an
+interactive session the alias is fine. Grep your repos for the string `"claude-opus-5"` and move
+them. The check: `claude -p "Reply with ONLY your exact model ID string, nothing else." --model opus`,
+and run the other aliases as controls - if they all answer the same, the test is broken, not the
+aliases.
 
-**Default an architect session to Opus 5 and tune `effort`; default delegated work to Sonnet.**
+**Default an architect session to Opus 5.5 and tune `effort`; default delegated work to Sonnet.**
 This reverses the rule's original advice ("default to Sonnet, escalate with `/model`"), which
 fought the caching section below: escalating for stuck debugging is by definition something you
 discover mid-session, and `/model` mid-session discards the prefix you already paid to write.
@@ -47,8 +53,9 @@ everything else start cheap.
 
 When you do discover mid-session that you need more, in this order:
 
-1. **Raise `effort`.** On Opus 5 a per-message effort change does not reset the cache
-   (`mid-conversation-output-config-2026-07-01`); a top-level one does. Not available on Sonnet 5.
+1. **Raise `effort`.** On Opus 5.5, Sonnet 5.5, Haiku 5.5 and Fable a per-message effort change
+   does not reset the cache (`mid-conversation-output-config-2026-07-01`; Fable with thinking on);
+   a top-level one does.
 2. **Spawn a subagent** on the tier you need. Its context is separate, so your prefix survives.
 3. **`/model`** only when the problem warrants paying for a fresh prefix. Say so out loud when you
    do - escalation is sticky, and a session escalated for one hard problem stays escalated for the
@@ -58,37 +65,43 @@ On an architect session, delegate all legwork - including recon (use the `recon`
 exploration inherits the session model and burns top-tier tokens on reading).
 
 **Fable is not the default architect tier, and "Fable / Opus" is not one tier.** Prices are per
-MTok, checked 2026-09-12 - re-check before quoting them, they move. Fable 5.1 is $10/$50 against
-Opus 5's $5/$25: 2x on output and on cache writes, the line item that dominates fan-out work. **But
-not on every line item** - Fable 5.1 cache reads are $0.25/MTok against Opus 5's $0.50, so on a
-long cache-read-heavy session Fable's input is the cheaper of the two. Quote the line item, not
-"twice the price". Reach for Fable by naming the reason in the session, not by habit - and if the
-reason is "this is hard", try `effort: xhigh` on Opus 5 first.
+MTok, checked 2026-11-13 - re-check before quoting them, they move. The named exception is
+`claude-fable-5-2` at $8/$40 against Opus 5.5's $4/$20: 2x on input, output and cache writes (the
+line item that dominates fan-out work), and equal on cache reads ($0.20 each), so "twice the price"
+is accurate everywhere except reads, where it is the same. The bare `fable` alias still returns
+Fable 5.1 ($10/$50, cache reads $0.25), which is dearer on every line item, so name 5.2. Reach for
+Fable by naming the reason in the session, not by habit - and if the reason is "this is hard", try
+`effort: xhigh` on Opus 5.5 first.
 
 ## Effort before tier
 
-`output_config.effort` (`low` / `medium` / `high` / `xhigh` / `max`, **default `high`**) did not
-meaningfully exist when this rule was first written. It is now the first lever to reach for - it is
-cheaper than a tier switch, and it is the only one of the two that has a cache-free form.
+`output_config.effort` (`low` / `medium` / `high` / `xhigh` / `max`; API default `high` on Sonnet
+5.5 and Fable, `medium` on Opus 5.5 and Haiku 5.5) did not meaningfully exist when this rule was
+first written. It is now the first lever to reach for - it is cheaper than a tier switch, and it is
+the only one of the two that has a cache-free form.
 
-- **Tune effort before switching models.** Opus 5 at `low`/`medium` covers much of what used to
+- **Tune effort before switching models.** Opus 5.5 at `low`/`medium` covers much of what used to
   justify dropping to Sonnet; `xhigh` covers much of what used to justify escalating past Opus.
-  You are starting from `high` unless you set it, so "raise the effort" is often really "lower it".
+  Claude Code sets its own interactive default (`xhigh`), so inside a session you are usually
+  tuning DOWN. The model's API default applies to API and Agent SDK callers - `medium` on Opus 5.5 -
+  so anything unattended must pin effort explicitly (worked example: Agent Fleet's review gates pin
+  `REVIEW_EFFORT = "xhigh"` since agent-fleet #360, 2026-11-12).
 - **Changing effort mid-session is not automatically free.** A top-level effort change invalidates
-  the messages cache. The per-message form does not, and exists on Opus 5 and Fable 5.1
-  (`mid-conversation-output-config-2026-07-01`) - **but not on Sonnet 5**, which is one more reason
-  an architect session defaults to Opus rather than Sonnet.
+  the messages cache. The per-message form does not, and exists on Opus 5.5, Sonnet 5.5, Haiku 5.5
+  and Fable (`mid-conversation-output-config-2026-07-01`).
 - Recon, fan-out, and mechanical subagents: **`low`**.
-- Coding and agentic work: **`high` or `xhigh`** (`xhigh` is the sweet spot for most of it).
+- Coding and agentic work: **`high` or `xhigh`** (`xhigh` is the sweet spot for most of it). On
+  Sonnet 5.5 the levels were recalibrated: start agentic coding at `medium` and measure.
 - **`max`** only when correctness genuinely beats cost.
-- Effort cannot fix a price tier, and does not exist at all on Haiku 4.5. A $10/$50 base rate is
-  not effort-tunable - that stays a tier decision.
+- Effort cannot fix a price tier. An $8/$40 base rate is not effort-tunable - that stays a tier
+  decision.
 
 ## Caching - often the biggest line item, and the easiest to waste
 
-Cache reads cost ~0.1x base input; cache **writes** cost 1.25x (5-minute TTL) or 2x (1-hour). On a
-long session the prefix is re-read every call and only the delta is written, so a healthy
-read:write **token** ratio is roughly 15-30:1. Ratios near 1:1 mean prefixes are being rewritten
+Cache reads are priced per model - Opus 5.5 $0.20, Sonnet 5.5 $0.10, Fable 5.2 $0.20 per MTok
+(checked 2026-11-13), roughly 0.05x base input; cache **writes** cost 1.25x (5-minute TTL) or 2x
+(1-hour). On a long session the prefix is re-read every call and only the delta is written, so a
+healthy read:write **token** ratio is roughly 15-30:1. Ratios near 1:1 mean prefixes are being rewritten
 instead of reused - and on a top-tier model that is frequently the single largest thing on the
 bill, dwarfing anything the brief-writing discipline below can save.
 
