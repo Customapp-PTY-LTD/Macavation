@@ -62,6 +62,9 @@ var _modal_grower_create_kernel_batch = (function () {
     var _supplierLoadSeq = 0;
     var _docs = [];
     var _uploadsInFlight = 0;
+    /** Read the proof of delivery: one read at a time; _podSeq drops a reply that arrives after the modal reopened. */
+    var _podBusy = false;
+    var _podSeq = 0;
 
     function esc(v) {
         if (typeof _common !== 'undefined' && _common.escapeHtml) return _common.escapeHtml(v == null ? '' : String(v));
@@ -279,6 +282,252 @@ var _modal_grower_create_kernel_batch = (function () {
             });
             var docsInput = byId('intakeDeliveryDocs');
             if (docsInput) docsInput.addEventListener('change', function () { api._uploadDocs(docsInput); });
+            // Read the proof of delivery (AI): the button opens the camera / file picker.
+            var podBtn = byId('intakePodBtn');
+            var podFile = byId('intakePodFile');
+            if (podBtn && podFile) {
+                podBtn.addEventListener('click', function (e) { e.preventDefault(); if (!_podBusy) podFile.click(); });
+                podFile.addEventListener('change', function () { api._readPod(podFile); });
+            }
+            // A yellow "check this" box goes back to normal once the person has touched it.
+            var podForm = byId('createKernelBatchForm');
+            if (podForm) ['input', 'change'].forEach(function (ev) {
+                podForm.addEventListener(ev, function (e) {
+                    if (e.isTrusted && e.target && e.target.classList) e.target.classList.remove('nd-pod-check');
+                });
+            });
+        },
+
+        // ---------- Read the proof of delivery (AI) ----------
+
+        /** Clears the POD card and every highlight (every show()). */
+        _resetPod: function () {
+            _podBusy = false;
+            _podSeq += 1;
+            api._podBusyUi(false);
+            var res = byId('intakePodResult');
+            if (res) { res.innerHTML = ''; res.style.display = 'none'; }
+            document.querySelectorAll('#createKernelBatchForm .nd-pod-check, #createKernelBatchForm .nd-pod-filled').forEach(function (el) {
+                el.classList.remove('nd-pod-check');
+                el.classList.remove('nd-pod-filled');
+            });
+        },
+
+        _podBusyUi: function (busy) {
+            var btn = byId('intakePodBtn');
+            if (btn) btn.disabled = !!busy;
+            setText('intakePodBtnText', busy ? 'Reading the POD…' : 'Read the proof of delivery');
+            var icon = btn && btn.querySelector('i');
+            if (icon) icon.className = busy ? 'fas fa-spinner fa-spin me-1' : 'fas fa-camera me-1';
+        },
+
+        /** A photo is shrunk to 2000px JPEG (phone photos are too big to send); a PDF goes as it is. */
+        _podPayload: function (file) {
+            return new Promise(function (resolve, reject) {
+                var type = String(file.type || '').toLowerCase();
+                if (type === 'application/pdf' || /\.pdf$/i.test(file.name || '')) {
+                    if (file.size > 8 * 1024 * 1024) { reject(new Error('That PDF is too big to read. Take a photo of the POD instead.')); return; }
+                    var fr = new FileReader();
+                    fr.onload = function () { resolve({ media_type: 'application/pdf', data: String(fr.result).split(',')[1] || '' }); };
+                    fr.onerror = function () { reject(new Error('The file could not be opened.')); };
+                    fr.readAsDataURL(file);
+                    return;
+                }
+                var url = URL.createObjectURL(file);
+                var img = new Image();
+                img.onload = function () {
+                    var w = img.naturalWidth, h = img.naturalHeight;
+                    var s = Math.min(1, 2000 / Math.max(w, h));
+                    var c = document.createElement('canvas');
+                    c.width = Math.max(1, Math.round(w * s));
+                    c.height = Math.max(1, Math.round(h * s));
+                    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+                    URL.revokeObjectURL(url);
+                    resolve({ media_type: 'image/jpeg', data: c.toDataURL('image/jpeg', 0.85).split(',')[1] || '' });
+                };
+                img.onerror = function () {
+                    URL.revokeObjectURL(url);
+                    reject(new Error('That photo could not be opened. Use a JPG or PNG photo, or a PDF.'));
+                };
+                img.src = url;
+            });
+        },
+
+        /** Supplier names exactly as the dropdown shows them; waits up to 5 s for the list to load. */
+        _podSupplierNames: async function () {
+            for (var i = 0; i < 25; i++) {
+                var sel = byId('intakeBatchGrower');
+                if (sel && sel.options.length > 1) break;
+                await new Promise(function (r) { setTimeout(r, 200); });
+            }
+            var s = byId('intakeBatchGrower');
+            return s ? Array.prototype.slice.call(s.options, 1).map(function (o) { return o.textContent; }) : [];
+        },
+
+        _readPod: async function (input) {
+            var file = input && input.files && input.files[0];
+            if (input) input.value = '';
+            if (!file || _podBusy) return;
+            var res = byId('intakePodResult');
+            var showResult = function (html) { if (res) { res.innerHTML = html; res.style.display = html ? '' : 'none'; } };
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.readImportFile) {
+                showResult('<span class="text-danger">Reading a POD is not available on this page.</span>');
+                return;
+            }
+            var seq = ++_podSeq;
+            _podBusy = true;
+            api._podBusyUi(true);
+            showResult('<span class="text-muted">Reading the POD. This takes about 15 seconds…</span>');
+            // The POD is also kept as a supporting document (the original file, not the shrunk copy).
+            api._uploadFiles([file]);
+            var out;
+            try {
+                var payload = await api._podPayload(file);
+                out = await dataFunctions.readImportFile({
+                    action: 'read_pod',
+                    media_type: payload.media_type,
+                    data_base64: payload.data,
+                    suppliers: await api._podSupplierNames(),
+                    transporters: _transporters.map(function (t) { return t.name; }),
+                    transport_types: _transportTypes.map(function (t) { return t.name; })
+                });
+            } catch (err) {
+                out = { ok: false, error: err && err.message ? err.message : 'The POD could not be read.' };
+            }
+            if (seq !== _podSeq) return; // the modal was closed / reopened meanwhile
+            _podBusy = false;
+            api._podBusyUi(false);
+            if (!out || !out.ok || !out.data) {
+                showResult('<span class="text-danger">' + esc((out && out.error) || 'The POD could not be read.') + '</span> You can still fill the form in by hand.');
+                return;
+            }
+            showResult(api._applyPod(out.data));
+        },
+
+        /** Fills the form from the AI's reading. Returns the summary HTML for the POD card. */
+        _applyPod: function (d) {
+            var CHECK_BELOW = 0.8;
+            var filled = [], check = [], info = [];
+            var f = function (k) {
+                var v = d && d[k];
+                return { value: v && v.value != null ? String(v.value).trim() : '', conf: v && typeof v.confidence === 'number' ? v.confidence : 0 };
+            };
+            var mark = function (el, conf, label, shown) {
+                if (!el) return;
+                el.classList.add('nd-pod-filled');
+                if (conf < CHECK_BELOW) { el.classList.add('nd-pod-check'); check.push(label + ': ' + shown + ' (hard to read)'); }
+                else filled.push(label + ': ' + shown);
+            };
+
+            // Date Received: only the offloading date. A truck loaded yesterday arrives today.
+            var off = f('offloading_date'), loaded = f('loading_date');
+            var dateEl = byId('intakeBatchReceivedDate');
+            if (/^\d{4}-\d{2}-\d{2}$/.test(off.value) && dateEl) {
+                if (dateEl.value !== off.value) { dateEl.value = off.value; api._onReceivedDateChange(); }
+                mark(dateEl, off.conf, 'Date received', off.value);
+            }
+            if (loaded.value) info.push('Loaded on ' + loaded.value);
+
+            // Supplier: only a name from our own list; never replace one already chosen (e.g. from the plan).
+            var sender = f('sender_name'), sm = f('supplier_match');
+            var sel = byId('intakeBatchGrower');
+            var opt = sel && sm.value ? Array.prototype.filter.call(sel.options, function (o) { return o.value && o.textContent === sm.value; })[0] : null;
+            if (sel && opt) {
+                if (!sel.value) {
+                    sel.value = opt.value;
+                    api._onGrowerChange();
+                    mark(sel, sm.conf, 'Supplier', opt.textContent);
+                } else if (sel.value !== opt.value) {
+                    sel.classList.add('nd-pod-check');
+                    check.push('Supplier: the POD says ' + (sender.value || opt.textContent) + ', the form has ' + (sel.options[sel.selectedIndex] || {}).textContent + '. Left as it was.');
+                } else {
+                    filled.push('Supplier: ' + opt.textContent + ' (matches)');
+                }
+            } else if (sender.value && sel) {
+                if (!sel.value) sel.classList.add('nd-pod-check');
+                check.push('Sender on the POD: ' + sender.value + ' – not found in the supplier list. ' + (sel.value ? 'Check the supplier.' : 'Pick the supplier, or add them with +.'));
+            }
+
+            // Supplier's declared weight, then the bags.
+            var kg = f('declared_kg');
+            var kgNum = numOrNull(String(kg.value).replace(/\s/g, ''));
+            var wetEl = byId('intakeBatchWetNis');
+            if (wetEl && kgNum != null && kgNum > 0) {
+                wetEl.value = fmtKg(kgNum);
+                api._syncEstimates(); api._updateCalcs(); api._updateSpread();
+                mark(wetEl, kg.conf, "Supplier's weight", fmtKg(kgNum) + ' kg');
+            }
+            var bags = f('bag_count');
+            var bagDigits = String(bags.value).match(/\d+/);
+            var n = bagDigits ? parseInt(bagDigits[0], 10) : NaN;
+            var product = f('product').value;
+            if (n > 0 && n <= 500) {
+                var anyWeighed = _bags.some(function (b) { return !b.est && numOrNull(b.kg) > 0; });
+                if (estimatesAllowed() && kgNum > 0) {
+                    var cnt = byId('intakeSpreadCount');
+                    if (cnt) cnt.value = String(n);
+                    api._spreadBags();
+                    mark(cnt, bags.conf, 'Bags', n + ' at the average weight (est.)');
+                } else if (!anyWeighed) {
+                    var desc0 = product === 'Kernel' ? 'Kernel' : 'NIS';
+                    _bags = [];
+                    for (var i = 1; i <= n; i++) _bags.push({ no: i, desc: desc0, kg: '' });
+                    _nextBagNo = n + 1;
+                    api._renderBags();
+                    api._updatePlaced();
+                    (bags.conf < CHECK_BELOW ? check : filled).push('Bags: ' + n + ' rows ready for their weights');
+                } else {
+                    check.push('Bags: the POD says ' + n + '. Bag weights were already typed in, so the rows were left alone.');
+                }
+            }
+            if (product === 'NIS' || product === 'Kernel') {
+                var changed = false;
+                _bags.forEach(function (b) { if (b.desc !== product) { b.desc = product; changed = true; } });
+                if (changed) api._renderBags();
+            }
+
+            // Transport.
+            var trName = f('transporter_name'), tm = f('transporter_match');
+            var trSel = byId('intakeTransporter');
+            var tr = tm.value ? _transporters.filter(function (t) { return t.name === tm.value; })[0] : null;
+            if (trSel && tr) {
+                trSel.value = tr.id;
+                mark(trSel, tm.conf, 'Transporter', tr.name);
+            } else if (trName.value) {
+                if (trSel && !trSel.value) trSel.classList.add('nd-pod-check');
+                api._toggleTransporterForm(true);
+                var nm = byId('intakeNewTransporterName');
+                if (nm) nm.value = trName.value;
+                check.push('Transporter: ' + trName.value + ' is not in the list yet. Press Save under Transporter to add it.');
+            }
+            var tt = f('transport_type_match');
+            var ttRow = tt.value ? _transportTypes.filter(function (t) { return t.name === tt.value; })[0] : null;
+            var ttSel = byId('intakeTransportType');
+            if (ttSel && ttRow && !ttSel.value) {
+                ttSel.value = ttRow.id;
+                // The type is always a guess from the paper (truck + trailer, tonnes): always ask to check it.
+                ttSel.classList.add('nd-pod-filled', 'nd-pod-check');
+                check.push('Transport type: ' + ttRow.name + ' (a guess)');
+            }
+            var doc = f('document_number');
+            var dnEl = byId('intakeDeliveryNoteRef');
+            if (dnEl && doc.value && !dnEl.value.trim()) { dnEl.value = doc.value; mark(dnEl, doc.conf, 'Delivery Note Reference', doc.value); }
+            var load = f('load_number');
+            var cnEl = byId('intakeConsignmentRef');
+            if (cnEl && load.value && !cnEl.value.trim()) { cnEl.value = load.value; mark(cnEl, load.conf, 'Consignment Reference', load.value); }
+
+            var truck = [f('truck_reg').value && 'truck ' + f('truck_reg').value, f('trailer_reg').value && 'trailer ' + f('trailer_reg').value,
+                f('driver_name').value && 'driver ' + f('driver_name').value].filter(Boolean);
+            if (truck.length) info.push(truck.join(' · '));
+
+            var list = function (items) { return '<ul class="nd-pod-list">' + items.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>'; };
+            var html = '<div><i class="fas fa-circle-check text-success me-1" aria-hidden="true"></i><strong>Read.</strong> ' + esc(d.note || '') + '</div>';
+            if (filled.length) html += '<div class="mt-1">Filled in:</div>' + list(filled);
+            if (check.length) html += '<div class="mt-1 nd-pod-warn">Please check (yellow boxes):</div>' + list(check);
+            if (!filled.length && !check.length) html += '<div class="mt-1 nd-pod-warn">Nothing on this page could be matched to the form. Fill it in by hand.</div>';
+            if (info.length) html += '<div class="text-muted mt-1">' + esc(info.join(' · ')) + '</div>';
+            html += '<div class="text-muted mt-1">The photo was added to Supporting Documents. Nothing is saved until you press Save.</div>';
+            return html;
         },
 
         // ---------- Book in a planned truck ----------
@@ -775,7 +1024,13 @@ var _modal_grower_create_kernel_batch = (function () {
 
         _uploadDocs: async function (input) {
             var files = input && input.files ? Array.prototype.slice.call(input.files) : [];
-            if (!files.length) return;
+            if (input) input.value = '';
+            await api._uploadFiles(files);
+        },
+
+        /** Uploads files to Supporting Documents (also used for the POD photo). */
+        _uploadFiles: async function (files) {
+            if (!files || !files.length) return;
             if (typeof _common === 'undefined' || !_common.uploadFile) { showInline('intakeDocsError', 'Upload is not available.'); return; }
             showInline('intakeDocsError', '');
             var errors = [];
@@ -800,7 +1055,6 @@ var _modal_grower_create_kernel_batch = (function () {
                     _uploadsInFlight -= 1;
                 }
             }
-            input.value = '';
             api._renderDocs();
             if (errors.length) showInline('intakeDocsError', errors.join(' | '));
         },
@@ -961,6 +1215,7 @@ var _modal_grower_create_kernel_batch = (function () {
             _selectedCollection = [];
             ['intakeDeliveryNoteRef', 'intakeConsignmentRef'].forEach(function (id) { var e = byId(id); if (e) e.value = ''; });
             api._toggleTransporterForm(false);
+            api._resetPod();
             showInline('intakeDocsError', '');
             api._renderDocs();
             api._renderBags();

@@ -342,6 +342,14 @@ input.nd-est { color: var(--mac-info); font-style: italic; }
 .nd-tag-toggle { cursor: pointer; text-decoration: underline dotted; }
 .nd-tag-toggle:hover { filter: brightness(1.2); }
 .nd-est-text { color: var(--mac-info); }
+/* New delivery: read the proof of delivery (AI). Yellow = check this box. */
+.nd-pod { background: rgba(var(--mac-green-rgb), 0.06); border: 1px dashed rgba(var(--mac-green-rgb), 0.45); border-radius: var(--mac-radius-md); padding: 0.75rem; }
+.nd-pod #intakePodBtn { min-height: 44px; }
+.nd-pod-list { margin: 0.35rem 0 0; padding-left: 1.1rem; }
+.nd-pod-list li { margin: 0.1rem 0; }
+.nd-pod-warn { color: var(--mac-warning-text); font-weight: 600; }
+.form-control.nd-pod-check, .form-select.nd-pod-check { border-color: var(--mac-warning); background-color: var(--mac-warning-light); box-shadow: 0 0 0 0.15rem rgba(var(--mac-warning-rgb), 0.25); }
+.form-control.nd-pod-filled, .form-select.nd-pod-filled { border-color: rgba(var(--mac-green-rgb), 0.6); }
 /* Recent moves (migration 20261102120000): folded list under the storage areas */
 .gib-moves { margin-top: 0.75rem; }
 .gib-moves summary { cursor: pointer; font-weight: 600; font-size: var(--mac-text-sm); min-height: 44px; display: flex; align-items: center; gap: 0.35rem; }
