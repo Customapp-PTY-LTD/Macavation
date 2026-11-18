@@ -10,6 +10,15 @@
         </div>
         <div class="modal-body">
             <form id="createKernelBatchForm" novalidate>
+                <!-- Read the transporter's proof of delivery with AI (read-import-file / read_pod). Fills the form; nothing is saved until Save. -->
+                <div class="nd-pod mb-3" id="intakePodCard">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <button type="button" class="btn btn-primary" id="intakePodBtn"><i class="fas fa-camera me-1" aria-hidden="true"></i><span id="intakePodBtnText">Read the proof of delivery</span></button>
+                        <span class="small text-muted flex-grow-1" id="intakePodHint">Take a photo of the POD and the form fills itself. Check the yellow boxes before you save.</span>
+                        <input type="file" id="intakePodFile" accept="image/*,application/pdf" hidden aria-label="Proof of delivery photo">
+                    </div>
+                    <div class="small mt-2" id="intakePodResult" style="display:none"></div>
+                </div>
                 <h6 class="border-bottom pb-1">Batch Details</h6>
                 <div class="mb-3">
                     <label for="intakeBatchReceivedDate" class="form-label">Date Received <span class="text-danger">*</span></label>

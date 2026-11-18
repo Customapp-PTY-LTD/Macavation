@@ -10,6 +10,11 @@
  *                   fields; says which page (or none) each sheet belongs to, and maps its columns.
  *   read_document - read a photo (jpeg/png) or PDF of a delivery note / invoice into rows, with a
  *                   confidence per field. The person checks every row before anything is saved.
+ *   read_pod      - Grower Intake "Book in a truck": read a photo / PDF of a transporter's proof of
+ *                   delivery into the New Delivery form (date, sender, transporter, POD number, kg,
+ *                   bag count). Suppliers / transporters / transport types are sent as NAMES only so
+ *                   the model can pick the matching one; ids stay in the browser. Nothing is saved:
+ *                   the browser fills the form and the person checks it before Save.
  *
  * This function never writes to the database. Saving goes through import_data_page_rows
  * (migrations/20261015090000_data_page_import_batches.sql) or import_data_pages
@@ -18,6 +23,7 @@
  * Auth: the X-Portal-Session header, validated through the service-role RPC
  * assistant_validate_session (same as portal-assistant) - fail closed. Because each call costs
  * money, the session's role must also hold reports.data.edit (data_import_role_can_edit), else 403.
+ * read_pod is also open to a user whose role holds grower.intake.create (has_action, service-role).
  *
  * Env vars:
  *   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY - service-role DB access for the two checks above.
@@ -73,7 +79,11 @@ async function rpcRows(sb: SupabaseClient, fn: string, params: AnyRow): Promise<
 
 // ── Session + permission ──────────────────────────────────────────────────
 
-async function checkCaller(sb: SupabaseClient, token: string): Promise<{ userId: string } | { error: string; status: number }> {
+async function checkCaller(
+  sb: SupabaseClient,
+  token: string,
+  alsoActionKey: string | null = null,
+): Promise<{ userId: string } | { error: string; status: number }> {
   if (!token) return { error: "Please sign in again.", status: 401 };
   let row: AnyRow | null = null;
   try {
@@ -89,10 +99,17 @@ async function checkCaller(sb: SupabaseClient, token: string): Promise<{ userId:
     const { data, error } = await sb.rpc("data_import_role_can_edit", { p_role_name: row.role_name ?? null });
     if (error) throw new Error(error.message);
     allowed = data === true;
+    if (!allowed && alsoActionKey) {
+      // user_id comes from the validated session, never from the request body.
+      const r2 = await sb.rpc("has_action", { p_user_id: row.user_id, p_action_key: alsoActionKey });
+      if (r2.error) throw new Error(r2.error.message);
+      allowed = r2.data === true;
+    }
   } catch (e) {
     console.error("[read-import-file] permission check failed:", e);
     return { error: "Permissions could not be checked. Please try again.", status: 503 };
   }
+  if (!allowed && alsoActionKey) return { error: "Your role cannot book in deliveries, so it cannot read a POD.", status: 403 };
   if (!allowed) return { error: "Your role cannot import data. Ask an admin for the 'Edit Data Page' permission.", status: 403 };
   return { userId: String(row.user_id) };
 }
@@ -364,6 +381,109 @@ async function handleReadDocument(anthropic: Anthropic, body: AnyRow, userId: st
   return jsonResponse({ success: true, data: r.data });
 }
 
+// ── read_pod ──────────────────────────────────────────────────────────────
+// Book in a truck: one proof of delivery -> the New Delivery form. One object, not rows.
+
+function nameList(raw: unknown, max: number): string[] {
+  const out: string[] = [];
+  for (const v of (Array.isArray(raw) ? raw : []).slice(0, max)) {
+    const n = cell(v);
+    if (n && !out.includes(n)) out.push(n);
+  }
+  return out;
+}
+
+function podField(valueSchema: AnyRow): AnyRow {
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: ["value", "confidence"],
+    properties: { value: valueSchema, confidence: { type: "number" } },
+  };
+}
+
+function pickOne(names: string[]): AnyRow {
+  return names.length ? { anyOf: [{ type: "string", enum: names }, { type: "null" }] } : { type: "null" };
+}
+
+async function handleReadPod(anthropic: Anthropic, body: AnyRow, userId: string): Promise<Response> {
+  const mediaType = String(body.media_type || "");
+  if (!DOCUMENT_TYPES.has(mediaType)) {
+    return jsonResponse({ success: false, error: "Only a photo (JPG or PNG) or a PDF can be read." }, 400);
+  }
+  const data = String(body.data_base64 || "").replace(/\s+/g, "");
+  if (!data || !/^[A-Za-z0-9+/=]+$/.test(data)) {
+    return jsonResponse({ success: false, error: "The photo could not be read." }, 400);
+  }
+  const suppliers = nameList(body.suppliers, 600);
+  const transporters = nameList(body.transporters, 200);
+  const transportTypes = nameList(body.transport_types, 40);
+
+  const text = { type: "string" };
+  const schema = {
+    type: "object",
+    additionalProperties: false,
+    required: [
+      "note", "document_number", "load_number", "offloading_date", "loading_date", "sender_name", "supplier_match",
+      "transporter_name", "transporter_match", "transport_type_match", "declared_kg", "bag_count",
+      "product", "truck_reg", "trailer_reg", "driver_name",
+    ],
+    properties: {
+      note: text,
+      document_number: podField(text),
+      load_number: podField(text),
+      offloading_date: podField(text),
+      loading_date: podField(text),
+      sender_name: podField(text),
+      supplier_match: podField(pickOne(suppliers)),
+      transporter_name: podField(text),
+      transporter_match: podField(pickOne(transporters)),
+      transport_type_match: podField(pickOne(transportTypes)),
+      declared_kg: podField(text),
+      bag_count: podField(text),
+      product: podField({ type: "string", enum: ["NIS", "Kernel", ""] }),
+      truck_reg: podField(text),
+      trailer_reg: podField(text),
+      driver_name: podField(text),
+    },
+  };
+
+  const system =
+    "You read a transporter's proof of delivery (POD) / delivery note for a macadamia processor that is " +
+    "receiving a truck. Forms are often bilingual Afrikaans/English and partly handwritten " +
+    "(Afsender = sender, Ontvanger = receiver, Vrag No. = load number, Massa = mass, Laaidatum = loading " +
+    "date, Aflaaidatum = offloading date, Voorhaker = truck/horse, Sleepwa = trailer, Drywer = driver). Fill:\n" +
+    "- document_number: the form's own printed number (e.g. 'No.: 50495').\n" +
+    "- load_number: a separate load / consignment / 'Vrag No.' number if one is written, else empty.\n" +
+    "- offloading_date and loading_date as YYYY-MM-DD, each only if written (empty otherwise). South " +
+    "African dates are day/month/year (12/11/2026 is 2026-11-12).\n" +
+    "- sender_name: the sender / supplier / farm exactly as written. supplier_match: the one name from the " +
+    "supplier list that is clearly the same business (ignore Pty Ltd, CC, 'en Seuns'/'and Sons', spacing, " +
+    "punctuation), or null if none clearly matches. Never match on the transporter's name.\n" +
+    "- transporter_name: the transport company (usually printed at the top). transporter_match: the same " +
+    "company from the transporter list, or null.\n" +
+    "- transport_type_match: from the transport type list; a truck with a trailer carrying over about 20 " +
+    "tonnes is usually a Link. null if you cannot tell.\n" +
+    "- declared_kg: total mass in kg as plain digits with no separators or unit (e.g. '33040'); convert " +
+    "tonnes to kg only if the unit is clearly tonnes.\n" +
+    "- bag_count: number of bags / bulk bags / pallets as digits.\n" +
+    "- product: 'NIS' for nut in shell (macadamia nuts, bulk bags of nuts), 'Kernel' for kernel, else ''.\n" +
+    "- truck_reg, trailer_reg, driver_name as written.\n" +
+    "Where something is not on the page or cannot be read, give an empty string (or null for a match) with " +
+    "confidence 0 rather than guessing. Confidence is 0 to 1; lower it for unclear handwriting. 'note' is " +
+    "one short plain-English sentence about what the document is and anything the person should check.";
+  const fileBlock = mediaType === "application/pdf"
+    ? { type: "document", source: { type: "base64", media_type: mediaType, data } }
+    : { type: "image", source: { type: "base64", media_type: mediaType, data } };
+  const lists = "Supplier list: " + JSON.stringify(suppliers) +
+    "\nTransporter list: " + JSON.stringify(transporters) +
+    "\nTransport type list: " + JSON.stringify(transportTypes);
+
+  const r = await askForJson(anthropic, "medium", system, [fileBlock, { type: "text", text: lists }], schema, "read_pod", userId);
+  if (!r.ok) return jsonResponse({ success: false, error: r.error }, r.status);
+  return jsonResponse({ success: true, data: r.data });
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────
 
 export async function handler(req: Request): Promise<Response> {
@@ -383,12 +503,16 @@ export async function handler(req: Request): Promise<Response> {
   }
 
   const action = String(body.action || "");
-  if (action !== "map_columns" && action !== "identify_sheets" && action !== "read_document") {
+  if (action !== "map_columns" && action !== "identify_sheets" && action !== "read_document" && action !== "read_pod") {
     return jsonResponse({ success: false, error: "Unknown action." }, 400);
   }
 
   const sb = makeServiceClient();
-  const caller = await checkCaller(sb, (req.headers.get("x-portal-session") || "").trim());
+  const caller = await checkCaller(
+    sb,
+    (req.headers.get("x-portal-session") || "").trim(),
+    action === "read_pod" ? "grower.intake.create" : null,
+  );
   if ("error" in caller) return jsonResponse({ success: false, error: caller.error }, caller.status);
 
   const anthropic = client();
@@ -397,6 +521,7 @@ export async function handler(req: Request): Promise<Response> {
   try {
     if (action === "map_columns") return await handleMapColumns(anthropic, body, caller.userId);
     if (action === "identify_sheets") return await handleIdentifySheets(anthropic, body, caller.userId);
+    if (action === "read_pod") return await handleReadPod(anthropic, body, caller.userId);
     return await handleReadDocument(anthropic, body, caller.userId);
   } catch (e) {
     console.error("[read-import-file] action failed:", action, e instanceof Error ? e.message : e);
