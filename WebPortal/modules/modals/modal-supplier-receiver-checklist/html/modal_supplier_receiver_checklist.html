@@ -67,7 +67,11 @@
                                     <span class="input-group-text">R</span>
                                     <input type="number" class="form-control" id="srcTransportCost" min="0" step="0.01" inputmode="decimal" placeholder="0.00">
                                 </div>
-                                <small class="text-muted">For the whole delivery. Shows in the monthly report.</small>
+                                <div class="form-check mt-1">
+                                    <input class="form-check-input" type="checkbox" id="srcSupplierPaysTransport">
+                                    <label class="form-check-label" for="srcSupplierPaysTransport">Supplier pays transport (no cost to us)</label>
+                                </div>
+                                <small class="text-muted">For the whole delivery. A procurement cost in the monthly report.</small>
                             </div>
                             <div class="col-12 d-none" id="srcTransportLegacyNote">
                                 <small class="text-muted">This is an older delivery saved without a delivery id, so transport cannot be added to it.</small>

@@ -914,34 +914,47 @@ var _workflowViews = function () {
                     row('Pallets · weighed', (pallets || '—') + ' · ' + (kg ? _common.formatKg(kg) + ' kg' : '—')) + '</dl>' +
                     '<div class="text-start"><label for="wvRateZar" class="form-label fw-semibold">Transport Rate (R, whole trip)</label>' +
                     '<input type="number" id="wvRateZar" class="form-control" min="0" step="0.01" placeholder="e.g. 4500"></div>' +
+                    // Tickbox (Henry, 18 Nov 2026): the grower/supplier paid, so no rate is needed and it is not our cost.
+                    '<div class="form-check text-start mt-2"><input class="form-check-input" type="checkbox" id="wvSupplierPays">' +
+                    '<label class="form-check-label" for="wvSupplierPays">Supplier pays transport (no cost to us)</label></div>' +
                     '<div class="row text-start mt-3 g-2"><div class="col-6"><div class="small text-muted">Rate per pallet</div><strong id="wvRatePallet">—</strong></div>' +
                     '<div class="col-6"><div class="small text-muted">Rate per kg</div><strong id="wvRateKg">—</strong></div></div>',
                 showCancelButton: true,
-                confirmButtonText: 'Save rate',
+                confirmButtonText: 'Save',
                 cancelButtonText: 'Cancel',
                 focusConfirm: false,
                 didOpen: function () {
                     var input = document.getElementById('wvRateZar');
+                    var tick = document.getElementById('wvSupplierPays');
                     input.focus();
-                    input.addEventListener('input', function () {
+                    var showRates = function () {
                         var r = parseFloat(input.value);
-                        var ok = input.value !== '' && isFinite(r) && r >= 0;
+                        var ok = !tick.checked && input.value !== '' && isFinite(r) && r >= 0;
                         document.getElementById('wvRatePallet').textContent = ok && pallets > 0 ? 'R ' + self._fmtNum(r / pallets, 2) : '—';
                         document.getElementById('wvRateKg').textContent = ok && kg > 0 ? 'R ' + self._fmtNum(r / kg, 2) : '—';
+                    };
+                    input.addEventListener('input', showRates);
+                    tick.addEventListener('change', function () {
+                        if (tick.checked) input.value = '';
+                        input.disabled = tick.checked;
+                        showRates();
                     });
                 },
                 preConfirm: async function () {
+                    var supplierPays = document.getElementById('wvSupplierPays').checked;
                     var raw = document.getElementById('wvRateZar').value;
                     var r = parseFloat(raw);
-                    if (raw === '' || !isFinite(r) || r < 0) {
-                        Swal.showValidationMessage('Enter the rate for the whole trip. Use 0 only if transport was free.');
+                    if (!supplierPays && (raw === '' || !isFinite(r) || r < 0)) {
+                        Swal.showValidationMessage('Enter the rate for the whole trip, or tick "Supplier pays transport".');
                         return false;
                     }
                     try {
-                        var res = await dataFunctions.callFunction('set_transport_rate', { p_kernel_id: task.kernel_id, p_rate_zar: r }, null, { useCache: false });
+                        var res = supplierPays
+                            ? await dataFunctions.callFunction('set_transport_paid_by_supplier', { p_kernel_id: task.kernel_id }, null, { useCache: false })
+                            : await dataFunctions.callFunction('set_transport_rate', { p_kernel_id: task.kernel_id, p_rate_zar: r }, null, { useCache: false });
                         var body = res && res.data !== undefined ? res.data : res;
-                        if (!body || body.success === false) throw new Error((body && body.error) || 'Could not save the rate.');
-                        return r;
+                        if (!body || body.success === false) throw new Error((body && body.error) || 'Could not save.');
+                        return { supplierPays: supplierPays, rate: r };
                     } catch (e) {
                         Swal.showValidationMessage(e.message || String(e));
                         return false;
@@ -950,7 +963,8 @@ var _workflowViews = function () {
             });
             if (!result.isConfirmed) return;
             if (dataFunctions.clearCachePattern) { dataFunctions.clearCachePattern('kernel_batch'); }
-            Swal.fire({ icon: 'success', title: 'Rate saved', text: 'R ' + this._fmtNum(result.value, 2) + ' saved for ' + (task.batch_number || 'this delivery') + '.',
+            var what = result.value.supplierPays ? 'Supplier pays transport' : 'R ' + this._fmtNum(result.value.rate, 2);
+            Swal.fire({ icon: 'success', title: 'Saved', text: what + ' saved for ' + (task.batch_number || 'this delivery') + '.',
                 timer: 2500, showConfirmButton: false, toast: true, position: 'top-end' });
             await this.refreshMyDay();
         },

@@ -76,8 +76,9 @@ var _modal_oil_dispatch_form = (function () {
 
     // ---- Transport cost (oil_dispatch_orders.transport_payer / transport_cost_zar), read by the monthly
     // report. Stays editable after dispatch because the transporter's invoice often comes later. ----
+    // Tickbox "Customer pays transport": ticked = no cost needed (payer 'customer'); unticked = Macavation pays.
     function syncTransportCostField() {
-        var customer = $('#oilDispatchTransportPayer').val() === 'customer';
+        var customer = $('#oilDispatchCustomerPays').is(':checked');
         var $cost = $('#oilDispatchTransportCost');
         if (customer) $cost.val('');
         $cost.prop('disabled', customer);
@@ -85,12 +86,11 @@ var _modal_oil_dispatch_form = (function () {
 
     /** { payer, cost, error } from the form; error is a sentence when the entry cannot be saved. */
     function readTransportCost() {
-        var payer = $('#oilDispatchTransportPayer').val() || null;
-        var raw = String($('#oilDispatchTransportCost').val() || '').trim();
+        var customer = $('#oilDispatchCustomerPays').is(':checked');
+        var raw = customer ? '' : String($('#oilDispatchTransportCost').val() || '').trim();
         var cost = raw === '' ? null : Number(raw);
         if (raw !== '' && (!isFinite(cost) || cost < 0)) return { error: 'Transport cost must be a Rand amount of 0 or more, or left blank.' };
-        if (cost != null && !payer) return { error: 'Choose who pays for transport, or clear the transport cost.' };
-        return { payer: payer, cost: payer === 'customer' ? null : cost, error: null };
+        return { payer: customer ? 'customer' : 'macavation', cost: cost, error: null };
     }
 
     function loadTransportCost(orderId) {
@@ -98,7 +98,7 @@ var _modal_oil_dispatch_form = (function () {
         return dataFunctions.getOilDispatchTransport(orderId).then(function (t) {
             if (String(currentOrderId) !== String(orderId)) return;
             t = t || {};
-            $('#oilDispatchTransportPayer').val(t.transport_payer || '');
+            $('#oilDispatchCustomerPays').prop('checked', t.transport_payer === 'customer');
             $('#oilDispatchTransportCost').val(t.transport_cost_zar != null ? Number(t.transport_cost_zar).toFixed(2) : '');
             syncTransportCostField();
         }).catch(function (e) { console.warn('[Oil Dispatch Form] transport cost not loaded', e); });
@@ -144,7 +144,7 @@ var _modal_oil_dispatch_form = (function () {
                 e.preventDefault();
                 scope.submit();
             });
-            $('#oilDispatchTransportPayer').off('change').on('change', syncTransportCostField);
+            $('#oilDispatchCustomerPays').off('change').on('change', syncTransportCostField);
             // After dispatch the form is read-only except transport cost, which saves on its own.
             $('#oilDispatchTransportSaveBtn').off('click').on('click', function (e) {
                 e.preventDefault();
@@ -325,10 +325,12 @@ var _modal_oil_dispatch_form = (function () {
 
             dsp.reset();
             showPrefillHints(false, false, false);
-            var ids = ['oilDispatchPerson', 'oilDispatchCell', 'oilDispatchDeliveryNote', 'oilDispatchDateDispatched', 'oilDispatchTruckReg', 'oilDispatchDriverName', 'oilDispatchTime', 'oilDispatchDispatchedTo', 'oilDispatchFormOrderId', 'oilDispatchTransportPayer', 'oilDispatchTransportCost'];
+            var ids = ['oilDispatchPerson', 'oilDispatchCell', 'oilDispatchDeliveryNote', 'oilDispatchDateDispatched', 'oilDispatchTruckReg', 'oilDispatchDriverName', 'oilDispatchTime', 'oilDispatchDispatchedTo', 'oilDispatchFormOrderId', 'oilDispatchTransportCost'];
             ids.forEach(function (id) {
                 $('#' + id).val('');
             });
+            $('#oilDispatchCustomerPays').prop('checked', false);
+            syncTransportCostField();
         },
 
         getDateISO: () => {

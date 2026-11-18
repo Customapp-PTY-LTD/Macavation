@@ -330,7 +330,7 @@ var _reportView = (function () {
 
     // ------------------------------------------------------------------
     // Monthly: Transport costs (snapshot.transport from get_report_transport, migration 20261118090000).
-    // Macavation-paid transport only, R excl. VAT, by transporter, split into coming in / going out.
+    // Macavation-paid transport only, R excl. VAT, by transporter; trips the supplier/customer paid are counted, not added.
     // R/kg and R/pallet use only the trips that have a cost, so a missing cost never makes them look cheap.
     // ------------------------------------------------------------------
     var TR_STREAM = { kernel: 'Kernel', oil: 'Oil' };
@@ -361,37 +361,47 @@ var _reportView = (function () {
             { text: 'Cost (R, excl. VAT)', num: true }, { text: 'R/kg', num: true }, { text: 'R/pallet', num: true }], body, total);
     }
 
-    function transportStream(tr) {
-        var s = U.newSection('T1', null, 'Transport costs by transporter', 'Kernel and oil, coming in and going out · Rand excl. VAT');
-        if (!tr || tr.success !== true) {
-            U.notice(s, 'Transport costs are not available for this month' + (tr && tr.error ? ': ' + tr.error : '.'));
-            return { key: 'transport', title: 'Transport costs', sub: 'What Macavation paid to move nuts, kernel and oil', sections: [s] };
-        }
-        var rows = Array.isArray(tr.rows) ? tr.rows : [];
-        var tot = tr.totals || {}, all = tot.all || {}, prev = tr.previous || {};
-        var bits = ['Total this month ' + (U.isNum(all.cost_zar) ? U.zarF(all.cost_zar) : 'R 0')];
-        bits.push('coming in ' + U.zarF(U.num0((tot['in'] || {}).cost_zar)) + ', going out ' + U.zarF(U.num0((tot.out || {}).cost_zar)));
-        bits.push('last month ' + (U.isNum(prev.cost_zar) ? U.zarF(prev.cost_zar) : 'no costs entered'));
+    // Receiving transport is a procurement cost and dispatch transport a sales cost (Henry, 18 Nov 2026):
+    // two cost centres, each with its own total and last month, never added together.
+    var TR_CENTRES = [
+        { dir: 'in', id: 'T1', title: 'Procurement: receiving transport', src: 'Kernel and oil deliveries coming in · Rand excl. VAT',
+          prevKey: 'in_cost_zar', other: 'paid by the supplier', empty: 'No deliveries this month' },
+        { dir: 'out', id: 'T2', title: 'Sales: dispatch transport', src: 'Kernel and oil dispatches going out · Rand excl. VAT',
+          prevKey: 'out_cost_zar', other: 'paid by the customer', empty: 'No dispatches with Macavation-paid transport this month' }
+    ];
+
+    function transportCentre(c, tr) {
+        var s = U.newSection(c.id, null, c.title, c.src);
+        var tot = (tr.totals || {})[c.dir] || {}, prev = tr.previous || {};
+        var rows = (Array.isArray(tr.rows) ? tr.rows : []).filter(function (r) { return r.direction === c.dir; });
+        var other = U.num0((tr.other_paid_trips || {})[c.dir]);
+        if (!tr.other_paid_trips && c.dir === 'out') other = U.num0(tr.customer_paid_trips);   // snapshots built before 18 Nov noon
+        var bits = ['Total this month ' + (U.isNum(tot.cost_zar) ? U.zarF(tot.cost_zar) : 'R 0'),
+            'last month ' + (U.isNum(prev[c.prevKey]) ? U.zarF(prev[c.prevKey]) : 'no costs entered')];
+        if (other > 0) bits.push(U.intF(other) + (other === 1 ? ' trip ' : ' trips ') + c.other + ', not counted');
         s.source = bits.join(' · ') + '.';
 
-        var missing = (Array.isArray(tr.missing) ? tr.missing : []).map(function (m) {
-            var what = TR_WHAT[m.direction + ':' + m.stream] || (m.stream + ' ' + m.direction);
-            return U.intF(m.trips) + ' ' + what;
+        var missing = (Array.isArray(tr.missing) ? tr.missing : []).filter(function (m) { return m.direction === c.dir; }).map(function (m) {
+            return U.intF(m.trips) + ' ' + (TR_WHAT[m.direction + ':' + m.stream] || (m.stream + ' ' + m.direction));
         });
         if (missing.length) {
-            U.notice(s, 'No transport cost entered yet for ' + missing.join(', ') + '. The totals leave these out until someone enters them.');
+            U.notice(s, 'No transport cost entered yet for ' + missing.join(', ') + '. The total leaves these out until someone enters them.');
         }
+        s.grids = [U.grid(1, [U.card('By transporter', null, transportTable('T' + c.id, rows, tot, c.empty))])];
+        return s;
+    }
 
-        var inRows = rows.filter(function (r) { return r.direction === 'in'; });
-        var outRows = rows.filter(function (r) { return r.direction === 'out'; });
-        var outTitle = 'Going out (dispatches Macavation pays for)';
-        if (U.num0(tr.customer_paid_trips) > 0) outTitle += ' · ' + U.intF(tr.customer_paid_trips) + ' more paid by the customer';
-        s.grids = [
-            U.grid(1, [U.card('Coming in (grower and supplier deliveries)', null, transportTable('TT1', inRows, tot['in'], 'No deliveries this month'))]),
-            U.grid(1, [U.card(outTitle, null, transportTable('TT2', outRows, tot.out, 'No dispatches with Macavation-paid transport this month'))])
-        ];
-        return { key: 'transport', title: 'Transport costs', sub: 'What Macavation paid to move nuts, kernel and oil',
-            jump: [['T1', 'By transporter']], sections: [s] };
+    function transportStream(tr) {
+        var stream = { key: 'transport', title: 'Transport costs', sub: 'Two cost centres: receiving is procurement, dispatch is sales' };
+        if (!tr || tr.success !== true) {
+            var s = U.newSection('T1', null, 'Transport costs', '');
+            U.notice(s, 'Transport costs are not available for this month' + (tr && tr.error ? ': ' + tr.error : '.'));
+            stream.sections = [s];
+            return stream;
+        }
+        stream.jump = [['T1', 'Procurement'], ['T2', 'Sales']];
+        stream.sections = TR_CENTRES.map(function (c) { return transportCentre(c, tr); });
+        return stream;
     }
 
     // The section models for a payload: {top, sections|null, up} - painted on screen by build() and
