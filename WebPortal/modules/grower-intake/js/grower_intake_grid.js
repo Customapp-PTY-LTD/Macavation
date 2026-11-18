@@ -63,6 +63,7 @@ var _growerIntakeGrid = function () {
             // Handoff from My Day etc.: { bookInProcurementId } opens Book in once data and modals are ready
             var handoff = (typeof _appRouter !== 'undefined' && _appRouter.takeHandoff) ? _appRouter.takeHandoff('grower-intake-grid') : null;
             var plansLoaded = scope.loadProcurements(true);
+            scope.loadPodInbox();
             const loadPromises = [];
             $('.modal[route-name]').each((index, el) => {
                 const routeName = $(el).attr('route-name');
@@ -121,6 +122,21 @@ var _growerIntakeGrid = function () {
                 e.preventDefault();
                 if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) _appRouter.routeTo('procurement-plan', true);
             });
+            // POD received on WhatsApp: Book in / Dismiss, and refresh after a delivery saves.
+            $(document).off('click.giPod').on('click.giPod', '#giPodInbox .js-pod-book', function (e) {
+                e.preventDefault();
+                if (typeof actionAccess !== 'undefined' && actionAccess.denyUnless &&
+                    !actionAccess.denyUnless('grower.intake.create', 'You do not have permission to create kernel intake batches.')) {
+                    return;
+                }
+                scope.bookInPod($(this).data('pod-id'));
+            }).on('click.giPod', '#giPodInbox .js-pod-dismiss', function (e) {
+                e.preventDefault();
+                scope.dismissPod($(this).data('pod-id'));
+            });
+            document.removeEventListener('mac:pod-inbox-changed', scope._onPodInboxChanged);
+            document.addEventListener('mac:pod-inbox-changed', scope._onPodInboxChanged);
+
             $('#giOpenProcurementPlanBtn').off('click').on('click', () => {
                 if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) _appRouter.routeTo('procurement-plan', true);
             });
@@ -807,6 +823,117 @@ var _growerIntakeGrid = function () {
             }
             if (typeof _common !== 'undefined' && _common.showSuccessToast) _common.showSuccessToast('Truck cancelled.');
             scope.loadProcurements(true);
+        },
+
+        // ---------- POD received on WhatsApp (whatsapp-inbound/pod-intake.ts, migration 20261118130000) ----------
+
+        _onPodInboxChanged: () => {
+            _growerIntakeGrid.loadPodInbox();
+            _growerIntakeGrid.loadProcurements(true);
+        },
+
+        /** Waiting PODs. Hidden when there are none, the user can't book in, or the migration isn't applied. */
+        loadPodInbox: async () => {
+            const scope = _growerIntakeGrid;
+            var df = typeof dataFunctions !== 'undefined' ? dataFunctions : null;
+            scope.podInbox = [];
+            if (df && typeof df.getIntakePodInbox === 'function' && scope._procCanBook()) {
+                try { scope.podInbox = (await df.getIntakePodInbox(20)) || []; }
+                catch (e) { console.warn('[POD inbox] Could not load:', e); }
+            }
+            scope.renderPodInbox();
+        },
+
+        _podVal: (reading, key) => {
+            var f = reading && reading[key];
+            return f && f.value != null ? String(f.value).trim() : '';
+        },
+
+        /** The Late / Today Expected truck for this supplier, if one is planned, so Book in also closes it. */
+        _podMatchTruck: (item) => {
+            const scope = _growerIntakeGrid;
+            if (!item || !item.supplier_id) return null;
+            var today = scope.procurementToday || scope._procIsoFromDate(new Date());
+            var hits = (scope.procurementItems || []).filter(function (p) {
+                return String(p.supplier_id || '') === String(item.supplier_id) && String(p.scheduled_date || '').slice(0, 10) <= today;
+            }).sort(function (a, b) { return String(b.scheduled_date).localeCompare(String(a.scheduled_date)); });
+            return hits[0] || null;
+        },
+
+        renderPodInbox: () => {
+            const scope = _growerIntakeGrid;
+            var host = document.getElementById('giPodInbox');
+            if (!host) return;
+            var items = scope.podInbox || [];
+            if (!items.length) { host.hidden = true; host.innerHTML = ''; return; }
+            var esc = scope._procEsc;
+            var kg = function (raw) {
+                var n = Number(String(raw || '').replace(/[\s,]/g, ''));
+                if (!(n > 0)) return '';
+                return (typeof _common !== 'undefined' && _common.formatKg ? _common.formatKg(n) : n.toFixed(2)) + ' kg';
+            };
+            var when = function (iso) {
+                var d = new Date(iso);
+                if (isNaN(d.getTime())) return '';
+                var hm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+                var day = scope._procIsoFromDate(d);
+                return (day === scope._procIsoFromDate(new Date()) ? 'Today' : scope._procFmtDate(day)) + ' ' + hm;
+            };
+            var html = '<div class="gi-trucks-line"><strong><i class="fab fa-whatsapp me-1" aria-hidden="true"></i>POD received on WhatsApp</strong><span>' +
+                items.length + ' waiting to be booked in</span></div><div class="gi-trucks-list">';
+            items.forEach(function (it) {
+                var r = it.reading || {};
+                var sender = scope._podVal(r, 'sender_name');
+                var supplier = it.supplier_name
+                    ? it.supplier_name + (it.supplier_number != null ? ' (' + it.supplier_number + ')' : '')
+                    : (sender ? sender + ' – not matched' : 'Supplier not read');
+                var doc = scope._podVal(r, 'document_number');
+                var bags = scope._podVal(r, 'bag_count');
+                var truck = scope._podMatchTruck(it);
+                var sub = [kg(scope._podVal(r, 'declared_kg')), bags ? bags + ' bags' : '', doc ? 'POD ' + doc : ''].filter(Boolean).join(' · ');
+                var photo = it.file_link && /^https?:\/\//i.test(it.file_link)
+                    ? '<a class="small" href="' + esc(it.file_link) + '" target="_blank" rel="noopener">View photo ↗</a>' : '';
+                html += '<div class="gi-truck-card gi-pod-card" data-pod-id="' + esc(it.id) + '">' +
+                    '<div class="gi-truck-card-top"><span class="gi-truck-when">' + esc(when(it.received_at)) + (it.sent_by_name ? ' · ' + esc(it.sent_by_name) : '') + '</span></div>' +
+                    '<div class="gi-truck-title">' + esc(supplier) + '</div>' +
+                    '<div class="gi-truck-sub">' + esc(sub) + '</div>' +
+                    (truck ? '<div class="gi-truck-sub gi-pod-planned">Planned truck ' + esc(scope._procFmtDate(truck.scheduled_date)) + '</div>' : '') +
+                    photo +
+                    '<div class="gi-truck-actions">' +
+                    '<button type="button" class="btn btn-sm btn-primary js-pod-book" data-pod-id="' + esc(it.id) + '">Book in</button>' +
+                    '<button type="button" class="btn btn-sm btn-outline-secondary js-pod-dismiss" data-pod-id="' + esc(it.id) + '">Dismiss</button>' +
+                    '</div></div>';
+            });
+            host.innerHTML = html + '</div>';
+            host.hidden = false;
+        },
+
+        bookInPod: (podId) => {
+            const scope = _growerIntakeGrid;
+            var item = (scope.podInbox || []).filter(function (x) { return String(x.id) === String(podId); })[0];
+            if (!item) return;
+            if (typeof _modal_grower_create_kernel_batch === 'undefined' || !_modal_grower_create_kernel_batch.showFromPodInbox) {
+                console.warn('[POD inbox] showFromPodInbox not available on the Book in modal');
+                return;
+            }
+            _modal_grower_create_kernel_batch.showFromPodInbox(item, scope._podMatchTruck(item), scope.procurementAreas);
+        },
+
+        dismissPod: async (podId) => {
+            const scope = _growerIntakeGrid;
+            if (typeof Swal !== 'undefined') {
+                var ok = await Swal.fire({
+                    icon: 'question', title: 'Dismiss this POD?',
+                    text: 'It comes off this list and is not booked in. Use this for a duplicate or a photo sent by mistake.',
+                    showCancelButton: true, confirmButtonText: 'Dismiss', cancelButtonText: 'Keep it'
+                });
+                if (!ok.isConfirmed) return;
+            }
+            var res = await dataFunctions.closeIntakePodInbox(podId, 'dismissed', null);
+            if (!res || res.success === false) {
+                if (typeof _common !== 'undefined' && _common.showErrorToast) _common.showErrorToast((res && res.error) || 'Could not dismiss it. Please try again.');
+            }
+            scope.loadPodInbox();
         },
 
         _procFmtDate: (iso) => {

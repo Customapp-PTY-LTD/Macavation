@@ -91,6 +91,10 @@ import {
 } from '../_shared/wa-send.ts';
 import { MAX_LIST_ROWS, MAX_LIST_TITLE, truncate } from '../_shared/wa-limits.ts';
 import { classifyMessage } from '../_shared/wa-inbound.ts';
+import { handlePodMessage, podMediaOf, POD_ACTION_KEY } from './pod-intake.ts';
+
+// Supabase's edge runtime: keeps a promise running after the response is sent.
+declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -3785,6 +3789,9 @@ async function processCommandForMessage(
   let rawBody: string;
   let replyId: string | null = null;
   let flowResponse: Record<string, unknown> | null = null;
+  // A photo / PDF that might be a proof of delivery (pod-intake.ts). Only acted on for enrolled
+  // staff whose role holds grower.intake.create; everyone else is left as before.
+  const podMedia = podMediaOf(msg);
 
   if (type === 'text') {
     // Read straight from the message rather than through classifyMessage: that classifier treats
@@ -3815,8 +3822,10 @@ async function processCommandForMessage(
     // log (line ~170 above); the audit log below records that placeholder, never the card's own
     // (potentially sensitive) name/phone/email fields.
     rawBody = bodyForMessage(msg);
+  } else if (podMedia) {
+    rawBody = bodyForMessage(msg);
   } else {
-    // Images, location, reactions and anything else already store a placeholder body via
+    // Location, reactions and anything else already store a placeholder body via
     // bodyForMessage; never try to command off one.
     return;
   }
@@ -3825,7 +3834,7 @@ async function processCommandForMessage(
     // Checked before the enrolment gate and before any pending-command handling — the only thing
     // an unenrolled number may do besides send an enrolment code. See handleOptOutVerbs's own
     // comment for why this cannot use CommandContext.
-    if (await handleOptOutVerbs(sb, from, wamid, rawBody, replyId)) {
+    if (!podMedia && (await handleOptOutVerbs(sb, from, wamid, rawBody, replyId))) {
       return;
     }
 
@@ -3863,6 +3872,8 @@ async function processCommandForMessage(
       // have tapped in the first place — guarding on replyId keeps that impossible rather than
       // merely unlikely.
       const trimmedBody = rawBody.trim();
+      // An unknown number's photo (podMedia) matches neither exception - its body is the
+      // "[image id:...]" placeholder - so it is logged below with no reply and nothing read.
       if (!replyId && /^\d{6}$/.test(trimmedBody)) {
         await tryConfirmEnrolment(sb, from, wamid, rawBody, trimmedBody);
         return;
@@ -3900,6 +3911,24 @@ async function processCommandForMessage(
       displayName: String(resolved.display_name || 'there'),
       replyId,
     };
+
+    if (podMedia) {
+      if (!(await hasAction(sb, ctx.userId, POD_ACTION_KEY))) {
+        // Staff send photos for all sorts of reasons; only people who book in trucks get a POD read.
+        await logCommand(sb, { phone: from, userId: ctx.userId, wamid, rawBody, command: 'pod_photo', outcome: 'denied', detail: POD_ACTION_KEY });
+        return;
+      }
+      // Reading takes ~20 s: answer Control Room now and finish in the background where the runtime
+      // allows it (it does not retry, so a slow 2xx is worse than an early one).
+      const job = handlePodMessage({
+        sb, phone: from, wamid, userId: ctx.userId, displayName: ctx.displayName,
+        metaProxyUrl: `${CONTROL_ROOM_BASE_URL}/meta-proxy`, hmacHex, sendText: sendWhatsappText,
+      }, podMedia).then((r) => logCommand(sb, { phone: from, userId: ctx.userId, wamid, rawBody, command: 'pod_photo', outcome: r.outcome, detail: r.detail }))
+        .catch((e) => console.error(`[whatsapp-inbound] POD handling failed wamid=${wamid}:`, e));
+      if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime?.waitUntil) EdgeRuntime.waitUntil(job);
+      else await job;
+      return;
+    }
 
     // A shared contact card never goes through handleCommand's tap/verb parsing — there is no
     // verb and no reply id, only card fields to offer as a prefill. extractSharedContact pulls

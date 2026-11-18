@@ -2358,6 +2358,20 @@ var _dataFunctions = function () {
             }
         },
 
+        // --- Proof of delivery sent on WhatsApp (migration 20261118130000_intake_pod_inbox) ---
+        /** Waiting PODs, newest first. null when it could not load (e.g. migration not applied). */
+        getIntakePodInbox: async function (limit, token = null) {
+            var res = await this._rpcRead('get_intake_pod_inbox', { p_limit: limit || 20 }, token);
+            return res && Array.isArray(res.items) ? res.items : null;
+        },
+
+        /** status 'booked' (with the new batch id) or 'dismissed'. */
+        closeIntakePodInbox: async function (id, status, batchId, token = null) {
+            return this._rpcWrite('close_intake_pod_inbox', {
+                p_id: id, p_status: status, p_batch_id: batchId || null
+            }, token);
+        },
+
         // --- Procurement plan ---------------------------------------------------------------
         getProcurementPlan: async function (from, to, token = null) {
             return this._rpcRead('get_procurement_plan', { p_from: from || null, p_to: to || null }, token);
