@@ -74,6 +74,47 @@ var _modal_oil_dispatch_form = (function () {
         }).catch(function (e) { console.warn('[Dispatch form] extras failed', e); });
     }
 
+    // ---- Transport cost (oil_dispatch_orders.transport_payer / transport_cost_zar), read by the monthly
+    // report. Stays editable after dispatch because the transporter's invoice often comes later. ----
+    // Tickbox "Customer pays transport": ticked = no cost needed (payer 'customer'); unticked = Macavation pays.
+    function syncTransportCostField() {
+        var customer = $('#oilDispatchCustomerPays').is(':checked');
+        var $cost = $('#oilDispatchTransportCost');
+        if (customer) $cost.val('');
+        $cost.prop('disabled', customer);
+    }
+
+    /** { payer, cost, error } from the form; error is a sentence when the entry cannot be saved. */
+    function readTransportCost() {
+        var customer = $('#oilDispatchCustomerPays').is(':checked');
+        var raw = customer ? '' : String($('#oilDispatchTransportCost').val() || '').trim();
+        var cost = raw === '' ? null : Number(raw);
+        if (raw !== '' && (!isFinite(cost) || cost < 0)) return { error: 'Transport cost must be a Rand amount of 0 or more, or left blank.' };
+        return { payer: customer ? 'customer' : 'macavation', cost: cost, error: null };
+    }
+
+    function loadTransportCost(orderId) {
+        if (!orderId || typeof dataFunctions === 'undefined' || !dataFunctions.getOilDispatchTransport) return Promise.resolve();
+        return dataFunctions.getOilDispatchTransport(orderId).then(function (t) {
+            if (String(currentOrderId) !== String(orderId)) return;
+            t = t || {};
+            $('#oilDispatchCustomerPays').prop('checked', t.transport_payer === 'customer');
+            $('#oilDispatchTransportCost').val(t.transport_cost_zar != null ? Number(t.transport_cost_zar).toFixed(2) : '');
+            syncTransportCostField();
+        }).catch(function (e) { console.warn('[Oil Dispatch Form] transport cost not loaded', e); });
+    }
+
+    /** Resolves to an error sentence, or null when saved / nothing to save. Never rejects. */
+    function saveTransportCost(orderId, tc) {
+        if (!orderId || typeof dataFunctions === 'undefined' || !dataFunctions.setOilDispatchTransport) return Promise.resolve(null);
+        return dataFunctions.setOilDispatchTransport(orderId, tc.payer, tc.cost).then(function (res) {
+            return res && res.success === false ? (res.error || 'Transport cost was not saved.') : null;
+        }).catch(function (e) {
+            console.error('[Oil Dispatch Form] transport cost save failed', e);
+            return (e && e.message) || 'Transport cost was not saved.';
+        });
+    }
+
     return {
         init: () => {
             const scope = _modal_oil_dispatch_form;
@@ -102,6 +143,20 @@ var _modal_oil_dispatch_form = (function () {
             $('#oilDispatchFormSubmitBtn').off('click').on('click', function (e) {
                 e.preventDefault();
                 scope.submit();
+            });
+            $('#oilDispatchCustomerPays').off('change').on('change', syncTransportCostField);
+            // After dispatch the form is read-only except transport cost, which saves on its own.
+            $('#oilDispatchTransportSaveBtn').off('click').on('click', function (e) {
+                e.preventDefault();
+                var tc = readTransportCost();
+                if (tc.error) { if (typeof Swal !== 'undefined') Swal.fire('Check the transport cost', tc.error, 'warning'); return; }
+                var $btn = $(this).prop('disabled', true);
+                saveTransportCost(currentOrderId, tc).then(function (err) {
+                    $btn.prop('disabled', false);
+                    if (typeof Swal === 'undefined') return;
+                    if (err) Swal.fire('Not saved', err, 'error');
+                    else Swal.fire({ icon: 'success', title: 'Saved', text: 'Transport cost saved.', timer: 1800, showConfirmButton: false });
+                });
             });
         },
 
@@ -143,7 +198,7 @@ var _modal_oil_dispatch_form = (function () {
                 }
 
                 orderWasDispatched = ro;
-                return loadExtras(data && data.order ? data.order : null, ro).then(function () {
+                return Promise.all([loadExtras(data && data.order ? data.order : null, ro), loadTransportCost(orderId)]).then(function () {
                     scope.setFormReadOnly(ro);
                     dsp.setReadOnly(ro);
                     scope.openModal();
@@ -238,9 +293,11 @@ var _modal_oil_dispatch_form = (function () {
             if (form) {
                 $(form).find('input, textarea, select').each(function () {
                     if (this.id === 'oilDispatchFormOrderId') return;
+                    if ($(this).hasClass('js-transport-cost')) return;   // transport cost stays editable after dispatch
                     $(this).prop('disabled', !!ro);
                 });
             }
+            $('#oilDispatchTransportSaveBtn').toggleClass('d-none', !ro);
             $('#oilDispatchFormSubmitBtn').toggleClass('d-none', !!ro);
             var cancel = document.getElementById('oilDispatchFormCancelBtn');
             if (cancel) cancel.textContent = ro ? 'Close' : 'Cancel';
@@ -268,10 +325,12 @@ var _modal_oil_dispatch_form = (function () {
 
             dsp.reset();
             showPrefillHints(false, false, false);
-            var ids = ['oilDispatchPerson', 'oilDispatchCell', 'oilDispatchDeliveryNote', 'oilDispatchDateDispatched', 'oilDispatchTruckReg', 'oilDispatchDriverName', 'oilDispatchTime', 'oilDispatchDispatchedTo', 'oilDispatchFormOrderId'];
+            var ids = ['oilDispatchPerson', 'oilDispatchCell', 'oilDispatchDeliveryNote', 'oilDispatchDateDispatched', 'oilDispatchTruckReg', 'oilDispatchDriverName', 'oilDispatchTime', 'oilDispatchDispatchedTo', 'oilDispatchFormOrderId', 'oilDispatchTransportCost'];
             ids.forEach(function (id) {
                 $('#' + id).val('');
             });
+            $('#oilDispatchCustomerPays').prop('checked', false);
+            syncTransportCostField();
         },
 
         getDateISO: () => {
@@ -314,6 +373,11 @@ var _modal_oil_dispatch_form = (function () {
                 if (typeof Swal !== 'undefined') Swal.fire('Check the inspection', problems[0] + (problems.length > 1 ? ' (and ' + (problems.length - 1) + ' more)' : ''), 'warning');
                 return;
             }
+            var tc = readTransportCost();
+            if (tc.error) {
+                if (typeof Swal !== 'undefined') Swal.fire('Check the transport cost', tc.error, 'warning');
+                return;
+            }
             var insp = dsp.getInspection();
             var transport = dsp.getTransporter();
             var attachments = dsp.getAttachments();
@@ -348,8 +412,18 @@ var _modal_oil_dispatch_form = (function () {
             }
 
             dataFunctions.saveOilDispatchRecord(payload).then(function (result) {
+                if (!(result && result.success !== false)) return result;
+                // Save the transport cost after the dispatch so a cost problem never blocks dispatching.
+                return saveTransportCost(orderId, tc).then(function (trErr) {
+                    if (trErr && typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'warning', title: 'Dispatched, but not the transport cost', text: trErr + ' Open the order again to enter it.' });
+                        result.__transportWarned = true;
+                    }
+                    return result;
+                });
+            }).then(function (result) {
                 if (result && result.success !== false) {
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Dispatched', text: 'Dispatch record saved. Order marked as dispatched.', timer: 2000, showConfirmButton: false });
+                    if (typeof Swal !== 'undefined' && !result.__transportWarned) Swal.fire({ icon: 'success', title: 'Dispatched', text: 'Dispatch record saved. Order marked as dispatched.', timer: 2000, showConfirmButton: false });
                     var modalEl = document.getElementById('oilDispatchFormModal');
                     if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
                         var modal = bootstrap.Modal.getInstance(modalEl);

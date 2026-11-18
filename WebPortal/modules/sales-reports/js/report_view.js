@@ -328,6 +328,82 @@ var _reportView = (function () {
     // Page.
     // ------------------------------------------------------------------
 
+    // ------------------------------------------------------------------
+    // Monthly: Transport costs (snapshot.transport from get_report_transport, migration 20261118090000).
+    // Macavation-paid transport only, R excl. VAT, by transporter; trips the supplier/customer paid are counted, not added.
+    // R/kg and R/pallet use only the trips that have a cost, so a missing cost never makes them look cheap.
+    // ------------------------------------------------------------------
+    var TR_STREAM = { kernel: 'Kernel', oil: 'Oil' };
+    var TR_WHAT = { 'in:kernel': 'kernel deliveries in', 'in:oil': 'oil deliveries in',
+        'out:kernel': 'kernel dispatches out', 'out:oil': 'oil dispatches out' };
+
+    function perUnit(cost, qty) {
+        return (U.isNum(cost) && U.isNum(qty) && Number(qty) > 0) ? 'R ' + _common.formatKg(Number(cost) / Number(qty), 2) : U.DASH;
+    }
+
+    function tripsText(trips, priced) {
+        trips = U.num0(trips); priced = U.num0(priced);
+        return priced === trips ? U.intF(trips) : U.intF(trips) + ' (' + U.intF(priced) + ' with a cost)';
+    }
+
+    function transportTable(id, rows, tot, emptyText) {
+        var body = rows.map(function (r) {
+            return [(TR_STREAM[r.stream] || r.stream) + ' · ' + r.transporter, tripsText(r.trips, r.priced_trips),
+                plain2(r.kg), U.isNum(r.cost_zar) ? plain2(r.cost_zar) : 'No cost entered',
+                perUnit(r.cost_zar, r.priced_kg), perUnit(r.cost_zar, r.priced_pallets)];
+        });
+        if (!body.length) body.push([emptyText, '', '', '', '', '']);
+        var total = (tot && U.num0(tot.trips) > 0)
+            ? ['Total', tripsText(tot.trips, tot.priced_trips), plain2(tot.kg), U.isNum(tot.cost_zar) ? plain2(tot.cost_zar) : U.DASH,
+               perUnit(tot.cost_zar, tot.priced_kg), '']
+            : null;
+        return U.tableOf(id, [{ text: 'Transporter' }, { text: 'Trips' }, { text: 'Volume (kg)', num: true },
+            { text: 'Cost (R, excl. VAT)', num: true }, { text: 'R/kg', num: true }, { text: 'R/pallet', num: true }], body, total);
+    }
+
+    // Receiving transport is a procurement cost and dispatch transport a sales cost (Henry, 18 Nov 2026):
+    // two cost centres, each with its own total and last month, never added together.
+    var TR_CENTRES = [
+        { dir: 'in', id: 'T1', title: 'Procurement: receiving transport', src: 'Kernel and oil deliveries coming in · Rand excl. VAT',
+          prevKey: 'in_cost_zar', other: 'paid by the supplier', empty: 'No deliveries this month' },
+        { dir: 'out', id: 'T2', title: 'Sales: dispatch transport', src: 'Kernel and oil dispatches going out · Rand excl. VAT',
+          prevKey: 'out_cost_zar', other: 'paid by the customer', empty: 'No dispatches with Macavation-paid transport this month' }
+    ];
+
+    function transportCentre(c, tr) {
+        var s = U.newSection(c.id, null, c.title, c.src);
+        var tot = (tr.totals || {})[c.dir] || {}, prev = tr.previous || {};
+        var rows = (Array.isArray(tr.rows) ? tr.rows : []).filter(function (r) { return r.direction === c.dir; });
+        var other = U.num0((tr.other_paid_trips || {})[c.dir]);
+        if (!tr.other_paid_trips && c.dir === 'out') other = U.num0(tr.customer_paid_trips);   // snapshots built before 18 Nov noon
+        var bits = ['Total this month ' + (U.isNum(tot.cost_zar) ? U.zarF(tot.cost_zar) : 'R 0'),
+            'last month ' + (U.isNum(prev[c.prevKey]) ? U.zarF(prev[c.prevKey]) : 'no costs entered')];
+        if (other > 0) bits.push(U.intF(other) + (other === 1 ? ' trip ' : ' trips ') + c.other + ', not counted');
+        s.source = bits.join(' · ') + '.';
+
+        var missing = (Array.isArray(tr.missing) ? tr.missing : []).filter(function (m) { return m.direction === c.dir; }).map(function (m) {
+            return U.intF(m.trips) + ' ' + (TR_WHAT[m.direction + ':' + m.stream] || (m.stream + ' ' + m.direction));
+        });
+        if (missing.length) {
+            U.notice(s, 'No transport cost entered yet for ' + missing.join(', ') + '. The total leaves these out until someone enters them.');
+        }
+        s.grids = [U.grid(1, [U.card('By transporter', null, transportTable('T' + c.id, rows, tot, c.empty))])];
+        return s;
+    }
+
+    function transportStream(tr) {
+        var stream = { key: 'transport', title: 'Transport costs', sub: 'Two cost centres: receiving is procurement, dispatch is sales' };
+        if (!tr || tr.success !== true) {
+            var s = U.newSection('T1', null, 'Transport costs', '');
+            U.notice(s, 'Transport costs are not available for this month' + (tr && tr.error ? ': ' + tr.error : '.'));
+            stream.sections = [s];
+            return stream;
+        }
+        stream.jump = [['T1', 'Procurement'], ['T2', 'Sales']];
+        stream.sections = TR_CENTRES.map(function (c) { return transportCentre(c, tr); });
+        return stream;
+    }
+
     // The section models for a payload: {top, sections|null, up} - painted on screen by build() and
     // drawn into the PDF by ReportFiguresPdf (so the two never disagree). null when no figures yet.
     function composeParts(payload) {
@@ -359,9 +435,12 @@ var _reportView = (function () {
             headK.grids = [U.grid(2, [U.card('NIS cracked by day (kg)', wc.CW1), U.card('Kernel sales by customer (R)', wc.CW2)])];
             headO.grids = [U.grid(2, [U.card('Oil production by day (kg)', wc.CW3), U.card('Oil sales by product (R)', wc.CW4)])];
         }
+        var sections = monthly ? RF.model(snap.figures || {}, { mode: 'month', from: from, to: to, oilFilter: 'all' }) : null;
+        // Reports published before 18 Nov 2026 have no transport block: leave the section out rather than show zeros.
+        if (sections && snap.transport) sections.streams.push(transportStream(snap.transport));
         return {
             top: { streams: streams },
-            sections: monthly ? RF.model(snap.figures || {}, { mode: 'month', from: from, to: to, oilFilter: 'all' }) : null,
+            sections: sections,
             up: { streams: [{ key: 'upcoming', title: null, sections: [comingUpSection(snap.coming_up, word)] }] }
         };
     }

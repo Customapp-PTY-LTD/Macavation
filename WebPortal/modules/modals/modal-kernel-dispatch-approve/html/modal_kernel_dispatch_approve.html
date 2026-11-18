@@ -77,11 +77,11 @@
                 <div class="kda-cards-row d-none" id="kdaApproveCards">
                     <div class="kda-card">
                         <h2 class="kda-card-title">Transport</h2>
-                        <fieldset class="kda-radio-grid">
-                            <legend class="form-label">Who pays for transport?</legend>
-                            <label class="kda-radio" for="kdaPayerMac"><input type="radio" name="kdaPayer" id="kdaPayerMac" value="macavation" checked>Macavation</label>
-                            <label class="kda-radio" for="kdaPayerCust"><input type="radio" name="kdaPayer" id="kdaPayerCust" value="customer">Customer collects</label>
-                        </fieldset>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="kdaCustomerPays">
+                            <label class="form-check-label" for="kdaCustomerPays">Customer pays transport (no cost to us)</label>
+                        </div>
+                        <small class="text-muted d-block">Leave unticked when Macavation pays. A sales cost in the monthly report.</small>
                         <div class="row g-3 mt-0">
                             <div class="col-12">
                                 <label class="form-label" for="kdaTransporterSelect">Transporter</label>

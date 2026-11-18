@@ -418,8 +418,7 @@ var _modal_kernel_dispatch_approve = (function () {
     function renderTransport() {
         var o = wf.order;
         var payer = o.transport_payer === 'customer' ? 'customer' : 'macavation';
-        $('#kdaPayerMac').prop('checked', payer === 'macavation');
-        $('#kdaPayerCust').prop('checked', payer === 'customer');
+        $('#kdaCustomerPays').prop('checked', payer === 'customer');   // tickbox: customer pays transport
         $('#kdaTransportCost').val(o.transport_cost_zar != null ? Number(o.transport_cost_zar) : '');
         $('#kdaPallets').val(o.pallets != null ? Number(o.pallets) : '');
         $('#kdaTransporterAddForm').addClass('d-none');
@@ -616,8 +615,7 @@ var _modal_kernel_dispatch_approve = (function () {
         $('#kdaTotValue').text(fmtRand(goods));
 
         if (mode !== 'approve') return;
-        var payer = $('input[name="kdaPayer"]:checked').val();
-        $('.kda-radio').each(function () { $(this).toggleClass('kda-radio-on', $(this).find('input').is(':checked')); });
+        var payer = $('#kdaCustomerPays').is(':checked') ? 'customer' : 'macavation';
         var cost = parseFloat($('#kdaTransportCost').val());
         var transport = payer === 'macavation' && !isNaN(cost) ? cost : 0;
         var pallets = parseInt($('#kdaPallets').val(), 10);
@@ -762,7 +760,7 @@ var _modal_kernel_dispatch_approve = (function () {
             goods += (Number(line.cartons) || 0) * KG_PER_CARTON * p;
         });
         if (missing) return { error: 'Enter a price per kg for every line.' };
-        var payer = $('input[name="kdaPayer"]:checked').val() || 'macavation';
+        var payer = $('#kdaCustomerPays').is(':checked') ? 'customer' : 'macavation';
         var cost = $('#kdaTransportCost').val();
         if (payer === 'macavation' && cost !== '' && (isNaN(parseFloat(cost)) || parseFloat(cost) < 0)) {
             return { error: 'The transport cost must be a number, or leave it blank for now.' };
@@ -855,7 +853,7 @@ var _modal_kernel_dispatch_approve = (function () {
             var $modal = $('#' + MODAL_ID);
             if (!$modal.length) return;
             $modal.off('.kda');
-            $modal.on('input.kda change.kda', '.js-kda-picked, .js-kda-price, .js-kda-sub-cartons, #kdaTransportCost, #kdaPallets, input[name="kdaPayer"]', recalc);
+            $modal.on('input.kda change.kda', '.js-kda-picked, .js-kda-price, .js-kda-sub-cartons, #kdaTransportCost, #kdaPallets, #kdaCustomerPays', recalc);
             $modal.on('change.kda', '.js-kda-sub-stock', function () { updateSubWarn($(this).closest('tr')); recalc(); });
             $modal.on('click.kda', '.js-kda-add-sub', function (e) {
                 e.preventDefault();
