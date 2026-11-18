@@ -10,6 +10,11 @@
  *                   fields; says which page (or none) each sheet belongs to, and maps its columns.
  *   read_document - read a photo (jpeg/png) or PDF of a delivery note / invoice into rows, with a
  *                   confidence per field. The person checks every row before anything is saved.
+ *   read_pod      - Grower Intake "Book in a truck": read a photo / PDF of a transporter's proof of
+ *                   delivery into the New Delivery form (date, sender, transporter, POD number, kg,
+ *                   bag count). Suppliers / transporters / transport types are sent as NAMES only so
+ *                   the model can pick the matching one; ids stay in the browser. Nothing is saved:
+ *                   the browser fills the form and the person checks it before Save.
  *
  * This function never writes to the database. Saving goes through import_data_page_rows
  * (migrations/20261015090000_data_page_import_batches.sql) or import_data_pages
@@ -18,6 +23,7 @@
  * Auth: the X-Portal-Session header, validated through the service-role RPC
  * assistant_validate_session (same as portal-assistant) - fail closed. Because each call costs
  * money, the session's role must also hold reports.data.edit (data_import_role_can_edit), else 403.
+ * read_pod is also open to a user whose role holds grower.intake.create (has_action, service-role).
  *
  * Env vars:
  *   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY - service-role DB access for the two checks above.
@@ -28,6 +34,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Anthropic from "npm:@anthropic-ai/sdk";
+import { readPod } from "../_shared/pod-reader.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -73,7 +80,11 @@ async function rpcRows(sb: SupabaseClient, fn: string, params: AnyRow): Promise<
 
 // ── Session + permission ──────────────────────────────────────────────────
 
-async function checkCaller(sb: SupabaseClient, token: string): Promise<{ userId: string } | { error: string; status: number }> {
+async function checkCaller(
+  sb: SupabaseClient,
+  token: string,
+  alsoActionKey: string | null = null,
+): Promise<{ userId: string } | { error: string; status: number }> {
   if (!token) return { error: "Please sign in again.", status: 401 };
   let row: AnyRow | null = null;
   try {
@@ -89,10 +100,17 @@ async function checkCaller(sb: SupabaseClient, token: string): Promise<{ userId:
     const { data, error } = await sb.rpc("data_import_role_can_edit", { p_role_name: row.role_name ?? null });
     if (error) throw new Error(error.message);
     allowed = data === true;
+    if (!allowed && alsoActionKey) {
+      // user_id comes from the validated session, never from the request body.
+      const r2 = await sb.rpc("has_action", { p_user_id: row.user_id, p_action_key: alsoActionKey });
+      if (r2.error) throw new Error(r2.error.message);
+      allowed = r2.data === true;
+    }
   } catch (e) {
     console.error("[read-import-file] permission check failed:", e);
     return { error: "Permissions could not be checked. Please try again.", status: 503 };
   }
+  if (!allowed && alsoActionKey) return { error: "Your role cannot book in deliveries, so it cannot read a POD.", status: 403 };
   if (!allowed) return { error: "Your role cannot import data. Ask an admin for the 'Edit Data Page' permission.", status: 403 };
   return { userId: String(row.user_id) };
 }
@@ -364,6 +382,22 @@ async function handleReadDocument(anthropic: Anthropic, body: AnyRow, userId: st
   return jsonResponse({ success: true, data: r.data });
 }
 
+// ── read_pod ──────────────────────────────────────────────────────────────
+// Book in a truck: one proof of delivery -> the New Delivery form. The reader itself is shared with
+// whatsapp-inbound (a POD photo sent on WhatsApp): ../_shared/pod-reader.ts.
+
+async function handleReadPod(anthropic: Anthropic, body: AnyRow, userId: string): Promise<Response> {
+  const r = await readPod(anthropic, {
+    mediaType: String(body.media_type || ""),
+    dataBase64: String(body.data_base64 || ""),
+    suppliers: body.suppliers,
+    transporters: body.transporters,
+    transportTypes: body.transport_types,
+  }, "read-import-file", userId);
+  if (!r.ok) return jsonResponse({ success: false, error: r.error }, r.status);
+  return jsonResponse({ success: true, data: r.data });
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────
 
 export async function handler(req: Request): Promise<Response> {
@@ -383,12 +417,16 @@ export async function handler(req: Request): Promise<Response> {
   }
 
   const action = String(body.action || "");
-  if (action !== "map_columns" && action !== "identify_sheets" && action !== "read_document") {
+  if (action !== "map_columns" && action !== "identify_sheets" && action !== "read_document" && action !== "read_pod") {
     return jsonResponse({ success: false, error: "Unknown action." }, 400);
   }
 
   const sb = makeServiceClient();
-  const caller = await checkCaller(sb, (req.headers.get("x-portal-session") || "").trim());
+  const caller = await checkCaller(
+    sb,
+    (req.headers.get("x-portal-session") || "").trim(),
+    action === "read_pod" ? "grower.intake.create" : null,
+  );
   if ("error" in caller) return jsonResponse({ success: false, error: caller.error }, caller.status);
 
   const anthropic = client();
@@ -397,6 +435,7 @@ export async function handler(req: Request): Promise<Response> {
   try {
     if (action === "map_columns") return await handleMapColumns(anthropic, body, caller.userId);
     if (action === "identify_sheets") return await handleIdentifySheets(anthropic, body, caller.userId);
+    if (action === "read_pod") return await handleReadPod(anthropic, body, caller.userId);
     return await handleReadDocument(anthropic, body, caller.userId);
   } catch (e) {
     console.error("[read-import-file] action failed:", action, e instanceof Error ? e.message : e);
