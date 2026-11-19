@@ -908,7 +908,7 @@ var _modal_kernel_job_card = (function () {
                 Swal.fire({
                     icon: 'success',
                     title: 'Jobcard approved',
-                    text: 'The job card button shows a tick. Use Release to stock when the batch is release ready.',
+                    text: 'The job card button shows a tick. When the batch has passed the lab, press Transfer to stock and count the boxes.',
                     timer: 2600,
                     showConfirmButton: false
                 });
