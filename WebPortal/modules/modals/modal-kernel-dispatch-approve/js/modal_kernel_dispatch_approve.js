@@ -624,7 +624,8 @@ var _modal_kernel_dispatch_approve = (function () {
         var hasPallets = !isNaN(pallets) && pallets > 0;
         $('#kdaTransportCost').prop('disabled', payer === 'customer');
         $('#kdaTransportCostInc').val(hasCost ? fmtRand(Math.round(cost * (1 + VAT_RATE) * 100) / 100) : '');
-        $('#kdaCostPerPallet').val(hasCost && hasPallets ? fmtRand(cost / pallets) : '');
+        // Per ton, not per pallet (Mike, 19 Nov 2026): bags don't fill a pallet space evenly, tons do.
+        $('#kdaCostPerTon').val(hasCost && totKg > 0 ? fmtRand(cost / (totKg / 1000)) : '');
         $('#kdaSumGoods').text(fmtRand(goods));
         $('#kdaSumTransportRow').toggleClass('d-none', payer !== 'macavation');
         $('#kdaSumTransport').text('- ' + fmtRand(transport));
