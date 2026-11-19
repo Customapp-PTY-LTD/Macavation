@@ -1235,6 +1235,9 @@ async function handleFunctionProxy(requestData, user, requestId, origin, event) 
     'return_kernel_from_stock_to_production',
     'get_kernel_jobcard_approval_map',
     'complete_kernel_batch',
+    'get_kernel_transfer_sheet',
+    'transfer_kernel_batch_to_stock',
+    'get_kernel_transfer_differences',
     'adjust_kernel_stock_on_hand',
     'update_kernel_stock_batch_info'
   ]);
