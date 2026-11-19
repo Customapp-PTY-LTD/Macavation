@@ -20,6 +20,9 @@ var _dataFunctions = function () {
             'upsert_kernel_job_card',
             'get_kernel_jobcard_approval_map',
             'complete_kernel_batch',
+            'get_kernel_transfer_sheet',
+            'transfer_kernel_batch_to_stock',
+            'get_kernel_transfer_differences',
             'adjust_kernel_stock_on_hand',
             'update_kernel_stock_batch_info',
             'import_historical_kernel_batch',
@@ -3917,6 +3920,43 @@ var _dataFunctions = function () {
             this.clearCachePattern('kernel_batch_detail_' + kernelId);
             this.clearCachePattern('kernel_batches');
             return this.unwrapKernelRpcJson(raw, 'complete_kernel_batch') || raw;
+        },
+
+        /**
+         * getKernelTransferSheet — the box-count sheet for one batch (migration 20261119090000):
+         * { batch_number, grower_name, status, jobcard_approved, lines:[{style, cartons, kg}], transfer_check }.
+         */
+        getKernelTransferSheet: async function (kernelId, token = null) {
+            const raw = await this.callFunction('get_kernel_transfer_sheet', { p_kernel_id: kernelId }, token, { useCache: false });
+            return this.unwrapKernelRpcJson(raw, 'get_kernel_transfer_sheet') || raw;
+        },
+
+        /**
+         * transferKernelBatchToStock — save the box count and put the batch into stock at the COUNTED numbers.
+         * counts = [{ style, counted, note }]; a style that differs from production needs a note.
+         */
+        transferKernelBatchToStock: async function (kernelId, counts, note = null, token = null) {
+            const raw = await this.callFunction('transfer_kernel_batch_to_stock', {
+                p_kernel_id: kernelId,
+                p_counts: counts || [],
+                p_note: note,
+                p_actor_user_id: this.getCurrentUserId() || null
+            }, token, { useCache: false, preserveNullParams: true });
+            this.clearCachePattern('kernel_batch_detail_' + kernelId);
+            this.clearCachePattern('kernel_batches');
+            return this.unwrapKernelRpcJson(raw, 'transfer_kernel_batch_to_stock') || raw;
+        },
+
+        /** getKernelTransferDifferences — batches in stock whose transfer count differed. Resolves null if the RPC is missing. */
+        getKernelTransferDifferences: async function (token = null) {
+            try {
+                const raw = await this.callFunction('get_kernel_transfer_differences', {}, token, { useCache: false });
+                const r = this.unwrapKernelRpcJson(raw, 'get_kernel_transfer_differences');
+                return (r && r.success && Array.isArray(r.batches)) ? r : null;
+            } catch (e) {
+                console.warn('[Transfer count] get_kernel_transfer_differences unavailable:', e && e.message);
+                return null;
+            }
         },
 
         /**
