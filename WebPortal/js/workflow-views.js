@@ -618,7 +618,8 @@ var _workflowViews = function () {
             nis_runway_low: 'Nut in shell runs out soon', nis_unplaced: 'Nut in shell not placed',
             oil_ffa_decision: 'Oil raw FFA out of spec',
             dispatch_return_decide: 'Decide on returned stock', dispatch_return_credit: 'Credit note for a return',
-            oil_daily_recipe: 'Oil recipe for today', oil_stock_count: 'Oil month-end count'
+            oil_daily_recipe: 'Oil recipe for today', oil_stock_count: 'Oil month-end count',
+            kernel_transfer_check: 'Count a batch into stock'
         },
 
         _kindAction: function (task) {
@@ -638,6 +639,7 @@ var _workflowViews = function () {
                 case 'oil_daily_recipe': return { label: 'Enter the recipe', route: 'oil-raw-materials', params: { tab: 'recipe' } };
                 case 'oil_stock_count': return { label: 'Enter the count', route: 'oil-raw-materials', params: { tab: 'count' } };
                 case 'customer_prices_expiring': return { label: 'Update prices', route: 'kernel-pipeline-settings', params: { tab: 'prices', customerId: sid } };
+                case 'kernel_transfer_check': return { label: 'Count the boxes', route: 'kernel-production-grid', params: { transferKernelId: sid } };
             }
             return null;
         },

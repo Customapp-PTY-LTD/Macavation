@@ -781,6 +781,7 @@ var _stockManagementGrid = function () {
                 });
             }
             scope.loadKernelCountFlags();
+            scope.loadKernelTransferDiffs();
             scope.loadKernelPositiveRelease();
             return df.getKernelBatches(null, forceRefresh, { status: 'complete' }).then(function (all) {
                 all = (all || []).filter(function (b) {
@@ -1518,6 +1519,7 @@ var _stockManagementGrid = function () {
                 var batchCell = '<div class="ks-batch-no">' + escapeHtml(macBatchNo.format(batchNum)) + '</div>';
                 if (growerName) batchCell += '<div class="ks-batch-supplier">' + escapeHtml(growerName) + '</div>';
                 batchCell += scope.kernelCountFlagHtml(kernelIdFromBatch(b));
+                batchCell += scope.kernelTransferDiffHtml(kernelIdFromBatch(b));
                 var row = '<tr><td class="ks-batch-td">' + batchCell + '</td>';
                 styleKeys.forEach(function (k) {
                     var val = cells[k] != null ? cells[k] : 0;
@@ -1627,7 +1629,7 @@ var _stockManagementGrid = function () {
             var scope = _stockManagementGrid;
             var pr = scope.kernelPositiveRelease || {};
             var exp = pr.expected_days;
-            if (b.state === 'passed') return { text: 'Lab passed \u00b7 waiting for release', late: false };
+            if (b.state === 'passed') return { text: 'Lab passed \u00b7 waiting to be counted into stock', late: false };
             if (b.state === 'failed') return { text: 'Failed a lab test \u00b7 retest due', late: false };
             if (b.state === 'needs_decision') return { text: 'Failed the retest \u00b7 needs a decision', late: false };
             var text = (Number(b.test_number) > 1 ? 'Test ' + b.test_number + ' \u00b7 ' : '') + 'Day ' + (b.days_at_lab != null ? b.days_at_lab : '?') + ' of ' + (exp != null ? exp : '?');
@@ -1678,7 +1680,7 @@ var _stockManagementGrid = function () {
                     return '<td class="text-center kernel-style-col">' + (v ? escapeHtml(fmt(v)) : blank) + '</td>';
                 }).join('');
             }
-            var h = '<tr class="ks-pr-section"><td colspan="15">Positive release: at the lab or waiting for release. Counted from the packing sheet; can\'t be sent to dispatch yet.</td></tr>';
+            var h = '<tr class="ks-pr-section"><td colspan="15">Positive release: at the lab or waiting to be counted into stock. Counted from the packing sheet; can\'t be sent to dispatch yet.</td></tr>';
             list.forEach(function (b) {
                 var st = scope.kernelPositiveReleaseStatus(b);
                 var grower = (b.grower_name || '').toString().trim();
@@ -1687,7 +1689,7 @@ var _stockManagementGrid = function () {
                 h += '<tr class="ks-pr-row"><td class="ks-batch-td">' + cell + '</td>' + styleCells(b.cartons_by_style || {}, '\u2014') +
                     '<td colspan="4" class="small' + (st.late ? ' text-danger fw-semibold' : '') + '">' + escapeHtml(st.text) + '</td></tr>';
             });
-            h += '<tr class="ks-pr-total"><td>Positive release total</td>' + styleCells(prTotals, '0') + '<td colspan="4" class="small fw-normal">At the lab or waiting for release</td></tr>';
+            h += '<tr class="ks-pr-total"><td>Positive release total</td>' + styleCells(prTotals, '0') + '<td colspan="4" class="small fw-normal">At the lab or waiting to be counted</td></tr>';
             var avail = {};
             styleKeys.forEach(function (k) { avail[k] = (Number(onHandTotals && onHandTotals[k]) || 0) + prTotals[k]; });
             h += '<tr class="ks-pr-available"><td>Total available</td>' + styleCells(avail, '0') + '<td colspan="4" class="small fw-normal">On hand + positive release</td></tr>';
@@ -1702,6 +1704,41 @@ var _stockManagementGrid = function () {
                 $(this).toggleClass('ks-zebra', visible && (n % 2 === 0));
                 if (visible) n++;
             });
+        },
+
+        /**
+         * "Count differed" pill: the boxes counted at transfer to stock were not what production packed
+         * (migration 20261119090000). Stock already uses the counted numbers; this is the record of it.
+         */
+        kernelTransferDiffHtml: function (kernelId) {
+            var scope = _stockManagementGrid;
+            var d = scope.kernelTransferDiffs && scope.kernelTransferDiffs[String(kernelId)];
+            if (!d || !Array.isArray(d.lines) || !d.lines.length) return '';
+            var fmt = scope.formatKernelCartons;
+            var tip = d.lines.map(function (l) {
+                return 'Style ' + l.style + ': production packed ' + fmt(l.expected_cartons) + ', counted ' + fmt(l.counted_cartons) +
+                    (l.note ? ' (' + l.note + ')' : '');
+            });
+            var who = [d.checked_by_name, d.checked_at ? String(d.checked_at).slice(0, 10) : null].filter(Boolean).join(', ');
+            if (who) tip.push('Counted by ' + who);
+            if (d.note) tip.push('Note: ' + d.note);
+            return '<div class="ks-count-flag">' +
+                '<span class="badge bg-info-subtle text-dark border" title="' + escapeHtml(tip.join('\n')).replace(/"/g, '&quot;') + '">' +
+                '<i class="fas fa-clipboard-check me-1"></i>Count differed at transfer</span></div>';
+        },
+
+        /** Load the batches whose transfer count differed. Never breaks the grid: on failure the pills are absent. */
+        loadKernelTransferDiffs: function () {
+            var scope = _stockManagementGrid;
+            if (typeof dataFunctions === 'undefined' || !dataFunctions || typeof dataFunctions.getKernelTransferDifferences !== 'function') {
+                return Promise.resolve();
+            }
+            return dataFunctions.getKernelTransferDifferences().then(function (res) {
+                var map = {};
+                ((res && res.batches) || []).forEach(function (b) { map[String(b.kernel_id)] = b; });
+                scope.kernelTransferDiffs = map;
+                if (scope.kernelCurrentView === 'bystyle' && (scope.kernelFinishedBatches || []).length) scope.renderKernelStockByStyle();
+            }).catch(function (e) { console.warn('[Stock Management] getKernelTransferDifferences failed:', e); });
         },
 
         /** "Count needed" pill (+ "Counted" button for people who may clear it) under a batch number. */
@@ -2094,6 +2131,7 @@ var _stockManagementGrid = function () {
                     if (cdf && typeof cdf.clearKernelStockCountFlags === 'function' && adjustment && adjustment.style) {
                         Promise.resolve(cdf.clearKernelStockCountFlags(kernelId, adjustment.style)).then(function () {
                             scope.loadKernelCountFlags();
+            scope.loadKernelTransferDiffs();
                         }).catch(function (ec) { console.warn('[Stock Management] clearKernelStockCountFlags failed:', ec); });
                     }
                 } catch (ecf) { console.warn('[Stock Management] clearKernelStockCountFlags failed:', ecf); }

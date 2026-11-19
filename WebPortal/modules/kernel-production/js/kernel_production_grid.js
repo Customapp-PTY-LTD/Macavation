@@ -199,12 +199,12 @@ var _kernelProductionGrid = function () {
         }
         if (fv === 'release_ready') {
             if (canReleaseToStock) {
-                return '<button type="button" class="btn btn-sm btn-primary js-release-to-stock" data-batch-id="' + id + '" data-action-perm="kernel.release_to_stock"><i class="fas fa-warehouse me-1"></i>Release to stock</button>';
+                return '<button type="button" class="btn btn-sm btn-primary js-release-to-stock" data-batch-id="' + id + '" data-action-perm="kernel.release_to_stock"><i class="fas fa-warehouse me-1"></i>Transfer to stock</button>';
             }
             if (!isJobCardApproved) {
                 return '<button type="button" class="btn btn-sm btn-primary js-job-card-batch" data-batch-id="' + id + '"><i class="fas fa-file-alt me-1"></i>Approve job card</button>';
             }
-            return '<button type="button" class="btn btn-sm btn-outline-secondary js-release-to-stock-disabled" data-batch-id="' + id + '"><i class="fas fa-warehouse me-1"></i>Release to stock</button>';
+            return '<button type="button" class="btn btn-sm btn-outline-secondary js-release-to-stock-disabled" data-batch-id="' + id + '"><i class="fas fa-warehouse me-1"></i>Transfer to stock</button>';
         }
         if (fv === 'in_production') {
             return '<button type="button" class="btn btn-sm btn-primary js-production-batch" data-batch-id="' + id + '"><i class="fas fa-cogs me-1"></i>Production</button>';
@@ -327,7 +327,18 @@ var _kernelProductionGrid = function () {
             }
             console.log('[Kernel Production] Initializing grid...');
             scope.bindEvents();
-            scope.loadBatches();
+            // My Day "Count into stock" task opens the count sheet for its batch (migration 20261119090000).
+            var handoff = (typeof _appRouter !== 'undefined' && _appRouter.takeHandoff) ? _appRouter.takeHandoff('kernel-production-grid') : null;
+            Promise.resolve(scope.loadBatches()).then(function () {
+                if (!handoff || !handoff.transferKernelId) return;
+                if (typeof hasAction === 'function' && !hasAction('kernel.release_to_stock')) {
+                    Swal.fire('Not permitted', 'You do not have permission to transfer batches to stock.', 'warning');
+                    return;
+                }
+                if (typeof _kernelProductionBatchActions !== 'undefined' && _kernelProductionBatchActions.releaseBatchToStock) {
+                    _kernelProductionBatchActions.releaseBatchToStock(handoff.transferKernelId);
+                }
+            });
             // Modal pattern: load modal content into empty containers, then init child modules (they bind to modal DOM)
             const loadPromises = [];
             $('.modal[route-name]').each((index, el) => {
@@ -500,9 +511,9 @@ var _kernelProductionGrid = function () {
                             : 'This batch failed a lab test. Send it for a retest or reprocess it first.')
                     : null;
                 var text = labMsg ? labMsg : (releaseReadyColumn && !jobOk)
-                    ? 'This batch is release-ready, but the Job Card must be approved before you can release to stock.'
-                    : 'Complete Production, then complete End sample for this batch. Release to stock will become available when the batch is release-ready or completed.';
-                Swal.fire({ icon: 'info', title: 'Release to stock', text: text });
+                    ? 'This batch is release-ready, but the Job Card must be approved before you can count it into stock.'
+                    : 'Complete Production, then complete End sample for this batch. Transfer to stock will become available when the batch is release-ready or completed.';
+                Swal.fire({ icon: 'info', title: 'Transfer to stock', text: text });
             });
             $(document).on('click', '.js-batch-history', function (e) {
                 e.preventDefault();
@@ -616,7 +627,7 @@ var _kernelProductionGrid = function () {
                         '<li><a class="dropdown-item js-edit-batch" href="#" data-batch-id="' + batch.id + '">Edit batch details</a></li>'
                     ];
                     if (displayStatus.filterValue === 'release_ready' && canReleaseToStock) {
-                        moreItems.unshift('<li><a class="dropdown-item js-release-to-stock" href="#" data-batch-id="' + batch.id + '">Release to stock</a></li>');
+                        moreItems.unshift('<li><a class="dropdown-item js-release-to-stock" href="#" data-batch-id="' + batch.id + '">Transfer to stock</a></li>');
                     }
                     var moreMenu = '<div class="dropdown d-inline-block">' +
                         '<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">More</button>' +
@@ -664,7 +675,7 @@ var _kernelProductionGrid = function () {
                         Swal.fire({
                             icon: 'info',
                             title: 'Complete production first',
-                            text: 'Move the batch through Production and End sample to reach Ready for stock, then approve the job card and release to stock.'
+                            text: 'Move the batch through Production and End sample to reach Ready for stock, then approve the job card, then count the boxes and transfer it to stock.'
                         });
                     }
                     scope.loadBatches(true);
@@ -913,9 +924,9 @@ var _kernelProductionGrid = function () {
                     summaryItem
                 ];
                 if (canReleaseToStock) {
-                    menuItems.push('<a class="dropdown-item js-release-to-stock" href="#" data-batch-id="' + batch.id + '">Release to stock</a>');
+                    menuItems.push('<a class="dropdown-item js-release-to-stock" href="#" data-batch-id="' + batch.id + '">Transfer to stock</a>');
                 } else {
-                    menuItems.push('<span class="dropdown-item text-muted js-release-to-stock-disabled" role="button" tabindex="0">Release to stock</span>');
+                    menuItems.push('<span class="dropdown-item text-muted js-release-to-stock-disabled" role="button" tabindex="0">Transfer to stock</span>');
                 }
                 menuItems.push('<a class="dropdown-item js-edit-batch" href="#" data-batch-id="' + batch.id + '"><i class="fas fa-pen me-1"></i>Edit batch details</a>');
                 menuItems.push('<a class="dropdown-item js-archive-batch text-secondary" href="#" data-batch-id="' + batch.id + '"><i class="fas fa-archive me-1"></i>Archive batch</a>');
