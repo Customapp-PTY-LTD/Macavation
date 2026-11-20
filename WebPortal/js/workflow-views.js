@@ -919,7 +919,7 @@ var _workflowViews = function () {
                     // Tickbox (Henry, 18 Nov 2026): the grower/supplier paid, so no rate is needed and it is not our cost.
                     '<div class="form-check text-start mt-2"><input class="form-check-input" type="checkbox" id="wvSupplierPays">' +
                     '<label class="form-check-label" for="wvSupplierPays">Supplier pays transport (no cost to us)</label></div>' +
-                    '<div class="row text-start mt-3 g-2"><div class="col-6"><div class="small text-muted">Rate per pallet</div><strong id="wvRatePallet">—</strong></div>' +
+                    '<div class="row text-start mt-3 g-2"><div class="col-6"><div class="small text-muted">Rate per ton</div><strong id="wvRateTon">—</strong></div>' +
                     '<div class="col-6"><div class="small text-muted">Rate per kg</div><strong id="wvRateKg">—</strong></div></div>',
                 showCancelButton: true,
                 confirmButtonText: 'Save',
@@ -932,7 +932,8 @@ var _workflowViews = function () {
                     var showRates = function () {
                         var r = parseFloat(input.value);
                         var ok = !tick.checked && input.value !== '' && isFinite(r) && r >= 0;
-                        document.getElementById('wvRatePallet').textContent = ok && pallets > 0 ? 'R ' + self._fmtNum(r / pallets, 2) : '—';
+                        // Per ton, not per pallet (Mike, 19 Nov 2026): a half-ton bag takes half a pallet space, so tons is the fair measure.
+                        document.getElementById('wvRateTon').textContent = ok && kg > 0 ? 'R ' + self._fmtNum(r / (kg / 1000), 2) : '—';
                         document.getElementById('wvRateKg').textContent = ok && kg > 0 ? 'R ' + self._fmtNum(r / kg, 2) : '—';
                     };
                     input.addEventListener('input', showRates);

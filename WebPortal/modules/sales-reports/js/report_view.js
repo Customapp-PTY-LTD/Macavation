@@ -331,7 +331,8 @@ var _reportView = (function () {
     // ------------------------------------------------------------------
     // Monthly: Transport costs (snapshot.transport from get_report_transport, migration 20261118090000).
     // Macavation-paid transport only, R excl. VAT, by transporter; trips the supplier/customer paid are counted, not added.
-    // R/kg and R/pallet use only the trips that have a cost, so a missing cost never makes them look cheap.
+    // R/kg and R/ton use only the trips that have a cost, so a missing cost never makes them look cheap.
+    // R/ton replaced R/pallet (Mike, 19 Nov 2026): a half-ton bag only takes half a pallet space.
     // ------------------------------------------------------------------
     var TR_STREAM = { kernel: 'Kernel', oil: 'Oil' };
     var TR_WHAT = { 'in:kernel': 'kernel deliveries in', 'in:oil': 'oil deliveries in',
@@ -339,6 +340,10 @@ var _reportView = (function () {
 
     function perUnit(cost, qty) {
         return (U.isNum(cost) && U.isNum(qty) && Number(qty) > 0) ? 'R ' + _common.formatKg(Number(cost) / Number(qty), 2) : U.DASH;
+    }
+
+    function tons(kg) {
+        return U.isNum(kg) ? Number(kg) / 1000 : null;
     }
 
     function tripsText(trips, priced) {
@@ -350,15 +355,15 @@ var _reportView = (function () {
         var body = rows.map(function (r) {
             return [(TR_STREAM[r.stream] || r.stream) + ' · ' + r.transporter, tripsText(r.trips, r.priced_trips),
                 plain2(r.kg), U.isNum(r.cost_zar) ? plain2(r.cost_zar) : 'No cost entered',
-                perUnit(r.cost_zar, r.priced_kg), perUnit(r.cost_zar, r.priced_pallets)];
+                perUnit(r.cost_zar, r.priced_kg), perUnit(r.cost_zar, tons(r.priced_kg))];
         });
         if (!body.length) body.push([emptyText, '', '', '', '', '']);
         var total = (tot && U.num0(tot.trips) > 0)
             ? ['Total', tripsText(tot.trips, tot.priced_trips), plain2(tot.kg), U.isNum(tot.cost_zar) ? plain2(tot.cost_zar) : U.DASH,
-               perUnit(tot.cost_zar, tot.priced_kg), '']
+               perUnit(tot.cost_zar, tot.priced_kg), perUnit(tot.cost_zar, tons(tot.priced_kg))]
             : null;
         return U.tableOf(id, [{ text: 'Transporter' }, { text: 'Trips' }, { text: 'Volume (kg)', num: true },
-            { text: 'Cost (R, excl. VAT)', num: true }, { text: 'R/kg', num: true }, { text: 'R/pallet', num: true }], body, total);
+            { text: 'Cost (R, excl. VAT)', num: true }, { text: 'R/kg', num: true }, { text: 'R/ton', num: true }], body, total);
     }
 
     // Receiving transport is a procurement cost and dispatch transport a sales cost (Henry, 18 Nov 2026):
