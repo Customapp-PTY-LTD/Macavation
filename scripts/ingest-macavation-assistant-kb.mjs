@@ -71,6 +71,7 @@ const SECTION_KEYWORDS = {
   'modal-import-oil-lots': 'import oil stock from excel, oil stock excel import, upload oil lots',
   'modal-job-card-view': 'job card view, read-only job card, view job card, job card view no longer used',
   'modal-kernel-dispatch': 'dispatch order view, dispatch basket header, create dispatch basket, kernel dispatch dialog no longer used, view sheet',
+  'sales-hub': 'Sales page, sales module, where are sales, change prices, customer prices, confirm pricing, orders waiting for pricing, sales figures, sales this month, sales this year, sales by customer, sales by style, download sales CSV, add a customer',
   'kernel-dispatch-grid': 'Dispatch and Sales, kernel dispatch, five steps, waiting for picking, waiting for pricing, waiting for the truck, waiting for the invoice, undo truck loaded, undo invoice sent, confirm picking, confirm pricing, dispatch calendar',
   'modal-kernel-dispatch-edit': 'edit dispatch, edit dispatch order, change collection date, change buyer, wrong cartons on dispatch, send back to stock, cancel a dispatch, dispatch already dispatched',
   'modal-kernel-dispatch-form': 'truck sheet, truck loaded, inspection of vehicle, vehicle checks, driver name, truck registration, delivery note, sender signature, unlock dispatched basket, dispatch recorded by mistake',
