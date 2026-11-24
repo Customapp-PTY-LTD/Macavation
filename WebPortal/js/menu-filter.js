@@ -127,7 +127,6 @@ var _menuFilter = function () {
                 'homeCollapse',
                 'kernelCollapse',
                 'oilCollapse',
-                'salesCollapse',
                 'supportCollapse',
                 'crmCollapse',
                 'reportsCollapse',

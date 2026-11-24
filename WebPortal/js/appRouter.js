@@ -512,6 +512,11 @@ var _appRouter = function () {
                         _nisStorage.init();
                     }
                 },
+                'sales-hub': () => {
+                    if (typeof _salesHub !== 'undefined' && _salesHub.init) {
+                        _salesHub.init();
+                    }
+                },
                 'kernel-style-prices': () => {
                     if (typeof _kernelStylePrices !== 'undefined' && _kernelStylePrices.init) {
                         _kernelStylePrices.init();

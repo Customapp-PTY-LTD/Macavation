@@ -1,0 +1,143 @@
+<!-- Sales (24 Nov 2026): one page for everything to do with selling - orders, prices, customers and
+     sales figures. It reuses the existing dialogs (pricing/approve, truck form, send to dispatch, customer)
+     so anything done here is the same as doing it on the original screens, which all stay. -->
+<div class="module-content" id="salesHub">
+    <div class="d-flex justify-content-between flex-wrap align-items-center gap-2 pt-3 pb-2 mb-3 border-bottom">
+        <div>
+            <h1 class="h2 mb-0">Sales</h1>
+            <div class="sh-sub">Orders, prices, customers and sales figures in one place.</div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a target="_blank" rel="noopener noreferrer" href="help/index.html#sales-hub" class="btn btn-sm btn-outline-secondary macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+            <button type="button" class="btn btn-outline-secondary" id="shRefreshBtn"><i class="fas fa-sync-alt me-1"></i>Refresh</button>
+            <button type="button" class="btn btn-primary d-none" id="shNewOrderBtn"><i class="fas fa-plus me-1"></i>New order</button>
+        </div>
+    </div>
+
+    <ul class="nav nav-tabs mb-3" id="shTabs" role="tablist" aria-label="Sales sections">
+        <li class="nav-item" role="presentation"><button class="nav-link active" type="button" role="tab" data-sh-tab="today" aria-selected="true"><i class="fas fa-sun me-1"></i>Today</button></li>
+        <li class="nav-item" role="presentation"><button class="nav-link" type="button" role="tab" data-sh-tab="orders" aria-selected="false"><i class="fas fa-box me-1"></i>Orders</button></li>
+        <li class="nav-item d-none" role="presentation" id="shPricesTabItem"><button class="nav-link" type="button" role="tab" data-sh-tab="prices" aria-selected="false"><i class="fas fa-tags me-1"></i>Prices</button></li>
+        <li class="nav-item" role="presentation"><button class="nav-link" type="button" role="tab" data-sh-tab="customers" aria-selected="false"><i class="fas fa-building me-1"></i>Customers</button></li>
+        <li class="nav-item" role="presentation"><button class="nav-link" type="button" role="tab" data-sh-tab="figures" aria-selected="false"><i class="fas fa-chart-line me-1"></i>Sales figures</button></li>
+    </ul>
+
+    <!-- Today -->
+    <div class="sh-pane" data-sh-pane="today">
+        <div class="row g-3 mb-3" id="shTiles"></div>
+        <div class="row g-3">
+            <div class="col-lg-7">
+                <div class="card h-100">
+                    <div class="card-header"><strong>To do</strong></div>
+                    <div class="card-body" id="shTodo"><div class="text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Loading&hellip;</div></div>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="card h-100">
+                    <div class="card-header"><strong>Latest sales</strong></div>
+                    <div class="card-body p-0" id="shLatest"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Orders -->
+    <div class="sh-pane d-none" data-sh-pane="orders">
+        <div class="d-flex flex-wrap gap-2 mb-3" id="shStageChips" role="group" aria-label="Filter orders by step"></div>
+        <div class="card mb-4">
+            <div class="card-header"><strong>Kernel orders</strong> <span class="sh-muted">(latest 100)</span></div>
+            <div class="card-body p-0"><div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead><tr><th>Customer</th><th>Collection</th><th class="text-end">Kg</th><th>Step</th><th>Waiting on</th><th class="text-end">Actions</th></tr></thead>
+                    <tbody id="shOrdersBody"></tbody>
+                </table>
+            </div></div>
+        </div>
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><strong>Oil orders</strong> <span class="sh-muted">(latest 50)</span></span>
+                <a href="#" route="oil-dispatch-grid" class="btn btn-sm btn-outline-secondary">Open oil dispatch</a>
+            </div>
+            <div class="card-body p-0"><div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead><tr><th>Customer</th><th>Date</th><th>Status</th></tr></thead>
+                    <tbody id="shOilOrdersBody"></tbody>
+                </table>
+            </div></div>
+        </div>
+    </div>
+
+    <!-- Prices: the style-prices module (standard list) plus one customer's own prices -->
+    <div class="sh-pane d-none" data-sh-pane="prices">
+        <div class="card mb-4">
+            <div class="card-header"><strong>Standard prices</strong> <span class="sh-muted">&middot; what every customer pays unless they have their own price</span></div>
+            <div class="card-body">
+                <div id="ksp-module"><div id="ksp-body"><div class="text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading&hellip;</div></div></div>
+            </div>
+        </div>
+        <div class="card mb-4">
+            <div class="card-header"><strong>A customer's own prices</strong></div>
+            <div class="card-body">
+                <label class="form-label" for="shPriceCustomer">Customer</label>
+                <select class="form-select sh-customer-select mb-3" id="shPriceCustomer"><option value="">Choose a customer&hellip;</option></select>
+                <div id="shCustomerPrices" class="sh-muted">Choose a customer to see or change their prices.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customers -->
+    <div class="sh-pane d-none" data-sh-pane="customers">
+        <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+            <input type="search" class="form-control sh-search" id="shCustomerSearch" placeholder="Search customers" aria-label="Search customers">
+            <span class="sh-muted me-auto" id="shCustomerFy"></span>
+            <button type="button" class="btn btn-outline-primary d-none" id="shAddCustomerBtn"><i class="fas fa-plus me-1"></i>Add a customer</button>
+        </div>
+        <div class="card mb-4"><div class="card-body p-0"><div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Customer</th><th>Contact</th><th class="text-end">Sales this FY (excl. VAT)</th><th class="text-end">Kg this FY</th><th>Last sale</th><th class="text-end">Open orders</th><th class="text-end">Actions</th></tr></thead>
+                <tbody id="shCustomersBody"></tbody>
+            </table>
+        </div></div></div>
+    </div>
+
+    <!-- Sales figures -->
+    <div class="sh-pane d-none" data-sh-pane="figures">
+        <div class="d-flex flex-wrap gap-2 align-items-end mb-3">
+            <div>
+                <label class="form-label mb-1" for="shPeriod">Period</label>
+                <select class="form-select" id="shPeriod">
+                    <option value="month">This month</option>
+                    <option value="last_month">Last month</option>
+                    <option value="fy" selected>This financial year</option>
+                    <option value="last_fy">Last financial year</option>
+                    <option value="custom">Choose dates</option>
+                </select>
+            </div>
+            <div class="sh-custom d-none"><label class="form-label mb-1" for="shFrom">From</label><input type="date" class="form-control" id="shFrom"></div>
+            <div class="sh-custom d-none"><label class="form-label mb-1" for="shTo">To</label><input type="date" class="form-control" id="shTo"></div>
+            <div class="btn-group" role="group" aria-label="Product">
+                <button type="button" class="btn btn-outline-secondary active" data-sh-product="kernel" aria-pressed="true">Kernel</button>
+                <button type="button" class="btn btn-outline-secondary" data-sh-product="oil" aria-pressed="false">Oil &amp; protein</button>
+            </div>
+            <div class="ms-auto d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary" id="shExportBtn"><i class="fas fa-file-csv me-1"></i>Download CSV</button>
+                <a href="#" route="sales-data-grid" class="btn btn-outline-secondary" title="Add, fix or import sales lines"><i class="fas fa-pen me-1"></i>Add or fix sales lines</a>
+                <a href="#" route="sales-forecasting-grid" class="btn btn-outline-secondary"><i class="fas fa-file-invoice me-1"></i>Management reports</a>
+            </div>
+        </div>
+        <div id="shFigNote" class="sh-muted mb-2"></div>
+        <div class="row g-3 mb-3" id="shFigTiles"></div>
+        <div class="row g-3 mb-3">
+            <div class="col-lg-6"><div class="card h-100"><div class="card-header"><strong>By customer</strong></div><div class="card-body p-0" id="shByCustomer"></div></div></div>
+            <div class="col-lg-6"><div class="card h-100"><div class="card-header"><strong id="shByProductTitle">By style</strong></div><div class="card-body p-0" id="shByProduct"></div></div></div>
+        </div>
+        <div class="card mb-3"><div class="card-header"><strong>By month</strong></div><div class="card-body p-0" id="shByMonth"></div></div>
+        <div class="card mb-4"><div class="card-header"><strong>Sales lines</strong> <span class="sh-muted" id="shLinesNote"></span></div><div class="card-body p-0" id="shLines"></div></div>
+    </div>
+</div>
+
+<!-- The same dialogs the Dispatch and Sales and CRM screens use; appRouter loads them by route-name. -->
+<div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="kernelDispatchFormModal" role="dialog" route-name="kernel-dispatch-form-modal" tabindex="-1" aria-labelledby="kernelDispatchFormModalLabel" aria-hidden="true"></div>
+<div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="sendToDispatchModal" role="dialog" route-name="send-to-dispatch-modal" tabindex="-1" aria-labelledby="sendToDispatchModalLabel" aria-hidden="true"></div>
+<div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="kernelDispatchApproveModal" role="dialog" route-name="kernel-dispatch-approve-modal" tabindex="-1" aria-labelledby="kernelDispatchApproveModalLabel" aria-hidden="true"></div>
+<div class="modal fade" id="contactModal" tabindex="-1" aria-labelledby="contactModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false" route-name="crm-contact-modal"></div>
