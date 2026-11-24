@@ -1,0 +1,78 @@
+/* Sales (24 Nov 2026). Tiles use the shared .metric-card (css/metric-ui.css); tokens only. */
+#salesHub .sh-sub,
+#salesHub .sh-muted {
+    color: var(--mac-text-secondary);
+    font-size: var(--mac-text-sm);
+}
+
+#salesHub .metric-value {
+    font-size: var(--mac-text-xl);
+}
+
+#salesHub .sh-todo-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--mac-space-sm);
+    padding: var(--mac-space-sm) 0;
+    border-bottom: 1px solid var(--mac-border);
+}
+
+#salesHub .sh-todo-item:last-child {
+    border-bottom: 0;
+}
+
+#salesHub .sh-todo-text {
+    flex: 1 1 260px;
+    min-width: 0;
+}
+
+#salesHub .sh-todo-icon {
+    color: var(--mac-green);
+}
+
+#salesHub .sh-stage {
+    font-weight: 500;
+}
+
+#salesHub .sh-stage-picking,
+#salesHub .sh-stage-approval {
+    background: var(--mac-warning-light);
+    color: var(--mac-warning-text);
+}
+
+#salesHub .sh-stage-truck,
+#salesHub .sh-stage-invoice {
+    background: var(--mac-info-light);
+    color: var(--mac-info);
+}
+
+#salesHub .sh-stage-done,
+#salesHub .sh-stage-legacy {
+    background: var(--mac-bg-tertiary);
+    color: var(--mac-text-secondary);
+}
+
+#salesHub .sh-search {
+    max-width: 320px;
+}
+
+#salesHub .sh-customer-select {
+    max-width: 420px;
+}
+
+#salesHub #shTabs .nav-link {
+    white-space: nowrap;
+}
+
+@media (max-width: 575.98px) {
+    #salesHub #shTabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+    }
+    #salesHub .sh-search,
+    #salesHub .sh-customer-select {
+        max-width: none;
+    }
+}
