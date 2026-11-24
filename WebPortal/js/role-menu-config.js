@@ -537,7 +537,8 @@ var _roleMenuConfig = function () {
             try {
                 if (typeof document !== 'undefined') {
                     var link = null;
-                    var sidebarLinks = document.querySelectorAll('#sidebarMenu a[route]');
+                    // Skip the Sales shortcuts group: its links reuse pages under friendlier names.
+                    var sidebarLinks = document.querySelectorAll('#sidebarMenu a[route]:not(#salesCollapse a)');
                     for (var li = 0; li < sidebarLinks.length; li++) {
                         if (sidebarLinks[li].getAttribute('route') === key) {
                             link = sidebarLinks[li];
@@ -614,7 +615,7 @@ var _roleMenuConfig = function () {
             var seen = {};
             try {
                 if (typeof document !== 'undefined') {
-                    var items = document.querySelectorAll('#sidebarMenu [data-route]');
+                    var items = document.querySelectorAll('#sidebarMenu [data-route]:not(#salesCollapse [data-route])');
                     for (var i = 0; i < items.length; i++) {
                         var route = items[i].getAttribute('data-route');
                         if (route && !seen[route]) {
