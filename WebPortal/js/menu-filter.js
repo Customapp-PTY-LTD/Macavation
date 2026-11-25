@@ -87,14 +87,15 @@ var _menuFilter = function () {
          * Show a specific menu item by route (feature key). Removes d-none so item is visible.
          */
         showMenu: function (route) {
-            var navItem = document.querySelector('#sidebarMenu .nav-item[data-route="' + route + '"]');
-            if (!navItem) {
+            // A page can appear in more than one group (e.g. the Sales shortcuts), so show every copy.
+            var navItems = Array.from(document.querySelectorAll('#sidebarMenu .nav-item[data-route="' + route + '"]'));
+            if (!navItems.length) {
                 var link = document.querySelector('#sidebarMenu a[route="' + route + '"]');
-                if (link) navItem = link.closest('.nav-item');
+                if (link && link.closest('.nav-item')) navItems = [link.closest('.nav-item')];
             }
-            if (navItem) {
+            navItems.forEach(function (navItem) {
                 navItem.classList.remove('d-none');
-            }
+            });
         },
 
         /**

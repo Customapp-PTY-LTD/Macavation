@@ -30,7 +30,8 @@ var _roleMenuConfig = function () {
                     'stock-management-kernel',
                     'kernel-dispatch-grid',
                     'document-management-grid',
-                    'admin-grid'
+                    'admin-grid',
+                    'sales-hub'
                 ]
             },
 
@@ -51,7 +52,8 @@ var _roleMenuConfig = function () {
                     'kernel-dispatch-grid',
                     'document-management-grid',
                     'admin-grid',
-                    'my-day'
+                    'my-day',
+                    'sales-hub'
                 ]
             },
 
@@ -266,6 +268,12 @@ var _roleMenuConfig = function () {
                 route: 'dashboard',
                 icon: 'fas fa-tachometer-alt',
                 label: 'Dashboard',
+                category: 'main'
+            },
+            'sales-hub': {
+                route: 'sales-hub',
+                icon: 'fas fa-hand-holding-usd',
+                label: 'Sales',
                 category: 'main'
             },
             'kernel-dashboard': {
@@ -572,6 +580,7 @@ var _roleMenuConfig = function () {
             'kernel-dashboard',
             'oil-dashboard',
             'my-day',
+            'sales-hub',
             'batch-journey',
             'grower-intake-grid',
             'procurement-plan',
