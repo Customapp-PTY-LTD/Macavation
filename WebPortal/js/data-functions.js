@@ -2464,6 +2464,29 @@ var _dataFunctions = function () {
             }, token);
         },
 
+        /** Bags / transporter / collection date for the truck ids save_procurement_delivery returned (20261127130000). */
+        setProcurementTruckDetails: async function (ids, bags, transporterId, collectionDate, token = null) {
+            try {
+                var r = this._kpUnwrap(await this.callFunction('set_procurement_truck_details', {
+                    p_ids: ids || [], p_bags: bags == null ? null : bags, p_transporter_id: transporterId || null,
+                    p_collection_date: collectionDate || null, p_user_id: this.getCurrentUserId() || null
+                }, token, { useCache: false, preserveNullParams: true }));
+                return r && typeof r === 'object' ? r : { success: false, error: 'No reply from the server.' };
+            } catch (e) {
+                return { success: false, error: (e && e.message) || 'Could not save the truck details.' };
+            }
+        },
+
+        /** Company calendar: { today, days[{day, value, kind, label, day_type, note, holiday}], deliveries[] }; null if not available. */
+        getCompanyCalendar: async function (from, to, token = null) {
+            try {
+                var r = this._kpUnwrap(await this.callFunction('get_company_calendar', { p_from: from, p_to: to }, token, { useCache: false }));
+                return r && r.success !== false ? r : null;
+            } catch (e) {
+                return null;
+            }
+        },
+
         /** settings = { planned_kg_per_day?, opening_mode?: 'system'|'manual', opening_kg?, opening_as_of? } */
         setProcurementPlanSettings: async function (settings, token = null) {
             return this._rpcWrite('set_procurement_plan_settings', { p_settings: settings }, token);

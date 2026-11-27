@@ -704,6 +704,17 @@
                 "../kernel-style-prices/css/kernel_style_prices.css"
             ]
         },
+        "company-calendar": {
+            "description": "Calendar",
+            "path": "company-calendar",
+            "html": "html/company_calendar.html",
+            "js": [
+                "js/company_calendar.js"
+            ],
+            "css": [
+                "css/company_calendar.css"
+            ]
+        },
         "transporters": {
             "description": "Transporters",
             "path": "transporters",

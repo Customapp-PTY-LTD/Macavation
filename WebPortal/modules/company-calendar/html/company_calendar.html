@@ -1,0 +1,83 @@
+<!-- Company calendar (Mike's MacView, 27 Nov 2026). Days come from the same list as the Procurement plan
+     (procurement_day_types) plus worked-out SA public holidays; expected deliveries are the planned trucks.
+     Rendered by js/company_calendar.js from get_company_calendar. -->
+<div class="module-content" id="ccModule">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center gap-2 pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2 mb-0">Calendar</h1>
+        <div class="d-flex flex-wrap gap-2">
+            <a target="_blank" rel="noopener noreferrer" href="help/index.html#company-calendar" class="btn btn-sm btn-outline-secondary macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+            <button type="button" class="btn btn-primary d-none" id="ccAdd"><i class="fas fa-plus me-1"></i>Add a day</button>
+        </div>
+    </div>
+
+    <div id="ccNotice"></div>
+
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex align-items-center gap-2 flex-wrap">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="ccPrev" aria-label="Previous month"><i class="fas fa-chevron-left"></i></button>
+                    <h2 class="h5 mb-0 cc-month" id="ccMonth" aria-live="polite"></h2>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="ccNext" aria-label="Next month"><i class="fas fa-chevron-right"></i></button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm ms-auto" id="ccToday">Today</button>
+                </div>
+                <div class="card-body p-2">
+                    <div class="cc-grid" id="ccGrid" role="grid" aria-labelledby="ccMonth"></div>
+                    <div class="cc-legend small text-muted mt-2" id="ccLegend">
+                        <span><span class="cc-swatch cc-k-public_holiday"></span>Public holiday</span>
+                        <span><span class="cc-swatch cc-k-shutdown"></span>Shutdown / closed</span>
+                        <span><span class="cc-swatch cc-k-working_day"></span>Working day</span>
+                        <span><span class="cc-swatch cc-k-half_day"></span>Half day</span>
+                        <span><i class="fas fa-truck me-1"></i>Expected deliveries</span>
+                    </div>
+                </div>
+            </div>
+            <div class="small text-muted mt-2" id="ccMonthSummary"></div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card mb-3">
+                <div class="card-header"><strong id="ccDayTitle">Pick a day</strong></div>
+                <div class="card-body" id="ccDayBody"></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><strong>Next 60 days</strong></div>
+                <ul class="list-group list-group-flush cc-upcoming" id="ccUpcoming"></ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="ccModal" tabindex="-1" aria-labelledby="ccModalTitle" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="ccModalTitle">Add a day</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-6"><label class="form-label" for="ccFrom">From <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="ccFrom"></div>
+                        <div class="col-6"><label class="form-label" for="ccTo">To</label>
+                            <input type="date" class="form-control" id="ccTo"></div>
+                        <div class="col-12"><label class="form-label" for="ccKind">What is it</label>
+                            <select class="form-select" id="ccKind">
+                                <option value="shutdown">Shutdown / closed</option>
+                                <option value="work">Working day (e.g. a Saturday)</option>
+                                <option value="half">Half day</option>
+                                <option value="holiday">Extra holiday / closed</option>
+                                <option value="default">Company date / event</option>
+                            </select></div>
+                        <div class="col-12"><label class="form-label" for="ccTitle">Title <span class="text-danger d-none" id="ccTitleReq">*</span></label>
+                            <input type="text" class="form-control" id="ccTitle" maxlength="120" placeholder="e.g. Year-end shutdown, Stock count"></div>
+                    </div>
+                    <p class="small text-muted mt-3 mb-0">These are the same days as on the Procurement plan, so they change its forecast too. Anything already set on these days is replaced.</p>
+                </div>
+                <div class="modal-footer">
+                    <div class="text-danger small me-auto" id="ccModalError" role="alert"></div>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="ccSave"><i class="fas fa-save me-1"></i>Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

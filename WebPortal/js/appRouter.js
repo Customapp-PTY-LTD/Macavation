@@ -502,6 +502,11 @@ var _appRouter = function () {
                         _transporters.init();
                     }
                 },
+                'company-calendar': () => {
+                    if (typeof _companyCalendar !== 'undefined' && _companyCalendar.init) {
+                        _companyCalendar.init();
+                    }
+                },
                 'kernel-dashboard': () => {
                     if (typeof _kernelDashboard !== 'undefined' && _kernelDashboard.init) {
                         _kernelDashboard.init();

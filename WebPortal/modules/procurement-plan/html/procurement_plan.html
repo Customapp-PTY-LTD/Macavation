@@ -118,6 +118,19 @@
                     </label>
                 </div>
 
+                <!-- Expected delivery details (company calendar, 20261127130000). Blank is fine. -->
+                <div class="pp-grid2 mt-3">
+                    <label class="pp-field" for="ppBags">Bags
+                        <input type="number" class="form-control pp-input" id="ppBags" min="1" step="1" inputmode="numeric">
+                    </label>
+                    <label class="pp-field" for="ppTransporter">Transporter
+                        <select class="form-select pp-input" id="ppTransporter"><option value="">Not known yet</option></select>
+                    </label>
+                    <label class="pp-field pp-span2" for="ppCollect">Collection date (when the truck picks up)
+                        <input type="date" class="form-control pp-input" id="ppCollect">
+                    </label>
+                </div>
+
                 <fieldset class="pp-fieldset">
                     <legend class="pp-legend-label">Goes into</legend>
                     <div class="pp-areas" id="ppAreas"></div>
