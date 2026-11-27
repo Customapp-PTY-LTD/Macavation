@@ -420,3 +420,40 @@ hr { border-color: var(--mac-border); opacity: 1; }
 
 /* Sheets have one solid body colour (main.css set the darker page colour here). */
 .modal-content .modal-body { background-color: var(--mac-bg-secondary) !important; }
+
+/* ---------- Warning bars ----------
+   A warning card header is MacView's tinted banner (soft amber, amber text), in both modes.
+   Any other solid amber fill keeps dark ink so it stays readable. */
+.card-header.bg-warning,
+.card-header.bg-warning.text-dark {
+    background: var(--mac-warning-light) !important;
+    color: var(--mac-warning-text) !important;
+    border-bottom: 1px solid rgba(var(--mac-warning-fill-rgb), .35);
+}
+.card-header.bg-warning h5,
+.card-header.bg-warning h6,
+.card-header.bg-warning i { color: var(--mac-warning-text) !important; }
+.card.border-warning { border-top-color: var(--mac-warning-fill) !important; }
+.bg-warning:not(.badge):not(.card-header),
+.bg-warning.text-dark:not(.badge):not(.card-header),
+.bg-info.text-dark:not(.badge),
+.text-bg-warning:not(.badge) { color: var(--mac-mascot-ink) !important; }
+.btn-warning, .btn-warning:hover { background: var(--mac-warning-fill); border-color: var(--mac-warning-fill); color: var(--mac-mascot-ink); }
+
+/* ---------- Bootstrap contextual table rows hard-code light fills and black text ---------- */
+.table-light, .table-light > th, .table-light > td,
+.table > thead.table-light > tr > th,
+.table-secondary, .table-secondary > th, .table-secondary > td {
+    --bs-table-bg: var(--mac-surface-soft);
+    --bs-table-color: var(--mac-text);
+    --bs-table-border-color: var(--mac-border);
+    --bs-table-striped-bg: var(--mac-hover);
+    --bs-table-hover-bg: var(--mac-hover);
+    --bs-table-hover-color: var(--mac-text);
+    color: var(--mac-text);
+}
+.table-success { --bs-table-bg: var(--mac-success-light); --bs-table-color: var(--mac-text); }
+.table-warning { --bs-table-bg: var(--mac-warning-light); --bs-table-color: var(--mac-text); }
+.table-danger { --bs-table-bg: var(--mac-danger-light); --bs-table-color: var(--mac-text); }
+.table-info { --bs-table-bg: var(--mac-info-light); --bs-table-color: var(--mac-text); }
+.table-active { --bs-table-bg: var(--mac-green-light); --bs-table-color: var(--mac-text); }

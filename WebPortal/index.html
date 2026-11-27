@@ -28,10 +28,10 @@
     <!-- Flatpickr (dd/mm/yyyy date inputs) -->
     <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
     <!-- Design Tokens (must load before all custom CSS) -->
-    <link href="css/design-tokens.css?v=20261127macviewcal" rel="stylesheet">
+    <link href="css/design-tokens.css?v=20261127sweep" rel="stylesheet">
     <!-- Theme engine runs in <head> so the chosen colours are on before the page paints -->
-    <script src="js/mac-theme-palettes.js?v=20261127macview"></script>
-    <script src="js/themes.js?v=20261127comp"></script>
+    <script src="js/mac-theme-palettes.js?v=20261127sweep"></script>
+    <script src="js/themes.js?v=20261127sweep"></script>
     <link href="css/swal-theme.css?v=20261127comp" rel="stylesheet">
     <link href="css/modal-theme.css" rel="stylesheet">
     <link href="css/table-actions.css?v=20261027" rel="stylesheet">
@@ -40,19 +40,19 @@
     <link href="css/main.css" rel="stylesheet">
     <link href="css/mac-section-collapse.css" rel="stylesheet">
     <!-- Exception UI Styles -->
-    <link href="css/exception-ui.css" rel="stylesheet">
+    <link href="css/exception-ui.css?v=20261127sweep" rel="stylesheet">
     <!-- Metric UI Styles -->
     <link href="css/metric-ui.css" rel="stylesheet">
     <!-- Workflow Views Styles -->
-    <link href="css/workflow-views.css?v=20261117history" rel="stylesheet">
+    <link href="css/workflow-views.css?v=20261127sweep" rel="stylesheet">
     <!-- Connected Workflows Styles -->
-    <link href="css/connected-workflows.css" rel="stylesheet">
+    <link href="css/connected-workflows.css?v=20261127sweep" rel="stylesheet">
     <!-- Kanban Board Styles -->
     <link href="css/kanban.css" rel="stylesheet">
     <link href="css/mac-activity-calendar.css?v=20261127macviewcal" rel="stylesheet">
     <link href="css/batch-status.css" rel="stylesheet">
     <!-- Mobile-First Styles -->
-    <link href="css/mobile-first.css" rel="stylesheet">
+    <link href="css/mobile-first.css?v=20261127sweep" rel="stylesheet">
     <!-- (PWA offline stylesheet removed — design plan Phase 2 dead-layer cleanup) -->
     <!-- Performance Utilities -->
     <script src="js/performance-utils.js"></script>
@@ -81,11 +81,11 @@
     <!-- App shell (unified sidebar) — loaded last so it supersedes legacy nav/sidebar layout -->
     <link href="css/shell.css?v=20261127macview" rel="stylesheet">
     <!-- Portal Guide (Mac) chatbot rail -->
-    <link href="css/mac-assistant.css?v=20260716a" rel="stylesheet">
+    <link href="css/mac-assistant.css?v=20261127sweep" rel="stylesheet">
     <!-- Idle Mac orchard mascot -->
-    <link href="css/mac-mascot.css?v=20260716a" rel="stylesheet">
+    <link href="css/mac-mascot.css?v=20261127sweep" rel="stylesheet">
     <!-- MacView components: buttons, cards, KPIs, tables, badges, forms, period pickers, modals -->
-    <link href="css/mac-components.css?v=20261127comp" rel="stylesheet">
+    <link href="css/mac-components.css?v=20261127sweep" rel="stylesheet">
     <!-- MacView theme layer: page background pattern + typography (loads last) -->
     <link href="css/mac-theme.css?v=20261127comp" rel="stylesheet">
 </head>
@@ -616,7 +616,7 @@
     <script src="js/session.js?v=20260716d"></script>
     <script src="js/super-user-visibility.js?v=20260715a"></script>
     <script src="js/batch-number-format.js?v=20261116bn2"></script>
-    <script src="js/data-functions.js?v=20261127macviewcal"></script>
+    <script src="js/data-functions.js?v=20261127sweep"></script>
     <script src="js/auth-service.js?v=20261112bagedit"></script>
     <script src="js/common.js?v=20261102ffa"></script>
     <script src="js/export-utils.js"></script>
@@ -639,7 +639,7 @@
          data-functions guards all offlineStorage usage with typeof checks.) -->
 
     <!-- Role-Based Menu Scripts -->
-    <script src="js/role-menu-config.js?v=20261127macviewcal"></script>
+    <script src="js/role-menu-config.js?v=20261127sweep"></script>
     <script src="js/menu-filter.js?v=20261124saleshub"></script>
     <script src="js/action-access.js?v=20260602a"></script>
     <script src="js/notifications.js?v=20261027red"></script>
@@ -661,7 +661,7 @@
          script tag, so bumping it here is all that is needed to make a deployed change to any
          module actually reach a browser that has been in the portal before. Bump it whenever a
          module's html/js/css changes. -->
-    <script src="js/appRouter.js?v=20261127macviewcal"></script>
+    <script src="js/appRouter.js?v=20261127sweep"></script>
     <script src="js/app.js"></script>
     <script src="js/index.js?v=20261027tasks"></script>
     <script src="js/shell.js"></script>

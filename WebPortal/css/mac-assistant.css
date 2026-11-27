@@ -93,7 +93,7 @@
 .mac-agent-answers-btn {
   position: relative;
   border: 1px solid rgba(45, 74, 62, 0.18);
-  background: #fff;
+  background: var(--mac-bg-secondary);
   color: var(--mac-agent-navy);
   font-size: 0.72rem;
   font-weight: 600;
@@ -156,7 +156,7 @@
   gap: 10px;
   padding: 10px 12px;
   border-bottom: 1px solid rgba(45, 74, 62, 0.08);
-  background: #fff;
+  background: var(--mac-bg-secondary);
   flex-shrink: 0;
 }
 
@@ -195,7 +195,7 @@
 }
 
 .mac-agent-inbox-card {
-  background: #fff;
+  background: var(--mac-bg-secondary);
   border: 1px solid rgba(0, 166, 81, 0.28);
   border-radius: 10px;
   padding: 10px 12px;
@@ -258,7 +258,7 @@
 
 .mac-agent-inbox-ack {
   border: 1px solid rgba(0, 166, 81, 0.45);
-  background: #fff;
+  background: var(--mac-bg-secondary);
   color: var(--mac-assistant-green);
   border-radius: 999px;
   font-size: 0.78rem;
@@ -286,7 +286,7 @@
   max-width: 100vw;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--mac-bg-secondary);
   border-left: 1px solid rgba(45, 74, 62, 0.1);
   box-shadow: -8px 0 32px rgba(45, 74, 62, 0.16);
   transform: translateX(100%);
@@ -496,7 +496,7 @@ body.mac-agent-resizing .mac-agent-rail {
 .mac-agent-msg-assistant .mac-agent-bubble {
   max-width: 100%;
   width: 100%;
-  background: #fff;
+  background: var(--mac-bg-secondary);
   border: 1px solid rgba(45, 74, 62, 0.12);
   color: var(--mac-agent-ink);
   border-bottom-left-radius: 4px;
@@ -587,7 +587,7 @@ body.mac-agent-resizing .mac-agent-rail {
   padding: 4px 10px;
   border-radius: 6px;
   border: 1px solid var(--mac-danger);
-  background: #fff;
+  background: var(--mac-bg-secondary);
   color: var(--mac-danger);
   cursor: pointer;
 }
