@@ -65,7 +65,7 @@
 @media (prefers-reduced-motion: reduce) { .sidebar-logo .mac-wordmark { animation: none; } }
 
 /* ── Nav scroll region ── */
-.sidebar-scroll { overflow-y: auto; overflow-x: hidden; padding: 0.25rem 0.6rem 0.5rem; }
+.sidebar-scroll { overflow-y: auto; overflow-x: hidden; padding: 0.25rem 0.6rem 0.5rem !important; }
 .sidebar-scroll::-webkit-scrollbar { width: 6px; }
 .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(var(--mac-side-ink-rgb), .18); border-radius: 3px; }
 
@@ -73,16 +73,17 @@
 #sidebarMenu .nav-link {
     display: flex; align-items: center;
     border-radius: var(--mac-radius-pill);
-    color: var(--mac-side-ink);
+    color: var(--mac-side-ink) !important;
+    background: transparent !important;
     opacity: .85;
-    font-weight: 600; font-size: 13px;
-    padding: 6px 12px; margin: 1px 0;
+    font-weight: 600 !important; font-size: 13px;
+    padding: 6px 12px !important; margin: 1px 0 !important;
     transition: background 0.12s ease, color 0.12s ease, opacity 0.12s ease;
 }
 #sidebarMenu .nav-link i { width: 18px; text-align: center; opacity: .9; }
-#sidebarMenu .nav-link:hover { background: rgba(var(--mac-side-ink-rgb), .07); color: var(--mac-side-ink); opacity: 1; }
+#sidebarMenu .nav-link:hover { background: rgba(var(--mac-side-ink-rgb), .07) !important; color: var(--mac-side-ink) !important; opacity: 1; }
 #sidebarMenu .nav-link.active {
-    background: var(--mac-side-on); color: var(--mac-side-on-ink); font-weight: 700; opacity: 1;
+    background: var(--mac-side-on) !important; color: var(--mac-side-on-ink) !important; font-weight: 700 !important; opacity: 1;
 }
 #sidebarMenu .nav-link.active::before { display: none; } /* drop the legacy left-bar indicator */
 
@@ -90,7 +91,7 @@
    They still open and close their group. */
 #sidebarMenu:not(.collapsed) .sidebar-scroll > ul > .nav-item > .nav-link[data-bs-toggle="collapse"] {
     font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
-    opacity: .55; padding: 12px 12px 4px; margin-top: 4px;
+    opacity: .55; padding: 12px 12px 4px !important; margin-top: 4px !important;
     background: transparent !important; color: var(--mac-side-ink) !important;
 }
 #sidebarMenu:not(.collapsed) .sidebar-scroll > ul > .nav-item > .nav-link[data-bs-toggle="collapse"]:hover { opacity: .9; }
@@ -103,7 +104,7 @@
 #sidebarMenu .nav .nav { margin-left: 0 !important; }
 #sidebarMenu .nav .nav .nav-link { font-size: 13px; }
 /* Third-level (nested) groups */
-#sidebarMenu .nav .nav .nav .nav-link { font-size: 12.5px; opacity: .75; padding-left: 22px; }
+#sidebarMenu .nav .nav .nav .nav-link { font-size: 12.5px; opacity: .75; padding-left: 22px !important; }
 #sidebarMenu .nav .nav .nav-link.active { opacity: 1; }
 
 /* ── Footer: Design + mode buttons, profile, tools ── */

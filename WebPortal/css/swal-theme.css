@@ -110,3 +110,65 @@
     border-color: var(--mac-border) !important;
     color: var(--mac-text) !important;
 }
+
+/* ── MacView look (27 Nov 2026): dialogs are "sheets" — solid panel, accent top edge,
+      filled accent confirm with the theme's on-accent text, outline cancel. ── */
+.swal2-popup {
+    background-color: var(--mac-bg-secondary) !important;
+    border: 1px solid var(--mac-border) !important;
+    border-top: 3px solid var(--mac-green) !important;
+    border-radius: 16px !important;
+}
+.swal2-title {
+    font-weight: 700 !important;
+}
+.swal2-confirm {
+    color: var(--mac-on-accent) !important;
+    font-weight: 700 !important;
+    border-radius: 10px !important;
+}
+.swal2-confirm:hover {
+    background: var(--mac-green) !important;
+    filter: brightness(1.08);
+}
+.swal2-cancel {
+    background: transparent !important;
+    border: 1px solid var(--mac-border) !important;
+    color: var(--mac-text) !important;
+    font-weight: 700 !important;
+    border-radius: 10px !important;
+}
+.swal2-cancel:hover {
+    background: var(--mac-hover) !important;
+}
+.swal2-deny {
+    color: var(--mac-on-accent) !important;
+    font-weight: 700 !important;
+    border-radius: 10px !important;
+}
+.swal2-footer {
+    border-top-color: var(--mac-border) !important;
+    color: var(--mac-text-secondary) !important;
+}
+.swal2-input,
+.swal2-select,
+.swal2-textarea {
+    background-color: var(--mac-field) !important;
+    border: 1px solid var(--mac-border) !important;
+    color: var(--mac-text) !important;
+    border-radius: 9px !important;
+    box-shadow: none !important;
+}
+.swal2-input:focus,
+.swal2-select:focus,
+.swal2-textarea:focus {
+    border-color: var(--mac-accent2) !important;
+    outline: 2px solid rgba(var(--mac-accent2-rgb), .4) !important;
+}
+.swal2-validation-message {
+    background: var(--mac-danger-light) !important;
+    color: var(--mac-danger) !important;
+}
+.swal2-timer-progress-bar {
+    background: var(--mac-green) !important;
+}

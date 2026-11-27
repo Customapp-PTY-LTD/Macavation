@@ -189,8 +189,31 @@ var ThemeManager = (function () {
         }
     }
 
+    /** Chart.js picks up the theme: text, grid lines, font, tooltip and a default series palette. */
+    function paintCharts() {
+        var Chart = window.Chart;
+        if (!Chart || !Chart.defaults) return;
+        var c = chartColors();
+        Chart.defaults.color = c.text;
+        Chart.defaults.borderColor = c.grid;
+        Chart.defaults.font.family = getComputedStyle(root).getPropertyValue('--mac-font').trim() || 'Manrope, sans-serif';
+        if (Chart.defaults.plugins && Chart.defaults.plugins.tooltip) {
+            Chart.defaults.plugins.tooltip.backgroundColor = c.tip;
+            Chart.defaults.plugins.tooltip.titleColor = '#ffffff';
+            Chart.defaults.plugins.tooltip.bodyColor = '#ffffff';
+        }
+        if (Chart.defaults.plugins && Chart.defaults.plugins.legend && Chart.defaults.plugins.legend.labels) {
+            Chart.defaults.plugins.legend.labels.color = c.text;
+        }
+        if (Chart.defaults.scale && Chart.defaults.scale.grid) Chart.defaults.scale.grid.color = c.grid;
+        try {
+            Object.values(Chart.instances || {}).forEach(function (ch) { ch.update('none'); });
+        } catch (e) { /* a chart mid-destroy */ }
+    }
+
     function apply(opts) {
         paintTokens();
+        paintCharts();
         if (document.body) paintBackground(opts && opts.redraw);
         updateModeButtons();
         save();
