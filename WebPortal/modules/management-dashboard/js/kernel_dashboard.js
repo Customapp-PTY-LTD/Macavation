@@ -19,7 +19,8 @@ var _kernelDashboard = (function () {
     // Stock series names that differ from the style code in the price list.
     var STYLE_CODE_OF = { 'Butter High Oil': 'BHO', 'Butter Low Oil': 'BLO' };
 
-    function canSeePrices() { return typeof window.hasAction === 'function' && !!window.hasAction('kernel_prices.view'); }
+    // kernel_prices.view (the button) AND the role's "See costs and prices" switch (the server enforces the switch).
+    function canSeePrices() { return typeof window.hasAction === 'function' && !!window.hasAction('kernel_prices.view') && (typeof MacPriceAccess === 'undefined' || MacPriceAccess.canSee()); }
 
     function rand2(v) { return 'R ' + (Number(v) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
