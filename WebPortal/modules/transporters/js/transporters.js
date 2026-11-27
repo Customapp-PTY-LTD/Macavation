@@ -21,7 +21,8 @@ var _transporters = (function () {
         'Non-compliant', 'EME / QSE affidavit'];
     var DOC_WARN_DAYS = 30;
 
-    var state = { sheet: null, tab: 'transporters', filter: '', showOld: false, modal: null, files: [], uploading: 0 };
+    var state = { sheet: null, tab: 'transporters', filter: '', showOld: false, modal: null, files: [], uploading: 0,
+        perf: { period: 'this-month', dir: 'in', cur: null, prev: null, range: null } };
 
     function esc(v) {
         return (typeof _common !== 'undefined' && _common.escapeHtml) ? _common.escapeHtml(v) : String(v == null ? '' : v);
@@ -152,7 +153,220 @@ var _transporters = (function () {
             (state.filter ? ' for this transporter' : '') + ' yet.</td></tr>');
     }
 
+    // ------------------------------------------------------------------ compare rates
+
+    /** Routes x transporters, today's current rates; cheapest per route green, others "+x%". */
+    function renderCompare() {
+        var on = today();
+        var current = (state.sheet.rates || []).filter(function (r) { return TransportRateSheet.statusOn(r, on) === 'current'; });
+        var trIds = {};
+        current.forEach(function (r) { trIds[r.transporter_id] = true; });
+        var trs = (state.sheet.transporters || []).filter(function (t) { return trIds[t.id]; });
+        var routes = (state.sheet.routes || []).filter(function (r) { return r.is_active; })
+            .sort(function (a, b) { return (Number(b.km) || 0) - (Number(a.km) || 0) || String(a.code).localeCompare(String(b.code)); });
+        if (!trs.length || !routes.length) {
+            $('#trpCompareBody').html('<p class="text-muted text-center py-4 mb-0">No current rates to compare yet. Add rates on the Rates tab.</p>');
+            return;
+        }
+        var h = '<table class="table align-middle mb-0 trp-compare"><thead><tr><th>Route</th><th class="text-end">km</th>' +
+            trs.map(function (t) { return '<th class="text-end">' + esc(t.name) + '</th>'; }).join('') + '</tr></thead><tbody>';
+        routes.forEach(function (ro) {
+            var vals = trs.map(function (t) {
+                var best = current.filter(function (r) { return r.route_id === ro.id && r.transporter_id === t.id; })
+                    .sort(function (a, b) { return Number(a.rate_zar) - Number(b.rate_zar); })[0];
+                return best ? Number(best.rate_zar) : null;
+            });
+            var have = vals.filter(function (v) { return v != null; });
+            var min = have.length ? Math.min.apply(null, have) : null;
+            h += '<tr><td><span class="trp-code">' + esc(ro.code) + '</span> <span class="small text-muted">' + esc(ro.origin) + '</span></td>' +
+                '<td class="text-end">' + (ro.km != null ? esc(ro.km) : '—') + '</td>' +
+                vals.map(function (v) {
+                    if (v == null) return '<td class="text-end text-muted">—</td>';
+                    var cheapest = v === min && have.length > 1;
+                    var more = min > 0 && v > min ? ' <span class="small text-danger">+' + Math.round((v - min) / min * 100) + '%</span>' : '';
+                    return '<td class="text-end' + (cheapest ? ' bg-success-subtle fw-semibold' : '') + '">' + esc(money(v)) + more +
+                        (ro.km > 0 ? '<div class="small text-muted fw-normal">' + esc(money(v / ro.km)) + '/km</div>' : '') + '</td>';
+                }).join('') + '</tr>';
+        });
+        $('#trpCompareBody').html(h + '</tbody></table>');
+    }
+
+    // ------------------------------------------------------------------ performance & spend
+
+    function monthStart(iso) { return iso.slice(0, 7) + '-01'; }
+    function addMonths(iso, n) {
+        var d = new Date(monthStart(iso) + 'T00:00:00Z');
+        d.setUTCMonth(d.getUTCMonth() + n);
+        return d.toISOString().slice(0, 10);
+    }
+    function fyStart(iso) { var y = parseInt(iso.slice(0, 4), 10); if (parseInt(iso.slice(5, 7), 10) < 4) y--; return y + '-04-01'; }
+
+    /** { from, to, pFrom, pTo, word } for the chosen period and the one before it. */
+    function periods() {
+        var t = today(), p = state.perf.period, from, to, pFrom, pTo, word;
+        if (p === 'last-month') { from = addMonths(t, -1); to = addDays(monthStart(t), -1); pFrom = addMonths(t, -2); pTo = addDays(from, -1); word = 'the month before'; }
+        else if (p === 'last-3') { from = addMonths(t, -2); to = t; pFrom = addMonths(t, -5); pTo = addDays(from, -1); word = 'the 3 months before'; }
+        else if (p === 'fy') { from = fyStart(t); to = t; pFrom = addMonths(from, -12); pTo = addDays(pFrom, daysBetween(from, to)); word = 'the same time last year'; }
+        else if (p === 'last-fy') { to = addDays(fyStart(t), -1); from = addMonths(fyStart(t), -12); pFrom = addMonths(from, -12); pTo = addDays(from, -1); word = 'the year before'; }
+        else if (p === 'custom') {
+            from = $('#trpFrom').val() || monthStart(t); to = $('#trpTo').val() || t;
+            if (to < from) { var x = from; from = to; to = x; }
+            var len = daysBetween(from, to);
+            pTo = addDays(from, -1); pFrom = addDays(pTo, -len); word = 'the ' + (len + 1) + ' days before';
+        } else { from = monthStart(t); to = t; pFrom = addMonths(t, -1); pTo = addDays(pFrom, daysBetween(from, to)); word = 'the same days last month'; }
+        return { from: from, to: to, pFrom: pFrom, pTo: pTo, word: word };
+    }
+
+    function saving(l) {
+        return l.cost != null && l.cheapest != null && Number(l.cost) > Number(l.cheapest) + 0.5 ? Number(l.cost) - Number(l.cheapest) : 0;
+    }
+
+    function agg(ls) {
+        var a = { n: ls.length, kg: 0, spend: 0, pricedKg: 0, priced: 0, supplier: 0, noCost: 0, checked: 0, bad: 0, save: 0, saveN: 0, last: null, probs: {} };
+        ls.forEach(function (l) {
+            var kg = Number(l.kg) || 0;
+            a.kg += kg;
+            if (l.cost != null) { a.priced++; a.spend += Number(l.cost); a.pricedKg += kg; }
+            else if (l.payer === 'supplier' || l.payer === 'customer') a.supplier++;
+            else a.noCost++;
+            if (l.checked) a.checked++;
+            if (l.problems && l.problems.length) { a.bad++; l.problems.forEach(function (p) { a.probs[p] = (a.probs[p] || 0) + 1; }); }
+            var s = saving(l);
+            if (s) { a.save += s; a.saveN++; }
+            if (!a.last || l.date > a.last) a.last = l.date;
+        });
+        a.perLoad = a.priced ? a.spend / a.priced : null;
+        a.perKg = a.pricedKg ? a.spend / a.pricedKg : null;
+        var top = Object.keys(a.probs).sort(function (x, y) { return a.probs[y] - a.probs[x]; })[0];
+        a.topProblem = top ? top + ' (' + a.probs[top] + ')' : '';
+        return a;
+    }
+
+    /** "↑ 12%" against the period before; costs going up are red. */
+    function trend(cur, prev, costLike) {
+        if (cur == null || prev == null || !isFinite(cur) || !isFinite(prev) || prev === 0) return '';
+        var pct = (cur - prev) / Math.abs(prev) * 100;
+        if (Math.abs(pct) < 0.5) return '<span class="small text-muted">same as before</span>';
+        var up = pct > 0;
+        var cls = !costLike ? 'text-muted' : (up ? 'text-danger' : 'text-success');
+        return '<span class="small ' + cls + '">' + (up ? '↑' : '↓') + ' ' + Math.round(Math.abs(pct)) + '%</span>';
+    }
+
+    function kgText(v) { return _common.formatKg(v) + ' kg'; }
+    function perKgText(v) { return v == null ? '—' : 'R ' + Number(v).toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 }); }
+
+    function tile(label, value, sub, tr) {
+        return '<div class="col-6 col-md-4 col-xl-2"><div class="card h-100"><div class="card-body p-2">' +
+            '<div class="small text-muted">' + esc(label) + '</div><div class="fs-5 fw-semibold">' + value + '</div>' +
+            (tr ? '<div>' + tr + '</div>' : '') + (sub ? '<div class="small text-muted">' + sub + '</div>' : '') + '</div></div></div>';
+    }
+
+    function groupBy(ls, keyFn) {
+        var g = {};
+        ls.forEach(function (l) { var k = keyFn(l); (g[k] = g[k] || []).push(l); });
+        return g;
+    }
+
+    async function loadPerf() {
+        var p = periods();
+        state.perf.range = p;
+        $('#trpPerfBody').html('<div class="text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading&hellip;</div>');
+        var res = await Promise.all([dataFunctions.getTransportPerformance(p.from, p.to), dataFunctions.getTransportPerformance(p.pFrom, p.pTo)]);
+        if (state.perf.range !== p) return;
+        if (!res[0]) {
+            $('#trpPerfBody').html('<div class="alert alert-warning">Performance and spend are not set up on this database yet.</div>');
+            return;
+        }
+        state.perf.cur = res[0].loads || [];
+        state.perf.prev = res[1] ? res[1].loads || [] : null;
+        renderPerf();
+    }
+
+    function renderPerf() {
+        var P = state.perf, p = P.range, dir = P.dir;
+        if (!P.cur || !p) return;
+        var L = P.cur.filter(function (l) { return l.direction === dir; });
+        var L0 = (P.prev || []).filter(function (l) { return l.direction === dir; });
+        var T = agg(L), T0 = P.prev ? agg(L0) : null;
+        var inbound = dir === 'in';
+        var nKernel = L.filter(function (l) { return l.stream === 'kernel'; }).length, nOil = L.length - nKernel;
+        var trNames = groupBy(L, function (l) { return l.transporter || 'Transporter not recorded'; });
+
+        var h = '<p class="small text-muted mb-2">' + esc(day(p.from)) + ' to ' + esc(day(p.to)) + ' · arrows compare with ' + esc(p.word) +
+            ' (' + esc(day(p.pFrom)) + ' to ' + esc(day(p.pTo)) + ')</p>';
+        h += '<div class="row g-2 mb-3">' +
+            tile('Loads', esc(T.n), esc((inbound ? 'nut in shell ' : 'kernel ') + nKernel + ' · oil ' + nOil), T0 ? trend(T.n, T0.n, false) : '') +
+            tile('Kg moved', esc(kgText(T.kg)), esc(Object.keys(trNames).length + ' transporter' + (Object.keys(trNames).length === 1 ? '' : 's')), T0 ? trend(T.kg, T0.kg, false) : '') +
+            tile('Transport spend', esc(money(T.spend)), T.perLoad != null ? esc(money(T.perLoad)) + ' per load' : 'no truck costs captured', T0 ? trend(T.spend, T0.spend, true) : '') +
+            tile('Cost per kg', esc(perKgText(T.perKg)), 'loads with a truck cost', T0 ? trend(T.perKg, T0.perKg, true) : '') +
+            (inbound ? tile('Failed vehicle checks', esc(T.bad) + ' <span class="small text-muted fw-normal">of ' + esc(T.checked) + '</span>',
+                T.checked ? esc(Math.round(T.bad / T.checked * 100)) + '% of checked loads' : 'no loads checked', '') : '') +
+            (inbound ? tile('Could have saved', esc(money(T.save)), esc(T.saveN + ' load' + (T.saveN === 1 ? '' : 's') + ' above the cheapest rate'), '') : '') +
+            '</div>';
+
+        var notes = [];
+        if (T.noCost) notes.push(T.noCost + ' load' + (T.noCost === 1 ? '' : 's') + ' with no truck cost entered');
+        if (T.supplier) notes.push(T.supplier + ' paid by the ' + (inbound ? 'supplier' : 'customer') + ' (counted, not added to spend)');
+        var noRoute = inbound ? L.filter(function (l) { return l.stream === 'kernel' && !l.route_code; }).length : 0;
+        if (noRoute) notes.push(noRoute + ' nut-in-shell load' + (noRoute === 1 ? '' : 's') + ' without a route (no saving worked out)');
+        if (notes.length) h += '<p class="small text-muted">' + esc(notes.join(' · ')) + '.</p>';
+
+        // By transporter, most spend first.
+        var rows = Object.keys(trNames).map(function (nm) {
+            var a = agg(trNames[nm]);
+            a.nm = nm;
+            a.prev = T0 ? agg(L0.filter(function (l) { return (l.transporter || 'Transporter not recorded') === nm; })) : null;
+            return a;
+        }).sort(function (x, y) { return y.spend - x.spend || y.n - x.n; });
+        h += '<h3 class="h6 mt-3">By transporter</h3><div class="card mb-3"><div class="card-body p-0"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr>' +
+            '<th>Transporter</th><th class="text-end">Loads</th><th class="text-end">Kg moved</th><th class="text-end">Spend</th><th class="text-end">Per load</th><th class="text-end">Per kg</th>' +
+            (inbound ? '<th class="text-end">Failed checks</th><th>Most common problem</th><th class="text-end">Could have saved</th>' : '') + '<th>Last load</th></tr></thead><tbody>' +
+            (rows.map(function (a) {
+                return '<tr><td class="fw-semibold">' + esc(a.nm) + '</td>' +
+                    '<td class="text-end">' + esc(a.n) + '</td><td class="text-end">' + esc(_common.formatKg(a.kg)) + '</td>' +
+                    '<td class="text-end fw-semibold">' + (a.priced ? esc(money(a.spend)) : '—') + (a.prev && a.priced ? '<div>' + trend(a.spend, a.prev.spend, true) + '</div>' : '') + '</td>' +
+                    '<td class="text-end">' + (a.perLoad != null ? esc(money(a.perLoad)) : '—') + '</td>' +
+                    '<td class="text-end">' + esc(perKgText(a.perKg)) + '</td>' +
+                    (inbound ? '<td class="text-end">' + (a.checked ? esc(a.bad) + ' <span class="small text-muted">of ' + esc(a.checked) + '</span>' : '—') + '</td>' +
+                        '<td class="small">' + esc(a.topProblem || '') + '</td>' +
+                        '<td class="text-end' + (a.save ? ' text-danger' : '') + '">' + (a.save ? esc(money(a.save)) : '—') + '</td>' : '') +
+                    '<td>' + esc(day(a.last)) + '</td></tr>';
+            }).join('') || '<tr><td colspan="10" class="text-center text-muted py-4">No loads in this period.</td></tr>') +
+            '</tbody></table></div></div></div>';
+
+        if (inbound) {
+            var byRoute = groupBy(L.filter(function (l) { return l.stream === 'kernel'; }), function (l) { return l.route_code || ''; });
+            var rrows = Object.keys(byRoute).map(function (code) {
+                var ls = byRoute[code], a = agg(ls);
+                var ro = (state.sheet && (state.sheet.routes || []).filter(function (r) { return r.code === code; })[0]) || null;
+                a.code = code; a.ro = ro;
+                a.trs = Object.keys(groupBy(ls, function (l) { return l.transporter || 'Not recorded'; }));
+                a.now = ro ? TransportRateSheet.cheapestOn(state.sheet, ro.id, today()) : null;
+                return a;
+            }).sort(function (x, y) { return (x.code ? 0 : 1) - (y.code ? 0 : 1) || y.spend - x.spend; });
+            h += '<h3 class="h6">Spend by route <span class="small text-muted fw-normal">(nut in shell)</span></h3><div class="card"><div class="card-body p-0"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr>' +
+                '<th>Route</th><th class="text-end">km</th><th class="text-end">Loads</th><th class="text-end">Kg</th><th class="text-end">Spend</th><th class="text-end">Avg paid per load</th>' +
+                '<th>Transporters used</th><th>Cheapest rate now</th><th class="text-end">Could have saved</th></tr></thead><tbody>' +
+                (rrows.map(function (a) {
+                    var km = a.ro && a.ro.km > 0 ? Number(a.ro.km) : null;
+                    return '<tr><td>' + (a.code ? '<span class="trp-code">' + esc(a.code) + '</span> <span class="small text-muted">' + esc(a.ro ? a.ro.origin : '') + '</span>'
+                            : '<span class="text-muted">No route captured</span>') + '</td>' +
+                        '<td class="text-end">' + (km != null ? esc(km) : '—') + '</td>' +
+                        '<td class="text-end">' + esc(a.n) + '</td><td class="text-end">' + esc(_common.formatKg(a.kg)) + '</td>' +
+                        '<td class="text-end fw-semibold">' + (a.priced ? esc(money(a.spend)) : '—') + '</td>' +
+                        '<td class="text-end">' + (a.perLoad != null ? esc(money(a.perLoad)) + (km ? '<div class="small text-muted">' + esc(money(a.perLoad / km)) + '/km</div>' : '') : '—') + '</td>' +
+                        '<td class="small">' + esc(a.trs.join(', ')) + '</td>' +
+                        '<td>' + (a.now ? esc(money(a.now.rate_zar)) + ' <span class="small text-muted">' + esc(a.now.transporter_name) + '</span>' : '<span class="text-muted">—</span>') + '</td>' +
+                        '<td class="text-end' + (a.save ? ' text-danger' : '') + '">' + (a.save ? esc(money(a.save)) : '—') + '</td></tr>';
+                }).join('') || '<tr><td colspan="9" class="text-center text-muted py-4">No nut-in-shell loads in this period.</td></tr>') +
+                '</tbody></table></div></div></div>' +
+                '<p class="small text-muted mt-2">"Could have saved" compares what was paid for a load with the cheapest rate on its route that was current on the day (any transporter). Loads with no route, no cost, or no current rate are not counted.</p>';
+        }
+        $('#trpPerfBody').html(h);
+    }
+
     var ADD_LABELS = { transporters: 'Add a transporter', routes: 'Add a route', rates: 'Add a rate' };
+    var PANES = { transporters: '#trpPaneTransporters', perf: '#trpPanePerf', routes: '#trpPaneRoutes', rates: '#trpPaneRates', compare: '#trpPaneCompare' };
 
     function render() {
         if (!state.sheet) return;
@@ -160,14 +374,16 @@ var _transporters = (function () {
             var on = this.getAttribute('data-tab') === state.tab;
             $(this).toggleClass('active', on).attr('aria-selected', on ? 'true' : 'false');
         });
-        $('#trpPaneTransporters').toggleClass('d-none', state.tab !== 'transporters');
-        $('#trpPaneRoutes').toggleClass('d-none', state.tab !== 'routes');
-        $('#trpPaneRates').toggleClass('d-none', state.tab !== 'rates');
-        $('#trpAdd').toggleClass('d-none', !canEdit());
-        $('#trpAddLabel').text(ADD_LABELS[state.tab]);
+        Object.keys(PANES).forEach(function (k) { $(PANES[k]).toggleClass('d-none', k !== state.tab); });
+        $('#trpAdd').toggleClass('d-none', !canEdit() || !ADD_LABELS[state.tab]);
+        $('#trpAddLabel').text(ADD_LABELS[state.tab] || '');
         renderTransporters();
         renderRoutes();
         renderRates();
+        renderCompare();
+        if (state.tab === 'perf') {
+            if (!state.perf.cur) loadPerf(); else renderPerf();
+        }
     }
 
     // ------------------------------------------------------------------ edit window
@@ -407,7 +623,7 @@ var _transporters = (function () {
     // ------------------------------------------------------------------ events
 
     function showTab(tab) {
-        if (['transporters', 'routes', 'rates'].indexOf(tab) < 0) return;
+        if (!PANES[tab]) return;
         state.tab = tab;
         render();
     }
@@ -437,6 +653,21 @@ var _transporters = (function () {
                     'Renew ' + old.transporter_name + ' · ' + old.route_code);
             }
         });
+        $m.on('change' + NS, '#trpPeriod', function () {
+            state.perf.period = this.value;
+            $('#trpModule .trp-custom').toggleClass('d-none', this.value !== 'custom');
+            if (this.value === 'custom' && !$('#trpFrom').val()) { $('#trpFrom').val(monthStart(today())); $('#trpTo').val(today()); }
+            loadPerf();
+        });
+        $m.on('change' + NS, '#trpFrom, #trpTo', function () { if (state.perf.period === 'custom') loadPerf(); });
+        $m.on('click' + NS, '.trp-dir', function () {
+            state.perf.dir = this.getAttribute('data-dir');
+            $('#trpModule .trp-dir').each(function () {
+                var on = this.getAttribute('data-dir') === state.perf.dir;
+                $(this).toggleClass('active', on).attr('aria-pressed', on ? 'true' : 'false');
+            });
+            renderPerf();
+        });
         $m.on('change' + NS, '#trpRateFilter', function () { state.filter = this.value; renderRates(); });
         $m.on('change' + NS, '#trpShowOld', function () { state.showOld = this.checked; renderRates(); });
         $m.on('input' + NS + ' change' + NS, '#trpRateZar, #trpRateRoute', perKm);
@@ -452,6 +683,8 @@ var _transporters = (function () {
     async function init() {
         state.tab = 'transporters';
         state.filter = '';
+        state.perf.cur = null;
+        state.perf.prev = null;
         bind();
         var h = (typeof _appRouter !== 'undefined' && _appRouter.takeHandoff) ? _appRouter.takeHandoff('transporters') : null;
         if (h && h.tab) state.tab = h.tab;

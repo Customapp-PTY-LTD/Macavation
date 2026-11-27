@@ -2078,6 +2078,15 @@ var _dataFunctions = function () {
                 p_is_active: rate.is_active !== false, p_user_id: this.getCurrentUserId() || null
             }, token, { useCache: false, preserveNullParams: true }));
         },
+        /** Every load in a period (in / out, kernel / oil) for Performance & spend (20261127150000); null if not available. */
+        getTransportPerformance: async function (from, to, token = null) {
+            try {
+                var r = this._kpUnwrap(await this.callFunction('get_transport_performance', { p_from: from, p_to: to }, token, { useCache: false }));
+                return r && r.success !== false ? r : null;
+            } catch (e) {
+                return null;
+            }
+        },
         /** A delivery's rate with the route it came from; reason needed when it differs from the sheet. */
         setTransportRateFromRoute: async function (kernelId, rateZar, routeId, reason, token = null) {
             return this._kpUnwrap(await this.callFunction('set_transport_rate_from_route', {

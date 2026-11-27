@@ -12,8 +12,10 @@
 
     <ul class="nav nav-tabs mb-3" id="trpTabs" role="tablist" aria-label="Transporters sections">
         <li class="nav-item" role="presentation"><button type="button" class="nav-link trp-tab active" role="tab" data-tab="transporters" aria-selected="true">Transporters</button></li>
+        <li class="nav-item" role="presentation"><button type="button" class="nav-link trp-tab" role="tab" data-tab="perf" aria-selected="false">Performance &amp; spend</button></li>
         <li class="nav-item" role="presentation"><button type="button" class="nav-link trp-tab" role="tab" data-tab="routes" aria-selected="false">Routes</button></li>
         <li class="nav-item" role="presentation"><button type="button" class="nav-link trp-tab" role="tab" data-tab="rates" aria-selected="false">Rates</button></li>
+        <li class="nav-item" role="presentation"><button type="button" class="nav-link trp-tab" role="tab" data-tab="compare" aria-selected="false">Compare rates</button></li>
     </ul>
 
     <div id="trpNotice"></div>
@@ -29,6 +31,31 @@
                 <tbody id="trpTransportersBody"><tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading&hellip;</td></tr></tbody>
             </table>
         </div></div></div>
+    </div>
+
+    <!-- Performance & spend: get_transport_performance (20261127150000), totalled in js/transporters.js. -->
+    <div class="trp-pane d-none" id="trpPanePerf">
+        <p class="trp-intro text-muted">How each transporter did and what transport cost in a period, from the deliveries and dispatches already captured. Arrows compare with the period before.</p>
+        <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+            <label class="mb-0" for="trpPeriod"><span class="d-block small text-muted">Period</span>
+                <select class="form-select" id="trpPeriod">
+                    <option value="this-month">This month</option>
+                    <option value="last-month">Last month</option>
+                    <option value="last-3">Last 3 months</option>
+                    <option value="fy">This financial year</option>
+                    <option value="last-fy">Last financial year</option>
+                    <option value="custom">Choose dates</option>
+                </select></label>
+            <label class="mb-0 d-none trp-custom" for="trpFrom"><span class="d-block small text-muted">From</span>
+                <input type="date" class="form-control" id="trpFrom"></label>
+            <label class="mb-0 d-none trp-custom" for="trpTo"><span class="d-block small text-muted">To</span>
+                <input type="date" class="form-control" id="trpTo"></label>
+            <div class="btn-group" role="group" aria-label="Direction">
+                <button type="button" class="btn btn-outline-secondary trp-dir active" data-dir="in" aria-pressed="true">Coming in</button>
+                <button type="button" class="btn btn-outline-secondary trp-dir" data-dir="out" aria-pressed="false">Going out</button>
+            </div>
+        </div>
+        <div id="trpPerfBody"><div class="text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading&hellip;</div></div>
     </div>
 
     <div class="trp-pane d-none" id="trpPaneRoutes">
@@ -65,7 +92,12 @@
         </div></div></div>
     </div>
 
-    <!-- One edit window for all three tabs; js/transporters.js fills it. -->
+    <div class="trp-pane d-none" id="trpPaneCompare">
+        <p class="trp-intro text-muted">Today's current rates per load (rand, excl. VAT) for each route side by side. The cheapest on each route is green; the others show how much more they cost.</p>
+        <div class="card"><div class="card-body p-0"><div class="table-responsive" id="trpCompareBody"></div></div></div>
+    </div>
+
+    <!-- One edit window for all tabs; js/transporters.js fills it. -->
     <div class="modal fade" id="trpModal" tabindex="-1" aria-labelledby="trpModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
