@@ -704,6 +704,21 @@
                 "../kernel-style-prices/css/kernel_style_prices.css"
             ]
         },
+        "suppliers": {
+            "description": "Suppliers",
+            "path": "suppliers",
+            "html": "html/suppliers.html",
+            "js": [
+                "../../js/map-outlines.js",
+                "../../js/outline-map.js",
+                "../../js/period-presets.js",
+                "js/suppliers.js"
+            ],
+            "css": [
+                "../../css/outline-map.css",
+                "css/suppliers.css"
+            ]
+        },
         "company-calendar": {
             "description": "Calendar",
             "path": "company-calendar",

@@ -1,0 +1,22 @@
+/* Inline-SVG supplier / customer map (js/outline-map.js). Colours are design tokens only. */
+.mm-wrap { position: relative; border-radius: var(--mac-radius-md); overflow: hidden; border: 1px solid var(--mac-border); }
+.mm-svg { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; max-height: 560px; }
+.mm-sea { fill: var(--mac-bg-tertiary); }
+.mm-land { fill: var(--mac-bg-secondary); stroke: var(--mac-border-strong); stroke-width: 0.8; vector-effect: non-scaling-stroke; }
+.mm-nb { fill: var(--mac-surface-soft); }
+.mm-plab { fill: var(--mac-text-tertiary); font-size: 0.34px; text-anchor: middle; pointer-events: none; font-family: var(--mac-font); }
+.mm-reg rect { fill: transparent; stroke: var(--mac-text-tertiary); cursor: zoom-in; }
+.mm-reg text { fill: var(--mac-text-secondary); font-family: var(--mac-font); pointer-events: none; }
+.mm-reg:hover rect { stroke: var(--mac-accent); }
+.mm-pin { cursor: pointer; }
+.mm-pin circle { fill-opacity: 0.75; stroke: var(--mac-panel); }
+.mm-pin.mm-approx circle { fill-opacity: 0.25; }
+.mm-pin:hover circle, .mm-pin:focus circle { fill-opacity: 1; outline: none; }
+.mm-k-a circle, .mm-legend i.mm-k-a { fill: var(--mac-accent); background: var(--mac-accent); }
+.mm-k-b circle, .mm-legend i.mm-k-b { fill: var(--mac-warning); background: var(--mac-warning); }
+.mm-k-c circle, .mm-legend i.mm-k-c { fill: var(--mac-info); background: var(--mac-info); }
+.mm-pin.mm-k-a.mm-approx circle { stroke: var(--mac-accent); }
+.mm-pin.mm-k-b.mm-approx circle { stroke: var(--mac-warning); }
+.mm-pin.mm-k-c.mm-approx circle { stroke: var(--mac-info); }
+.mm-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0 4px 0 10px; vertical-align: -1px; }
+.mm-ctl { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; }

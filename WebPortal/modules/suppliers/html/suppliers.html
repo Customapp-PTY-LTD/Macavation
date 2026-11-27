@@ -1,0 +1,51 @@
+<!-- Suppliers (Mike's MacView, round 3, 27 Nov 2026): ranking by kg and quality, oil raws received, and
+     a map of where suppliers farm. The supplier list itself is CRM's (Contacts); this screen only reads it.
+     Rendered by js/suppliers.js from get_supplier_performance (migration 20261128090000). -->
+<div class="module-content" id="supModule">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center gap-2 pt-3 pb-2 mb-3 border-bottom">
+        <div>
+            <h1 class="h2 mb-0">Suppliers</h1>
+            <div class="small text-muted">Who delivered what, and its quality. Contact details are kept in Contacts.</div>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="supCsv"><i class="fas fa-download me-1"></i>Download CSV</button>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+        <label class="mb-0" for="supPeriod"><span class="d-block small text-muted">Period</span>
+            <select class="form-select" id="supPeriod"></select></label>
+        <label class="mb-0 d-none sup-custom" for="supFrom"><span class="d-block small text-muted">From</span>
+            <input type="date" class="form-control" id="supFrom"></label>
+        <label class="mb-0 d-none sup-custom" for="supTo"><span class="d-block small text-muted">To</span>
+            <input type="date" class="form-control" id="supTo"></label>
+        <label class="mb-0" for="supType"><span class="d-block small text-muted">Supplies</span>
+            <select class="form-select" id="supType">
+                <option value="all">Nut-in-shell and oil raws</option>
+                <option value="nis">Nut-in-shell</option>
+                <option value="oil">Oil raws</option>
+            </select></label>
+        <label class="mb-0" for="supShow"><span class="d-block small text-muted">Show</span>
+            <select class="form-select" id="supShow">
+                <option value="active">Active suppliers</option>
+                <option value="all">All suppliers</option>
+            </select></label>
+        <label class="mb-0 flex-grow-1" for="supSearch" style="max-width:320px"><span class="d-block small text-muted">Search</span>
+            <input type="search" class="form-control" id="supSearch" placeholder="Name, number or area"></label>
+    </div>
+
+    <div id="supBody"><div class="text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading&hellip;</div></div>
+
+    <div class="modal fade" id="supModal" tabindex="-1" aria-labelledby="supModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="supModalTitle">Supplier</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="supModalBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
