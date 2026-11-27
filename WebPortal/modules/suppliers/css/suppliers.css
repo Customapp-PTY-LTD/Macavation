@@ -1,0 +1,8 @@
+/* Suppliers (modules/suppliers) — MacView round 3. Colours are design tokens only. */
+#supModule .sup-scroll { max-height: 520px; overflow-y: auto; }
+#supModule .sup-table thead th { position: sticky; top: 0; background: var(--mac-panel); z-index: 1; white-space: nowrap; }
+#supModule .sup-sort { cursor: pointer; user-select: none; }
+#supModule .sup-sort.sup-on { color: var(--mac-accent); }
+#supModule .sup-row { cursor: pointer; }
+#supModule .sup-bar { height: 4px; border-radius: var(--mac-radius-pill); background: var(--mac-bg-tertiary); margin-top: 3px; min-width: 80px; }
+#supModule .sup-bar i { display: block; height: 100%; border-radius: inherit; background: var(--mac-accent); }

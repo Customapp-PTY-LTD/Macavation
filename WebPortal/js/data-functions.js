@@ -2087,6 +2087,21 @@ var _dataFunctions = function () {
                 return null;
             }
         },
+        /** Suppliers screen: deliveries (NIS ledger + live intake), oil raws and the supplier directory for a period. */
+        getSupplierPerformance: async function (from, to, token = null) {
+            try {
+                var r = this._kpUnwrap(await this.callFunction('get_supplier_performance', { p_from: from, p_to: to }, token, { useCache: false }));
+                return r && r.success !== false ? r : null;
+            } catch (e) {
+                return null;
+            }
+        },
+        /** Save (or clear, with nulls) a supplier's / customer's map pin. */
+        setContactLocation: async function (contactId, lat, lng, token = null) {
+            return this._kpUnwrap(await this.callFunction('set_contact_location', {
+                p_contact_id: contactId, p_lat: lat, p_lng: lng
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
         /** A delivery's rate with the route it came from; reason needed when it differs from the sheet. */
         setTransportRateFromRoute: async function (kernelId, rateZar, routeId, reason, token = null) {
             return this._kpUnwrap(await this.callFunction('set_transport_rate_from_route', {
