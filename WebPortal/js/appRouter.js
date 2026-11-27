@@ -497,6 +497,11 @@ var _appRouter = function () {
                         _kernelPipelineSettingsGrid.init();
                     }
                 },
+                'transporters': () => {
+                    if (typeof _transporters !== 'undefined' && _transporters.init) {
+                        _transporters.init();
+                    }
+                },
                 'kernel-dashboard': () => {
                     if (typeof _kernelDashboard !== 'undefined' && _kernelDashboard.init) {
                         _kernelDashboard.init();

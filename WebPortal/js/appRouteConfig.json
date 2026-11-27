@@ -704,6 +704,17 @@
                 "../kernel-style-prices/css/kernel_style_prices.css"
             ]
         },
+        "transporters": {
+            "description": "Transporters",
+            "path": "transporters",
+            "html": "html/transporters.html",
+            "js": [
+                "js/transporters.js"
+            ],
+            "css": [
+                "css/transporters.css"
+            ]
+        },
         "kernel-dashboard": {
             "description": "Kernel Dashboard",
             "path": "management-dashboard",

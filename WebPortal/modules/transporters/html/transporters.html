@@ -1,0 +1,86 @@
+<!-- Transporters (Mike's MacView, 27 Nov 2026): transport companies with contacts and documents,
+     collection routes, and the rate sheet. Rendered by js/transporters.js; data from get_transport_sheet. -->
+<div class="module-content" id="trpModule">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center gap-2 pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2 mb-0">Transporters</h1>
+        <div class="d-flex flex-wrap gap-2">
+            <a target="_blank" rel="noopener noreferrer" href="help/index.html#transporters" class="btn btn-sm btn-outline-secondary macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+            <button type="button" class="btn btn-outline-secondary" id="trpRefresh"><i class="fas fa-sync-alt me-1"></i>Refresh</button>
+            <button type="button" class="btn btn-primary d-none" id="trpAdd"><i class="fas fa-plus me-1"></i><span id="trpAddLabel">Add a transporter</span></button>
+        </div>
+    </div>
+
+    <ul class="nav nav-tabs mb-3" id="trpTabs" role="tablist" aria-label="Transporters sections">
+        <li class="nav-item" role="presentation"><button type="button" class="nav-link trp-tab active" role="tab" data-tab="transporters" aria-selected="true">Transporters</button></li>
+        <li class="nav-item" role="presentation"><button type="button" class="nav-link trp-tab" role="tab" data-tab="routes" aria-selected="false">Routes</button></li>
+        <li class="nav-item" role="presentation"><button type="button" class="nav-link trp-tab" role="tab" data-tab="rates" aria-selected="false">Rates</button></li>
+    </ul>
+
+    <div id="trpNotice"></div>
+
+    <div class="trp-pane" id="trpPaneTransporters">
+        <p class="trp-intro text-muted">Transport companies, who to call, and their goods-in-transit insurance and B-BBEE certificate. A date running out in the next 30 days turns amber, and a My Day task reminds whoever has that switched on.</p>
+        <div class="card"><div class="card-body p-0"><div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr>
+                    <th>Transporter</th><th>Status</th><th>Contact</th><th>GIT insurance</th><th>B-BBEE</th>
+                    <th class="text-end">Current rates</th><th class="text-end"><span class="visually-hidden">Actions</span></th>
+                </tr></thead>
+                <tbody id="trpTransportersBody"><tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading&hellip;</td></tr></tbody>
+            </table>
+        </div></div></div>
+    </div>
+
+    <div class="trp-pane d-none" id="trpPaneRoutes">
+        <p class="trp-intro text-muted">The routes we collect from. Each has its own code, e.g. HAZ-HOW. A delivery picks its route and the rate fills in from the Rates tab.</p>
+        <div class="card"><div class="card-body p-0"><div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr>
+                    <th>Code</th><th>From</th><th>To</th><th class="text-end">km</th><th>Cheapest current rate</th>
+                    <th class="text-end">Current quotes</th><th class="text-end"><span class="visually-hidden">Actions</span></th>
+                </tr></thead>
+                <tbody id="trpRoutesBody"></tbody>
+            </table>
+        </div></div></div>
+    </div>
+
+    <div class="trp-pane d-none" id="trpPaneRates">
+        <p class="trp-intro text-muted">One rate per transporter and route: rand per load, excluding VAT. A rate is current between its Valid from and Valid to dates (blank Valid to = no end date).</p>
+        <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+            <label class="d-flex align-items-center gap-2 mb-0" for="trpRateFilter"><span class="text-nowrap">Transporter</span>
+                <select class="form-select" id="trpRateFilter"><option value="">All transporters</option></select></label>
+            <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="trpShowOld">
+                <label class="form-check-label" for="trpShowOld">Show expired rates</label>
+            </div>
+        </div>
+        <div class="card"><div class="card-body p-0"><div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr>
+                    <th>Transporter</th><th>Route</th><th class="text-end">Rate per load</th><th class="text-end">Per km</th>
+                    <th>Valid from</th><th>Valid to</th><th>Status</th><th>Notes</th><th class="text-end"><span class="visually-hidden">Actions</span></th>
+                </tr></thead>
+                <tbody id="trpRatesBody"></tbody>
+            </table>
+        </div></div></div>
+    </div>
+
+    <!-- One edit window for all three tabs; js/transporters.js fills it. -->
+    <div class="modal fade" id="trpModal" tabindex="-1" aria-labelledby="trpModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="trpModalTitle"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="trpModalBody"></div>
+                <div class="modal-footer">
+                    <div class="text-danger small me-auto" id="trpModalError" role="alert"></div>
+                    <button type="button" class="btn btn-outline-danger d-none" id="trpModalRemove">Remove rate</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="trpModalSave"><i class="fas fa-save me-1"></i>Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

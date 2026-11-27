@@ -26,6 +26,7 @@ var _roleMenuConfig = function () {
                     'kernel-production-grid',
                     'silo-allocation-grid',
                     'kernel-pipeline-settings',
+                    'transporters',
                     'kernel-production-forecast-grid',
                     'stock-management-kernel',
                     'kernel-dispatch-grid',
@@ -47,6 +48,7 @@ var _roleMenuConfig = function () {
                     'kernel-production-grid',
                     'silo-allocation-grid',
                     'kernel-pipeline-settings',
+                    'transporters',
                     'kernel-production-forecast-grid',
                     'stock-management-kernel',
                     'kernel-dispatch-grid',
@@ -66,6 +68,7 @@ var _roleMenuConfig = function () {
                     'kernel-production-grid',
                     'silo-allocation-grid',
                     'kernel-pipeline-settings',
+                    'transporters',
                     'kernel-production-forecast-grid',
                     'stock-management-kernel',
                     'kernel-dispatch-grid',
@@ -82,6 +85,7 @@ var _roleMenuConfig = function () {
                     'kernel-production-grid',
                     'silo-allocation-grid',
                     'kernel-pipeline-settings',
+                    'transporters',
                     'kernel-production-forecast-grid',
                     'stock-management-kernel',
                     'kernel-dispatch-grid',
@@ -93,6 +97,7 @@ var _roleMenuConfig = function () {
                 access: 'specific',
                 menus: [
                     'kernel-production-grid',
+                    'transporters',
                     'silo-allocation-grid',
                     'kernel-production-forecast-grid',
                     'stock-management-kernel',
@@ -108,6 +113,7 @@ var _roleMenuConfig = function () {
                     'kernel-production-grid',
                     'silo-allocation-grid',
                     'kernel-pipeline-settings',
+                    'transporters',
                     'kernel-production-forecast-grid',
                     'kernel-dispatch-grid'
                 ]
@@ -396,6 +402,13 @@ var _roleMenuConfig = function () {
                 category: 'kernel',
                 parent: 'kernelCollapse'
             },
+            'transporters': {
+                route: 'transporters',
+                icon: 'fas fa-truck',
+                label: 'Transporters',
+                category: 'kernel',
+                parent: 'kernelCollapse'
+            },
             'kernel-production-grid': {
                 route: 'kernel-production-grid',
                 icon: 'fas fa-cogs',
@@ -588,6 +601,7 @@ var _roleMenuConfig = function () {
             'kernel-production-grid',
             'silo-allocation-grid',
             'kernel-pipeline-settings',
+            'transporters',
             'stock-management-kernel',
             'kernel-dispatch-grid',
             'supplier-intake-grid',

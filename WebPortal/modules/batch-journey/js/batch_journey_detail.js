@@ -774,7 +774,7 @@ var _batchJourneyDetail = (function () {
     /** What is typed in the Delivery edit form, so a bag removal/addition (saved straight away) does not lose it. */
     function captureDeliveryForm() {
         var snap = { fields: {}, bags: {} };
-        ['bjdDlvNote', 'bjdDlvConsignment', 'bjdDlvRate', 'bjdDlvTransporter', 'bjdDlvType', 'bjdDlvPoints'].forEach(function (id) {
+        ['bjdDlvNote', 'bjdDlvConsignment', 'bjdDlvRate', 'bjdDlvTransporter', 'bjdDlvType', 'bjdDlvPoints', 'bjdTrsRoute', 'bjdTrsReason'].forEach(function (id) {
             var $f = $('#' + id);
             if ($f.length) snap.fields[id] = $f.val();
         });
@@ -799,6 +799,27 @@ var _batchJourneyDetail = (function () {
             if (b.weight != null && !$w.prop('readOnly')) $w.val(b.weight);
         });
         updateBagsTotal();
+        if (state.trPicker) state.trPicker.redraw();
+    }
+
+    /** The transport rate sheet (20261127090000) for the route picker; null when it is not on this database. */
+    function loadTrSheet() {
+        state.trSheet = null;
+        if (typeof TransportRateSheet === 'undefined') return Promise.resolve();
+        return TransportRateSheet.load(true).then(function (s) { state.trSheet = s; }, function () { state.trSheet = null; });
+    }
+
+    function wireTrPicker() {
+        state.trPicker = null;
+        if (!state.trSheet || !document.getElementById('bjdTrsRoute')) return;
+        var dlv = delivery() || {};
+        state.trPicker = TransportRateSheet.wire({
+            prefix: 'bjdTrs', sheet: state.trSheet, rateInput: document.getElementById('bjdDlvRate'),
+            transporterId: function () { return $('#bjdDlvTransporter').val() || null; },
+            transporterName: function () { return $('#bjdDlvTransporter').val() ? $('#bjdDlvTransporter option:selected').text() : ''; },
+            date: function () { return dlv.saved_at || null; }
+        });
+        $('#bjdDlvTransporter').off('change.bjdTrs').on('change.bjdTrs', function () { if (state.trPicker) state.trPicker.refresh(); });
     }
 
     /** After Remove / Add a bag (already saved): re-read the batch and stay in Edit with what was typed. */
@@ -907,6 +928,12 @@ var _batchJourneyDetail = (function () {
         h += dlItem('Transporter', hasText(tr.transporter_name) ? esc(tr.transporter_name) : '—');
         h += dlItem('Transport type', hasText(tr.transport_type_name) ? esc(tr.transport_type_name) : '—');
         h += dlItem('Rate (whole trip)', numOrNull(tr.rate_zar) != null ? 'R ' + esc(_common.formatKg(numOrNull(tr.rate_zar))) : 'Not entered yet', numOrNull(tr.rate_zar) == null);
+        // Rate sheet (20261127090000): the route it came from, and why the cost differs from the sheet.
+        if (hasText(tr.route_code)) {
+            h += dlItem('Route', esc(tr.route_code) + (numOrNull(tr.sheet_rate_zar) != null
+                ? ' <span class="text-muted">(rate sheet R ' + esc(_common.formatKg(numOrNull(tr.sheet_rate_zar))) + ')</span>' : ''));
+        }
+        if (hasText(tr.rate_override_reason)) h += dlItem('Why the cost differs', esc(tr.rate_override_reason));
         h += dlItem('Collection points', cps.length ? cps.map(esc).join('<br>') : '—', !cps.length);
         h += '</dl>';
         var total = 0;
@@ -989,6 +1016,10 @@ var _batchJourneyDetail = (function () {
             '<select class="form-select" id="bjdDlvType">' + optionList(cfg.transport_types, tr.transport_type_id, tr.transport_type_name) + '</select></div>';
         h += '<div class="col-12 col-xl-4"><label class="form-label" for="bjdDlvPoints">Collection points (one per line)</label>' +
             '<textarea class="form-control" id="bjdDlvPoints" rows="2">' + esc(arr(tr.collection_points).filter(hasText).join('\n')) + '</textarea></div>';
+        // Rate sheet (20261127090000): the route fills the rate; a different cost needs a reason.
+        var picker = state.trSheet && typeof TransportRateSheet !== 'undefined'
+            ? TransportRateSheet.pickerHtml('bjdTrs', state.trSheet, tr.route_id || null, tr.rate_override_reason || '') : '';
+        if (picker) h += '<div class="col-12 col-xl-8">' + picker + '</div>';
         h += '</div>';
 
         h += '<h4 class="bjd-subhead">Bags</h4>';
@@ -1033,6 +1064,11 @@ var _batchJourneyDetail = (function () {
         var rateRaw = $.trim($('#bjdDlvRate').val() || '');
         var rate = rateRaw === '' ? null : numOrNull(rateRaw);
         if (rateRaw !== '' && (rate == null || rate < 0)) problems.push('The rate must be 0 or more');
+        var picker = state.trPicker && document.getElementById('bjdTrsRoute') ? state.trPicker : null;
+        var pickerWhy = picker ? picker.validate() : null;
+        if (pickerWhy) problems.push(pickerWhy.replace(/\.$/, ''));
+        var routeId = picker ? picker.routeId() : null;
+        var routeReason = picker ? picker.reason() : null;
 
         var stored = {};
         arr(dlv.bags).forEach(function (b) { if (b && b.no != null) stored[String(b.no)] = b; });
@@ -1090,6 +1126,12 @@ var _batchJourneyDetail = (function () {
             collection_points: points
         });
         var rateChanged = rate != null && rate !== numOrNull(tr.rate_zar);
+        // With the picker, route / transporter / reason are saved with the rate (set_transport_rate_from_route).
+        var effRate = rate != null ? rate : numOrNull(tr.rate_zar);
+        var routeChanged = !!picker && effRate != null && (rateChanged ||
+            String(routeId || '') !== String(tr.route_id || '') ||
+            String(transporterId || '') !== String(tr.transporter_id || '') ||
+            String(routeReason || '') !== String(tr.rate_override_reason || ''));
 
         // Re-check the bags' places just before writing: a bag placed since the form opened must not be re-weighed.
         return loadBagLocations().then(function () {
@@ -1123,6 +1165,10 @@ var _batchJourneyDetail = (function () {
             } catch (e) {
                 if (r && r.already_has_delivery) throw new Error('This tab has an older version of the portal. Refresh the page and save again.');
                 throw e;
+            }
+            if (routeChanged) {
+                return d.setTransportRateFromRoute(state.kernelId, effRate, routeId, routeReason)
+                    .then(function (rr) { assertOk(rr, 'set_transport_rate_from_route'); return inner; });
             }
             if (!rateChanged) return inner;
             // The rate goes through the same RPC as the My Day "Enter rate" task (workflow-views.js:749),
@@ -2188,7 +2234,7 @@ var _batchJourneyDetail = (function () {
             KernelBatchEdit.bindBatchNumberSuggestion(batchForForm(), BATCH_FORM_PREFIX);
         }
         if (state.editing === 'receiving') updateItemsTotal();
-        if (state.editing === 'delivery') updateBagsTotal();
+        if (state.editing === 'delivery') { updateBagsTotal(); wireTrPicker(); }
         if (state.editing === 'samples') $('#bjd5Final').text(fiveKgPreviewText());
         if (state.editing === 'jobcard') recalcJobCard();
         if (state.editing === 'stage' && state.openStage) recalcStage(state.openStage, true);
@@ -2673,7 +2719,7 @@ var _batchJourneyDetail = (function () {
             }
             if (section === 'delivery' || section === 'dispatch') {
                 // Both need a fresh read first: where each bag is now / the full orders with every batch's lines.
-                var pre = section === 'delivery' ? loadBagLocations() : loadDispatchFull();
+                var pre = section === 'delivery' ? loadBagLocations().then(loadTrSheet) : loadDispatchFull();
                 pre.then(function () {
                     state.editing = section;
                     state.section = section;

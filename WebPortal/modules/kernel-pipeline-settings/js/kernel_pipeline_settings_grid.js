@@ -314,7 +314,9 @@ var _kernelPipelineSettingsGrid = (function () {
     }
 
     function transportCard(cfg) {
-        var body = '<div class="row g-4"><div class="col-md-6"><h6>Transport companies</h6><div id="kpsTransporters">' +
+        var body = '<div class="row g-4"><div class="col-md-6"><h6>Transport companies</h6>' +
+            '<p class="kps-hint mb-2">Contacts, documents, routes and rates per load are on the <strong>Transporters</strong> page (Kernel menu).</p>' +
+            '<div id="kpsTransporters">' +
             listHtml('transporter', cfg.transporters) + '</div></div>' +
             '<div class="col-md-6"><h6>Transport types</h6><div id="kpsTransportTypes">' +
             listHtml('type', cfg.transport_types) + '</div></div></div>';
