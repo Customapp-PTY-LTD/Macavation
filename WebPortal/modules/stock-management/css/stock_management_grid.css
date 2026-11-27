@@ -182,3 +182,19 @@
 #kernelStockByStyleTable tr.ks-pr-row > td { background: rgba(255, 0, 94, 0.03); color: var(--mac-text-tertiary); }
 #kernelStockByStyleTable tr.ks-pr-total > td { background: rgba(255, 0, 94, 0.10); font-weight: 700; }
 #kernelStockByStyleTable tr.ks-pr-available > td { background: rgba(var(--mac-success-rgb), 0.10); color: var(--mac-green-hover); font-weight: 700; }
+
+/* Kernel stock value and shelf life (MacView round 3). Colours are design tokens only. */
+.ks-value-table { max-width: 980px; }
+.ks-value-table .ks-sl-col { width: 34%; min-width: 160px; }
+.ks-sl-bar { display: flex; height: 12px; border-radius: var(--mac-radius-pill); overflow: hidden; background: var(--mac-bg-tertiary); }
+.ks-sl-bar i { display: block; height: 100%; }
+.ks-sl-exp { background: var(--mac-danger); }
+.ks-sl-lt { background: var(--mac-silo-mid); }
+.ks-sl-mid { background: var(--mac-warning); }
+.ks-sl-ok { background: var(--mac-success); }
+.ks-sl-none { background: var(--mac-border-strong); }
+.ks-sl-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; }
+.ks-sl-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+#kernelStockValueSummary .ks-pr-tile { background: var(--mac-bg-secondary); border-color: var(--mac-border); color: var(--mac-text); }
+#kernelStockValueSummary .ks-pr-tile.ks-tile-warn { border-color: var(--mac-warning); }
+#kernelStockValueSummary .ks-pr-tile.ks-tile-bad { border-color: var(--mac-danger); }
