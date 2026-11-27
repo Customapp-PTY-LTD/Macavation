@@ -2096,6 +2096,15 @@ var _dataFunctions = function () {
                 return null;
             }
         },
+        /** Customers screen: sales lines (kernel, oil, export register) for a period + customer directory. value is null for roles without prices. */
+        getCustomerPerformance: async function (from, to, token = null) {
+            try {
+                var r = this._kpUnwrap(await this.callFunction('get_customer_performance', { p_from: from, p_to: to }, token, { useCache: false }));
+                return r && r.success !== false ? r : null;
+            } catch (e) {
+                return null;
+            }
+        },
         /** Save (or clear, with nulls) a supplier's / customer's map pin. */
         setContactLocation: async function (contactId, lat, lng, token = null) {
             return this._kpUnwrap(await this.callFunction('set_contact_location', {

@@ -719,6 +719,21 @@
                 "css/suppliers.css"
             ]
         },
+        "customers": {
+            "description": "Customers",
+            "path": "customers",
+            "html": "html/customers.html",
+            "js": [
+                "../../js/map-outlines.js",
+                "../../js/outline-map.js",
+                "../../js/period-presets.js",
+                "js/customers.js"
+            ],
+            "css": [
+                "../../css/outline-map.css",
+                "css/customers.css"
+            ]
+        },
         "company-calendar": {
             "description": "Calendar",
             "path": "company-calendar",
