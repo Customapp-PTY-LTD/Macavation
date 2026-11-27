@@ -3806,6 +3806,22 @@ var _dataFunctions = function () {
                 p_run_id: runId, p_opened_at: openedAt, p_closed_at: closedAt
             }, token, { useCache: false }));
         },
+        // ---- Cracking downtime (migration 20261127190000) ----
+        /** Downtime minutes (0 / blank clears it) and an optional reason on one cracking (silo) run. */
+        setSiloRunDowntime: async function (runId, minutes, reason, token = null) {
+            return this._kpUnwrap(await this.callFunction('set_silo_run_downtime', {
+                p_run_id: runId, p_minutes: minutes || 0, p_reason: reason || null, p_user_id: this.getCurrentUserId() || null
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
+        /** { today_minutes, week_minutes, today_runs, week_runs } for the home tiles; null on error. */
+        getCrackingDowntimeSummary: async function (token = null) {
+            try {
+                var r = this._kpUnwrap(await this.callFunction('get_cracking_downtime_summary', {}, token, { useCache: false }));
+                return r && r.success !== false ? r : null;
+            } catch (e) {
+                return null;
+            }
+        },
 
         /**
          * upsertKernelJobCard — save job card JSONB. Stock (packing_data) syncs only on approve or when batch is already jobcard_approved.

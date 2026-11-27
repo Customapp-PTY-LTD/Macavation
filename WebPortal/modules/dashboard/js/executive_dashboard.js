@@ -645,6 +645,14 @@ var _executiveDashboard = function () {
                 $('#execStatBatchesInProduction').text(Number(stats.batches_in_production) || 0);
                 $('#execStatKgCrackedToday').text(fmt(stats.kg_cracked_today));
                 $('#execStatKgPackedToday').text(fmt(stats.kg_packed_today));
+                // Cracking downtime next to kg cracked (migration 20261127190000).
+                var dt = dataFunctions.getCrackingDowntimeSummary ? await dataFunctions.getCrackingDowntimeSummary() : null;
+                var $dt = $('#execStatCrackDowntime');
+                if (dt && Number(dt.today_minutes) > 0) {
+                    $dt.text(_common.formatKg(Number(dt.today_minutes), 0) + ' min downtime today').removeClass('exec-hidden');
+                } else {
+                    $dt.text('').addClass('exec-hidden');
+                }
             } catch (error) {
                 console.error('Error loading kernel stats:', error);
                 $('#execStatBatchesInProduction, #execStatKgCrackedToday, #execStatKgPackedToday').text('—');
