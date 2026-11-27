@@ -2047,6 +2047,43 @@ var _dataFunctions = function () {
         upsertTransportType: async function (name, id = null, isActive = true, token = null) {
             return this._kpUnwrap(await this.callFunction('upsert_transport_type', { p_name: name, p_id: id, p_is_active: isActive }, token, { useCache: false }));
         },
+        // ---- Transporters page: details, routes and the rate sheet (migration 20261127090000) ----
+        /** { transporters[], routes[], rates[], today }. null when the migration is not on this database. */
+        getTransportSheet: async function (token = null) {
+            try {
+                var r = this._kpUnwrap(await this.callFunction('get_transport_sheet', {}, token, { useCache: false }));
+                return r && r.success !== false ? r : null;
+            } catch (e) {
+                return null;
+            }
+        },
+        saveTransporter: async function (id, data, token = null) {
+            return this._kpUnwrap(await this.callFunction('save_transporter',
+                { p_id: id || null, p_data: data || {}, p_user_id: this.getCurrentUserId() || null },
+                token, { useCache: false, preserveNullParams: true }));
+        },
+        saveTransportRoute: async function (route, token = null) {
+            return this._kpUnwrap(await this.callFunction('save_transport_route', {
+                p_id: route.id || null, p_code: route.code, p_origin: route.origin, p_destination: route.destination || null,
+                p_km: route.km == null ? null : route.km, p_notes: route.notes || null,
+                p_is_active: route.is_active !== false, p_user_id: this.getCurrentUserId() || null
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
+        /** rate.is_active === false removes the rate. */
+        saveTransportRate: async function (rate, token = null) {
+            return this._kpUnwrap(await this.callFunction('save_transport_rate', {
+                p_id: rate.id || null, p_transporter_id: rate.transporter_id || null, p_route_id: rate.route_id || null,
+                p_rate_zar: rate.rate_zar == null ? null : rate.rate_zar,
+                p_valid_from: rate.valid_from || null, p_valid_to: rate.valid_to || null, p_notes: rate.notes || null,
+                p_is_active: rate.is_active !== false, p_user_id: this.getCurrentUserId() || null
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
+        /** A delivery's rate with the route it came from; reason needed when it differs from the sheet. */
+        setTransportRateFromRoute: async function (kernelId, rateZar, routeId, reason, token = null) {
+            return this._kpUnwrap(await this.callFunction('set_transport_rate_from_route', {
+                p_kernel_id: kernelId, p_rate_zar: rateZar, p_route_id: routeId || null, p_override_reason: reason || null
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
         upsertSiloCapacity: async function (siloNumber, capacityKg, token = null) {
             return this._kpUnwrap(await this.callFunction('upsert_silo_capacity', { p_silo_number: siloNumber, p_capacity_kg: capacityKg }, token, { useCache: false }));
         },

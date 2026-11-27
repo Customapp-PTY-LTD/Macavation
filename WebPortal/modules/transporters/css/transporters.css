@@ -1,0 +1,34 @@
+/* Transporters page (modules/transporters). Colours come from design-tokens.css / Bootstrap classes. */
+#trpModule .trp-intro {
+    max-width: 60rem;
+    font-size: 0.9rem;
+}
+
+#trpModule .trp-code {
+    font-family: var(--bs-font-monospace);
+    font-weight: 600;
+}
+
+#trpModule .trp-sect {
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+    margin: 1rem 0 0.5rem;
+}
+
+#trpModule .trp-sect:first-child {
+    margin-top: 0;
+}
+
+#trpModule .trp-notes {
+    max-width: 16rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#trpModule .trp-row-inactive {
+    opacity: 0.6;
+}

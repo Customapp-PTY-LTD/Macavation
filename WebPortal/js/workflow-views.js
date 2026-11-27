@@ -619,7 +619,9 @@ var _workflowViews = function () {
             oil_ffa_decision: 'Oil raw FFA out of spec',
             dispatch_return_decide: 'Decide on returned stock', dispatch_return_credit: 'Credit note for a return',
             oil_daily_recipe: 'Oil recipe for today', oil_stock_count: 'Oil month-end count',
-            kernel_transfer_check: 'Count a batch into stock'
+            kernel_transfer_check: 'Count a batch into stock',
+            transport_rate_expiring: 'Transport rates expired or expiring',
+            transporter_docs_expiring: 'Transporter documents expired or expiring'
         },
 
         _kindAction: function (task) {
@@ -640,6 +642,9 @@ var _workflowViews = function () {
                 case 'oil_stock_count': return { label: 'Enter the count', route: 'oil-raw-materials', params: { tab: 'count' } };
                 case 'customer_prices_expiring': return { label: 'Update prices', route: 'kernel-pipeline-settings', params: { tab: 'prices', customerId: sid } };
                 case 'kernel_transfer_check': return { label: 'Count the boxes', route: 'kernel-production-grid', params: { transferKernelId: sid } };
+                // Rate sheet (20261127090000): subject_id is the transporter.
+                case 'transport_rate_expiring': return { label: 'Update rates', route: 'transporters', params: { tab: 'rates', transporterId: sid } };
+                case 'transporter_docs_expiring': return { label: 'Update documents', route: 'transporters', params: { tab: 'transporters', editTransporterId: sid } };
             }
             return null;
         },
@@ -906,6 +911,15 @@ var _workflowViews = function () {
             var task = (this._lastTasks || []).filter(function (t) { return String(t.id) === String(taskId); })[0];
             if (!task || typeof Swal === 'undefined') return;
             var pallets = Number(task.pallets) || 0, kg = Number(task.weighed_kg) || 0;
+            // Rate sheet (20261127090000): pick the route and the rate fills in. null = not on this DB yet.
+            var sheet = null, picker = null;
+            if (typeof TransportRateSheet !== 'undefined') {
+                try { sheet = await TransportRateSheet.load(); } catch (e) { sheet = null; }
+            }
+            var trRow = sheet && task.transporter ? (sheet.transporters || []).filter(function (t) {
+                return String(t.name || '').trim().toLowerCase() === String(task.transporter).trim().toLowerCase();
+            })[0] : null;
+            var pickerHtml = sheet ? TransportRateSheet.pickerHtml('wvTrs', sheet, null, '') : '';
             var row = function (k, v) { return '<dt class="col-5 text-muted fw-normal">' + k + '</dt><dd class="col-7 mb-1">' + esc(v || '—') + '</dd>'; };
             var result = await Swal.fire({
                 title: 'Transport rate · ' + (task.batch_number || ''),
@@ -914,6 +928,7 @@ var _workflowViews = function () {
                     row('Transporter', task.transporter ? task.transporter + (task.transport_type ? ' (' + task.transport_type + ')' : '') : '') +
                     row('Delivery note', task.delivery_note) +
                     row('Pallets · weighed', (pallets || '—') + ' · ' + (kg ? _common.formatKg(kg) + ' kg' : '—')) + '</dl>' +
+                    (pickerHtml ? '<div class="mb-3">' + pickerHtml + '</div>' : '') +
                     '<div class="text-start"><label for="wvRateZar" class="form-label fw-semibold">Transport Rate (R, whole trip)</label>' +
                     '<input type="number" id="wvRateZar" class="form-control" min="0" step="0.01" placeholder="e.g. 4500"></div>' +
                     // Tickbox (Henry, 18 Nov 2026): the grower/supplier paid, so no rate is needed and it is not our cost.
@@ -937,10 +952,19 @@ var _workflowViews = function () {
                         document.getElementById('wvRateKg').textContent = ok && kg > 0 ? 'R ' + self._fmtNum(r / kg, 2) : '—';
                     };
                     input.addEventListener('input', showRates);
+                    if (pickerHtml) {
+                        picker = TransportRateSheet.wire({
+                            prefix: 'wvTrs', sheet: sheet, rateInput: input,
+                            transporterId: function () { return trRow ? trRow.id : null; },
+                            transporterName: function () { return task.transporter || ''; },
+                            date: function () { return task.captured_at; }
+                        });
+                    }
                     tick.addEventListener('change', function () {
                         if (tick.checked) input.value = '';
                         input.disabled = tick.checked;
                         showRates();
+                        if (picker) picker.refresh();
                     });
                 },
                 preConfirm: async function () {
@@ -951,10 +975,14 @@ var _workflowViews = function () {
                         Swal.showValidationMessage('Enter the rate for the whole trip, or tick "Supplier pays transport".');
                         return false;
                     }
+                    var why = picker && !supplierPays ? picker.validate() : null;
+                    if (why) { Swal.showValidationMessage(why); return false; }
                     try {
                         var res = supplierPays
                             ? await dataFunctions.callFunction('set_transport_paid_by_supplier', { p_kernel_id: task.kernel_id }, null, { useCache: false })
-                            : await dataFunctions.callFunction('set_transport_rate', { p_kernel_id: task.kernel_id, p_rate_zar: r }, null, { useCache: false });
+                            : picker
+                                ? await dataFunctions.setTransportRateFromRoute(task.kernel_id, r, picker.routeId(), picker.reason())
+                                : await dataFunctions.callFunction('set_transport_rate', { p_kernel_id: task.kernel_id, p_rate_zar: r }, null, { useCache: false });
                         var body = res && res.data !== undefined ? res.data : res;
                         if (!body || body.success === false) throw new Error((body && body.error) || 'Could not save.');
                         return { supplierPays: supplierPays, rate: r };

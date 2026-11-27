@@ -1936,6 +1936,47 @@
     </ul>
   </section>
 
+  <section id="transporters" class="guide-section" data-guide-id="transporters">
+    <h2>Transporters</h2>
+<p class="guide-lead">The transport companies we use, the routes we collect from, and what each transporter charges per load on each route. A delivery picks its route and the rate fills in for you.</p>
+    <p class="guide-how">Open <strong>Kernel &gt; Transporters</strong>. There are three tabs. Everyone with the page can look; changing anything needs the <strong>Edit transporters, routes and rates</strong> permission.</p>
+
+    <h3 class="guide-subhead">Transporters</h3>
+    <ul class="guide-page-steps">
+      <li>Each company with its status (<strong>Active</strong>, <strong>Approved, not used</strong>, <strong>On hold</strong> or <strong>Inactive</strong>), main contact, goods-in-transit (GIT) insurance and B-BBEE certificate.</li>
+      <li>An expiry date turns <strong>amber</strong> when it ends in the next 30 days and <strong>red</strong> once it has expired.</li>
+      <li><strong>Edit</strong> opens the details: base, truck types, VAT number, two contacts, GIT insurer, cover per load and expiry, B-BBEE level and expiry, notes, and the certificates themselves (photo or PDF). An Inactive transporter no longer shows in the delivery lists.</li>
+      <li>The number under <strong>Current rates</strong> jumps to that transporter's rates.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Routes</h3>
+    <ul class="guide-page-steps">
+      <li>Each route has its own short code, e.g. <strong>HAZ-HOW</strong> (capitals are added for you), where it collects from, where it delivers (Howick unless you change it) and the distance in km.</li>
+      <li>The list shows the cheapest current rate on each route and which transporter offers it.</li>
+    </ul>
+
+    <h3 class="guide-subhead">Rates</h3>
+    <ul class="guide-page-steps">
+      <li>One rate per transporter and route: rand per load, excluding VAT, with <strong>Valid from</strong> and an optional <strong>Valid to</strong>. Rate per km is worked out from the route's distance.</li>
+      <li>A rate is <strong>Current</strong> between its dates. Two rates for the same transporter, route and start date are not allowed.</li>
+      <li>A rate ending within 14 days shows <strong>Ends in ... days</strong>. Press <strong>Renew</strong> to add the next rate, starting the day after the old one ends.</li>
+      <li>Expired rates that a newer rate has replaced are hidden; tick <strong>Show expired rates</strong> to see them. <strong>Edit &gt; Remove rate</strong> takes a rate off the sheet; deliveries already priced keep their cost.</li>
+    </ul>
+
+    <h3 class="guide-subhead">On a delivery</h3>
+    <ul class="guide-page-steps">
+      <li>In the My Day <strong>Enter transport rate</strong> task, and when editing a delivery on Find a batch, pick the <strong>Route</strong>. The transporter's rate for that route fills in, with its Valid to date (or <strong>expired</strong>), and the cheapest current rate on the route as a hint.</li>
+      <li>If you change the cost from the rate sheet, say why. <strong>Back to the rate</strong> puts the sheet rate back. A once-off trip can still be saved with no route.</li>
+    </ul>
+
+    <h3 class="guide-subhead">My Day reminders</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Transport rates expired or expiring</strong>: one task per transporter when its rates end within 14 days (a rate already replaced by a newer one does not count). <strong>Update rates</strong> opens the Rates tab.</li>
+      <li><strong>Transporter documents expired or expiring</strong>: GIT insurance or B-BBEE certificate ending within 30 days. <strong>Update documents</strong> opens the transporter.</li>
+      <li>Both close on their own once the new rate or date is saved. Which roles get them is set in Role Features (<strong>Tasks: transport rates expiring</strong> and <strong>Tasks: transporter documents expiring</strong>).</li>
+    </ul>
+  </section>
+
   <section id="stock-alert-rules-grid" class="guide-section" data-guide-id="stock-alert-rules-grid">
     <h2>Stock alerts (Kernel Pipeline Settings tab)</h2>
 <p class="guide-lead">Set the low-stock red flags for kernel, oil, protein and shell waste: add a rule, change its limit or severity, turn it off, or delete it. When stock falls to the limit, an alert is raised on the dashboard.</p>
