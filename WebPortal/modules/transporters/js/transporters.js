@@ -277,6 +277,7 @@ var _transporters = (function () {
             $('#trpPerfBody').html('<div class="alert alert-warning">Performance and spend are not set up on this database yet.</div>');
             return;
         }
+        state.perf.hidden = !!res[0].prices_hidden;   // role without "See costs and prices": server sent no costs
         state.perf.cur = res[0].loads || [];
         state.perf.prev = res[1] ? res[1].loads || [] : null;
         renderPerf();
@@ -291,20 +292,22 @@ var _transporters = (function () {
         var inbound = dir === 'in';
         var nKernel = L.filter(function (l) { return l.stream === 'kernel'; }).length, nOil = L.length - nKernel;
         var trNames = groupBy(L, function (l) { return l.transporter || 'Transporter not recorded'; });
+        var C = !P.hidden && (typeof MacPriceAccess === 'undefined' || MacPriceAccess.canSee());
 
         var h = '<p class="small text-muted mb-2">' + esc(day(p.from)) + ' to ' + esc(day(p.to)) + ' · arrows compare with ' + esc(p.word) +
             ' (' + esc(day(p.pFrom)) + ' to ' + esc(day(p.pTo)) + ')</p>';
         h += '<div class="row g-2 mb-3">' +
             tile('Loads', esc(T.n), esc((inbound ? 'nut in shell ' : 'kernel ') + nKernel + ' · oil ' + nOil), T0 ? trend(T.n, T0.n, false) : '') +
             tile('Kg moved', esc(kgText(T.kg)), esc(Object.keys(trNames).length + ' transporter' + (Object.keys(trNames).length === 1 ? '' : 's')), T0 ? trend(T.kg, T0.kg, false) : '') +
-            tile('Transport spend', esc(money(T.spend)), T.perLoad != null ? esc(money(T.perLoad)) + ' per load' : 'no truck costs captured', T0 ? trend(T.spend, T0.spend, true) : '') +
-            tile('Cost per kg', esc(perKgText(T.perKg)), 'loads with a truck cost', T0 ? trend(T.perKg, T0.perKg, true) : '') +
+            (C ? tile('Transport spend', esc(money(T.spend)), T.perLoad != null ? esc(money(T.perLoad)) + ' per load' : 'no truck costs captured', T0 ? trend(T.spend, T0.spend, true) : '') +
+            tile('Cost per kg', esc(perKgText(T.perKg)), 'loads with a truck cost', T0 ? trend(T.perKg, T0.perKg, true) : '') : '') +
             (inbound ? tile('Failed vehicle checks', esc(T.bad) + ' <span class="small text-muted fw-normal">of ' + esc(T.checked) + '</span>',
                 T.checked ? esc(Math.round(T.bad / T.checked * 100)) + '% of checked loads' : 'no loads checked', '') : '') +
-            (inbound ? tile('Could have saved', esc(money(T.save)), esc(T.saveN + ' load' + (T.saveN === 1 ? '' : 's') + ' above the cheapest rate'), '') : '') +
+            (inbound && C ? tile('Could have saved', esc(money(T.save)), esc(T.saveN + ' load' + (T.saveN === 1 ? '' : 's') + ' above the cheapest rate'), '') : '') +
             '</div>';
 
         var notes = [];
+        if (!C) notes.push('Transport costs are hidden for your role; loads, kg and vehicle checks still show');
         if (T.noCost) notes.push(T.noCost + ' load' + (T.noCost === 1 ? '' : 's') + ' with no truck cost entered');
         if (T.supplier) notes.push(T.supplier + ' paid by the ' + (inbound ? 'supplier' : 'customer') + ' (counted, not added to spend)');
         var noRoute = inbound ? L.filter(function (l) { return l.stream === 'kernel' && !l.route_code; }).length : 0;

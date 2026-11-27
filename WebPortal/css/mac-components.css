@@ -457,3 +457,12 @@ hr { border-color: var(--mac-border); opacity: 1; }
 .table-danger { --bs-table-bg: var(--mac-danger-light); --bs-table-color: var(--mac-text); }
 .table-info { --bs-table-bg: var(--mac-info-light); --bs-table-color: var(--mac-text); }
 .table-active { --bs-table-bg: var(--mac-green-light); --bs-table-color: var(--mac-text); }
+
+/* "View as role" preview banner (js/view-as.js, MacView round 3). Colours are design tokens only. */
+.mac-viewas-bar {
+    position: sticky; top: 0; z-index: 2000;
+    display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px;
+    padding: 6px 12px; font-size: 0.875rem;
+    background: var(--mac-warning); color: var(--mac-text);
+    box-shadow: var(--mac-shadow-sm);
+}
