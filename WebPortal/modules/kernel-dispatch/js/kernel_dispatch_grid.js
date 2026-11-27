@@ -242,7 +242,7 @@ var _kernelDispatchGrid = function () {
                 idPrefix: 'kdActivityCalendar',
                 title: 'Dispatch Calendar',
                 icon: 'fa-calendar-check',
-                intro: 'Days shaded green had dispatch activity. Click a day to see which baskets were dispatched or created, for which buyer, and how many kg.',
+                intro: 'Days showing a count had dispatch activity. Click a day to see which baskets were dispatched or created, for which buyer, and how many kg.',
                 emptyDayText: 'No baskets were created or dispatched on this day.',
                 emptyMonthText: 'No baskets were created or dispatched in this month.',
                 loadMonth: async (fromIso, toIso) => {

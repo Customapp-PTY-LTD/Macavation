@@ -88,6 +88,12 @@ var _companyCalendar = (function () {
         return info.label || KIND_TEXT[k] || '';
     }
 
+    /** Chip / dot colour for a day: its kind, or "event" for a note on an ordinary day. */
+    function chipKind(info) {
+        if (!info || !info.kind) return 'event';
+        return (info.kind === 'workday' || info.kind === 'weekend') ? 'event' : info.kind;
+    }
+
     function renderGrid() {
         var r = gridRange(state.month);
         var d = s2d(r.first);
@@ -108,6 +114,12 @@ var _companyCalendar = (function () {
             if (!inMonth) cls.push('cc-out');
             if (isoDow(s) >= 6) cls.push('cc-weekend');
             if (info && info.kind) cls.push('cc-k-' + info.kind);
+            // MacView look: hatched when not a working day, amber underline for a half day,
+            // green ring on a weekend that is worked.
+            var wv = info ? Number(info.value) : (isoDow(s) >= 6 ? 0 : 1);
+            if (wv === 0) cls.push('cc-off');
+            else if (wv === 0.5) cls.push('cc-half');
+            else if (isoDow(s) >= 6) cls.push('cc-wkend-on');
             if (s === state.today) cls.push('cc-today');
             if (s === state.sel) cls.push('cc-sel');
             var tag = dayTag(info);
@@ -115,8 +127,9 @@ var _companyCalendar = (function () {
                 ' aria-label="' + esc(longDay(s) + (tag ? ', ' + tag : '') + (x.trucks.length ? ', ' + x.trucks.length + ' expected deliveries' : '')) + '"' +
                 (s === state.sel ? ' aria-selected="true"' : '') + '>' +
                 '<span class="cc-num">' + s2d(s).getUTCDate() + '</span>' +
-                (tag ? '<span class="cc-tag" title="' + esc(tag) + '">' + esc(tag) + '</span>' : '') +
-                (x.trucks.length ? '<span class="cc-trucks"><i class="fas fa-truck me-1" aria-hidden="true"></i>' + x.trucks.length + '</span>' : '') +
+                (tag ? '<span class="cc-tag cc-chip cc-chip-' + esc(chipKind(info)) + '" title="' + esc(tag) + '">' + esc(tag) + '</span>' : '') +
+                (x.trucks.length ? '<span class="cc-trucks cc-chip cc-chip-dlv" title="' + esc(x.trucks.map(function (t) { return t.grower; }).join(', ')) + '"><i class="fas fa-truck me-1" aria-hidden="true"></i>' +
+                    (x.trucks.length === 1 ? esc(x.trucks[0].grower || '1 expected') : x.trucks.length + ' expected') + '</span>' : '') +
                 '</button>';
         }
         $('#ccGrid').html(h);
@@ -171,13 +184,13 @@ var _companyCalendar = (function () {
             var special = !(info.kind === 'workday' || info.kind === 'weekend') || !!info.note;
             if (!special && !x.trucks.length) continue;
             var parts = [];
-            if (special) parts.push(esc(info.label || KIND_TEXT[info.kind]));
+            if (special) parts.push(esc(info.label || info.note || KIND_TEXT[info.kind]));
             if (x.trucks.length) {
                 var kgSum = x.trucks.reduce(function (a, t) { return a + (Number(t.predicted_weight_kg) || 0); }, 0);
                 parts.push('<span class="text-muted"><i class="fas fa-truck me-1" aria-hidden="true"></i>' + x.trucks.length + ' · ' + esc(_common.formatKg(kgSum)) + ' kg</span>');
             }
             items.push('<li class="list-group-item list-group-item-action" role="button" tabindex="0" data-day="' + s + '">' +
-                '<div class="small text-muted">' + esc(shortDay(s)) + (s === state.today ? ' · today' : '') + '</div><div>' + parts.join(' · ') + '</div></li>');
+                '<i class="cc-dot cc-dot-' + esc(special ? chipKind(info) : 'dlv') + '" aria-hidden="true"></i><b>' + esc(shortDay(s)) + '</b>' + (s === state.today ? ' <span class="text-muted">· today</span>' : '') + ' ' + parts.join(' · ') + '</li>');
         }
         $('#ccUpcoming').html(items.join('') || '<li class="list-group-item text-muted">Nothing special in the next 60 days.</li>');
     }

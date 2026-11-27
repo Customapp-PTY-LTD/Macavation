@@ -747,7 +747,7 @@ var _growerIntakeGrid = function () {
                 idPrefix: 'giActivityCalendar',
                 title: 'Intake Calendar',
                 icon: 'fa-calendar-check',
-                intro: 'Days shaded green had kernel batches received. Click a day to see which batches came in, from which grower, and where each batch is now.',
+                intro: 'Days showing a count had kernel batches received. Click a day to see which batches came in, from which grower, and where each batch is now.',
                 emptyDayText: 'No batches were received on this day.',
                 emptyMonthText: 'No batches were received in this month.',
                 loadMonth: async (fromIso, toIso) => {

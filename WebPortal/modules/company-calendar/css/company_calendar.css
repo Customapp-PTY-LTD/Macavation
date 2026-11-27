@@ -1,7 +1,12 @@
-/* Company calendar (modules/company-calendar). Colours are Bootstrap 5.3 variables / design tokens. */
+/* Company calendar (modules/company-calendar) — MacView's calendar look (Mike's prototype, 27 Nov 2026):
+   Monday-first grid of tall day cells, coloured event chips, hatched non-working days, an amber
+   underline for half days, a 300px side panel. Colours are design tokens only. */
 #ccModule .cc-month {
-    min-width: 10rem;
+    min-width: 150px;
     text-align: center;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--mac-text);
 }
 
 #ccModule .cc-grid {
@@ -11,110 +16,134 @@
 }
 
 #ccModule .cc-head {
-    font-size: 0.75rem;
+    font-size: 11px;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .05em;
     text-align: center;
-    color: var(--bs-secondary-color);
-    padding: 4px 0;
+    color: var(--mac-text-secondary);
+    padding: 2px 0;
 }
 
 #ccModule .cc-cell {
-    min-height: 5.5rem;
-    border: 1px solid var(--bs-border-color);
-    border-radius: 6px;
-    padding: 4px 6px;
-    background: var(--bs-body-bg);
+    position: relative;
+    min-height: 92px;
+    border: 1px solid var(--mac-border);
+    border-radius: 8px !important;
+    padding: 4px 5px;
+    background: var(--mac-surface-soft);
     text-align: left;
     display: flex;
     flex-direction: column;
     gap: 2px;
     cursor: pointer;
-    font-size: 0.8rem;
-    color: inherit;
+    overflow: hidden;
+    color: var(--mac-text);
 }
+#ccModule .cc-cell:hover { border-color: var(--mac-accent2); }
+#ccModule .cc-cell:focus-visible { outline: 2px solid var(--mac-accent2); outline-offset: 1px; }
+#ccModule .cc-cell.cc-out { opacity: .4; }
 
-#ccModule .cc-cell:focus-visible {
-    outline: 2px solid var(--bs-primary);
-    outline-offset: 1px;
+/* Not a working day: diagonal hatching (an SVG mask — gradients are off-limits in this codebase). */
+#ccModule .cc-cell.cc-off::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: var(--mac-text);
+    opacity: .05;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Cpath d='M-3 3 L3 -3 M0 12 L12 0 M9 15 L15 9' stroke='black' stroke-width='4'/%3E%3C/svg%3E") 0 0/12px 12px repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Cpath d='M-3 3 L3 -3 M0 12 L12 0 M9 15 L15 9' stroke='black' stroke-width='4'/%3E%3C/svg%3E") 0 0/12px 12px repeat;
 }
-
-#ccModule .cc-cell.cc-out {
-    opacity: 0.45;
-}
-
-#ccModule .cc-cell.cc-weekend {
-    background: var(--bs-tertiary-bg);
-}
-
-#ccModule .cc-cell.cc-sel {
-    border-color: var(--bs-primary);
-    box-shadow: 0 0 0 1px var(--bs-primary);
-}
+#ccModule .cc-cell.cc-off .cc-num { color: var(--mac-text-secondary); }
+#ccModule .cc-cell.cc-half { box-shadow: inset 0 -3px 0 var(--mac-cal-half); }
+#ccModule .cc-cell.cc-wkend-on { box-shadow: inset 0 0 0 1px var(--mac-cal-working); }
+#ccModule .cc-cell.cc-today { border-color: var(--mac-accent2); box-shadow: inset 0 0 0 1px var(--mac-accent2); }
+#ccModule .cc-cell.cc-sel { outline: 2px solid var(--mac-green); outline-offset: -1px; }
 
 #ccModule .cc-num {
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 700;
 }
 
-#ccModule .cc-today .cc-num {
-    display: inline-block;
-    min-width: 1.6rem;
-    text-align: center;
-    border-radius: 999px;
-    background: var(--bs-primary);
-    color: var(--bs-white);
-}
-
-#ccModule .cc-tag {
-    font-size: 0.7rem;
-    line-height: 1.2;
+/* Event chips (MacView .cev) */
+#ccModule .cc-chip {
+    position: relative;
+    display: block;
+    font-size: 10.5px;
+    line-height: 1.25;
+    padding: 1px 5px;
+    border-radius: 4px;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
+    font-weight: 600;
+    color: var(--mac-cal-chip-ink);
+    background: var(--mac-bg-tertiary);
+}
+#ccModule .cc-chip-public_holiday,
+#ccModule .cc-chip-company_holiday { background: var(--mac-cal-holiday); color: var(--mac-bag-on-dark); }
+#ccModule .cc-chip-shutdown,
+#ccModule .cc-chip-closed { background: var(--mac-cal-shutdown); color: var(--mac-bag-on-dark); }
+#ccModule .cc-chip-working_day { background: var(--mac-cal-working); }
+#ccModule .cc-chip-half_day,
+#ccModule .cc-chip-no_cracking { background: var(--mac-cal-half); }
+#ccModule .cc-chip-workday,
+#ccModule .cc-chip-weekend,
+#ccModule .cc-chip-event { background: var(--mac-cal-event); color: var(--mac-bag-on-dark); }
+#ccModule .cc-chip-dlv {
+    background: rgba(var(--mac-green-rgb), .2);
+    color: var(--mac-text);
+    border-left: 3px solid var(--mac-green);
 }
 
-#ccModule .cc-trucks {
-    margin-top: auto;
-    font-size: 0.7rem;
-    color: var(--bs-secondary-color);
-}
-
-/* Day kinds (company_calendar_days.kind). */
-#ccModule .cc-k-public_holiday,
-#ccModule .cc-k-company_holiday { background: var(--bs-danger-bg-subtle); }
-#ccModule .cc-k-shutdown,
-#ccModule .cc-k-closed { background: var(--bs-secondary-bg); }
-#ccModule .cc-k-working_day { background: var(--bs-success-bg-subtle); }
-#ccModule .cc-k-half_day,
-#ccModule .cc-k-no_cracking { background: var(--bs-warning-bg-subtle); }
-
+/* Legend + dots (MacView .cal-key / .dot) */
 #ccModule .cc-legend {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 4px 12px;
+    font-size: 11.5px;
+    color: var(--mac-text-secondary);
+    align-items: center;
 }
-
-#ccModule .cc-swatch {
+#ccModule .cc-dot {
     display: inline-block;
-    width: 0.8rem;
-    height: 0.8rem;
+    width: 9px;
+    height: 9px;
     border-radius: 3px;
-    border: 1px solid var(--bs-border-color);
     margin-right: 4px;
     vertical-align: -1px;
+    background: var(--mac-text-secondary);
 }
+#ccModule .cc-dot-public_holiday,
+#ccModule .cc-dot-company_holiday { background: var(--mac-cal-holiday); }
+#ccModule .cc-dot-shutdown,
+#ccModule .cc-dot-closed { background: var(--mac-cal-shutdown); box-shadow: inset 0 0 0 1px var(--mac-cal-hatch); }
+#ccModule .cc-dot-working_day { background: var(--mac-cal-working); }
+#ccModule .cc-dot-half_day,
+#ccModule .cc-dot-no_cracking { background: var(--mac-cal-half); }
+#ccModule .cc-dot-event,
+#ccModule .cc-dot-workday,
+#ccModule .cc-dot-weekend { background: var(--mac-cal-event); }
+#ccModule .cc-dot-dlv { background: var(--mac-green); }
 
+/* Side panel (MacView .cal-side) */
+#ccModule .cc-side .card-header { font-size: 14.5px; }
 #ccModule .cc-upcoming {
     max-height: 28rem;
     overflow-y: auto;
 }
+#ccModule .cc-upcoming .list-group-item {
+    border: 0;
+    border-top: 1px dashed var(--mac-border);
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+}
+#ccModule .cc-upcoming .list-group-item:first-child { border-top: 0; }
 
-@media (max-width: 575.98px) {
-    #ccModule .cc-cell {
-        min-height: 3.5rem;
-        padding: 2px 3px;
-    }
-
-    #ccModule .cc-tag {
-        display: none;
-    }
+@media (max-width: 640px) {
+    #ccModule .cc-cell { min-height: 58px; padding: 2px 3px; }
+    #ccModule .cc-chip { font-size: 0; height: 5px; padding: 0; margin-top: 1px; border-left-width: 0; }
+    #ccModule .cc-legend { font-size: 10.5px; }
 }

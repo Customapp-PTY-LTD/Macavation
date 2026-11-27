@@ -122,23 +122,27 @@
 
 .kp-production-calendar-weekdays div {
     text-align: center;
-    font-size: 0.8rem;
+    font-size: 11px;
     font-weight: 600;
-    color: var(--mac-text);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--mac-text-secondary);
 }
 
+/* MacView calendar look (same as the company calendar and css/mac-activity-calendar.css) */
 .kp-production-calendar-day {
     min-height: 84px;
     border: 1px solid var(--mac-border);
-    border-radius: 0.5rem;
-    background: var(--mac-bg-secondary);
-    padding: 0.5rem;
+    border-radius: 8px !important;
+    background: var(--mac-surface-soft);
+    padding: 4px 5px;
     text-align: left;
+    color: var(--mac-text);
     transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
 
 .kp-production-calendar-day:hover {
-    border-color: var(--mac-green);
+    border-color: var(--mac-accent2);
 }
 
 .kp-production-calendar-day.is-outside-month {
@@ -146,29 +150,33 @@
 }
 
 .kp-production-calendar-day.is-active {
-    border-color: var(--mac-green);
-    box-shadow: 0 0 0 2px rgba(var(--mac-green-rgb), 0.15);
+    outline: 2px solid var(--mac-green);
+    outline-offset: -1px;
 }
 
 .kp-production-calendar-day.has-production {
-    background: var(--mac-green-light);
-    border-color: var(--mac-green);
+    background: var(--mac-surface-soft);
 }
 
 .kp-production-calendar-daynum {
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 700;
     color: var(--mac-text);
 }
 
 .kp-production-calendar-count {
-    display: inline-block;
-    margin-top: 0.4rem;
-    padding: 0.1rem 0.45rem;
-    border-radius: 999px;
-    background: var(--mac-green);
-    color: #fff;
-    font-size: 0.72rem;
+    display: block;
+    margin-top: 2px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(var(--mac-green-rgb), .2);
+    border-left: 3px solid var(--mac-green);
+    color: var(--mac-text);
+    font-size: 10.5px;
     font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .kp-production-calendar-empty {
@@ -183,9 +191,10 @@
 .kp-production-calendar-detail {
     min-height: 300px;
     border: 1px solid var(--mac-border);
-    border-radius: 0.75rem;
-    background: var(--mac-bg);
-    padding: 1rem;
+    border-top: 3px solid var(--mac-green);
+    border-radius: 14px;
+    background: var(--mac-panel);
+    padding: 12px 14px;
 }
 
 .kp-production-calendar-detail-title {
@@ -200,11 +209,16 @@
 }
 
 .kp-production-calendar-entry {
-    border: 1px solid var(--mac-border);
-    border-radius: 0.6rem;
-    background: var(--mac-bg-secondary);
-    padding: 0.75rem;
-    margin-bottom: 0.75rem;
+    border: 0;
+    border-top: 1px dashed var(--mac-border);
+    background: transparent;
+    padding: 8px 0;
+    margin-bottom: 0;
+}
+
+.kp-production-calendar-entry:first-of-type {
+    border-top: 0;
+    padding-top: 0;
 }
 
 .kp-production-calendar-entry:last-child {

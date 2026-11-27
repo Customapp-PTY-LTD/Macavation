@@ -10,7 +10,7 @@
  *       idPrefix: 'giActivityCalendar',       // unique per screen
  *       title: 'Intake Calendar',
  *       icon: 'fa-calendar-check',
- *       intro: 'Days shaded green had ...',
+ *       intro: 'Days showing a count had ...',
  *       emptyDayText: 'Nothing was received on this day.',
  *       // Resolves to [{ date: 'YYYY-MM-DD', title, subtitle, tags: [{ text, tone }] }]
  *       // tone: 'green' (default) | 'blue' | 'amber' | 'grey'
@@ -83,7 +83,7 @@ var MacActivityCalendar = (function () {
                 '<p class="text-muted small mb-3">' + esc(opts.intro) + '</p>' +
                 '<div class="mac-acal-layout">' +
                     '<div>' +
-                        '<div class="mac-acal-weekdays"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>' +
+                        '<div class="mac-acal-weekdays"><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div></div>' +
                         '<div class="mac-acal-grid" data-acal-grid></div>' +
                     '</div>' +
                     '<div class="mac-acal-detail" data-acal-detail></div>' +
@@ -147,7 +147,9 @@ var MacActivityCalendar = (function () {
                 state.selected = Object.keys(slot.index).sort()[0] || null;
             }
 
-            var first = new Date(state.month.getFullYear(), state.month.getMonth(), 1 - state.month.getDay());
+            // Monday-first, as on the company calendar (MacView).
+            var first = new Date(state.month.getFullYear(), state.month.getMonth(), 1 - ((state.month.getDay() + 6) % 7));
+            var todayIso = isoFromDate(new Date());
             var html = '';
             for (var i = 0; i < 42; i++) {
                 var d = new Date(first.getFullYear(), first.getMonth(), first.getDate() + i);
@@ -157,10 +159,12 @@ var MacActivityCalendar = (function () {
                 if (d.getMonth() !== state.month.getMonth()) cls.push('is-outside-month');
                 if (n > 0) cls.push('has-activity');
                 if (state.selected === iso) cls.push('is-active');
+                if (iso === todayIso) cls.push('is-today');
+                if (d.getDay() === 0 || d.getDay() === 6) cls.push('is-weekend');
                 html += '<button type="button" class="' + cls.join(' ') + '" data-iso="' + iso + '"' +
                     (n > 0 ? ' title="' + n + ' item' + (n === 1 ? '' : 's') + '"' : '') + '>' +
                     '<div class="mac-acal-daynum">' + d.getDate() + '</div>' +
-                    (n > 0 ? '<div class="mac-acal-dot"></div>' : '') +
+                    (n > 0 ? '<span class="mac-acal-count">' + n + '<span class="mac-acal-count-word"> item' + (n === 1 ? '' : 's') + '</span></span>' : '') +
                     '</button>';
             }
             gridEl.innerHTML = html;

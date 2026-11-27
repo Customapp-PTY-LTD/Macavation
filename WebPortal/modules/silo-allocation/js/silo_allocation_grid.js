@@ -1496,7 +1496,7 @@ var _siloAllocationGrid = (function () {
             idPrefix: 'siloActivityCalendar',
             title: 'Silo Calendar',
             icon: 'fa-calendar-check',
-            intro: 'Days shaded green had silo activity. Click a day to see which bags went into which silo, and which silos were cracked, how many kg and when.',
+            intro: 'Days showing a count had silo activity. Click a day to see which bags went into which silo, and which silos were cracked, how many kg and when.',
             emptyDayText: 'No bags were allocated and no silos were cracked on this day.',
             emptyMonthText: 'No silo activity in this month.',
             loadMonth: function (fromIso, toIso) {
