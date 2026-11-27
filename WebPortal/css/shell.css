@@ -2,8 +2,11 @@
    MACAVATION APP SHELL — unified full-height sidebar (no top bar).
    Loaded LAST in index.html so it supersedes the legacy navbar/sidebar layout.
    The nav <ul> is RBAC-driven and #sidebarToggle (collapse) / #darkModeToggle keep
-   their existing behaviour — this file removes the top bar, re-homes its tools
-   into the sidebar, and restyles it for a cleaner, current look.
+   their existing behaviour — this file only sets the look.
+
+   Look = Mike's MacView prototype (27 Nov 2026): a sidebar in the theme's --mac-side colour,
+   the Macavation wordmark, small uppercase group headers, a pill-shaped active item, and a
+   footer with the Design picker + glowing sun/moon mode button.
    ============================================ */
 
 /* ── Layout: sidebar + content both start at the very top (no navbar) ── */
@@ -13,7 +16,8 @@
     top: 0 !important;
     height: 100vh !important;
     width: 264px;
-    background: var(--mac-bg-secondary) !important;
+    background: var(--mac-side) !important;
+    color: var(--mac-side-ink);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
     border-right: 1px solid var(--mac-border) !important;
@@ -30,62 +34,111 @@
     .main-content.sidebar-collapsed { margin-left: 72px !important; width: calc(100% - 72px) !important; }
 }
 
-/* ── Brand + search header ── */
-.sidebar-brand { padding: 0.95rem 0.85rem 0.65rem; }
+/* ── Brand: the Macavation wordmark + "PORTAL" with rules either side ── */
+.sidebar-brand { padding: 1rem 0.95rem 0.5rem; }
 .sidebar-logo {
-    display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
     text-decoration: none;
-    padding: 0.1rem 0.5rem 0.85rem;
+    padding: 0.1rem 0.15rem 0.6rem;
 }
-.sidebar-logo i { color: var(--mac-green); font-size: 1.3rem; }
-/* Wordmark keeps the brand pink (--mac-pink), uppercase — same as the old header. */
-.sidebar-logo span {
-    font-family: var(--mac-font);
-    font-weight: 700; font-size: 1.15rem; letter-spacing: 0.5px;
-    text-transform: uppercase; color: var(--mac-pink);
+.sidebar-logo .mac-wordmark {
+    display: block; width: 100%; max-width: 200px; height: auto;
+    -webkit-user-select: none; user-select: none;
+    animation: macLogoIn 1s cubic-bezier(.2, .7, .2, 1) both;
 }
-/* ── Nav scroll region ── */
-.sidebar-scroll { overflow-y: auto; overflow-x: hidden; padding: 0.25rem 0.55rem 0.5rem; }
+.sidebar-logo .mac-appname {
+    display: flex; align-items: center; gap: 10px;
+    width: 100%; max-width: 200px;
+    font-family: var(--mac-font); font-size: 10.5px; font-weight: 700;
+    letter-spacing: .34em; text-indent: .34em; text-transform: uppercase;
+    color: var(--mac-side-ink); opacity: .5; line-height: 1; margin-top: 4px;
+}
+.sidebar-logo .mac-appname::before,
+.sidebar-logo .mac-appname::after { content: ""; flex: 1; height: 1px; background: currentColor; opacity: .55; }
+/* Collapsed rail: the round macadamia "nut" stands in for the wordmark */
+.sidebar-logo .mac-nut {
+    display: none; width: 34px; height: 34px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, var(--mac-nut-light), var(--mac-nut-mid) 60%, var(--mac-nut-dark));
+    box-shadow: inset -3px -3px 6px rgba(0, 0, 0, .25);
+}
+@keyframes macLogoIn { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .sidebar-logo .mac-wordmark { animation: none; } }
 
-/* Cleaner, flatter nav links + a calm active state (kills the 2020 look). */
+/* ── Nav scroll region ── */
+.sidebar-scroll { overflow-y: auto; overflow-x: hidden; padding: 0.25rem 0.6rem 0.5rem; }
+.sidebar-scroll::-webkit-scrollbar { width: 6px; }
+.sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(var(--mac-side-ink-rgb), .18); border-radius: 3px; }
+
+/* Links: side-ink at 85%, soft hover, pill-shaped active item in the accent */
 #sidebarMenu .nav-link {
     display: flex; align-items: center;
-    border-radius: var(--mac-radius-md);
-    color: var(--mac-text-secondary);
-    font-weight: 500; font-size: 0.9rem;
-    padding: 0.5rem 0.65rem; margin: 0.05rem 0;
-    transition: background 0.12s ease, color 0.12s ease;
+    border-radius: var(--mac-radius-pill);
+    color: var(--mac-side-ink);
+    opacity: .85;
+    font-weight: 600; font-size: 13px;
+    padding: 6px 12px; margin: 1px 0;
+    transition: background 0.12s ease, color 0.12s ease, opacity 0.12s ease;
 }
-#sidebarMenu .nav-link:hover { background: var(--mac-bg-tertiary); color: var(--mac-text); }
+#sidebarMenu .nav-link i { width: 18px; text-align: center; opacity: .9; }
+#sidebarMenu .nav-link:hover { background: rgba(var(--mac-side-ink-rgb), .07); color: var(--mac-side-ink); opacity: 1; }
 #sidebarMenu .nav-link.active {
-    background: var(--mac-green-light); color: var(--mac-green); font-weight: 600;
+    background: var(--mac-side-on); color: var(--mac-side-on-ink); font-weight: 700; opacity: 1;
 }
 #sidebarMenu .nav-link.active::before { display: none; } /* drop the legacy left-bar indicator */
-/* A group header (collapse toggle) marked active keeps green TEXT as the
-   section cue, but drops the green block so it isn't a second highlight above
-   the active leaf, which carries the green pill. */
-#sidebarMenu.sidebar .nav-item .nav-link[data-bs-toggle="collapse"].active {
-    background: transparent !important;
-    font-weight: 600;
-}
-#sidebarMenu .nav-link .fa-chevron-down { font-size: 0.7rem; transition: transform 0.15s ease; }
-#sidebarMenu .nav-link[aria-expanded="true"] .fa-chevron-down { transform: rotate(180deg); }
-/* Nested groups: quieter, tighter */
-#sidebarMenu .nav .nav .nav-link { font-size: 0.85rem; color: var(--mac-text-tertiary); }
-#sidebarMenu .nav .nav .nav-link:hover,
-#sidebarMenu .nav .nav .nav-link.active { color: var(--mac-green); }
 
-/* ── Footer: tools row + profile (re-homed from the old top bar) ── */
+/* Group headers (Home, Kernel pipeline, ...) read like MacView's small uppercase headings.
+   They still open and close their group. */
+#sidebarMenu:not(.collapsed) .sidebar-scroll > ul > .nav-item > .nav-link[data-bs-toggle="collapse"] {
+    font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+    opacity: .55; padding: 12px 12px 4px; margin-top: 4px;
+    background: transparent !important; color: var(--mac-side-ink) !important;
+}
+#sidebarMenu:not(.collapsed) .sidebar-scroll > ul > .nav-item > .nav-link[data-bs-toggle="collapse"]:hover { opacity: .9; }
+#sidebarMenu:not(.collapsed) .sidebar-scroll > ul > .nav-item > .nav-link[data-bs-toggle="collapse"] > i:first-child { display: none; }
+/* A group holding the current page keeps its header a little brighter. */
+#sidebarMenu:not(.collapsed) .sidebar-scroll > ul > .nav-item > .nav-link[data-bs-toggle="collapse"].active { opacity: .85; }
+#sidebarMenu .nav-link .fa-chevron-down { font-size: 0.6rem; transition: transform 0.15s ease; width: auto; }
+#sidebarMenu .nav-link[aria-expanded="true"] .fa-chevron-down { transform: rotate(180deg); }
+/* Group items sit level with top-level items, as in MacView */
+#sidebarMenu .nav .nav { margin-left: 0 !important; }
+#sidebarMenu .nav .nav .nav-link { font-size: 13px; }
+/* Third-level (nested) groups */
+#sidebarMenu .nav .nav .nav .nav-link { font-size: 12.5px; opacity: .75; padding-left: 22px; }
+#sidebarMenu .nav .nav .nav-link.active { opacity: 1; }
+
+/* ── Footer: Design + mode buttons, profile, tools ── */
 .sidebar-footer-inner {
-    border-top: 1px solid var(--mac-border) !important;
-    padding: 0.6rem 0.7rem !important;
+    border-top: 1px solid rgba(var(--mac-side-ink-rgb), .1) !important;
+    background: transparent !important;
+    padding: 0.7rem 0.7rem !important;
     display: flex;
     flex-direction: column;
+    color: var(--mac-side-ink);
 }
-/* Order: user card first, then the tool icons (right-aligned) below it, then Collapse. */
+.sidebar-footer-inner .sidebtns { order: 0; }
 .sidebar-footer-inner .sidebar-profile { order: 1; }
 .sidebar-footer-inner .sidebar-tools { order: 2; }
 .sidebar-footer-inner .sidebar-collapse-btn { order: 3; }
+
+.sidebtns { display: flex; gap: 6px; margin-bottom: 10px; }
+.sbtn {
+    flex: 1; display: inline-flex; gap: 6px; align-items: center; justify-content: center;
+    background: transparent; color: var(--mac-side-ink);
+    border: 1px solid rgba(var(--mac-side-ink-rgb), .22);
+    padding: 8px 12px; border-radius: 10px;
+    font-weight: 600; font-size: 12.5px; letter-spacing: .01em; cursor: pointer;
+    transition: background .12s, border-color .12s;
+}
+.sbtn:hover { background: rgba(var(--mac-side-ink-rgb), .1); border-color: rgba(var(--mac-side-ink-rgb), .38); }
+.sbtn svg { opacity: .85; flex: none; }
+.sbtn.icon { flex: 0 0 auto; }
+.sbtn.icon svg { opacity: 1; }
+.mac-i-sun { color: var(--mac-sun); filter: drop-shadow(0 0 4px rgba(var(--mac-sun-rgb), .75)); }
+.mac-i-moon { color: var(--mac-moon); filter: drop-shadow(0 0 4px rgba(var(--mac-moon-rgb), .7)); }
+/* Dark mode shows the sun (switch to light); light mode shows the moon. */
+html[data-mac-mode="dark"] .mac-mode-btn .mac-i-moon,
+html:not([data-mac-mode="dark"]) .mac-mode-btn .mac-i-sun { display: none; }
+
 .sidebar-tools {
     display: flex; align-items: center; justify-content: flex-end;
     gap: 0.4rem; margin: 0.35rem 0 0;
@@ -95,11 +148,11 @@
     width: 2.1rem; height: 2.1rem; flex: 0 0 auto;
     display: inline-flex; align-items: center; justify-content: center;
     border: none; background: transparent; border-radius: 50%;
-    color: var(--mac-text-secondary); cursor: pointer; position: relative;
+    color: var(--mac-side-ink); opacity: .75; cursor: pointer; position: relative;
     font-size: 0.95rem;
-    transition: background 0.12s ease, color 0.12s ease;
+    transition: background 0.12s ease, opacity 0.12s ease;
 }
-.sidebar-tool-btn:hover { background: var(--mac-bg-tertiary); color: var(--mac-green); }
+.sidebar-tool-btn:hover { background: rgba(var(--mac-side-ink-rgb), .1); opacity: 1; }
 .sidebar-tool-btn .badge { font-size: 0.6rem; }
 
 /* Profile row → opens the (unchanged) profile menu upward */
@@ -107,48 +160,78 @@
 .sidebar-profile-toggle {
     display: flex; align-items: center; gap: 0.55rem; width: 100%;
     padding: 0.4rem 0.5rem; border: none; background: transparent;
-    border-radius: var(--mac-radius-md); cursor: pointer; text-align: left;
-    color: var(--mac-text); text-decoration: none;
+    border-radius: 12px; cursor: pointer; text-align: left;
+    color: var(--mac-side-ink); text-decoration: none;
 }
-.sidebar-profile-toggle:hover { background: var(--mac-bg-tertiary); }
+.sidebar-profile-toggle:hover { background: rgba(var(--mac-side-ink-rgb), .07); color: var(--mac-side-ink); }
 .sidebar-profile-toggle .avatar-name {
     width: 2rem; height: 2rem; font-size: 0.8rem; flex-shrink: 0;
+    background: var(--mac-side-on) !important; color: var(--mac-side-on-ink) !important;
 }
 .sidebar-profile-meta {
     display: flex; flex-direction: column; justify-content: center;
     line-height: 1.15; min-width: 0; flex: 1;
 }
-.sidebar-profile-name { font-size: 0.85rem; font-weight: 600; color: var(--mac-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sidebar-profile-role { font-size: 0.72rem; color: var(--mac-text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sidebar-profile-toggle .fa-chevron-up { margin-left: auto; font-size: 0.7rem; color: var(--mac-text-tertiary); flex-shrink: 0; }
+.sidebar-profile-name { font-size: 0.85rem; font-weight: 700; color: var(--mac-side-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-profile-role { font-size: 0.72rem; color: var(--mac-side-ink); opacity: .6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-profile-toggle .fa-chevron-up { margin-left: auto; font-size: 0.7rem; color: var(--mac-side-ink); opacity: .6; flex-shrink: 0; }
 .sidebar-collapse-btn {
     width: 100%; display: flex; align-items: center; gap: 0.5rem;
-    border: none; background: transparent; color: var(--mac-text-tertiary);
+    border: none; background: transparent; color: var(--mac-side-ink); opacity: .6;
     font-size: 0.8rem; padding: 0.45rem 0.5rem; margin-top: 0.25rem;
-    border-radius: var(--mac-radius-md); cursor: pointer;
+    border-radius: 10px; cursor: pointer;
 }
-.sidebar-collapse-btn:hover { background: var(--mac-bg-tertiary); color: var(--mac-text); }
+.sidebar-collapse-btn:hover { background: rgba(var(--mac-side-ink-rgb), .07); opacity: 1; }
 
 /* ── Collapsed rail (icon-only) — hide the text bits ── */
-#sidebarMenu.sidebar.collapsed .sidebar-logo span,
+#sidebarMenu.sidebar.collapsed .sidebar-logo .mac-wordmark,
+#sidebarMenu.sidebar.collapsed .sidebar-logo .mac-appname,
 #sidebarMenu.sidebar.collapsed .sidebar-profile-meta,
 #sidebarMenu.sidebar.collapsed .sidebar-profile-toggle .fa-chevron-up,
+#sidebarMenu.sidebar.collapsed .sbtn span,
 #sidebarMenu.sidebar.collapsed .sidebar-collapse-btn span { display: none; }
-#sidebarMenu.sidebar.collapsed .sidebar-tools { flex-direction: column; }
+#sidebarMenu.sidebar.collapsed .sidebar-logo { align-items: center; }
+#sidebarMenu.sidebar.collapsed .sidebar-logo .mac-nut { display: block; }
+#sidebarMenu.sidebar.collapsed .sidebar-tools,
+#sidebarMenu.sidebar.collapsed .sidebtns { flex-direction: column; align-items: center; }
+#sidebarMenu.sidebar.collapsed .sbtn { padding: 8px; }
+#sidebarMenu.sidebar.collapsed .nav-link { border-radius: 12px; }
 
-/* ── Mobile: sidebar becomes a slide-in drawer (no navbar toggler anymore) ── */
+/* ── Page head: MacView's serif title, muted subtitle ── */
+.main-content h1,
+.main-content .h1,
+.main-content h1.h2,
+.main-content h1.h3 {
+    font-family: var(--mac-font-serif);
+    font-weight: 400;
+    font-size: 31px;
+    letter-spacing: -.2px;
+    line-height: 1.2;
+    color: var(--mac-text);
+}
+.main-content h1 > i:first-child,
+.main-content h1.h2 > i:first-child { font-size: .7em; color: var(--mac-accent2); vertical-align: 3px; }
+.main-content .page-subtitle,
+.main-content h1 + p.text-muted,
+.main-content h1 + .text-muted { color: var(--mac-text-secondary) !important; }
+
+/* ── Mobile: sidebar becomes a slide-in drawer; MacView's top bar ── */
 .mobile-navbar { display: none; }
 .sidebar-backdrop { display: none; }
 @media (max-width: 767.98px) {
     .mobile-navbar {
-        display: flex; align-items: center; gap: 0.6rem;
+        display: flex; align-items: center; gap: 6px;
         position: sticky; top: 0; z-index: 1030;
-        padding: 0.5rem 0.9rem; background: var(--mac-bg-secondary);
+        padding: 10px 14px; background: var(--mac-side); color: var(--mac-side-ink);
         border-bottom: 1px solid var(--mac-border);
     }
-    .mobile-navbar .mobile-brand { font-weight: 700; color: var(--mac-text); }
-    .mobile-navbar .mobile-brand i { color: var(--mac-green); }
-    .mobile-menu-btn { border: none; background: transparent; font-size: 1.2rem; color: var(--mac-text); padding: 0.25rem 0.5rem; }
+    .mobile-navbar .mobile-brand { flex: 1; font-weight: 700; color: var(--mac-side-ink); }
+    .mobile-navbar .mobile-brand img { height: 18px; width: auto; display: block; }
+    .mobile-menu-btn,
+    .mobile-navbar .mobile-icon-btn {
+        border: none; background: transparent; color: var(--mac-side-ink);
+        font-size: 1.2rem; padding: 6px; display: inline-flex; align-items: center;
+    }
     #sidebarMenu.sidebar {
         transform: translateX(-100%);
         transition: transform 0.25s ease;
@@ -156,8 +239,9 @@
     }
     #sidebarMenu.sidebar.mobile-open { transform: translateX(0); }
     .main-content { margin-left: 0 !important; width: 100% !important; }
+    .main-content h1, .main-content h1.h2 { font-size: 25px; }
     .sidebar-backdrop.show {
         display: block; position: fixed; inset: 0; z-index: 1040;
-        background: rgba(var(--mac-brown-rgb), 0.25);
+        background: rgba(0, 0, 0, 0.35);
     }
 }
