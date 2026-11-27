@@ -1,0 +1,82 @@
+/* ============================================
+   MacView theme layer (loads after every other stylesheet)
+   - the page background + pattern layer painted by js/themes.js (#macBgfx)
+   - MacView typography: Manrope, JetBrains Mono for codes/numbers, serif page titles
+   Colours come only from tokens (css/design-tokens.css).
+   ============================================ */
+
+html {
+    background-color: var(--mac-bg);
+}
+
+/* The page itself is see-through so the pattern layer behind it shows. */
+html body,
+html[data-theme-mode] body,
+html body .main-content {
+    background: transparent;
+    background-color: transparent;
+}
+
+body {
+    font-family: var(--mac-font);
+    color: var(--mac-text);
+    transition: background-color 0.2s;
+}
+
+.mac-bgfx {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    overflow: hidden;
+}
+.mac-bgfx-mask {
+    position: absolute;
+    inset: 0;
+    background: var(--mac-line-contour);
+}
+.mac-bgfx svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+.mac-bgfx svg path {
+    fill: none;
+    stroke: var(--mac-line-contour);
+    stroke-width: 1.1;
+}
+
+/* ---------- typography ---------- */
+code, kbd, pre, samp,
+.font-monospace,
+.mac-mono,
+.mac-code {
+    font-family: var(--mac-font-mono);
+}
+.mac-mono,
+.mac-code {
+    font-size: 0.92em;
+}
+
+/* Numbers line up in columns everywhere a number is shown. */
+td.num, th.num,
+td.text-end, th.text-end,
+.mac-num,
+.text-end .mac-num,
+.kpi-value, .stat-value, .metric-value {
+    font-variant-numeric: tabular-nums;
+}
+
+.mac-serif {
+    font-family: var(--mac-font-serif);
+    font-weight: 400;
+}
+
+/* Links use the theme's second accent, as in MacView. */
+a {
+    color: var(--mac-accent2);
+}
+
+::selection {
+    background: rgba(var(--mac-green-rgb), 0.35);
+}
