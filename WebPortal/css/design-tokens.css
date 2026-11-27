@@ -100,6 +100,14 @@
     --mac-side-on: var(--mac-green);
     --mac-side-on-ink: #FFFFFF;
     --mac-radius-card: 18px;
+    /* MacView sidebar mode button (glowing sun / moon) and the round macadamia "nut" logo */
+    --mac-sun: #FFC933;
+    --mac-sun-rgb: 255, 201, 51;
+    --mac-moon: #6FA8FF;
+    --mac-moon-rgb: 111, 168, 255;
+    --mac-nut-light: #E9CFA0;
+    --mac-nut-mid: #B88A4E;
+    --mac-nut-dark: #7A5228;
 
     /* Type scale — the only font sizes the app uses (see docs/design/DESIGN_SYSTEM.md).
        xs: table headers/badges · sm: microcopy/labels · base: body/tables ·
