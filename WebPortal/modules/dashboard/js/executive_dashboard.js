@@ -512,6 +512,7 @@ var _executiveDashboard = function () {
             await scope.loadProductionTrendsChart();
             await scope.loadStockHistoryChart();
             await scope.loadRunwayForecastChart();
+            scope.loadNeedsAttention();
             await scope.loadExecutiveAlerts();
             await scope.loadRunwaySummary();
             await scope.loadOilTrendsChart();
@@ -2185,6 +2186,81 @@ var _executiveDashboard = function () {
         execSetHidden: (el, isHidden) => {
             if (!el || !el.classList) return;
             el.classList.toggle('exec-hidden', !!isHidden);
+        },
+
+        // "Needs attention" (Mike's MacView home list; migration 20261127170000). One RPC gathers lab
+        // fails / holds / overspec / marginal, missing results, truck checks, finished stock not
+        // released or near best-before, and low recovery. Every row opens that batch on Find a batch.
+        // Rows are built with DOM APIs + textContent only (batch numbers and notes are typed values).
+        loadNeedsAttention: async () => {
+            var card = document.getElementById('execNeedsAttentionCard');
+            var list = document.getElementById('execNeedsAttentionList');
+            var countEl = document.getElementById('execNeedsAttentionCount');
+            if (!card || !list) return;
+            var allowed = typeof hasAction === 'function' ? hasAction('dashboard.needs_attention') : false;
+            _executiveDashboard.execSetHidden(card, !allowed);
+            if (!allowed || !dataFunctions.getNeedsAttention) return;
+
+            var res = await dataFunctions.getNeedsAttention();
+            list.innerHTML = '';
+            if (!res) {
+                var err = document.createElement('p');
+                err.className = 'text-muted small mb-0';
+                err.textContent = 'Could not load the list right now. Refresh the page to try again.';
+                list.appendChild(err);
+                return;
+            }
+            var items = Array.isArray(res.items) ? res.items : [];
+            if (countEl) countEl.textContent = String(items.length);
+            if (!items.length) {
+                var none = document.createElement('p');
+                none.className = 'text-muted small mb-0';
+                none.textContent = 'Nothing needs attention right now.';
+                list.appendChild(none);
+                return;
+            }
+            var SEV = { bad: 'critical', warn: 'warning', info: 'info' };
+            var LIMIT = 12;
+            var more = null;
+            items.forEach(function (it, i) {
+                var sev = SEV[it.severity] || 'info';
+                var row = document.createElement('div');
+                row.className = _executiveDashboard.execAlertRowClass(sev);
+                if (i >= LIMIT) row.classList.add('exec-hidden', 'exec-na-more');
+                var icon = document.createElement('i');
+                icon.className = execAlertSeverityIcon(sev) + ' exec-alert-icon';
+                icon.setAttribute('aria-hidden', 'true');
+                row.appendChild(icon);
+                var body = document.createElement('div');
+                body.className = 'exec-alert-body small';
+                body.textContent = it.text || '';
+                row.appendChild(body);
+                if (it.kernel_id && typeof _appRouter !== 'undefined') {
+                    var actions = document.createElement('div');
+                    actions.className = 'exec-alert-actions';
+                    var btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'btn btn-sm btn-outline-secondary';
+                    btn.textContent = 'Open batch';
+                    btn.addEventListener('click', function () {
+                        _appRouter.openWith('batch-journey', { openKernelId: it.kernel_id, section: it.section || null });
+                    });
+                    actions.appendChild(btn);
+                    row.appendChild(actions);
+                }
+                list.appendChild(row);
+            });
+            if (items.length > LIMIT) {
+                more = document.createElement('button');
+                more.type = 'button';
+                more.className = 'btn btn-link btn-sm p-0 mt-1';
+                more.textContent = 'Show all ' + items.length;
+                more.addEventListener('click', function () {
+                    list.querySelectorAll('.exec-na-more').forEach(function (r) { r.classList.remove('exec-hidden'); });
+                    more.remove();
+                });
+                list.appendChild(more);
+            }
         },
 
         loadExecutiveAlerts: async () => {

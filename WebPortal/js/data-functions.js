@@ -2093,6 +2093,16 @@ var _dataFunctions = function () {
                 p_kernel_id: kernelId, p_rate_zar: rateZar, p_route_id: routeId || null, p_override_reason: reason || null
             }, token, { useCache: false, preserveNullParams: true }));
         },
+        // ---- Home "Needs attention" (migration 20261127170000) ----
+        /** { items: [{severity bad|warn|info, kind, kernel_id, batch_number, section, text}], recovery_target }; null on error. */
+        getNeedsAttention: async function (token = null) {
+            try {
+                var r = this._kpUnwrap(await this.callFunction('get_needs_attention', {}, token, { useCache: false }));
+                return r && r.success !== false ? r : null;
+            } catch (e) {
+                return null;
+            }
+        },
         // ---- Intake lab results checked and reviewed (migration 20261127110000) ----
         /** Bands, automatic Pass / Fail with reasons, and the review for one delivery; null if not available. */
         getKernelIntakeLab: async function (kernelId, token = null) {
