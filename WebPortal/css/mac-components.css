@@ -1,0 +1,422 @@
+/* ============================================
+   MacView components — shared look for every module (Mike's prototype, 27 Nov 2026).
+   Loads after main.css / index.css and every shared stylesheet, before css/mac-theme.css.
+   Colours come only from tokens. SweetAlert lives in css/swal-theme.css.
+
+   MacView recipes copied here:
+     buttons   .btn (outline in accent 2) · .btn.pri (filled accent) · .ghost · .sm
+     cards     18px radius, 1px line + 3px accent top edge, translucent panel
+     KPIs      uppercase muted label, big serif number
+     tables    uppercase muted headers, line rows, soft hover, bold totals
+     badges    small round pills on tinted backgrounds
+     period    .seg — a pill strip of choices, the chosen one filled in the accent
+     forms     field background, 9px radius, accent-2 focus ring, bold muted labels
+     sheets    modals with an accent top edge on a solid panel
+   ============================================ */
+
+/* ---------- Buttons ---------- */
+.btn {
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: .005em;
+}
+.btn:not(.btn-sm):not(.btn-lg):not(.btn-close):not(.btn-link) { padding: 8px 14px; }
+.btn.btn-sm { padding: 5px 10px; font-size: 12px; }
+button.btn:not(.rounded-pill),
+.btn:not(.rounded-pill) { border-radius: 10px !important; }
+
+.btn-primary,
+.btn-primary:disabled,
+.btn-primary.disabled {
+    background: var(--mac-green);
+    border: 1px solid var(--mac-green);
+    color: var(--mac-on-accent);
+}
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active,
+.btn-primary.active {
+    background: var(--mac-green) !important;
+    border-color: var(--mac-green) !important;
+    color: var(--mac-on-accent) !important;
+    filter: brightness(1.08);
+}
+
+/* MacView's everyday button: outline in the second accent */
+.btn-outline-primary {
+    background: transparent;
+    border: 1px solid var(--mac-accent2);
+    color: var(--mac-accent2);
+}
+.btn-outline-primary:hover,
+.btn-outline-primary:focus,
+.btn-outline-primary.active,
+.btn-check:checked + .btn-outline-primary {
+    background: var(--mac-hover);
+    border-color: var(--mac-accent2);
+    color: var(--mac-accent2);
+}
+.btn-check:checked + .btn-outline-primary,
+.btn-outline-primary.active {
+    background: var(--mac-green);
+    border-color: var(--mac-green);
+    color: var(--mac-on-accent);
+}
+
+.btn-outline-secondary,
+.btn-secondary,
+.btn-light {
+    background: transparent;
+    border: 1px solid var(--mac-border);
+    color: var(--mac-text);
+}
+.btn-outline-secondary:hover,
+.btn-secondary:hover,
+.btn-light:hover,
+.btn-outline-secondary.active,
+.btn-check:checked + .btn-outline-secondary {
+    background: var(--mac-hover);
+    border-color: var(--mac-border-strong);
+    color: var(--mac-text);
+}
+
+.btn-outline-danger { border: 1px solid var(--mac-danger); color: var(--mac-danger); background: transparent; }
+.btn-outline-danger:hover { background: var(--mac-danger-light); border-color: var(--mac-danger); color: var(--mac-danger); }
+.btn-danger { background: var(--mac-danger); border-color: var(--mac-danger); color: var(--mac-on-accent); }
+.btn-outline-warning { border: 1px solid var(--mac-warning); color: var(--mac-warning-text); background: transparent; }
+.btn-outline-warning:hover { background: var(--mac-warning-light); color: var(--mac-warning-text); }
+.btn-warning { background: var(--mac-warning); border-color: var(--mac-warning); color: var(--mac-mascot-ink); }
+.btn-outline-info { border: 1px solid var(--mac-info); color: var(--mac-info); background: transparent; }
+.btn-outline-info:hover { background: var(--mac-info-light); color: var(--mac-info); }
+.btn-link { color: var(--mac-accent2); font-weight: 600; }
+.btn-link:hover { color: var(--mac-accent2); }
+.btn:disabled, .btn.disabled { opacity: .5; }
+.btn-close { filter: none; }
+html[data-mac-mode="dark"] .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
+
+/* ---------- Cards: accent top edge, soft round corners, see-through panel ---------- */
+.card,
+.main-content .card,
+.dashboard-container .card {
+    background: var(--mac-panel);
+    border: 1px solid var(--mac-border);
+    border-top: 3px solid var(--mac-green);
+    border-radius: var(--mac-radius-card) !important;
+    box-shadow: var(--mac-shadow-card);
+    color: var(--mac-text);
+}
+.card:hover { box-shadow: var(--mac-shadow-card); }
+/* Cards inside cards stay quiet (no second accent edge). */
+.card .card { border-top-width: 1px; border-top-color: var(--mac-border); border-radius: 14px !important; }
+.card .card-header,
+.card .card-footer { border-radius: 0 !important; }
+.card > .card-header:first-child { border-top-left-radius: 15px !important; border-top-right-radius: 15px !important; }
+.card > .card-footer:last-child { border-bottom-left-radius: 17px !important; border-bottom-right-radius: 17px !important; }
+.card-header:not([class*="bg-"]) {
+    background: transparent;
+    border-bottom: 1px solid var(--mac-border);
+    color: var(--mac-accent2);
+    font-weight: 600;
+}
+.card-header:not([class*="bg-"]) h5,
+.card-header:not([class*="bg-"]) h6,
+.card-header:not([class*="bg-"]) .card-title { color: var(--mac-accent2); font-weight: 600; }
+.card-footer:not([class*="bg-"]) { background: transparent; border-top: 1px solid var(--mac-border); }
+.card-title { color: var(--mac-accent2); font-weight: 600; }
+
+/* ---------- KPI tiles: uppercase label, big serif number ---------- */
+.metric-label, .metric-title, .stat-label,
+.exec-tile-label, .mgmt-tile-label {
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--mac-text-secondary);
+}
+.metric-value, .stat-value, .kpi-value,
+.exec-tile-value, .mgmt-tile-value {
+    font-family: var(--mac-font-serif);
+    font-weight: 400;
+    font-size: 31px;
+    letter-spacing: 0;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+    color: var(--mac-text);
+}
+.metric-value small, .stat-value small, .exec-tile-value small, .mgmt-tile-value small {
+    font-family: var(--mac-font);
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--mac-text-secondary);
+}
+.metric-card, .stat-card {
+    background: var(--mac-panel);
+    border: 1px solid var(--mac-border);
+    border-top: 3px solid var(--mac-green);
+    border-radius: var(--mac-radius-card) !important;
+}
+
+/* ---------- Tables ---------- */
+.table {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--mac-text);
+    --bs-table-border-color: var(--mac-border);
+    --bs-table-hover-bg: var(--mac-hover);
+    --bs-table-hover-color: var(--mac-text);
+    --bs-table-striped-bg: var(--mac-hover);
+    --bs-table-striped-color: var(--mac-text);
+    --bs-table-active-bg: var(--mac-green-light);
+    color: var(--mac-text);
+    font-size: 13px;
+}
+.table thead th,
+.table thead th:first-child,
+.table thead th:last-child,
+.table > thead > tr > th {
+    background: var(--mac-bg-secondary);
+    color: var(--mac-text-secondary);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--mac-border);
+    white-space: nowrap;
+}
+.table > tbody > tr > td { border-bottom: 1px solid var(--mac-border); }
+.table > tbody > tr:last-child > td { border-bottom: 0; }
+.table tbody tr:hover,
+.table-hover > tbody > tr:hover > * { background: var(--mac-hover); }
+.table > tfoot > tr > td,
+.table > tfoot > tr > th,
+.table tr.table-total > td,
+.table tr.totals-row > td,
+.table tr.total-row > td {
+    font-weight: 800;
+    border-top: 1px solid var(--mac-border-strong);
+    background: var(--mac-surface-soft);
+}
+/* Sort arrows: muted until the column is the sorted one */
+.table thead th .fa-sort { opacity: .35; }
+.table thead th .fa-sort-up,
+.table thead th .fa-sort-down,
+.table thead th .fa-sort-asc,
+.table thead th .fa-sort-desc { color: var(--mac-accent2); opacity: 1; }
+.table thead th[data-sort],
+.table thead th.sortable { cursor: pointer; }
+.table thead th[data-sort]:hover,
+.table thead th.sortable:hover { color: var(--mac-text); }
+/* Batch codes and other references read in mono, like MacView's .codelink */
+.mac-codelink {
+    font-family: var(--mac-font-mono);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--mac-accent2);
+    text-decoration: none;
+    border-bottom: 1px dashed var(--mac-border);
+    cursor: pointer;
+}
+
+/* ---------- Badges and pills ---------- */
+.badge {
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0;
+}
+.mac-pill { font-weight: 700; font-size: 11.5px; padding: 2px 8px; }
+.badge.bg-light, .badge.text-bg-light { background: var(--mac-bg-tertiary) !important; color: var(--mac-text-secondary) !important; }
+.badge.bg-dark, .badge.text-bg-dark { background: var(--mac-text) !important; color: var(--mac-bg) !important; }
+
+/* ---------- Search boxes ---------- */
+input[type="search"],
+.search-input,
+.table-search,
+input.form-control[placeholder^="Search"] {
+    background-color: var(--mac-field);
+    border-color: var(--mac-border);
+    border-radius: 9px !important;
+}
+
+/* ---------- Period pickers: MacView's .seg pill strip ----------
+   Any existing button group of period / range choices takes this look. */
+.mac-seg,
+.btn-group.mgmt-chips,
+.btn-group[aria-label="Period"],
+.btn-group[aria-label="Period type"],
+.btn-group[aria-label="Week range"] {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 4px;
+    background: var(--mac-panel);
+    border: 1px solid var(--mac-border);
+    border-radius: 999px;
+}
+.mac-seg > .btn,
+.mac-seg > button,
+.btn-group.mgmt-chips > .btn,
+.btn-group[aria-label="Period"] > .btn,
+.btn-group[aria-label="Period type"] > .btn,
+.btn-group[aria-label="Week range"] > .btn {
+    border: 0 !important;
+    background: transparent;
+    color: var(--mac-text-secondary);
+    border-radius: 999px !important;
+    padding: 6px 14px;
+    font-weight: 700;
+    font-size: 12.5px;
+    margin: 0 !important;
+}
+.mac-seg > .btn:hover,
+.btn-group.mgmt-chips > .btn:hover,
+.btn-group[aria-label="Period"] > .btn:hover,
+.btn-group[aria-label="Period type"] > .btn:hover,
+.btn-group[aria-label="Week range"] > .btn:hover { color: var(--mac-text); background: var(--mac-hover); }
+.mac-seg > .btn.active, .mac-seg > button.on, .mac-seg > .btn-check:checked + .btn,
+.btn-group.mgmt-chips > .btn.active,
+.btn-group[aria-label="Period"] > .btn.active,
+.btn-group[aria-label="Period type"] > .btn.active,
+.btn-group[aria-label="Period type"] > .btn-check:checked + .btn,
+.btn-group[aria-label="Week range"] > .btn.active {
+    background: var(--mac-green) !important;
+    color: var(--mac-on-accent) !important;
+}
+
+/* ---------- Forms ---------- */
+.form-control,
+.form-select,
+.input-group-text {
+    background-color: var(--mac-field);
+    border: 1px solid var(--mac-border);
+    color: var(--mac-text);
+    font-weight: 500;
+    border-radius: 9px !important;
+}
+.form-control::placeholder { color: var(--mac-text-tertiary); }
+.form-control:focus,
+.form-select:focus {
+    background-color: var(--mac-field);
+    color: var(--mac-text);
+    border-color: var(--mac-accent2);
+    outline: 2px solid rgba(var(--mac-accent2-rgb), .4);
+    outline-offset: 0;
+    box-shadow: none;
+}
+.form-control:disabled, .form-control[readonly], .form-select:disabled {
+    background-color: var(--mac-surface-soft);
+    color: var(--mac-text-secondary);
+}
+.input-group-text { color: var(--mac-text-secondary); }
+.form-label,
+.col-form-label {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--mac-text-secondary);
+}
+.form-text { color: var(--mac-text-tertiary); }
+.form-check-input { background-color: var(--mac-field); border-color: var(--mac-border-strong); }
+.form-check-input:checked { background-color: var(--mac-green); border-color: var(--mac-green); }
+.form-check-input:focus { box-shadow: 0 0 0 .2rem rgba(var(--mac-accent2-rgb), .3); border-color: var(--mac-accent2); }
+.form-switch .form-check-input:checked { background-color: var(--mac-green); }
+select option { background: var(--mac-bg-secondary); color: var(--mac-text); font-weight: 500; }
+select optgroup { background: var(--mac-bg-secondary); color: var(--mac-text-secondary); font-style: normal; font-weight: 800; }
+
+/* ---------- Modals = MacView "sheets" ---------- */
+.modal-content {
+    background: var(--mac-bg-secondary);
+    color: var(--mac-text);
+    border: 1px solid var(--mac-border);
+    border-top: 3px solid var(--mac-green);
+    border-radius: 16px !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, .25);
+}
+.modal-content .modal-header,
+.modal-header {
+    background: transparent !important;
+    border-bottom: 1px solid var(--mac-border) !important;
+    color: var(--mac-text);
+}
+.modal-header .modal-title { font-size: 17px; font-weight: 700; color: var(--mac-text) !important; }
+.modal-body { background: var(--mac-bg-secondary); color: var(--mac-text); }
+.modal-footer { background: transparent; border-top: 1px solid var(--mac-border); }
+.modal-backdrop.show { opacity: .55; }
+.offcanvas { background: var(--mac-bg-secondary); color: var(--mac-text); border-color: var(--mac-border); }
+
+/* ---------- Dropdowns, list groups, tabs ---------- */
+.dropdown-menu {
+    background: var(--mac-bg-secondary);
+    border: 1px solid var(--mac-border) !important;
+    border-radius: 12px !important;
+    color: var(--mac-text);
+}
+.dropdown-item { color: var(--mac-text); }
+.dropdown-item:hover, .dropdown-item:focus { background: var(--mac-hover); color: var(--mac-text); }
+.dropdown-item.active, .dropdown-item:active { background: var(--mac-green); color: var(--mac-on-accent); }
+.dropdown-divider { border-color: var(--mac-border); }
+.list-group-item { background: transparent; color: var(--mac-text); border-color: var(--mac-border); }
+.list-group-item-action:hover { background: var(--mac-hover); color: var(--mac-text); }
+.list-group-item.active { background: var(--mac-green); border-color: var(--mac-green); color: var(--mac-on-accent); }
+
+.nav-tabs { border-bottom: 1px solid var(--mac-border); }
+.nav-tabs .nav-link { color: var(--mac-text-secondary); font-weight: 600; border: 0; border-bottom: 2px solid transparent; background: transparent; }
+.nav-tabs .nav-link:hover { color: var(--mac-text); border-bottom-color: var(--mac-border-strong); }
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-item.show .nav-link {
+    color: var(--mac-accent2);
+    background: transparent;
+    border-bottom: 2px solid var(--mac-green);
+}
+.nav-pills .nav-link { color: var(--mac-text-secondary); font-weight: 600; border-radius: 999px; }
+.nav-pills .nav-link.active, .nav-pills .show > .nav-link { background: var(--mac-green); color: var(--mac-on-accent); }
+
+/* ---------- Alerts (MacView .banner / .alert) ---------- */
+.alert { border: 0; border-radius: 10px !important; font-weight: 600; font-size: 13px; }
+.alert-info { background: var(--mac-info-light); color: var(--mac-info); }
+.alert-warning { background: var(--mac-warning-light); color: var(--mac-warning-text); }
+.alert-danger { background: var(--mac-danger-light); color: var(--mac-danger); }
+.alert-success { background: var(--mac-success-light); color: var(--mac-success); }
+.alert-secondary, .alert-light { background: var(--mac-bg-tertiary); color: var(--mac-text); }
+.alert .alert-link { color: inherit; }
+
+/* ---------- Toasts ---------- */
+.toast {
+    background: var(--mac-bg-secondary);
+    color: var(--mac-text);
+    border: 1px solid var(--mac-border);
+    border-left: 4px solid var(--mac-success);
+    border-radius: 12px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .15);
+    font-size: 13px;
+}
+.toast-header { background: transparent; color: var(--mac-text); border-bottom-color: var(--mac-border); font-weight: 800; }
+
+/* ---------- Empty states ---------- */
+.mac-empty-state { padding: 44px 20px; text-align: center; color: var(--mac-text-secondary); }
+.mac-empty-state .mac-empty-title { display: block; color: var(--mac-text); font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+
+/* ---------- Bootstrap utilities that hard-code light colours ---------- */
+.bg-white, .bg-body { background-color: var(--mac-bg-secondary) !important; }
+.bg-light { background-color: var(--mac-surface-soft) !important; }
+.bg-body-tertiary, .bg-body-secondary { background-color: var(--mac-bg-tertiary) !important; }
+.text-dark { color: var(--mac-text) !important; }
+.text-body, .text-body-emphasis { color: var(--mac-text) !important; }
+.text-secondary { color: var(--mac-text-secondary) !important; }
+.progress { background-color: var(--mac-bg-tertiary); }
+.progress-bar { background-color: var(--mac-green); color: var(--mac-on-accent); }
+hr { border-color: var(--mac-border); opacity: 1; }
+
+/* ---------- Keep the quiet "?" help icon (main.css hides its "Help" text with font-size 0) ---------- */
+.macavation-help-link.btn,
+.macavation-help-link.btn.btn-sm {
+    font-size: 0;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 50% !important;
+    background: transparent;
+    color: var(--mac-text-tertiary);
+}
+.macavation-help-link.btn:hover { color: var(--mac-accent2); background: var(--mac-hover); }
+
+/* Sheets have one solid body colour (main.css set the darker page colour here). */
+.modal-content .modal-body { background-color: var(--mac-bg-secondary) !important; }

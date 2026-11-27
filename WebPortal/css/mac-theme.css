@@ -84,14 +84,14 @@ a {
 /* ---------- Design panel (js/mac-design-panel.js) — MacView's picker ---------- */
 .mac-dsec { margin-bottom: 20px; }
 .mac-dsec h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; color: var(--mac-accent2); }
-.mac-pills { display: flex; flex-wrap: wrap; gap: 8px; }
-.mac-pill {
+.mac-dpills { display: flex; flex-wrap: wrap; gap: 8px; }
+.mac-dpill {
     font: inherit; font-weight: 600; font-size: 13px;
     border: 1px solid var(--mac-border); background: var(--mac-panel); color: var(--mac-text);
     border-radius: var(--mac-radius-pill); padding: 7px 16px; cursor: pointer;
 }
-.mac-pill:hover { border-color: var(--mac-green); }
-.mac-pill.on { background: var(--mac-green); border-color: var(--mac-green); color: var(--mac-on-accent); }
+.mac-dpill:hover { border-color: var(--mac-green); }
+.mac-dpill.on { background: var(--mac-green); border-color: var(--mac-green); color: var(--mac-on-accent); }
 .mac-tgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
 .mac-tcard {
     font: inherit; text-align: left; cursor: pointer;

@@ -73,7 +73,7 @@ var macDesignPanel = {
     },
 
     pill: function (attr, key, label, on, icon) {
-        var $b = $('<button type="button" class="mac-pill"></button>').attr(attr, key).toggleClass('on', !!on).attr('aria-pressed', on ? 'true' : 'false');
+        var $b = $('<button type="button" class="mac-dpill"></button>').attr(attr, key).toggleClass('on', !!on).attr('aria-pressed', on ? 'true' : 'false');
         if (icon) $b.append($('<i class="fas me-2"></i>').addClass(icon));
         return $b.append(document.createTextNode(label));
     },
@@ -86,7 +86,7 @@ var macDesignPanel = {
         var $body = this.$modal.find('#macDesignBody').empty();
 
         // Mode
-        var $modes = $('<div class="mac-pills"></div>');
+        var $modes = $('<div class="mac-dpills"></div>');
         this.MODES.forEach(function (m) { $modes.append(self.pill('data-tmode', m.key, m.label, st.mode === m.key, m.icon)); });
         $body.append(this.section('Mode').append($modes));
 
@@ -103,10 +103,10 @@ var macDesignPanel = {
         $body.append(this.section('Colour themes').append($grid));
 
         // Background
-        var $bgs = $('<div class="mac-pills"></div>');
+        var $bgs = $('<div class="mac-dpills"></div>');
         Object.keys(bgs).forEach(function (k) { $bgs.append(self.pill('data-tbg', k, bgs[k], st.bg === k)); });
         if (st.bg === 'contours') {
-            $bgs.append($('<button type="button" class="mac-pill" id="macDesignReshuffle"></button>').append('<i class="fas fa-rotate me-2"></i>').append(document.createTextNode('New contour shape')));
+            $bgs.append($('<button type="button" class="mac-dpill" id="macDesignReshuffle"></button>').append('<i class="fas fa-rotate me-2"></i>').append(document.createTextNode('New contour shape')));
         }
         $body.append(this.section('Background').append($bgs));
 
