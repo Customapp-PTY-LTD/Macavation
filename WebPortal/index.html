@@ -28,7 +28,10 @@
     <!-- Flatpickr (dd/mm/yyyy date inputs) -->
     <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
     <!-- Design Tokens (must load before all custom CSS) -->
-    <link href="css/design-tokens.css?v=20261031r5" rel="stylesheet">
+    <link href="css/design-tokens.css?v=20261127macview" rel="stylesheet">
+    <!-- Theme engine runs in <head> so the chosen colours are on before the page paints -->
+    <script src="js/mac-theme-palettes.js?v=20261127macview"></script>
+    <script src="js/themes.js?v=20261127macview"></script>
     <link href="css/swal-theme.css" rel="stylesheet">
     <link href="css/modal-theme.css" rel="stylesheet">
     <link href="css/table-actions.css?v=20261027" rel="stylesheet">
@@ -69,10 +72,10 @@
     <!-- Compliance Validation -->
     <script src="js/compliance-validation.js"></script>
 
-    <!-- Google Fonts – Inter only -->
+    <!-- Google Fonts – MacView: Manrope, JetBrains Mono (codes/numbers), Source Serif 4 (titles) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
 
     <link href="css/index.css" rel="stylesheet">
     <!-- App shell (unified sidebar) — loaded last so it supersedes legacy nav/sidebar layout -->
@@ -81,6 +84,8 @@
     <link href="css/mac-assistant.css?v=20260716a" rel="stylesheet">
     <!-- Idle Mac orchard mascot -->
     <link href="css/mac-mascot.css?v=20260716a" rel="stylesheet">
+    <!-- MacView theme layer: page background pattern + typography (loads last) -->
+    <link href="css/mac-theme.css?v=20261127macview" rel="stylesheet">
 </head>
 
 <body>
@@ -592,7 +597,6 @@
 
     <!-- Application Scripts -->
     <script src="js/session.js?v=20260716d"></script>
-    <script src="js/themes.js"></script>
     <script src="js/super-user-visibility.js?v=20260715a"></script>
     <script src="js/batch-number-format.js?v=20261116bn2"></script>
     <script src="js/data-functions.js?v=20261127trperf"></script>
