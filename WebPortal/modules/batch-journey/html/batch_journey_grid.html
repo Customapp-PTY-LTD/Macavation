@@ -13,6 +13,10 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link active" type="button" data-stream="kernel" role="tab">Kernel</button>
         </li>
+        <!-- Batch stages (MacView, 27 Nov 2026): js/batch_stages.js, migration 20261127210000. -->
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" type="button" data-stream="stages" role="tab">Batch stages</button>
+        </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" type="button" data-stream="oil" role="tab">Oil &amp; Protein</button>
         </li>
@@ -163,6 +167,8 @@
     </div>
 
     <!-- Documents: the document-management module's markup, fetched and mounted here on first open. -->
+    <div id="bjStagesPanel" class="bj-stages-panel" style="display:none"></div>
+
     <div id="bjDocsPanel" class="bj-docs-panel" style="display:none">
         <div class="text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading&hellip;</div>
     </div>

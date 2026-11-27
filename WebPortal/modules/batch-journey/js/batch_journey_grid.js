@@ -275,11 +275,15 @@ var _batchJourneyGrid = (function () {
             if (kernelPanel) kernelPanel.style.display = 'none';
             if (oilPanel) oilPanel.style.display = 'none';
             if (docsPanel) docsPanel.style.display = 'none';
+            var sp = document.getElementById('bjStagesPanel');
+            if (sp) sp.style.display = 'none';
             return;
         }
         if (kernelPanel) kernelPanel.style.display = scope.activeStream === 'kernel' ? '' : 'none';
         if (oilPanel) oilPanel.style.display = scope.activeStream === 'oil' ? '' : 'none';
         if (docsPanel) docsPanel.style.display = scope.activeStream === 'documents' ? '' : 'none';
+        var stagesPanel = document.getElementById('bjStagesPanel');
+        if (stagesPanel) stagesPanel.style.display = scope.activeStream === 'stages' ? '' : 'none';
     }
 
     function canSeeDocuments() {
@@ -478,19 +482,26 @@ var _batchJourneyGrid = (function () {
         renderOilTable();
     }
 
+    var stageOpts = null; // { search } from a handoff, used once by the Batch stages tab
+
     function setActiveStream(stream) {
-        scope.activeStream = (stream === 'oil' || (stream === 'documents' && canSeeDocuments())) ? stream : 'kernel';
+        scope.activeStream = (stream === 'oil' || stream === 'stages' || (stream === 'documents' && canSeeDocuments())) ? stream : 'kernel';
         var kernelPanel = document.getElementById('bjKernelPanel');
         var oilPanel = document.getElementById('bjOilPanel');
         var docsPanel = document.getElementById('bjDocsPanel');
         if (kernelPanel) kernelPanel.style.display = scope.activeStream === 'kernel' ? '' : 'none';
         if (oilPanel) oilPanel.style.display = scope.activeStream === 'oil' ? '' : 'none';
         if (docsPanel) docsPanel.style.display = scope.activeStream === 'documents' ? '' : 'none';
+        var stagesPanel = document.getElementById('bjStagesPanel');
+        if (stagesPanel) stagesPanel.style.display = scope.activeStream === 'stages' ? '' : 'none';
         document.querySelectorAll('#bjStreamTabs .nav-link').forEach(function (btn) {
             var s = btn.getAttribute('data-stream');
             btn.classList.toggle('active', s === scope.activeStream);
         });
-        if (scope.activeStream === 'documents') {
+        if (scope.activeStream === 'stages') {
+            if (typeof _batchStages !== 'undefined') _batchStages.show(stageOpts);
+            stageOpts = null;
+        } else if (scope.activeStream === 'documents') {
             loadDocsPanel();
         } else if (scope.activeStream === 'oil' && !scope.oilBatches.length) {
             loadOilBatches();
@@ -739,6 +750,8 @@ var _batchJourneyGrid = (function () {
             // Handoff { tab: 'documents' }: the old Documents menu link lands here.
             var h = (typeof _appRouter !== 'undefined' && _appRouter.takeHandoff) ? _appRouter.takeHandoff('batch-journey') : null;
             if (h && h.tab === 'documents') setActiveStream('documents');
+            // Handoff { tab: 'stages', search }: My Day invoice tasks land on Batch stages.
+            if (h && h.tab === 'stages') { stageOpts = { search: h.search || '' }; setActiveStream('stages'); }
             // Handoff { openKernelId, section }: My Day lab-result tasks open that delivery's batch page.
             if (h && h.openKernelId) openKernelBatchPage(h.openKernelId, h.section || null);
 

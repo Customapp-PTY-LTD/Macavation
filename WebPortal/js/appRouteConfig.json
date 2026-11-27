@@ -924,6 +924,7 @@
             "js": [
                 "js/batch_journey_grid.js",
                 "js/batch_journey_detail.js",
+                "js/batch_stages.js",
                 "../document-management/js/document_management_grid.js"
             ],
             "css": [
