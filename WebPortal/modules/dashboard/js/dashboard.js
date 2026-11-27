@@ -222,6 +222,12 @@ var _dashboard = function () {
                 if ($crackWeek.length) $crackWeek.text(fmt(stats.kg_cracked_week));
                 if ($packToday.length) $packToday.text(fmt(stats.kg_packed_today));
                 if ($packWeek.length) $packWeek.text(fmt(stats.kg_packed_week));
+                // Cracking downtime next to kg cracked (migration 20261127190000).
+                const dt = dataFunctions.getCrackingDowntimeSummary ? await dataFunctions.getCrackingDowntimeSummary() : null;
+                [['#statCrackDowntimeToday', 'today_minutes'], ['#statCrackDowntimeWeek', 'week_minutes']].forEach(function (x) {
+                    const m = dt ? Number(dt[x[1]]) || 0 : 0;
+                    $(x[0]).text(m > 0 ? fmt(m) + ' min downtime' : '').toggleClass('d-none', m <= 0);
+                });
             } catch (error) {
                 console.error('Error loading kernel stats:', error);
                 if ($batches.length) $batches.text('—');

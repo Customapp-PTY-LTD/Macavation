@@ -172,18 +172,18 @@ var _productionLog = (function () {
     function crackedDays(items) {
         if (!detailMode()) {
             return items.map(function (d) {
-                return { day: String(d.day).slice(0, 10), kg: +d.kg || 0, minutes: +d.minutes || 0, runs: +d.runs || 0, emptied: +d.emptied || 0 };
+                return { day: String(d.day).slice(0, 10), kg: +d.kg || 0, minutes: +d.minutes || 0, runs: +d.runs || 0, emptied: +d.emptied || 0, down: +d.downtime_minutes || 0 };
             });
         }
         return items.map(function (run) {
             return { day: localDate(run.closed_at), kg: +run.volume_kg || 0, minutes: +run.minutes || 0, runs: 1,
-                emptied: (run.left_kg == null || Number(run.left_kg) === 0) ? 1 : 0 };
+                emptied: (run.left_kg == null || Number(run.left_kg) === 0) ? 1 : 0, down: +run.downtime_minutes || 0 };
         });
     }
 
     function sumCracked(list) {
-        var t = { kg: 0, minutes: 0, runs: 0, emptied: 0 };
-        list.forEach(function (d) { t.kg += d.kg; t.minutes += d.minutes; t.runs += d.runs; t.emptied += d.emptied; });
+        var t = { kg: 0, minutes: 0, runs: 0, emptied: 0, down: 0 };
+        list.forEach(function (d) { t.kg += d.kg; t.minutes += d.minutes; t.runs += d.runs; t.emptied += d.emptied; t.down += d.down || 0; });
         return t;
     }
 
@@ -350,7 +350,8 @@ var _productionLog = (function () {
             totalTile('Total cracked', kg2(t.kg) + ' kg', null, true),
             totalTile('Cracking time', fmtDuration(t.minutes)),
             totalTile('Average kg / hour', avg == null ? '–' : kg2(avg)),
-            totalTile('Silo runs', String(t.runs), t.emptied + ' emptied')
+            totalTile('Silo runs', String(t.runs), t.emptied + ' emptied'),
+            totalTile('Downtime', t.down > 0 ? fmtDuration(t.down) : 'None')
         ]);
         var list = renderBars(r, days.map(function (d) { return { day: d.day, value: d.kg }; }), function (v) { return kg2(v) + ' kg'; });
 

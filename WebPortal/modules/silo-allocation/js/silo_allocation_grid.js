@@ -671,15 +671,46 @@ var _siloAllocationGrid = (function () {
     }
 
     function runTotals(runs) {
-        var t = { kg: 0, min: 0, runs: 0, emptied: 0 };
+        var t = { kg: 0, min: 0, runs: 0, emptied: 0, down: 0 };
         (runs || []).forEach(function (r) {
             t.kg += Number(r.volume_kg) || 0;
+            t.down += Number(r.downtime_minutes) || 0;
             t.min += Number(r.minutes) || 0;
             t.runs += 1;
             if (r.left_kg == null || Number(r.left_kg) === 0) { t.emptied += 1; }
         });
         t.kgh = t.min > 0 ? t.kg / (t.min / 60) : null;
         return t;
+    }
+
+    // Downtime cell for the Cracking log: "45 min" with the reason as a tooltip, or a dash.
+    function downCell(minutes, reason) {
+        var m = Number(minutes) || 0;
+        if (m <= 0) { return '<span class="text-muted">&mdash;</span>'; }
+        return '<span' + (reason ? ' title="' + esc(reason) + '"' : '') + '>' + esc(fmtDuration(m)) +
+            (reason ? ' <i class="fas fa-circle-info text-muted" aria-hidden="true"></i>' : '') + '</span>';
+    }
+
+    // Two optional fields shared by Stop cracking and Edit times. Ids get a prefix per dialog.
+    function downtimeFieldsHtml(prefix, minutes, reason) {
+        return '<div class="row g-3 text-start mt-1">' +
+            '<div class="col-5"><label for="' + prefix + 'DownMin" class="form-label fw-semibold">Downtime (minutes)</label>' +
+            '<input type="number" min="0" max="1440" step="1" inputmode="numeric" id="' + prefix + 'DownMin" class="form-control"' +
+            ' placeholder="0" value="' + (Number(minutes) > 0 ? esc(String(minutes)) : '') + '"></div>' +
+            '<div class="col-7"><label for="' + prefix + 'DownWhy" class="form-label fw-semibold">Reason <span class="text-muted fw-normal">(optional)</span></label>' +
+            '<input type="text" maxlength="200" id="' + prefix + 'DownWhy" class="form-control" placeholder="e.g. Blocked chute, power cut"' +
+            ' value="' + esc(reason || '') + '"></div></div>';
+    }
+
+    // Reads the two fields: { minutes, reason } or { error }.
+    function readDowntime(prefix, ranMinutes) {
+        var raw = String($('#' + prefix + 'DownMin').val() || '').trim();
+        var m = raw === '' ? 0 : Number(raw);
+        if (!isFinite(m) || m < 0 || Math.round(m) !== m) { return { error: 'Downtime must be whole minutes, 0 or more.' }; }
+        if (isFinite(ranMinutes) && ranMinutes > 0 && m > Math.ceil(ranMinutes)) {
+            return { error: 'Downtime can\u2019t be longer than the run (' + fmtDuration(ranMinutes) + ').' };
+        }
+        return { minutes: m, reason: String($('#' + prefix + 'DownWhy').val() || '').trim() };
     }
 
     function renderPeriodTotals() {
@@ -694,7 +725,8 @@ var _siloAllocationGrid = (function () {
             '<div class="silo-period-total silo-period-total-main"><span>Total cracked</span><strong>' + esc(kg(t.kg)) + ' kg</strong></div>' +
             '<div class="silo-period-total"><span>Cracking time</span><strong>' + esc(fmtDuration(t.min)) + '</strong></div>' +
             '<div class="silo-period-total"><span>Average kg / hour</span><strong>' + (t.kgh == null ? '&mdash;' : esc(kg(t.kgh))) + '</strong></div>' +
-            '<div class="silo-period-total"><span>Silo runs</span><strong>' + esc(t.runs) + '</strong><small>' + esc(t.emptied) + ' emptied</small></div>');
+            '<div class="silo-period-total"><span>Silo runs</span><strong>' + esc(t.runs) + '</strong><small>' + esc(t.emptied) + ' emptied</small></div>' +
+            '<div class="silo-period-total"><span>Downtime</span><strong>' + (t.down > 0 ? esc(fmtDuration(t.down)) : 'None') + '</strong></div>');
         if (state.period.mode !== 'week') { $days.addClass('d-none').html(''); return; }
         var range = periodRange(), today = todayStr(), days = [], max = 1, i;
         for (i = 0; i < 7; i++) {
@@ -723,7 +755,7 @@ var _siloAllocationGrid = (function () {
         syncPeriodControls();
         renderPeriodTotals();
         if (state.runs === null) {
-            $body.html('<tr><td colspan="9" class="text-muted">Unavailable until Silo Allocation is set up.</td></tr>');
+            $body.html('<tr><td colspan="10" class="text-muted">Unavailable until Silo Allocation is set up.</td></tr>');
             return;
         }
         var today = todayStr(), totalKg = 0, totalMin = 0, any = false;
@@ -741,7 +773,7 @@ var _siloAllocationGrid = (function () {
             $sum.text('Today: nothing cracked yet');
         }
         if (state.periodRuns === null) {
-            $body.html('<tr><td colspan="9" class="text-muted">Could not load the cracking log for this period.</td></tr>');
+            $body.html('<tr><td colspan="10" class="text-muted">Could not load the cracking log for this period.</td></tr>');
             return;
         }
         // grower_names comes with migration 20261027090000; until then, match on batch number.
@@ -757,7 +789,7 @@ var _siloAllocationGrid = (function () {
             var t = runTotals(dayRuns);
             return '<tr class="silo-run-subtotal"><td colspan="4">' + esc(fmtDay(lastDay)) + ' total</td><td class="text-end">' +
                 esc(kg(t.kg)) + '</td><td></td><td class="text-end silo-col">' + esc(fmtDuration(t.min)) + '</td><td class="text-end">' +
-                (t.kgh == null ? '&mdash;' : esc(kg(t.kgh))) + '</td><td></td></tr>';
+                (t.kgh == null ? '&mdash;' : esc(kg(t.kgh))) + '</td><td class="text-end">' + downCell(t.down, null) + '</td><td></td></tr>';
         }
         state.periodRuns.forEach(function (r) {
             var when = r.closed_at || r.opened_at;
@@ -780,11 +812,12 @@ var _siloAllocationGrid = (function () {
                 (r.left_kg == null || Number(r.left_kg) === 0 ? 'Empty' : esc(kg(r.left_kg))) + '</td><td class="text-end silo-col">' +
                 esc(localTime(r.opened_at)) + '–' + esc(localTime(r.closed_at)) + ' <span class="' + (long ? 'fw-bold' : 'text-muted small') + '">(' +
                 esc(fmtDuration(r.minutes)) + ')</span>' + check + edited + '</td><td class="text-end">' +
-                (r.kg_per_hour == null ? '&mdash;' : esc(kg(r.kg_per_hour))) + '</td><td class="silo-col">' +
+                (r.kg_per_hour == null ? '&mdash;' : esc(kg(r.kg_per_hour))) + '</td><td class="text-end">' +
+                downCell(r.downtime_minutes, r.downtime_reason) + '</td><td class="silo-col">' +
                 '<a href="#" class="silo-edit-times" data-run="' + esc(r.id) + '">Edit times</a></td></tr>';
         });
         h += subtotal();
-        $body.html(h || '<tr><td colspan="9" class="text-muted">Nothing cracked ' + (week ? 'this week' : 'on this day') + '.</td></tr>');
+        $body.html(h || '<tr><td colspan="10" class="text-muted">Nothing cracked ' + (week ? 'this week' : 'on this day') + '.</td></tr>');
     }
 
     // ------------------------------------------------------------------
@@ -1196,7 +1229,10 @@ var _siloAllocationGrid = (function () {
 
         function pick(left) {
             var t = times();
+            var dt = readDowntime('siloStop', (t.endMs - t.startMs) / 60000);
+            if (dt.error) { Swal.showValidationMessage(dt.error); return false; }
             return {
+                down: dt,
                 left: left,
                 openedAt: t.startChanged ? toIso(t.sd, t.st) : null,
                 closedAt: t.endChanged ? toIso(t.ed, t.en) : null
@@ -1219,6 +1255,7 @@ var _siloAllocationGrid = (function () {
                 '<div class="col-6"><label for="siloStopLeft" class="form-label fw-semibold">Kg left in silo</label>' +
                 '<input type="text" inputmode="decimal" id="siloStopLeft" class="form-control js-kg-input"' +
                 ' placeholder="Estimate is fine"></div></div>' +
+                downtimeFieldsHtml('siloStop', null, '') +
                 '<div id="siloStopLong"></div>' +
                 '<div class="silo-summary-grid mt-3 text-start">' +
                 '<div><span>Ran for</span><strong id="siloSumRan">—</strong></div>' +
@@ -1265,6 +1302,15 @@ var _siloAllocationGrid = (function () {
             if (!(c.isConfirmed || c.isDenied) || !c.value) { return; }
             var p = c.value;
             dataFunctions.closeSilo(no, p.left, p.openedAt, p.closedAt).then(function (r) {
+                // Downtime is saved on the run once it is closed (close_silo returns run_id).
+                if (isOk(r) && r.run_id && p.down && p.down.minutes > 0) {
+                    return dataFunctions.setSiloRunDowntime(r.run_id, p.down.minutes, p.down.reason).then(function (d) {
+                        if (!isOk(d)) { r.downtimeError = errText(d, 'The downtime was not saved; add it with Edit times.'); }
+                        return r;
+                    }, function () { r.downtimeError = 'The downtime was not saved; add it with Edit times.'; return r; });
+                }
+                return r;
+            }).then(function (r) {
                 if (!isOk(r)) {
                     Swal.fire({ icon: 'error', text: errText(r, 'Could not stop the silo.') });
                 } else {
@@ -1273,7 +1319,9 @@ var _siloAllocationGrid = (function () {
                         ? 'Silo ' + no + ' empty: ' + kg(r.volume_kg) + ' kg cracked in ' + fmtDuration(r.minutes) + rate + '.'
                         : 'Silo ' + no + ' stopped: ' + kg(r.volume_kg) + ' kg cracked in ' + fmtDuration(r.minutes) + rate +
                           '. ' + kg(r.left_kg) + ' kg left in the silo.';
-                    Swal.fire({ icon: 'success', text: line });
+                    if (p.down && p.down.minutes > 0 && !r.downtimeError) { line += ' Downtime ' + fmtDuration(p.down.minutes) + '.'; }
+                    if (r.downtimeError) { line += ' ' + r.downtimeError; }
+                    Swal.fire({ icon: r.downtimeError ? 'warning' : 'success', text: line });
                 }
                 return load();
             });
@@ -1361,6 +1409,7 @@ var _siloAllocationGrid = (function () {
                 '<input type="date" id="siloEtStopD" class="form-control" value="' + esc(localDate(run.closed_at)) + '"></div>' +
                 '<div class="col-6"><label for="siloEtStopT" class="form-label fw-semibold">Stopped — time</label>' +
                 '<input type="time" id="siloEtStopT" class="form-control" value="' + esc(localTime(run.closed_at)) + '"></div></div>' +
+                downtimeFieldsHtml('siloEt', run.downtime_minutes, run.downtime_reason) +
                 '<div id="siloEtLong"></div>' +
                 '<div class="silo-summary-strip mt-3"><span>Ran for</span><strong id="siloEtRan">—</strong></div>',
             showCancelButton: true,
@@ -1393,15 +1442,23 @@ var _siloAllocationGrid = (function () {
                 }
                 var le = check ? check.error() : null;
                 if (le) { Swal.showValidationMessage(le); return false; }
-                return { s: s, e: e };
+                var dt = readDowntime('siloEt', (isoToMs(e) - isoToMs(s)) / 60000);
+                if (dt.error) { Swal.showValidationMessage(dt.error); return false; }
+                return { s: s, e: e, down: dt };
             }
         }).then(function (c) {
             if (c.isDenied) { return undoRun(run); }
             if (!c.isConfirmed) { return; }
-            return dataFunctions.updateSiloRunTimes(run.id, c.value.s, c.value.e).then(function (r) {
-                if (!isOk(r)) { Swal.fire({ icon: 'error', text: errText(r, 'Could not save the times.') }); }
-                return load();
-            });
+            var v = c.value;
+            var downChanged = (Number(run.downtime_minutes) || 0) !== v.down.minutes ||
+                (v.down.minutes > 0 && String(run.downtime_reason || '') !== v.down.reason);
+            return dataFunctions.updateSiloRunTimes(run.id, v.s, v.e).then(function (r) {
+                if (!isOk(r)) { Swal.fire({ icon: 'error', text: errText(r, 'Could not save the times.') }); return; }
+                if (!downChanged) { return; }
+                return dataFunctions.setSiloRunDowntime(run.id, v.down.minutes, v.down.reason).then(function (d) {
+                    if (!isOk(d)) { Swal.fire({ icon: 'error', text: errText(d, 'Could not save the downtime.') }); }
+                });
+            }).then(function () { return load(); });
         });
     }
 
