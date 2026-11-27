@@ -23,24 +23,25 @@
                 </div>
                 <div class="card-body p-2">
                     <div class="cc-grid" id="ccGrid" role="grid" aria-labelledby="ccMonth"></div>
-                    <div class="cc-legend small text-muted mt-2" id="ccLegend">
-                        <span><span class="cc-swatch cc-k-public_holiday"></span>Public holiday</span>
-                        <span><span class="cc-swatch cc-k-shutdown"></span>Shutdown / closed</span>
-                        <span><span class="cc-swatch cc-k-working_day"></span>Working day</span>
-                        <span><span class="cc-swatch cc-k-half_day"></span>Half day</span>
-                        <span><i class="fas fa-truck me-1"></i>Expected deliveries</span>
+                    <div class="cc-legend mt-2" id="ccLegend">
+                        <span><i class="cc-dot cc-dot-public_holiday"></i>Public holiday</span>
+                        <span><i class="cc-dot cc-dot-shutdown"></i>Shutdown / closed</span>
+                        <span><i class="cc-dot cc-dot-working_day"></i>Working day</span>
+                        <span><i class="cc-dot cc-dot-half_day"></i>Half day</span>
+                        <span><i class="cc-dot cc-dot-dlv"></i>Expected delivery</span>
+                        <span><i class="cc-dot cc-dot-event"></i>Company date</span>
                     </div>
                 </div>
             </div>
             <div class="small text-muted mt-2" id="ccMonthSummary"></div>
         </div>
         <div class="col-lg-4">
-            <div class="card mb-3">
+            <div class="card mb-3 cc-side">
                 <div class="card-header"><strong id="ccDayTitle">Pick a day</strong></div>
                 <div class="card-body" id="ccDayBody"></div>
             </div>
-            <div class="card">
-                <div class="card-header"><strong>Next 60 days</strong></div>
+            <div class="card cc-side">
+                <div class="card-header"><strong>Coming up</strong> <span class="text-muted small fw-normal">next 60 days</span></div>
                 <ul class="list-group list-group-flush cc-upcoming" id="ccUpcoming"></ul>
             </div>
         </div>

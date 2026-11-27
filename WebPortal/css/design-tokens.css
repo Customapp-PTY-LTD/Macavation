@@ -108,6 +108,15 @@
     --mac-nut-light: #E9CFA0;
     --mac-nut-mid: #B88A4E;
     --mac-nut-dark: #7A5228;
+    /* MacView calendar (company calendar + activity calendars) */
+    --mac-cal-holiday: #E5484D;
+    --mac-cal-shutdown: #6E6469;
+    --mac-cal-hatch: #9A8F95;
+    --mac-cal-working: #5FB872;
+    --mac-cal-half: #E8B04B;
+    --mac-cal-event: #5B9BD5;
+    --mac-cal-received: #8FC1E8;
+    --mac-cal-chip-ink: #14100F;
 
     /* Type scale — the only font sizes the app uses (see docs/design/DESIGN_SYSTEM.md).
        xs: table headers/badges · sm: microcopy/labels · base: body/tables ·

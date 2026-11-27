@@ -841,7 +841,7 @@ var _kernelProductionGrid = function () {
                 scope.selectedProductionCalendarDate = firstMatch;
             }
 
-            var firstCellDate = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1 - monthDate.getDay());
+            var firstCellDate = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1 - ((monthDate.getDay() + 6) % 7)); // Monday-first (MacView)
             var html = '';
             for (var i = 0; i < 42; i++) {
                 var cellDate = new Date(firstCellDate.getFullYear(), firstCellDate.getMonth(), firstCellDate.getDate() + i);
@@ -867,7 +867,7 @@ var _kernelProductionGrid = function () {
             var detailEl = document.getElementById('kpProductionCalendarDetail');
             if (!detailEl) return;
             if (!iso) {
-                detailEl.innerHTML = '<div class="kp-production-calendar-detail-title">No day selected</div><div class="kp-production-calendar-detail-empty">Select a blue day to view production activity.</div>';
+                detailEl.innerHTML = '<div class="kp-production-calendar-detail-title">No day selected</div><div class="kp-production-calendar-detail-empty">Select a day with a batch count to see its production activity.</div>';
                 return;
             }
             var entries = scope.productionCalendarEntriesByDate[iso] || [];

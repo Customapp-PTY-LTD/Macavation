@@ -877,7 +877,7 @@ var _stockManagementGrid = function () {
                 idPrefix: 'stockActivityCalendar',
                 title: 'Stock Calendar',
                 icon: 'fa-calendar-check',
-                intro: 'Days shaded green had stock changes. Click a day to see which batches went into stock, went out on dispatch, or were adjusted, and by how many kg.',
+                intro: 'Days showing a count had stock changes. Click a day to see which batches went into stock, went out on dispatch, or were adjusted, and by how many kg.',
                 emptyDayText: 'No stock changes on this day.',
                 emptyMonthText: 'No stock changes in this month.',
                 loadMonth: async function (fromIso, toIso) {
