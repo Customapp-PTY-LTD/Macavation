@@ -2105,6 +2105,15 @@ var _dataFunctions = function () {
                 return null;
             }
         },
+        /** Kernel stock value: latest price per style (list price, else customer average). Empty for roles without prices. */
+        getKernelStockPrices: async function (token = null) {
+            try {
+                var r = this._kpUnwrap(await this.callFunction('get_kernel_stock_prices', {}, token, { useCache: false }));
+                return r && r.success !== false ? r : null;
+            } catch (e) {
+                return null;
+            }
+        },
         /** Save (or clear, with nulls) a supplier's / customer's map pin. */
         setContactLocation: async function (contactId, lat, lng, token = null) {
             return this._kpUnwrap(await this.callFunction('set_contact_location', {

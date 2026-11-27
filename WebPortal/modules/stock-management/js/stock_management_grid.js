@@ -254,6 +254,8 @@ var _stockManagementGrid = function () {
         // Kernel Stock grid: click-to-sort state (kept on the scope so refreshes keep it) and pipeline config for FFA / Time Left colours.
         kernelSort: { key: null, dir: 'asc' },
         kernelPipelineConfig: null,
+        // Stock value (latest style price) for roles with "See costs and prices"; null until loaded or when not allowed.
+        kernelStockPrices: null,
         shellLots: [],
         oilSearchTimeout: null,
         searchTimeout: null,
@@ -744,6 +746,7 @@ var _stockManagementGrid = function () {
                 if (card) card.style.display = '';
                 scope.loadKernelBatches();
                 scope.loadShellLots();
+                scope.loadKernelStockPrices();
                 if (oilCard) oilCard.style.display = 'none';
                 if (mainFiltersCard) mainFiltersCard.style.display = 'none';
                 if (mainTableCard) mainTableCard.style.display = 'none';
@@ -1579,8 +1582,110 @@ var _stockManagementGrid = function () {
                 $(this).text(totals[k] != null ? totals[k] : 0);
             });
             scope.renderKernelPositiveRelease(totals);
+            try { scope.renderKernelStockValue(batches, bands); } catch (e) { console.warn("[Stock Management] stock value summary failed:", e && e.message); }
             // Re-renders (sort, late config) rebuild every row; keep the search filter applied.
             if (($('#kernelStockSearch').val() || '').trim()) $('#kernelStockSearch').trigger('input.ksSearch');
+        },
+
+        /** Latest style prices for the stock value (MacView round 3). The server returns none for roles without "See costs and prices". */
+        loadKernelStockPrices: function () {
+            var scope = _stockManagementGrid;
+            scope.kernelStockPrices = null;
+            if (typeof MacPriceAccess !== 'undefined' && !MacPriceAccess.canSee()) return Promise.resolve();
+            if (typeof dataFunctions === 'undefined' || typeof dataFunctions.getKernelStockPrices !== 'function') return Promise.resolve();
+            return dataFunctions.getKernelStockPrices().then(function (r) {
+                scope.kernelStockPrices = r && r.sees_prices ? r : null;
+                if (scope.kernelFinishedBatches) scope.renderKernelStockByStyle();
+            }).catch(function () { scope.kernelStockPrices = null; });
+        },
+
+        /**
+         * Stock value and shelf life per style, above the by-style grid (MacView round 3).
+         * Value = kg on hand x the latest style price (Kernel style prices; Henry 27 Nov 2026), only for
+         * roles that may see prices. Shelf life = kg per best-before band, using the same configurable
+         * bands as the Time Left badge (Kernel Pipeline Settings): expired, under {yellow} months,
+         * {yellow} to {green} months, over {green} months, and no best-before date.
+         * Mike's five bands (expired, <3, 3-8, 8-12, >12 months) map onto these configurable ones.
+         */
+        renderKernelStockValue: function (batches, bands) {
+            var scope = _stockManagementGrid;
+            var $box = $('#kernelStockValueSummary');
+            if (!$box.length) return;
+            var g = parseInt(bands && bands.green, 10), y = parseInt(bands && bands.yellow, 10);
+            if (isNaN(g) || isNaN(y) || g <= y) { g = 12; y = 6; }
+            var BANDS = [
+                ['exp', 'Expired', 'ks-sl-exp'], ['lt', 'Under ' + y + ' months', 'ks-sl-lt'],
+                ['mid', y + ' to ' + g + ' months', 'ks-sl-mid'], ['ok', 'Over ' + g + ' months', 'ks-sl-ok'], ['none', 'No best-before date', 'ks-sl-none']
+            ];
+            var KG = KERNEL_KG_PER_CARTON;
+            var CODE = { 'Butter High Oil': 'BHO', 'Butter Low Oil': 'BLO' };
+            var P = scope.kernelStockPrices, priceOf = {};
+            var showValue = !!P && (typeof MacPriceAccess === 'undefined' || MacPriceAccess.canSee());
+            if (showValue) (P.styles || []).forEach(function (x) { priceOf[x.style_code] = x; });
+            var per = {}, all = { kg: 0, ctn: 0, bands: {} };
+            (batches || []).forEach(function (b) {
+                var band = 'none';
+                if (b.best_before_date) {
+                    var tu = _common.timeUntil(String(b.best_before_date).slice(0, 10));
+                    if (tu) band = tu.expired ? 'exp' : ({ danger: 'lt', warning: 'mid', success: 'ok' }[_common.bestBeforeBandClass(tu, { green: g, yellow: y })] || 'ok');
+                }
+                var cells = getKernelStyleCellsForDisplay(b);
+                KERNEL_STYLE_OPTIONS.forEach(function (k) {
+                    var ctn = parseNum(cells[k]);
+                    if (!ctn) return;
+                    var st = per[k] = per[k] || { ctn: 0, kg: 0, bands: {} };
+                    st.ctn += ctn; st.kg += ctn * KG; st.bands[band] = (st.bands[band] || 0) + ctn * KG;
+                    all.ctn += ctn; all.kg += ctn * KG; all.bands[band] = (all.bands[band] || 0) + ctn * KG;
+                });
+            });
+            var styles = KERNEL_STYLE_OPTIONS.filter(function (k) { return per[k] && per[k].ctn > 0; });
+            if (!styles.length) { $box.empty().addClass('d-none'); return; }
+            function money(v) { return 'R ' + Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+            function kgTxt(v) { return _common.formatKg(v) + ' kg'; }
+            function bar(bs, total) {
+                return '<div class="ks-sl-bar" role="img" aria-label="Shelf life">' + BANDS.map(function (B) {
+                    var v = bs[B[0]] || 0;
+                    return v ? '<i class="' + B[2] + '" style="width:' + (v / total * 100).toFixed(2) + '%" title="' + escapeHtml(B[1] + ': ' + kgTxt(v)) + '"></i>' : '';
+                }).join('') + '</div>';
+            }
+            var value = 0, unpriced = [], dates = {}, basisAvg = false;
+            styles.forEach(function (k) {
+                var pr = priceOf[CODE[k] || k];
+                per[k].price = pr && pr.price != null ? Number(pr.price) : null;
+                per[k].pr = pr || null;
+                if (per[k].price != null) {
+                    per[k].value = per[k].kg * per[k].price; value += per[k].value;
+                    if (pr.effective_from) dates[pr.effective_from] = 1;
+                    if (pr.basis === 'customer_average') basisAvg = true;
+                } else unpriced.push(k);
+            });
+            var soon = (all.bands.exp || 0) + (all.bands.lt || 0) + (all.bands.mid || 0);
+            function tile(label, val, sub, cls) {
+                return '<div class="ks-pr-tile' + (cls ? ' ' + cls : '') + '"><div class="ks-pr-tile-label">' + escapeHtml(label) + '</div><div class="ks-pr-tile-value">' + val + '</div>' +
+                    '<div class="ks-pr-tile-sub">' + (sub || '') + '</div></div>';
+            }
+            var latest = Object.keys(dates).sort().pop();
+            var h = '<div class="d-flex flex-wrap gap-2 mb-2">' +
+                tile('Kernel on hand', escapeHtml(kgTxt(all.kg)), escapeHtml(scope.formatKernelCartons(all.ctn) + ' ctn')) +
+                (showValue ? tile('Stock value', escapeHtml(money(value)), escapeHtml(latest ? 'at the latest style prices (newest ' + latest + ')' : 'no style prices set yet') +
+                    (unpriced.length ? ' · <span class="text-danger">' + escapeHtml(unpriced.length + ' style' + (unpriced.length === 1 ? '' : 's') + ' without a price') + '</span>' : '')) : '') +
+                tile('Expiring within ' + g + ' months', escapeHtml(kgTxt(soon)), escapeHtml(all.kg ? Math.round(soon / all.kg * 100) + '% of the kernel on hand' : ''), soon ? 'ks-tile-warn' : '') +
+                tile('Expired', escapeHtml(kgTxt(all.bands.exp || 0)), all.bands.exp ? '<span class="text-danger">past best-before</span>' : 'none', all.bands.exp ? 'ks-tile-bad' : '') +
+                '</div>';
+            h += '<div class="table-responsive"><table class="table table-sm align-middle mb-1 ks-value-table"><thead><tr><th>Style</th><th class="text-end">Cartons</th><th class="text-end">Kg</th>' +
+                (showValue ? '<th class="text-end">Price R/kg</th><th class="text-end">Value</th>' : '') + '<th class="ks-sl-col">Shelf life</th></tr></thead><tbody>' +
+                styles.map(function (k) {
+                    var st = per[k], pr = st.pr;
+                    var prTxt = st.price == null ? '<span class="text-muted" title="No price on Kernel style prices">no price</span>'
+                        : escapeHtml(money(st.price)) + '<div class="small text-muted">' + escapeHtml((pr.basis === 'customer_average' ? 'customer avg · ' : '') + (pr.effective_from || '')) + '</div>';
+                    return '<tr><td>' + escapeHtml(k) + '</td><td class="text-end">' + escapeHtml(scope.formatKernelCartons(st.ctn)) + '</td><td class="text-end">' + escapeHtml(_common.formatKg(st.kg)) + '</td>' +
+                        (showValue ? '<td class="text-end">' + prTxt + '</td><td class="text-end">' + (st.value != null ? escapeHtml(money(st.value)) : '—') + '</td>' : '') +
+                        '<td>' + bar(st.bands, st.kg) + '</td></tr>';
+                }).join('') + '</tbody></table></div>';
+            h += '<div class="small text-muted ks-sl-legend">' + BANDS.map(function (B) { return '<span><i class="' + B[2] + '"></i>' + escapeHtml(B[1]) + '</span>'; }).join('') +
+                (showValue ? '<span class="ms-2">Value uses the latest list price per style on Kernel style prices' +
+                    (basisAvg ? '; where a style has no list price, the average of the customers\' own prices' : '') + '. Excl. VAT.</span>' : '') + '</div>';
+            $box.html(h).removeClass('d-none');
         },
 
         /** Positive release (packed kernel still at the lab). Failure or missing RPC leaves kernelPositiveRelease null and nothing new renders. */
