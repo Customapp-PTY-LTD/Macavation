@@ -28,10 +28,10 @@
     <!-- Flatpickr (dd/mm/yyyy date inputs) -->
     <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
     <!-- Design Tokens (must load before all custom CSS) -->
-    <link href="css/design-tokens.css?v=20261127sweep" rel="stylesheet">
+    <link href="css/design-tokens.css?v=20261127menu" rel="stylesheet">
     <!-- Theme engine runs in <head> so the chosen colours are on before the page paints -->
-    <script src="js/mac-theme-palettes.js?v=20261127sweep"></script>
-    <script src="js/themes.js?v=20261127sweep"></script>
+    <script src="js/mac-theme-palettes.js?v=20261127menu"></script>
+    <script src="js/themes.js?v=20261127menu"></script>
     <link href="css/swal-theme.css?v=20261127comp" rel="stylesheet">
     <link href="css/modal-theme.css" rel="stylesheet">
     <link href="css/table-actions.css?v=20261027" rel="stylesheet">
@@ -40,19 +40,19 @@
     <link href="css/main.css" rel="stylesheet">
     <link href="css/mac-section-collapse.css" rel="stylesheet">
     <!-- Exception UI Styles -->
-    <link href="css/exception-ui.css?v=20261127sweep" rel="stylesheet">
+    <link href="css/exception-ui.css?v=20261127menu" rel="stylesheet">
     <!-- Metric UI Styles -->
     <link href="css/metric-ui.css" rel="stylesheet">
     <!-- Workflow Views Styles -->
-    <link href="css/workflow-views.css?v=20261127sweep" rel="stylesheet">
+    <link href="css/workflow-views.css?v=20261127menu" rel="stylesheet">
     <!-- Connected Workflows Styles -->
-    <link href="css/connected-workflows.css?v=20261127sweep" rel="stylesheet">
+    <link href="css/connected-workflows.css?v=20261127menu" rel="stylesheet">
     <!-- Kanban Board Styles -->
     <link href="css/kanban.css" rel="stylesheet">
     <link href="css/mac-activity-calendar.css?v=20261127macviewcal" rel="stylesheet">
     <link href="css/batch-status.css" rel="stylesheet">
     <!-- Mobile-First Styles -->
-    <link href="css/mobile-first.css?v=20261127sweep" rel="stylesheet">
+    <link href="css/mobile-first.css?v=20261127menu" rel="stylesheet">
     <!-- (PWA offline stylesheet removed — design plan Phase 2 dead-layer cleanup) -->
     <!-- Performance Utilities -->
     <script src="js/performance-utils.js"></script>
@@ -79,13 +79,13 @@
 
     <link href="css/index.css" rel="stylesheet">
     <!-- App shell (unified sidebar) — loaded last so it supersedes legacy nav/sidebar layout -->
-    <link href="css/shell.css?v=20261127macview" rel="stylesheet">
+    <link href="css/shell.css?v=20261127menu" rel="stylesheet">
     <!-- Portal Guide (Mac) chatbot rail -->
-    <link href="css/mac-assistant.css?v=20261127sweep" rel="stylesheet">
+    <link href="css/mac-assistant.css?v=20261127menu" rel="stylesheet">
     <!-- Idle Mac orchard mascot -->
-    <link href="css/mac-mascot.css?v=20261127sweep" rel="stylesheet">
+    <link href="css/mac-mascot.css?v=20261127menu" rel="stylesheet">
     <!-- MacView components: buttons, cards, KPIs, tables, badges, forms, period pickers, modals -->
-    <link href="css/mac-components.css?v=20261127sweep" rel="stylesheet">
+    <link href="css/mac-components.css?v=20261127menu" rel="stylesheet">
     <!-- MacView theme layer: page background pattern + typography (loads last) -->
     <link href="css/mac-theme.css?v=20261127comp" rel="stylesheet">
 </head>
@@ -119,263 +119,155 @@
                     </div>
                     <div class="flex-grow-1 sidebar-scroll">
                         <ul class="nav flex-column gap-1">
-                            <!-- My Day: its own top-level module (tasks + red count bubble), first in the menu -->
+                            <!-- Menu layout = Mike's MacView (27 Nov 2026): headed groups, every item always visible, no dropdowns.
+                                 A heading (.mac-navgrp-head) shows only while an item after it (up to the next heading) is visible —
+                                 see menuFilter.updateParentMenus. Items keep their own data-route tags for permission filtering. -->
+                            <li class="nav-item d-none" data-route="dashboard">
+                                <a class="nav-link" href="#" route="dashboard" title="Dashboard">
+                                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                                </a>
+                            </li>
                             <li class="nav-item d-none" data-route="my-day">
                                 <a class="nav-link" href="#" route="my-day" title="My Day">
                                     <i class="fas fa-list-check me-2"></i>My Day
                                 </a>
                             </li>
-                            <!-- Sales (24 Nov 2026): one module for orders, prices, customers and sales figures.
-                                 The original screens (Dispatch and Sales, Kernel Pipeline Settings > Prices, CRM, Reports) all stay. -->
-                            <li class="nav-item d-none" data-route="sales-hub">
-                                <a class="nav-link" href="#" route="sales-hub" title="Sales: orders, prices, customers and sales figures">
-                                    <i class="fas fa-hand-holding-usd me-2"></i>Sales
+                            <li class="nav-item d-none" data-route="company-calendar">
+                                <a class="nav-link" href="#" route="company-calendar" title="Public holidays, shutdowns, company dates and expected deliveries">
+                                    <i class="fas fa-calendar-alt me-2"></i>Calendar
                                 </a>
                             </li>
-                            <!-- Home -->
-                            <li class="nav-item d-none" data-parent="homeCollapse">
-                                <a class="nav-link" href="#" data-bs-toggle="collapse"
-                                    data-bs-target="#homeCollapse" aria-expanded="false"
-                                    aria-controls="homeCollapse" title="Home">
-                                    <i class="fas fa-home me-2"></i>Home
-                                    <i class="fas fa-chevron-down ms-auto"></i>
-                                </a>
-                                <div class="collapse" id="homeCollapse">
-                                    <ul class="nav flex-column ms-3">
-                                        <li class="nav-item d-none" data-route="dashboard">
-                                            <a class="nav-link" href="#" route="dashboard" title="Dashboard">
-                                                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                                            </a>
-                                        </li>
-                                        <li class="nav-item d-none" data-route="kernel-dashboard">
-                                            <a class="nav-link" href="#" route="kernel-dashboard" title="Kernel Dashboard">
-                                                <i class="fas fa-chart-line me-2"></i>Kernel Dashboard
-                                            </a>
-                                        </li>
-                                        <li class="nav-item d-none" data-route="oil-dashboard">
-                                            <a class="nav-link" href="#" route="oil-dashboard" title="Oil Dashboard">
-                                                <i class="fas fa-oil-can me-2"></i>Oil Dashboard
-                                            </a>
-                                        </li>
-                                        <li class="nav-item d-none" data-route="company-calendar">
-                                            <a class="nav-link" href="#" route="company-calendar" title="Public holidays, shutdowns, company dates and expected deliveries">
-                                                <i class="fas fa-calendar-alt me-2"></i>Calendar
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </li>
+                            <li class="nav-item d-none mac-navgrp-head" role="presentation"><span class="mac-navh">Kernel processing</span></li>
                             <li class="nav-item d-none" data-route="batch-journey">
                                 <a class="nav-link" href="#" route="batch-journey" title="Find a batch">
                                     <i class="fas fa-search me-2"></i>Find a batch
                                 </a>
                             </li>
-                            <!-- Kernel pipeline -->
-                            <li class="nav-item d-none" data-parent="kernelCollapse">
-                                <a class="nav-link" href="#" data-bs-toggle="collapse"
-                                    data-bs-target="#kernelCollapse" aria-expanded="false"
-                                    aria-controls="kernelCollapse" title="Kernel pipeline">
-                                    <i class="fas fa-circle-dot me-2"></i>Kernel pipeline
-                                    <i class="fas fa-chevron-down ms-auto"></i>
+                            <li class="nav-item d-none" data-route="grower-intake-grid">
+                                <a class="nav-link" href="#" route="grower-intake-grid" title="Step 1 — Receiving">
+                                    <i class="fas fa-truck-loading me-2"></i>1. Receiving
                                 </a>
-                                <div class="collapse" id="kernelCollapse">
-                                    <ul class="nav flex-column ms-3">
-                                        <li class="nav-item d-none" data-route="grower-intake-grid">
-                                            <a class="nav-link" href="#" route="grower-intake-grid" title="Step 1 — Receiving">
-                                                <i class="fas fa-truck-loading me-2"></i>1. Receiving
-                                            </a>
-                                        </li>
-                                        <li class="nav-item d-none" data-route="nis-storage">
-                                            <a class="nav-link" href="#" route="nis-storage" title="Step 2 — Silo Holding: silo allocation and cracking">
-                                                <i class="fas fa-boxes me-2"></i>2. Silo Holding
-                                            </a>
-                                        </li>
-                                        <li class="nav-item d-none" data-route="kernel-production-grid">
-                                            <a class="nav-link" href="#" route="kernel-production-grid" title="Step 3 — Production">
-                                                <i class="fas fa-cogs me-2"></i>3. Production
-                                            </a>
-                                        </li>
-                                        <li class="nav-item d-none" data-route="stock-management-kernel">
-                                            <a class="nav-link" href="#" route="stock-management-kernel" title="Step 4 — Stock on Hand">
-                                                <i class="fas fa-warehouse me-2"></i>4. Stock on Hand
-                                            </a>
-                                        </li>
-                                        <li class="nav-item d-none" data-route="kernel-dispatch-grid">
-                                            <a class="nav-link" href="#" route="kernel-dispatch-grid" title="Step 5 — Dispatch and Sales">
-                                                <i class="fas fa-box me-2"></i>5. Dispatch and Sales
-                                            </a>
-                                        </li>
-                                        <li class="nav-item d-none" data-route="kernel-pipeline-settings">
-                                            <a class="nav-link" href="#" route="kernel-pipeline-settings" title="Intake and quality, plant settings, and kernel style prices">
-                                                <i class="fas fa-sliders-h me-2"></i>Kernel Pipeline Settings
-                                            </a>
-                                        </li>
-                                        <li class="nav-item d-none" data-route="transporters">
-                                            <a class="nav-link" href="#" route="transporters" title="Transport companies, routes and the rate per load">
-                                                <i class="fas fa-truck me-2"></i>Transporters
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </div>
                             </li>
-                            <!-- Oil pipeline -->
-                            <li class="nav-item d-none" data-parent="oilCollapse">
-                                <a class="nav-link" href="#" data-bs-toggle="collapse"
-                                    data-bs-target="#oilCollapse" aria-expanded="false"
-                                    aria-controls="oilCollapse" title="Oil &amp; Protein pipeline">
-                                    <i class="fas fa-oil-can me-2"></i>Oil pipeline
-                                    <i class="fas fa-chevron-down ms-auto"></i>
+                            <li class="nav-item d-none" data-route="nis-storage">
+                                <a class="nav-link" href="#" route="nis-storage" title="Step 2 — Silo Holding: silo allocation and cracking">
+                                    <i class="fas fa-boxes me-2"></i>2. Silo Holding
                                 </a>
-                                <div class="collapse" id="oilCollapse">
-                                    <ul class="nav flex-column ms-3">
-                                        <li class="nav-item d-none" data-route="supplier-intake-grid">
-                                            <a class="nav-link" href="#" route="supplier-intake-grid" title="Step 1 — Receiving">
-                                                <i class="fas fa-dolly me-2"></i>1. Receiving
-                                            </a>
-                                        </li>
-                                        <li class="nav-item d-none" data-route="oil-raw-materials">
-                                            <a class="nav-link" href="#" route="oil-raw-materials" title="Step 2 — Raw Materials">
-                                                <i class="fas fa-boxes-stacked me-2"></i>2. Raw Materials
-                                            </a>
-                                        </li>
-                                        <li class="nav-item d-none" data-route="oil-production-grid">
-                                            <a class="nav-link" href="#" route="oil-production-grid" title="Step 3 — Production">
-                                                <i class="fas fa-industry me-2"></i>3. Production
-                                            </a>
-                                        </li>
-                                        <li class="nav-item d-none" data-route="stock-management-oil">
-                                            <a class="nav-link" href="#" route="stock-management-oil" title="Step 4 — Stock on Hand">
-                                                <i class="fas fa-warehouse me-2"></i>4. Stock on Hand
-                                            </a>
-                                        </li>
-                                        <li class="nav-item d-none" data-route="oil-dispatch-grid">
-                                            <a class="nav-link" href="#" route="oil-dispatch-grid" title="Step 5 — Dispatch and Sales">
-                                                <i class="fas fa-box-open me-2"></i>5. Dispatch and Sales
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </div>
                             </li>
-                            <!-- Support: four groups - CRM, Reports, Forecasting, Budgets (6 Nov 2026). Quality Assurance and
-                                 Palladium were removed; Documents is a tab of Find a batch; Stock Alert Rules a tab of Kernel settings. -->
-                            <li class="nav-item d-none" data-parent="supportCollapse">
-                                <a class="nav-link" href="#" data-bs-toggle="collapse"
-                                    data-bs-target="#supportCollapse" aria-expanded="false"
-                                    aria-controls="supportCollapse" title="Support and planning">
-                                    <i class="fas fa-life-ring me-2"></i>Support
-                                    <i class="fas fa-chevron-down ms-auto"></i>
+                            <li class="nav-item d-none" data-route="kernel-production-grid">
+                                <a class="nav-link" href="#" route="kernel-production-grid" title="Step 3 — Production">
+                                    <i class="fas fa-cogs me-2"></i>3. Production
                                 </a>
-                                <div class="collapse" id="supportCollapse">
-                                    <ul class="nav flex-column ms-3">
-                                        <li class="nav-item d-none" data-parent="crmCollapse">
-                                            <a class="nav-link" href="#" data-bs-toggle="collapse"
-                                                data-bs-target="#crmCollapse" aria-expanded="false"
-                                                aria-controls="crmCollapse" title="CRM">
-                                                <i class="fas fa-address-book me-2"></i>CRM
-                                                <i class="fas fa-chevron-down ms-auto"></i>
-                                            </a>
-                                            <div class="collapse" id="crmCollapse">
-                                                <ul class="nav flex-column ms-3">
-                                                    <li class="nav-item d-none" data-route="crm-grid">
-                                                        <a class="nav-link" href="#" route="crm-grid" title="Contacts">
-                                                            <i class="fas fa-building me-2"></i>Contacts
-                                                        </a>
-                                                    </li>
-                                                    <li class="nav-item d-none" data-route="crm-whatsapp-grid">
-                                                        <a class="nav-link" href="#" route="crm-whatsapp-grid" title="WhatsApp & Internal Chat">
-                                                            <i class="fab fa-whatsapp me-2"></i>WhatsApp & Chat
-                                                            <span class="badge rounded-pill bg-danger ms-2" id="whatsappUnreadBadge" style="display: none;">0</span>
-                                                        </a>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                        </li>
-                                        <li class="nav-item d-none" data-parent="reportsCollapse">
-                                            <a class="nav-link" href="#" data-bs-toggle="collapse"
-                                                data-bs-target="#reportsCollapse" aria-expanded="false"
-                                                aria-controls="reportsCollapse" title="Reports">
-                                                <i class="fas fa-chart-bar me-2"></i>Reports
-                                                <i class="fas fa-chevron-down ms-auto"></i>
-                                            </a>
-                                            <div class="collapse" id="reportsCollapse">
-                                                <ul class="nav flex-column ms-3">
-                                                    <li class="nav-item d-none" data-route="sales-forecasting-grid">
-                                                        <a class="nav-link" href="#" route="sales-forecasting-grid" title="Management reports">
-                                                            <i class="fas fa-file-invoice me-2"></i>Management reports
-                                                        </a>
-                                                    </li>
-                                                    <li class="nav-item d-none" data-route="sales-data-grid">
-                                                        <a class="nav-link" href="#" route="sales-data-grid" title="Sales &amp; Production Data">
-                                                            <i class="fas fa-table me-2"></i>Sales &amp; Production Data
-                                                        </a>
-                                                    </li>
-                                                    <li class="nav-item d-none" data-route="report-targets-grid">
-                                                        <a class="nav-link" href="#" route="report-targets-grid" title="Set monthly and weekly targets for production, sales and performance">
-                                                            <i class="fas fa-bullseye me-2"></i>Targets
-                                                        </a>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                        </li>
-                                        <li class="nav-item d-none" data-parent="forecastingCollapse">
-                                            <a class="nav-link" href="#" data-bs-toggle="collapse"
-                                                data-bs-target="#forecastingCollapse" aria-expanded="false"
-                                                aria-controls="forecastingCollapse" title="Forecasting">
-                                                <i class="fas fa-chart-line me-2"></i>Forecasting
-                                                <i class="fas fa-chevron-down ms-auto"></i>
-                                            </a>
-                                            <div class="collapse" id="forecastingCollapse">
-                                                <ul class="nav flex-column ms-3">
-                                                    <li class="nav-item d-none" data-route="kernel-production-forecast-grid">
-                                                        <a class="nav-link" href="#" route="kernel-production-forecast-grid" title="Kernel Production Forecast">
-                                                            <i class="fas fa-clipboard-list me-2"></i>Kernel forecast
-                                                        </a>
-                                                    </li>
-                                                    <li class="nav-item d-none" data-route="oil-production-forecast-grid">
-                                                        <a class="nav-link" href="#" route="oil-production-forecast-grid" title="Oil Production Forecast">
-                                                            <i class="fas fa-clipboard-list me-2"></i>Oil forecast
-                                                        </a>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                        </li>
-                                        <li class="nav-item d-none" data-parent="budgetsCollapse">
-                                            <a class="nav-link" href="#" data-bs-toggle="collapse"
-                                                data-bs-target="#budgetsCollapse" aria-expanded="false"
-                                                aria-controls="budgetsCollapse" title="Budgets">
-                                                <i class="fas fa-wallet me-2"></i>Budgets
-                                                <i class="fas fa-chevron-down ms-auto"></i>
-                                            </a>
-                                            <div class="collapse" id="budgetsCollapse">
-                                                <ul class="nav flex-column ms-3">
-                                                    <li class="nav-item d-none" data-route="financial-management-grid">
-                                                        <a class="nav-link" href="#" route="financial-management-grid" title="Financial Management">
-                                                            <i class="fas fa-money-bill-wave me-2"></i>Financial Management
-                                                        </a>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                        </li>
-                                    </ul>
-                                </div>
                             </li>
-                            <!-- User & access (unified admin hub) — legacy users/roles/permissions/features routes stay in appRouteConfig for bookmarks -->
-                            <li class="nav-item d-none" id="userManagementMenuItem" data-parent="userManagementCollapse">
-                                <a class="nav-link" href="#" data-bs-toggle="collapse"
-                                    data-bs-target="#userManagementCollapse" aria-expanded="false"
-                                    aria-controls="userManagementCollapse" title="Accounts, roles, and which modules each role can open">
+                            <li class="nav-item d-none" data-route="stock-management-kernel">
+                                <a class="nav-link" href="#" route="stock-management-kernel" title="Step 4 — Stock on Hand">
+                                    <i class="fas fa-warehouse me-2"></i>4. Stock on Hand
+                                </a>
+                            </li>
+                            <li class="nav-item d-none" data-route="kernel-dispatch-grid">
+                                <a class="nav-link" href="#" route="kernel-dispatch-grid" title="Step 5 — Dispatch and Sales">
+                                    <i class="fas fa-box me-2"></i>5. Dispatch and Sales
+                                </a>
+                            </li>
+                            <li class="nav-item d-none mac-navgrp-head" role="presentation"><span class="mac-navh">Oil processing</span></li>
+                            <li class="nav-item d-none" data-route="supplier-intake-grid">
+                                <a class="nav-link" href="#" route="supplier-intake-grid" title="Step 1 — Receiving">
+                                    <i class="fas fa-dolly me-2"></i>1. Receiving
+                                </a>
+                            </li>
+                            <li class="nav-item d-none" data-route="oil-raw-materials">
+                                <a class="nav-link" href="#" route="oil-raw-materials" title="Step 2 — Raw Materials">
+                                    <i class="fas fa-boxes-stacked me-2"></i>2. Raw Materials
+                                </a>
+                            </li>
+                            <li class="nav-item d-none" data-route="oil-production-grid">
+                                <a class="nav-link" href="#" route="oil-production-grid" title="Step 3 — Production">
+                                    <i class="fas fa-industry me-2"></i>3. Production
+                                </a>
+                            </li>
+                            <li class="nav-item d-none" data-route="stock-management-oil">
+                                <a class="nav-link" href="#" route="stock-management-oil" title="Step 4 — Stock on Hand">
+                                    <i class="fas fa-warehouse me-2"></i>4. Stock on Hand
+                                </a>
+                            </li>
+                            <li class="nav-item d-none" data-route="oil-dispatch-grid">
+                                <a class="nav-link" href="#" route="oil-dispatch-grid" title="Step 5 — Dispatch and Sales">
+                                    <i class="fas fa-box-open me-2"></i>5. Dispatch and Sales
+                                </a>
+                            </li>
+                            <li class="nav-item d-none mac-navgrp-head" role="presentation"><span class="mac-navh">Commercial</span></li>
+                            <li class="nav-item d-none" data-route="sales-hub">
+                                <a class="nav-link" href="#" route="sales-hub" title="Sales: orders, prices, customers and sales figures">
+                                    <i class="fas fa-hand-holding-usd me-2"></i>Sales
+                                </a>
+                            </li>
+                            <li class="nav-item d-none" data-route="transporters">
+                                <a class="nav-link" href="#" route="transporters" title="Transport companies, routes and the rate per load">
+                                    <i class="fas fa-truck me-2"></i>Transporters
+                                </a>
+                            </li>
+                            <li class="nav-item d-none" data-route="crm-grid">
+                                <a class="nav-link" href="#" route="crm-grid" title="Contacts">
+                                    <i class="fas fa-building me-2"></i>Contacts
+                                </a>
+                            </li>
+                            <li class="nav-item d-none" data-route="crm-whatsapp-grid">
+                                <a class="nav-link" href="#" route="crm-whatsapp-grid" title="WhatsApp & Internal Chat">
+                                    <i class="fab fa-whatsapp me-2"></i>WhatsApp & Chat
+                                    <span class="badge rounded-pill bg-danger ms-2" id="whatsappUnreadBadge" style="display: none;">0</span>
+                                </a>
+                            </li>
+                            <li class="nav-item d-none mac-navgrp-head" role="presentation"><span class="mac-navh">Finance</span></li>
+                            <li class="nav-item d-none" data-route="financial-management-grid">
+                                <a class="nav-link" href="#" route="financial-management-grid" title="Financial Management">
+                                    <i class="fas fa-money-bill-wave me-2"></i>Financial Management
+                                </a>
+                            </li>
+                            <li class="nav-item d-none mac-navgrp-head" role="presentation"><span class="mac-navh">Insight</span></li>
+                            <li class="nav-item d-none" data-route="kernel-dashboard">
+                                <a class="nav-link" href="#" route="kernel-dashboard" title="Kernel Dashboard">
+                                    <i class="fas fa-chart-line me-2"></i>Kernel Dashboard
+                                </a>
+                            </li>
+                            <li class="nav-item d-none" data-route="oil-dashboard">
+                                <a class="nav-link" href="#" route="oil-dashboard" title="Oil Dashboard">
+                                    <i class="fas fa-oil-can me-2"></i>Oil Dashboard
+                                </a>
+                            </li>
+                            <li class="nav-item d-none" data-route="sales-forecasting-grid">
+                                <a class="nav-link" href="#" route="sales-forecasting-grid" title="Management reports">
+                                    <i class="fas fa-file-invoice me-2"></i>Management reports
+                                </a>
+                            </li>
+                            <li class="nav-item d-none" data-route="sales-data-grid">
+                                <a class="nav-link" href="#" route="sales-data-grid" title="Sales &amp; Production Data">
+                                    <i class="fas fa-table me-2"></i>Sales &amp; Production Data
+                                </a>
+                            </li>
+                            <li class="nav-item d-none" data-route="report-targets-grid">
+                                <a class="nav-link" href="#" route="report-targets-grid" title="Set monthly and weekly targets for production, sales and performance">
+                                    <i class="fas fa-bullseye me-2"></i>Targets
+                                </a>
+                            </li>
+                            <li class="nav-item d-none" data-route="kernel-production-forecast-grid">
+                                <a class="nav-link" href="#" route="kernel-production-forecast-grid" title="Kernel Production Forecast">
+                                    <i class="fas fa-clipboard-list me-2"></i>Kernel forecast
+                                </a>
+                            </li>
+                            <li class="nav-item d-none" data-route="oil-production-forecast-grid">
+                                <a class="nav-link" href="#" route="oil-production-forecast-grid" title="Oil Production Forecast">
+                                    <i class="fas fa-clipboard-list me-2"></i>Oil forecast
+                                </a>
+                            </li>
+                            <li class="nav-item d-none mac-navgrp-head mac-navsep" role="presentation" aria-hidden="true"></li>
+                            <li class="nav-item d-none" data-route="kernel-pipeline-settings">
+                                <a class="nav-link" href="#" route="kernel-pipeline-settings" title="Intake and quality, plant settings, and kernel style prices">
+                                    <i class="fas fa-sliders-h me-2"></i>Kernel Pipeline Settings
+                                </a>
+                            </li>
+                            <li class="nav-item d-none" data-route="admin-grid">
+                                <a class="nav-link" href="#" route="admin-grid" title="People, roles, portal modules, and advanced database permissions">
                                     <i class="fas fa-user-shield me-2"></i>User &amp; access
-                                    <i class="fas fa-chevron-down ms-auto"></i>
                                 </a>
-                                <div class="collapse" id="userManagementCollapse">
-                                    <ul class="nav flex-column ms-3">
-                                        <li class="nav-item d-none" data-route="admin-grid">
-                                            <a class="nav-link" href="#" route="admin-grid" title="People, roles, portal modules, and advanced database permissions">
-                                                <i class="fas fa-user-shield me-2"></i>User &amp; access
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </div>
                             </li>
                         </ul>
                     </div>
@@ -616,7 +508,7 @@
     <script src="js/session.js?v=20260716d"></script>
     <script src="js/super-user-visibility.js?v=20260715a"></script>
     <script src="js/batch-number-format.js?v=20261116bn2"></script>
-    <script src="js/data-functions.js?v=20261127sweep"></script>
+    <script src="js/data-functions.js?v=20261127menu"></script>
     <script src="js/auth-service.js?v=20261112bagedit"></script>
     <script src="js/common.js?v=20261102ffa"></script>
     <script src="js/export-utils.js"></script>
@@ -639,8 +531,8 @@
          data-functions guards all offlineStorage usage with typeof checks.) -->
 
     <!-- Role-Based Menu Scripts -->
-    <script src="js/role-menu-config.js?v=20261127sweep"></script>
-    <script src="js/menu-filter.js?v=20261124saleshub"></script>
+    <script src="js/role-menu-config.js?v=20261127menu"></script>
+    <script src="js/menu-filter.js?v=20261127menu"></script>
     <script src="js/action-access.js?v=20260602a"></script>
     <script src="js/notifications.js?v=20261027red"></script>
     <script src="js/whatsapp-unread-badge.js"></script>
@@ -661,7 +553,7 @@
          script tag, so bumping it here is all that is needed to make a deployed change to any
          module actually reach a browser that has been in the portal before. Bump it whenever a
          module's html/js/css changes. -->
-    <script src="js/appRouter.js?v=20261127sweep"></script>
+    <script src="js/appRouter.js?v=20261127menu"></script>
     <script src="js/app.js"></script>
     <script src="js/index.js?v=20261027tasks"></script>
     <script src="js/shell.js"></script>

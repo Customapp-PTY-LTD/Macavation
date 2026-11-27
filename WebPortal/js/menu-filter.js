@@ -123,6 +123,18 @@ var _menuFilter = function () {
          * When a side nav feature is hidden, hide the corresponding top-level element if no children remain visible.
          */
         updateParentMenus: function () {
+            // MacView menu (27 Nov 2026): a group heading shows only while at least one item between it
+            // and the next heading is visible, so nobody sees an empty "Finance" heading.
+            var heads = document.querySelectorAll('#sidebarMenu .mac-navgrp-head');
+            Array.prototype.forEach.call(heads, function (head) {
+                var any = false;
+                for (var el = head.nextElementSibling; el && !el.classList.contains('mac-navgrp-head'); el = el.nextElementSibling) {
+                    if (el.classList.contains('nav-item') && !el.classList.contains('d-none')) { any = true; break; }
+                }
+                head.classList.toggle('d-none', !any);
+            });
+
+            // Older dropdown groups (none left in index.html; kept harmless for cached pages).
             var collapseIds = [
                 'homeCollapse',
                 'kernelCollapse',
