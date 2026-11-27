@@ -142,6 +142,10 @@ var _procurementPlan = (function () {
         for (var i = 0; i < MAX_DAYS; i++) {
             var wd = dow(k);
             var row = types[k] || null;
+            if (row && row.day_type === 'default') row = null;
+            // A public holiday with nothing typed on it is a holiday (company calendar, 27 Nov 2026).
+            var hol = !row && typeof SaHolidays !== 'undefined' ? SaHolidays.name(k) : null;
+            if (hol) row = { day_type: 'holiday', note: hol, kg_override: null };
             var type = row ? row.day_type : ((wd === 0 || wd === 6) ? 'off' : 'work');
             var open = stock;
             var dels = byDay[k] || [];
@@ -801,9 +805,11 @@ var _procurementPlan = (function () {
             $('#ppDate').val(d.scheduled_date);
             $('#ppWeight').val(_common.formatKg(d.predicted_weight_kg != null ? Number(d.predicted_weight_kg) : 30000));
             $('#ppNote').val(d.note || '');
+            fillTruckDetails(plan, d);
             setStatus(d.status === 'confirmed' ? 'confirmed' : 'planned');
             panel.nameTouched = true;
         } else {
+            fillTruckDetails(plan, null);
             $('#ppGrower').val('');
             $('#ppTruck').val('');
             $('#ppDate').val(defaultDate || plan.today);
@@ -873,7 +879,39 @@ var _procurementPlan = (function () {
         return load().then(function () { return true; });
     }
 
+    // Expected delivery details (company calendar, 20261127130000): bags, transporter, collection date.
+    // An older database has no plan.transporters, so the fields stay empty and are not saved.
+    function fillTruckDetails(plan, d) {
+        var $t = $('#ppTransporter').empty().append($('<option value=""></option>').text('Not known yet'));
+        (plan.transporters || []).forEach(function (t) { $t.append($('<option></option>').attr('value', t.id).text(t.name)); });
+        if (d && d.transporter_id && !$t.find('option[value="' + String(d.transporter_id).replace(/[^0-9a-zA-Z-]/g, '') + '"]').length) {
+            $t.append($('<option></option>').attr('value', d.transporter_id).text(d.transporter_name || 'Transporter'));
+        }
+        $t.val(d && d.transporter_id ? String(d.transporter_id) : '');
+        $('#ppBags').val(d && d.bags != null ? d.bags : '');
+        $('#ppCollect').val(d && d.collection_date ? d.collection_date : '');
+    }
+
+    function truckDetailsChanged(d) {
+        var bags = $.trim($('#ppBags').val()), tr = $('#ppTransporter').val() || '', col = $('#ppCollect').val() || '';
+        if (!d) return bags !== '' || tr !== '' || col !== '';
+        return bags !== (d.bags != null ? String(d.bags) : '') || tr !== String(d.transporter_id || '') || col !== String(d.collection_date || '');
+    }
+
+    function saveTruckDetails(res) {
+        if (!res || res.success === false || !Array.isArray(res.ids) || !res.ids.length || !dataFunctions.setProcurementTruckDetails) return res;
+        var current = panel.id ? findDelivery(panel.id) : null;
+        if (!truckDetailsChanged(current)) return res;
+        var bags = $.trim($('#ppBags').val());
+        return dataFunctions.setProcurementTruckDetails(res.ids, bags === '' ? null : parseInt(bags, 10),
+            $('#ppTransporter').val() || null, $('#ppCollect').val() || null).then(function (r2) {
+            return r2 && r2.success === false ? r2 : res;
+        });
+    }
+
     function saveDelivery() {
+        var bagsRaw = $.trim($('#ppBags').val());
+        if (bagsRaw !== '' && !(parseInt(bagsRaw, 10) >= 1)) { toast(false, 'Bags must be 1 or more, or blank.'); return; }
         var date = $('#ppDate').val();
         var weight = _common.parseKg($('#ppWeight').val());
         var gv = $('#ppGrower').val();
@@ -898,7 +936,7 @@ var _procurementPlan = (function () {
             note: $.trim($('#ppNote').val()),
             repeatEveryWeeks: repeat,
             repeatCount: count
-        }).then(function (res) { return afterSave(res, panel.id ? 'Truck updated.' : 'Delivery planned.'); })
+        }).then(saveTruckDetails).then(function (res) { return afterSave(res, panel.id ? 'Truck updated.' : 'Delivery planned.'); })
             .finally(function () { $btn.prop('disabled', false); });
     }
 

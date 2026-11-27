@@ -21,6 +21,7 @@ var _roleMenuConfig = function () {
                 access: 'specific',
                 menus: [
                     'dashboard',
+                    'company-calendar',
                     'batch-journey',
                     'grower-intake-grid',
                     'kernel-production-grid',
@@ -41,6 +42,7 @@ var _roleMenuConfig = function () {
                 access: 'specific',
                 menus: [
                     'dashboard',
+                    'company-calendar',
                     'batch-journey',
                     'grower-intake-grid',
                     'procurement-plan',
@@ -63,6 +65,7 @@ var _roleMenuConfig = function () {
                 access: 'specific',
                 menus: [
                     'dashboard',
+                    'company-calendar',
                     'batch-journey',
                     'grower-intake-grid',
                     'kernel-production-grid',
@@ -80,6 +83,7 @@ var _roleMenuConfig = function () {
                 access: 'specific',
                 menus: [
                     'dashboard',
+                    'company-calendar',
                     'batch-journey',
                     'grower-intake-grid',
                     'kernel-production-grid',
@@ -123,6 +127,7 @@ var _roleMenuConfig = function () {
                 access: 'specific',
                 menus: [
                     'dashboard',
+                    'company-calendar',
                     'batch-journey',
                     'grower-intake-grid',
                     'kernel-production-grid',
@@ -153,6 +158,7 @@ var _roleMenuConfig = function () {
                 access: 'specific',
                 menus: [
                     'dashboard',
+                    'company-calendar',
                     'grower-intake-grid',
                     'my-day'
                 ]
@@ -163,6 +169,7 @@ var _roleMenuConfig = function () {
                 access: 'specific',
                 menus: [
                     'dashboard',
+                    'company-calendar',
                     'grower-intake-grid',
                     'kernel-production-grid',
                     'kernel-production-forecast-grid',
@@ -179,6 +186,7 @@ var _roleMenuConfig = function () {
                 access: 'specific',
                 menus: [
                     'dashboard',
+                    'company-calendar',
                     'quality-assurance-grid',
                     'stock-management-kernel',
                     'kernel-production-forecast-grid',
@@ -195,6 +203,7 @@ var _roleMenuConfig = function () {
                 access: 'specific',
                 menus: [
                     'dashboard',
+                    'company-calendar',
                     'stock-management-kernel',
                     'kernel-production-forecast-grid',
                     'stock-management-oil',
@@ -209,6 +218,7 @@ var _roleMenuConfig = function () {
                 access: 'specific',
                 menus: [
                     'dashboard',
+                    'company-calendar',
                     'sales-forecasting-grid',
                     'crm-grid',
                     'crm-whatsapp-grid',
@@ -222,6 +232,7 @@ var _roleMenuConfig = function () {
                 access: 'specific',
                 menus: [
                     'dashboard',
+                    'company-calendar',
                     'financial-management-grid',
                     'executive-dashboard',
                     'my-day'
@@ -233,6 +244,7 @@ var _roleMenuConfig = function () {
                 access: 'specific',
                 menus: [
                     'dashboard',
+                    'company-calendar',
                     'document-management-grid',
                     'my-day'
                 ]
@@ -243,6 +255,7 @@ var _roleMenuConfig = function () {
                 access: 'specific',
                 menus: [
                     'dashboard',
+                    'company-calendar',
                     'grower-intake-grid',
                     'kernel-production-grid',
                     'kernel-production-forecast-grid',
@@ -306,6 +319,12 @@ var _roleMenuConfig = function () {
                 route: 'oil-dashboard',
                 icon: 'fas fa-oil-can',
                 label: 'Oil Dashboard',
+                category: 'main'
+            },
+            'company-calendar': {
+                route: 'company-calendar',
+                icon: 'fas fa-calendar-alt',
+                label: 'Calendar',
                 category: 'main'
             },
             'my-day': {
@@ -592,6 +611,7 @@ var _roleMenuConfig = function () {
             'dashboard',
             'kernel-dashboard',
             'oil-dashboard',
+            'company-calendar',
             'my-day',
             'sales-hub',
             'batch-journey',

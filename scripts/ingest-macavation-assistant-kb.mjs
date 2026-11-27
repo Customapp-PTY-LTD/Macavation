@@ -99,6 +99,7 @@ const SECTION_KEYWORDS = {
   'modal-raw-material-issued': 'raw material issued, issue raw material, raw material stock issued, oil raw material issued dialog retired',
   'modal-receiving-checklist': 'incoming receiving checklist, old receiving checklist, goods receipt checklist, receiving checklist not used',
   'procurement-plan': 'procurement plan, plan a delivery, expected trucks, truck late, move truck date, cancel a truck, when will stock run out, working days, shutdown, opening stock',
+  'company-calendar': 'Calendar, company calendar, public holidays, shutdown, working Saturday, half day, extra holiday, company date, event, expected deliveries, trucks coming, working days, next 60 days',
   'transporters': 'Transporters page, transport companies, transporter contacts, transporter documents, goods in transit insurance, GIT expiry, B-BBEE certificate, routes, route code, rate sheet, transport rates, rate per load, rate per km, valid from, valid to, renew a rate, cheapest rate, transport rate expiring',
   'intake-lab-results': 'intake lab results, moisture PV FFA, peroxide value, free fatty acids, within spec, marginal, overspec, lab result pass fail, mark reviewed, hold, reject, results to capture, overspec review',
   'kernel-pipeline-settings': 'kernel pipeline settings, sample spec limits, kg per crate, bag weighing, shelf life, best before months, daily target, lab days, silo capacity, storage area capacity, transport companies, kernel prices, stock alerts',

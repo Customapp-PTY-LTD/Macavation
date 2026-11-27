@@ -279,7 +279,7 @@ var _kernelPipelineSettingsGrid = (function () {
             '<input type="number" step="1" min="1" max="60" class="form-control kps-num" id="kpsLabDays" value="' + numAttr(v.days) + '"' + dis() + '>' +
             '<div class="kps-hint">How long a batch should take at the lab after its End sample is sent. Past this it shows as late on Production and Stock on Hand. Changing it applies to every batch still at the lab.</div></div>' +
             '<fieldset><legend class="form-label fw-semibold fs-6">Count the days as</legend>' +
-            opt('working', 'Working days', 'Monday to Friday. Public holidays are not taken out.') +
+            opt('working', 'Working days', 'Working days on the company Calendar: public holidays and shutdowns are taken out.') +
             opt('calendar', 'Calendar days', 'Every day, weekends included.') +
             '</fieldset>';
         return card('Positive release (lab)', body, saveBtn('kpsSaveLabDays'));

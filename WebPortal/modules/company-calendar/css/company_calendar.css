@@ -1,0 +1,120 @@
+/* Company calendar (modules/company-calendar). Colours are Bootstrap 5.3 variables / design tokens. */
+#ccModule .cc-month {
+    min-width: 10rem;
+    text-align: center;
+}
+
+#ccModule .cc-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 4px;
+}
+
+#ccModule .cc-head {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: center;
+    color: var(--bs-secondary-color);
+    padding: 4px 0;
+}
+
+#ccModule .cc-cell {
+    min-height: 5.5rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 6px;
+    padding: 4px 6px;
+    background: var(--bs-body-bg);
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: inherit;
+}
+
+#ccModule .cc-cell:focus-visible {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 1px;
+}
+
+#ccModule .cc-cell.cc-out {
+    opacity: 0.45;
+}
+
+#ccModule .cc-cell.cc-weekend {
+    background: var(--bs-tertiary-bg);
+}
+
+#ccModule .cc-cell.cc-sel {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 1px var(--bs-primary);
+}
+
+#ccModule .cc-num {
+    font-weight: 600;
+}
+
+#ccModule .cc-today .cc-num {
+    display: inline-block;
+    min-width: 1.6rem;
+    text-align: center;
+    border-radius: 999px;
+    background: var(--bs-primary);
+    color: var(--bs-white);
+}
+
+#ccModule .cc-tag {
+    font-size: 0.7rem;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#ccModule .cc-trucks {
+    margin-top: auto;
+    font-size: 0.7rem;
+    color: var(--bs-secondary-color);
+}
+
+/* Day kinds (company_calendar_days.kind). */
+#ccModule .cc-k-public_holiday,
+#ccModule .cc-k-company_holiday { background: var(--bs-danger-bg-subtle); }
+#ccModule .cc-k-shutdown,
+#ccModule .cc-k-closed { background: var(--bs-secondary-bg); }
+#ccModule .cc-k-working_day { background: var(--bs-success-bg-subtle); }
+#ccModule .cc-k-half_day,
+#ccModule .cc-k-no_cracking { background: var(--bs-warning-bg-subtle); }
+
+#ccModule .cc-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+#ccModule .cc-swatch {
+    display: inline-block;
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 3px;
+    border: 1px solid var(--bs-border-color);
+    margin-right: 4px;
+    vertical-align: -1px;
+}
+
+#ccModule .cc-upcoming {
+    max-height: 28rem;
+    overflow-y: auto;
+}
+
+@media (max-width: 575.98px) {
+    #ccModule .cc-cell {
+        min-height: 3.5rem;
+        padding: 2px 3px;
+    }
+
+    #ccModule .cc-tag {
+        display: none;
+    }
+}
