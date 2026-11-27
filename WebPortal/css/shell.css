@@ -246,3 +246,16 @@ html:not([data-mac-mode="dark"]) .mac-mode-btn .mac-i-sun { display: none; }
         background: rgba(0, 0, 0, 0.35);
     }
 }
+
+/* ── MacView menu headings (27 Nov 2026): plain headed groups, no dropdowns ── */
+#sidebarMenu .mac-navgrp-head { list-style: none; pointer-events: none; }
+#sidebarMenu .mac-navh {
+    display: block;
+    font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--mac-side-ink); opacity: .45;
+    padding: 14px 12px 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#sidebarMenu .mac-navsep { height: 1px; margin: 10px 6px; background: rgba(var(--mac-side-ink-rgb), .1); }
+/* Collapsed rail: headings become thin rules between the icon groups */
+#sidebarMenu.sidebar.collapsed .mac-navh { height: 1px; padding: 0; margin: 8px 10px; font-size: 0; background: rgba(var(--mac-side-ink-rgb), .12); opacity: 1; }
