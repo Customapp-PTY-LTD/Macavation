@@ -60,12 +60,12 @@
     .supplier-intake-group-cell .si-delivery-ffa-btn { float: none; display: block; margin-top: 0.5rem; }
 }
 .si-ffa-result { font-size: 0.8125rem; font-weight: 500; white-space: nowrap; }
-.si-ffa-result.is-ready { color: var(--mac-green); }
+.si-ffa-result.is-ready { color: var(--mac-success); }
 .si-ffa-result.is-decision { color: var(--mac-danger); }
 .si-ffa-result.is-waiting { color: var(--mac-text-secondary); }
 .si-ffa-fillall { background: var(--mac-bg-secondary); border-radius: var(--mac-radius-md); padding: 0.625rem 0.75rem; }
 .si-weight-note { border-radius: var(--mac-radius-md); padding: 0.625rem 0.75rem; font-size: 0.875rem; }
-.si-weight-note.is-ok { background: rgba(var(--mac-green-rgb), 0.1); color: var(--mac-green); }
+.si-weight-note.is-ok { background: rgba(var(--mac-success-rgb), 0.1); color: var(--mac-success); }
 .si-weight-note.is-warn { background: rgba(141, 116, 52, 0.14); color: var(--mac-warning-text); }
 
 /* Group header rows (supplier + delivery note + date) */
@@ -175,7 +175,7 @@
 .si-stock-bar-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px; }
 .si-stock-bar-low { background: var(--mac-danger); }
 .si-stock-bar-amber { background: var(--mac-warning); }
-.si-stock-bar-ok { background: var(--mac-green); }
+.si-stock-bar-ok { background: var(--mac-success); }
 .si-stock-bar-min { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--mac-text); }
 .si-stock-bar-scale { position: relative; height: 16px; font-size: var(--mac-text-xs); color: var(--mac-text-tertiary); }
 .si-stock-bar-scale span:first-child { position: absolute; left: 0; }

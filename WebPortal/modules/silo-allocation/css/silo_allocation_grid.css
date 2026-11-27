@@ -280,8 +280,8 @@
 .silo-long-ok {
     padding: 10px 14px;
     border-radius: var(--mac-radius-sm);
-    background: rgba(var(--mac-green-rgb), 0.08);
-    border: 1px solid rgba(var(--mac-green-rgb), 0.35);
+    background: rgba(var(--mac-success-rgb), 0.08);
+    border: 1px solid rgba(var(--mac-success-rgb), 0.35);
     color: var(--mac-green-hover);
 }
 

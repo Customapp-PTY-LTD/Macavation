@@ -58,7 +58,7 @@
 .pp-chip { display: inline-block; border-radius: 6px; padding: 2px 8px; font-size: 12px; white-space: nowrap; border: 1px solid transparent; font-family: inherit; line-height: 1.5; }
 .pp-chip-planned { border: 1px dashed var(--mac-text-tertiary); color: var(--mac-text); background: transparent; }
 .pp-chip-confirmed { background: var(--mac-info-light); color: var(--mac-info); border-color: var(--mac-info); }
-.pp-chip-received { background: var(--mac-green-light); color: var(--mac-green); border-color: var(--mac-green); }
+.pp-chip-received { background: var(--mac-success-light); color: var(--mac-success); border-color: var(--mac-success); }
 .pp-chip-flag { background: var(--mac-warning-light); color: var(--mac-warning-text); border-color: var(--mac-warning); }
 button.pp-chip { cursor: pointer; min-height: 32px; }
 button.pp-chip:hover { filter: brightness(0.95); }

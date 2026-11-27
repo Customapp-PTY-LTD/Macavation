@@ -91,6 +91,7 @@
         p.lineStrong = dark ? over(p.line, over(p.line, p.panelSolid)) : over(hexA(acc, 0.45), p.panelSolid);
         p.mutedSoft = hexMix(p.muted, p.panelSolid, 0.22);
         p.brandHover = dark ? hexMix(p.brand, '#ffffff', 0.12) : hexMix(p.brand, '#000000', 0.12);
+        p.warnFill = t.warn; // bright amber for filled bars/buttons in both modes (p.warn is a text tone in light)
         return p;
     }
 
@@ -142,6 +143,8 @@
             '--mac-warning-rgb': rgbList(p.warn),
             '--mac-warning-light': hexA(p.warn, 0.15),
             '--mac-warning-text': p.warn,
+            '--mac-warning-fill': p.warnFill,
+            '--mac-warning-fill-rgb': rgbList(p.warnFill),
             '--mac-danger': p.bad,
             '--mac-danger-rgb': rgbList(p.bad),
             '--mac-danger-light': hexA(p.bad, 0.15),

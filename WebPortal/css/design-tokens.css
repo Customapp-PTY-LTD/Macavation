@@ -40,6 +40,9 @@
     --mac-warning: #D4A72C;
     /* Darker warning tone for TEXT on the warning tint (AA-readable amber) */
     --mac-warning-text: #8a6d14;
+    /* Filled amber (bars, solid warning buttons) — stays bright in light themes */
+    --mac-warning-fill: var(--mac-warning);
+    --mac-warning-fill-rgb: var(--mac-warning-rgb);
     --mac-warning-rgb: 212, 167, 44;
     --mac-warning-light: rgba(212, 167, 44, 0.08);
     --mac-danger: #CF222E;
@@ -328,6 +331,17 @@
     --mac-bag-on-light: var(--mac-mascot-ink);
 }
 
+/* Assistant (Mac) chat panel on a dark theme: its own surfaces follow the theme. */
+:root[data-mac-mode="dark"] {
+    --mac-assistant-ink: var(--mac-text);
+    --mac-assistant-surface: var(--mac-bg-secondary);
+    --mac-assistant-surface-alt: var(--mac-bg-tertiary);
+    --mac-assistant-surface-cool: var(--mac-bg-tertiary);
+    --mac-assistant-surface-edge: var(--mac-border);
+    --mac-assistant-border-cool: var(--mac-border-strong);
+    --mac-assistant-muted: var(--mac-text-secondary);
+}
+
 /* ============================================
    BOOTSTRAP BRIDGE
    Bootstrap 5.3 reads its colours from --bs-* variables. Point them at our tokens so every
@@ -360,8 +374,8 @@ html:root {
     --bs-success-bg-subtle: var(--mac-success-light);
     --bs-success-border-subtle: rgba(var(--mac-success-rgb), 0.35);
     --bs-success-text-emphasis: var(--mac-success);
-    --bs-warning: var(--mac-warning);
-    --bs-warning-rgb: var(--mac-warning-rgb);
+    --bs-warning: var(--mac-warning-fill);
+    --bs-warning-rgb: var(--mac-warning-fill-rgb);
     --bs-warning-bg-subtle: var(--mac-warning-light);
     --bs-warning-border-subtle: rgba(var(--mac-warning-rgb), 0.35);
     --bs-warning-text-emphasis: var(--mac-warning-text);
@@ -438,6 +452,8 @@ html:root {
     --mac-warning-rgb: 232, 176, 75;
     --mac-warning-light: rgba(232,176,75,0.15);
     --mac-warning-text: #E8B04B;
+    --mac-warning-fill: #E8B04B;
+    --mac-warning-fill-rgb: 232, 176, 75;
     --mac-danger: #F28B6B;
     --mac-danger-rgb: 242, 139, 107;
     --mac-danger-light: rgba(242,139,107,0.15);
@@ -488,6 +504,8 @@ html:root {
     --mac-warning-rgb: 138, 90, 0;
     --mac-warning-light: rgba(138,90,0,0.15);
     --mac-warning-text: #8a5a00;
+    --mac-warning-fill: #E8B04B;
+    --mac-warning-fill-rgb: 232, 176, 75;
     --mac-danger: #b4232a;
     --mac-danger-rgb: 180, 35, 42;
     --mac-danger-light: rgba(180,35,42,0.15);
@@ -538,6 +556,8 @@ html:root {
     --mac-warning-rgb: 232, 176, 75;
     --mac-warning-light: rgba(232,176,75,0.15);
     --mac-warning-text: #E8B04B;
+    --mac-warning-fill: #E8B04B;
+    --mac-warning-fill-rgb: 232, 176, 75;
     --mac-danger: #E5737A;
     --mac-danger-rgb: 229, 115, 122;
     --mac-danger-light: rgba(229,115,122,0.15);
@@ -588,6 +608,8 @@ html:root {
     --mac-warning-rgb: 138, 90, 0;
     --mac-warning-light: rgba(138,90,0,0.15);
     --mac-warning-text: #8a5a00;
+    --mac-warning-fill: #E8B04B;
+    --mac-warning-fill-rgb: 232, 176, 75;
     --mac-danger: #b4232a;
     --mac-danger-rgb: 180, 35, 42;
     --mac-danger-light: rgba(180,35,42,0.15);
@@ -638,6 +660,8 @@ html:root {
     --mac-warning-rgb: 232, 176, 75;
     --mac-warning-light: rgba(232,176,75,0.15);
     --mac-warning-text: #E8B04B;
+    --mac-warning-fill: #E8B04B;
+    --mac-warning-fill-rgb: 232, 176, 75;
     --mac-danger: #EF7A86;
     --mac-danger-rgb: 239, 122, 134;
     --mac-danger-light: rgba(239,122,134,0.15);
@@ -688,6 +712,8 @@ html:root {
     --mac-warning-rgb: 138, 90, 0;
     --mac-warning-light: rgba(138,90,0,0.15);
     --mac-warning-text: #8a5a00;
+    --mac-warning-fill: #E8B04B;
+    --mac-warning-fill-rgb: 232, 176, 75;
     --mac-danger: #b4232a;
     --mac-danger-rgb: 180, 35, 42;
     --mac-danger-light: rgba(180,35,42,0.15);
@@ -738,6 +764,8 @@ html:root {
     --mac-warning-rgb: 242, 201, 76;
     --mac-warning-light: rgba(242,201,76,0.15);
     --mac-warning-text: #F2C94C;
+    --mac-warning-fill: #F2C94C;
+    --mac-warning-fill-rgb: 242, 201, 76;
     --mac-danger: #EB7A7A;
     --mac-danger-rgb: 235, 122, 122;
     --mac-danger-light: rgba(235,122,122,0.15);
@@ -788,6 +816,8 @@ html:root {
     --mac-warning-rgb: 138, 90, 0;
     --mac-warning-light: rgba(138,90,0,0.15);
     --mac-warning-text: #8a5a00;
+    --mac-warning-fill: #F2C94C;
+    --mac-warning-fill-rgb: 242, 201, 76;
     --mac-danger: #b4232a;
     --mac-danger-rgb: 180, 35, 42;
     --mac-danger-light: rgba(180,35,42,0.15);
@@ -838,6 +868,8 @@ html:root {
     --mac-warning-rgb: 232, 192, 75;
     --mac-warning-light: rgba(232,192,75,0.15);
     --mac-warning-text: #E8C04B;
+    --mac-warning-fill: #E8C04B;
+    --mac-warning-fill-rgb: 232, 192, 75;
     --mac-danger: #EF7A86;
     --mac-danger-rgb: 239, 122, 134;
     --mac-danger-light: rgba(239,122,134,0.15);
@@ -888,6 +920,8 @@ html:root {
     --mac-warning-rgb: 138, 90, 0;
     --mac-warning-light: rgba(138,90,0,0.15);
     --mac-warning-text: #8a5a00;
+    --mac-warning-fill: #E8C04B;
+    --mac-warning-fill-rgb: 232, 192, 75;
     --mac-danger: #b4232a;
     --mac-danger-rgb: 180, 35, 42;
     --mac-danger-light: rgba(180,35,42,0.15);
@@ -938,6 +972,8 @@ html:root {
     --mac-warning-rgb: 232, 176, 75;
     --mac-warning-light: rgba(232,176,75,0.15);
     --mac-warning-text: #E8B04B;
+    --mac-warning-fill: #E8B04B;
+    --mac-warning-fill-rgb: 232, 176, 75;
     --mac-danger: #E5737A;
     --mac-danger-rgb: 229, 115, 122;
     --mac-danger-light: rgba(229,115,122,0.15);
@@ -988,6 +1024,8 @@ html:root {
     --mac-warning-rgb: 138, 90, 0;
     --mac-warning-light: rgba(138,90,0,0.15);
     --mac-warning-text: #8a5a00;
+    --mac-warning-fill: #E8B04B;
+    --mac-warning-fill-rgb: 232, 176, 75;
     --mac-danger: #b4232a;
     --mac-danger-rgb: 180, 35, 42;
     --mac-danger-light: rgba(180,35,42,0.15);
@@ -1038,6 +1076,8 @@ html:root {
     --mac-warning-rgb: 232, 176, 75;
     --mac-warning-light: rgba(232,176,75,0.15);
     --mac-warning-text: #E8B04B;
+    --mac-warning-fill: #E8B04B;
+    --mac-warning-fill-rgb: 232, 176, 75;
     --mac-danger: #EF7A86;
     --mac-danger-rgb: 239, 122, 134;
     --mac-danger-light: rgba(239,122,134,0.15);
@@ -1088,6 +1128,8 @@ html:root {
     --mac-warning-rgb: 138, 90, 0;
     --mac-warning-light: rgba(138,90,0,0.15);
     --mac-warning-text: #8a5a00;
+    --mac-warning-fill: #E8B04B;
+    --mac-warning-fill-rgb: 232, 176, 75;
     --mac-danger: #b4232a;
     --mac-danger-rgb: 180, 35, 42;
     --mac-danger-light: rgba(180,35,42,0.15);
@@ -1138,6 +1180,8 @@ html:root {
     --mac-warning-rgb: 232, 176, 75;
     --mac-warning-light: rgba(232,176,75,0.15);
     --mac-warning-text: #E8B04B;
+    --mac-warning-fill: #E8B04B;
+    --mac-warning-fill-rgb: 232, 176, 75;
     --mac-danger: #FF8A80;
     --mac-danger-rgb: 255, 138, 128;
     --mac-danger-light: rgba(255,138,128,0.15);
@@ -1188,6 +1232,8 @@ html:root {
     --mac-warning-rgb: 138, 90, 0;
     --mac-warning-light: rgba(138,90,0,0.15);
     --mac-warning-text: #8a5a00;
+    --mac-warning-fill: #E8B04B;
+    --mac-warning-fill-rgb: 232, 176, 75;
     --mac-danger: #b4232a;
     --mac-danger-rgb: 180, 35, 42;
     --mac-danger-light: rgba(180,35,42,0.15);
@@ -1238,6 +1284,8 @@ html:root {
     --mac-warning-rgb: 242, 201, 76;
     --mac-warning-light: rgba(242,201,76,0.15);
     --mac-warning-text: #F2C94C;
+    --mac-warning-fill: #F2C94C;
+    --mac-warning-fill-rgb: 242, 201, 76;
     --mac-danger: #EF7A86;
     --mac-danger-rgb: 239, 122, 134;
     --mac-danger-light: rgba(239,122,134,0.15);
@@ -1288,6 +1336,8 @@ html:root {
     --mac-warning-rgb: 138, 90, 0;
     --mac-warning-light: rgba(138,90,0,0.15);
     --mac-warning-text: #8a5a00;
+    --mac-warning-fill: #F2C94C;
+    --mac-warning-fill-rgb: 242, 201, 76;
     --mac-danger: #b4232a;
     --mac-danger-rgb: 180, 35, 42;
     --mac-danger-light: rgba(180,35,42,0.15);
@@ -1338,6 +1388,8 @@ html:root {
     --mac-warning-rgb: 232, 176, 75;
     --mac-warning-light: rgba(232,176,75,0.15);
     --mac-warning-text: #E8B04B;
+    --mac-warning-fill: #E8B04B;
+    --mac-warning-fill-rgb: 232, 176, 75;
     --mac-danger: #EF7A86;
     --mac-danger-rgb: 239, 122, 134;
     --mac-danger-light: rgba(239,122,134,0.15);
@@ -1388,6 +1440,8 @@ html:root {
     --mac-warning-rgb: 138, 90, 0;
     --mac-warning-light: rgba(138,90,0,0.15);
     --mac-warning-text: #8a5a00;
+    --mac-warning-fill: #E8B04B;
+    --mac-warning-fill-rgb: 232, 176, 75;
     --mac-danger: #b4232a;
     --mac-danger-rgb: 180, 35, 42;
     --mac-danger-light: rgba(180,35,42,0.15);
@@ -1438,6 +1492,8 @@ html:root {
     --mac-warning-rgb: 232, 192, 75;
     --mac-warning-light: rgba(232,192,75,0.15);
     --mac-warning-text: #E8C04B;
+    --mac-warning-fill: #E8C04B;
+    --mac-warning-fill-rgb: 232, 192, 75;
     --mac-danger: #FF7A9A;
     --mac-danger-rgb: 255, 122, 154;
     --mac-danger-light: rgba(255,122,154,0.15);
@@ -1488,6 +1544,8 @@ html:root {
     --mac-warning-rgb: 138, 90, 0;
     --mac-warning-light: rgba(138,90,0,0.15);
     --mac-warning-text: #8a5a00;
+    --mac-warning-fill: #E8C04B;
+    --mac-warning-fill-rgb: 232, 192, 75;
     --mac-danger: #b4232a;
     --mac-danger-rgb: 180, 35, 42;
     --mac-danger-light: rgba(180,35,42,0.15);
@@ -1538,6 +1596,8 @@ html:root {
     --mac-warning-rgb: 232, 176, 75;
     --mac-warning-light: rgba(232,176,75,0.15);
     --mac-warning-text: #E8B04B;
+    --mac-warning-fill: #E8B04B;
+    --mac-warning-fill-rgb: 232, 176, 75;
     --mac-danger: #F28B6B;
     --mac-danger-rgb: 242, 139, 107;
     --mac-danger-light: rgba(242,139,107,0.15);
@@ -1588,6 +1648,8 @@ html:root {
     --mac-warning-rgb: 138, 90, 0;
     --mac-warning-light: rgba(138,90,0,0.15);
     --mac-warning-text: #8a5a00;
+    --mac-warning-fill: #E8B04B;
+    --mac-warning-fill-rgb: 232, 176, 75;
     --mac-danger: #b4232a;
     --mac-danger-rgb: 180, 35, 42;
     --mac-danger-light: rgba(180,35,42,0.15);

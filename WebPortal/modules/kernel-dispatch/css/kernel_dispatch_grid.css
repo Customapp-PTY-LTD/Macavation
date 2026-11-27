@@ -6,10 +6,10 @@
 .kd-chips { display: flex; gap: 8px; flex-wrap: wrap; }
 .kd-chip { min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--mac-border); background: var(--mac-bg-secondary); color: var(--mac-text-secondary); font-size: 14px; }
 .kd-chip[aria-pressed="true"] { font-weight: 600; box-shadow: 0 0 0 2px var(--mac-border); }
-.kd-chip-all[aria-pressed="true"] { background: var(--mac-text); color: var(--mac-bg-secondary); border-color: var(--mac-text); }
+.kd-chip-all[aria-pressed="true"] { background: var(--mac-green); color: var(--mac-on-accent); border-color: var(--mac-green); }
 .kd-chip-picking { background: var(--mac-warning-light); color: var(--mac-warning-text); border-color: var(--mac-warning); }
 .kd-chip-approval { background: var(--mac-danger-light); color: var(--mac-danger); border-color: var(--mac-danger); }
-.kd-chip-approved { background: var(--mac-green-light); color: var(--mac-green); border-color: var(--mac-green); }
+.kd-chip-approved { background: var(--mac-success-light); color: var(--mac-success); border-color: var(--mac-success); }
 
 /* Step cards */
 .kd-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
