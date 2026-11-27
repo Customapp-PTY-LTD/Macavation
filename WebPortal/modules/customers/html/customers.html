@@ -1,0 +1,62 @@
+<!-- Customers (Mike's MacView, round 3, 27 Nov 2026): sales rolled up by customer from the existing sales
+     ledgers (nothing is re-entered), local or export, products bought, and a world / South Africa map.
+     The customer list itself is CRM's (Contacts). Rendered by js/customers.js from get_customer_performance
+     (migration 20261128110000). Rand values come back empty for roles without "See costs and prices". -->
+<div class="module-content" id="cusModule">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center gap-2 pt-3 pb-2 mb-3 border-bottom">
+        <div>
+            <h1 class="h2 mb-0">Customers</h1>
+            <div class="small text-muted">Who buys from Macavation and what. Contact details are kept in Contacts.</div>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="cusCsv"><i class="fas fa-download me-1"></i>Download CSV</button>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+        <label class="mb-0" for="cusPeriod"><span class="d-block small text-muted">Period</span>
+            <select class="form-select" id="cusPeriod"></select></label>
+        <label class="mb-0 d-none cus-custom" for="cusFrom"><span class="d-block small text-muted">From</span>
+            <input type="date" class="form-control" id="cusFrom"></label>
+        <label class="mb-0 d-none cus-custom" for="cusTo"><span class="d-block small text-muted">To</span>
+            <input type="date" class="form-control" id="cusTo"></label>
+        <label class="mb-0" for="cusKind"><span class="d-block small text-muted">Product</span>
+            <select class="form-select" id="cusKind">
+                <option value="all">All products</option>
+                <option value="kernel">Kernel</option>
+                <option value="oil">Oil</option>
+                <option value="protein">Protein</option>
+                <option value="cake">Oil cake</option>
+                <option value="shell">Shell</option>
+            </select></label>
+        <label class="mb-0" for="cusMkt"><span class="d-block small text-muted">Market</span>
+            <select class="form-select" id="cusMkt">
+                <option value="all">Local and export</option>
+                <option value="local">Local</option>
+                <option value="export">Export</option>
+            </select></label>
+        <label class="mb-0" for="cusShow"><span class="d-block small text-muted">Show</span>
+            <select class="form-select" id="cusShow">
+                <option value="all">All customers</option>
+                <option value="active">Active on the list</option>
+                <option value="new">Not on the list</option>
+            </select></label>
+        <label class="mb-0 flex-grow-1 cus-search" for="cusSearch"><span class="d-block small text-muted">Search</span>
+            <input type="search" class="form-control" id="cusSearch" placeholder="Name, town or country"></label>
+    </div>
+
+    <div id="cusBody"><div class="text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading&hellip;</div></div>
+
+    <div class="modal fade" id="cusModal" tabindex="-1" aria-labelledby="cusModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cusModalTitle">Customer</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="cusModalBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -88,7 +88,7 @@ var MacMap = (function () {
             regions: opts.regions || [], onPin: opts.onPin
         };
         st.vb = prev && prev.view === st.view ? prev.vb : VB[st.view].slice();
-        el.innerHTML = '<div class="mm-wrap"><svg class="mm-svg" xmlns="' + NS + '" role="img" aria-label="' + (st.view === 'world' ? 'World map' : 'Map of South Africa') + '"></svg>' +
+        el.innerHTML = '<div class="mm-wrap"><svg class="mm-svg mm-' + st.view + '" xmlns="' + NS + '" role="img" aria-label="' + (st.view === 'world' ? 'World map' : 'Map of South Africa') + '"></svg>' +
             '<div class="mm-ctl"><button type="button" class="btn btn-sm btn-light" data-mmz="in" title="Zoom in" aria-label="Zoom in">+</button>' +
             '<button type="button" class="btn btn-sm btn-light" data-mmz="out" title="Zoom out" aria-label="Zoom out">&minus;</button>' +
             '<button type="button" class="btn btn-sm btn-light" data-mmz="reset" title="Show everything">' + (st.view === 'world' ? 'World' : 'SA') + '</button></div></div>';

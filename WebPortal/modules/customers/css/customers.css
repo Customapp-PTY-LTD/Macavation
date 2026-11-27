@@ -1,0 +1,7 @@
+/* Customers (modules/customers) — MacView round 3. Colours are design tokens only. */
+#cusModule .cus-scroll { max-height: 520px; overflow-y: auto; }
+#cusModule .cus-table thead th { position: sticky; top: 0; background: var(--mac-panel); z-index: 1; white-space: nowrap; }
+#cusModule .cus-sort { cursor: pointer; user-select: none; }
+#cusModule .cus-sort.cus-on { color: var(--mac-accent); }
+#cusModule .cus-row { cursor: pointer; }
+#cusModule .cus-search { max-width: 320px; }

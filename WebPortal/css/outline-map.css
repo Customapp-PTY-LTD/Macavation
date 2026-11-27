@@ -1,6 +1,8 @@
 /* Inline-SVG supplier / customer map (js/outline-map.js). Colours are design tokens only. */
 .mm-wrap { position: relative; border-radius: var(--mac-radius-md); overflow: hidden; border: 1px solid var(--mac-border); }
-.mm-svg { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; max-height: 560px; }
+.mm-svg { display: block; width: 100%; height: auto; margin: 0 auto; }
+.mm-svg.mm-sa { aspect-ratio: 15.2 / 13.6; max-width: 640px; }
+.mm-svg.mm-world { aspect-ratio: 320 / 171; }
 .mm-sea { fill: var(--mac-bg-tertiary); }
 .mm-land { fill: var(--mac-bg-secondary); stroke: var(--mac-border-strong); stroke-width: 0.8; vector-effect: non-scaling-stroke; }
 .mm-nb { fill: var(--mac-surface-soft); }
