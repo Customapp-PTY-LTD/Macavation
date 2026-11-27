@@ -621,7 +621,9 @@ var _workflowViews = function () {
             oil_daily_recipe: 'Oil recipe for today', oil_stock_count: 'Oil month-end count',
             kernel_transfer_check: 'Count a batch into stock',
             transport_rate_expiring: 'Transport rates expired or expiring',
-            transporter_docs_expiring: 'Transporter documents expired or expiring'
+            transporter_docs_expiring: 'Transporter documents expired or expiring',
+            intake_results_missing: 'Moisture, PV & FFA results to capture',
+            intake_results_overspec: 'PV / FFA overspec, needs review'
         },
 
         _kindAction: function (task) {
@@ -645,6 +647,9 @@ var _workflowViews = function () {
                 // Rate sheet (20261127090000): subject_id is the transporter.
                 case 'transport_rate_expiring': return { label: 'Update rates', route: 'transporters', params: { tab: 'rates', transporterId: sid } };
                 case 'transporter_docs_expiring': return { label: 'Update documents', route: 'transporters', params: { tab: 'transporters', editTransporterId: sid } };
+                // Intake lab results (20261127110000): subject_id is the delivery (kernel row).
+                case 'intake_results_missing': return { label: 'Enter results', route: 'batch-journey', params: { openKernelId: sid, section: 'samples' } };
+                case 'intake_results_overspec': return { label: 'Open results', route: 'batch-journey', params: { openKernelId: sid, section: 'samples' } };
             }
             return null;
         },
@@ -675,6 +680,10 @@ var _workflowViews = function () {
             if (task.kind === 'oil_daily_recipe') {
                 btns += '<button type="button" class="btn btn-outline-primary" onclick="workflowViews.oilRecipeUnchanged(\'' + id + '\')">Recipe unchanged</button>';
             }
+            // PV / FFA overspec (migration 20261127110000): sign it off here; a changed result reopens it.
+            if (task.kind === 'intake_results_overspec' && typeof window.hasAction === 'function' && window.hasAction('intake_results.review')) {
+                btns += '<button type="button" class="btn btn-outline-primary" onclick="workflowViews.markLabReviewed(\'' + id + '\')">Mark reviewed</button>';
+            }
             if (act) {
                 btns += '<button type="button" class="btn btn-primary" id="wvActBtn-' + id + '" onclick="workflowViews.' +
                     (usePanel ? 'toggleApprovePanel' : 'runTaskAction') + '(\'' + id + '\')"' + (usePanel ? ' aria-expanded="false"' : '') + '>' + esc(act.label) + '</button>';
@@ -690,6 +699,28 @@ var _workflowViews = function () {
         },
 
         /** "Recipe unchanged" on the daily oil recipe task: copies the last recipe to today. */
+        /** "Mark reviewed" on a PV / FFA overspec task: records who and for which values; the task closes. */
+        markLabReviewed: async function (taskId) {
+            var task = this._findTask(taskId);
+            if (!task || !task.subject_id || typeof Swal === 'undefined' || !dataFunctions.reviewKernelIntakeResults) return;
+            var ask = await Swal.fire({
+                title: 'Mark these results reviewed?',
+                text: (task.title || '') + (task.description ? ' · ' + task.description : ''),
+                input: 'textarea',
+                inputLabel: 'Note (optional)',
+                showCancelButton: true,
+                confirmButtonText: 'Mark reviewed'
+            });
+            if (!ask.isConfirmed) return;
+            var r = await dataFunctions.reviewKernelIntakeResults(task.subject_id, 'reviewed', ask.value || null);
+            if (!r || r.success === false) {
+                Swal.fire({ icon: 'warning', text: (r && r.error) || 'Could not save.' });
+                return;
+            }
+            this._wvToast('Marked reviewed');
+            await this.refreshMyDay();
+        },
+
         oilRecipeUnchanged: async function (taskId) {
             var task = this._findTask(taskId);
             if (!task || typeof dataFunctions === 'undefined' || !dataFunctions.saveOilDailyRecipe) return;

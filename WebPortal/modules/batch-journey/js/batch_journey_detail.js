@@ -1368,9 +1368,11 @@ var _batchJourneyDetail = (function () {
             ZIPLOCK_TESTS.forEach(function (t) {
                 var r = numOrNull(z[t.key + '_result']);
                 var req = isTrue(z[t.key + '_required']);
-                h += '<div><div class="small text-muted">' + esc(t.label) + (req ? '' : ' (not required)') + '</div><div class="fw-semibold">' + (r == null ? '—' : esc(String(r)) + esc(t.unit)) + '</div></div>';
+                h += '<div><div class="small text-muted">' + esc(t.label) + (req ? '' : ' (not required)') + '</div><div class="fw-semibold">' + (r == null ? '—' : esc(String(r)) + esc(t.unit)) +
+                    (r == null ? '' : ' ' + labBandBadge(t.key === 'peroxide' ? 'pv' : t.key)) + '</div></div>';
             });
             h += '</div><div class="small text-muted mt-2">Wet nut-in-shell: ' + esc(kgText(z.wet_nut_in_shell_kg)) + '</div>';
+            h += labResultHtml();
         }
         h += '</div>';
 
@@ -1395,6 +1397,100 @@ var _batchJourneyDetail = (function () {
         }
         h += '</div></div>';
         return h;
+    }
+
+    // ---- Intake lab result: band per test, automatic Pass / Fail, review (migration 20261127110000) ----
+
+    var BAND_TEXT = { ok: 'Within spec', warn: 'Marginal', bad: 'Overspec' };
+    var BAND_CLASS = {
+        ok: 'bg-success-subtle text-success-emphasis border-success-subtle',
+        warn: 'bg-warning-subtle text-warning-emphasis border-warning-subtle',
+        bad: 'bg-danger-subtle text-danger-emphasis border-danger-subtle'
+    };
+    var DECISION_TEXT = { pass: 'Pass', hold: 'Hold', reject: 'Reject', reviewed: 'Reviewed' };
+
+    function labTest(key) {
+        var lab = state.lab;
+        return lab && Array.isArray(lab.tests) ? lab.tests.filter(function (t) { return t.key === key; })[0] || null : null;
+    }
+
+    /** "Within spec" / "Marginal" / "Overspec" with the limits in the tooltip; '' when no limits are set. */
+    function labBandBadge(key) {
+        var t = labTest(key);
+        if (!t || !t.band) return '';
+        var l = t.limits || {};
+        var unit = t.unit || '';
+        var word = l.direction === 'min' ? 'from' : 'up to';
+        var tip = 'Green ' + word + ' ' + l.green + unit + ', amber ' + word + ' ' + l.yellow + unit + ' (Kernel Pipeline Settings > Sample spec limits)';
+        return '<span class="badge border ' + BAND_CLASS[t.band] + '" title="' + esc(tip) + '">' + esc(BAND_TEXT[t.band]) + '</span>';
+    }
+
+    function labResultHtml() {
+        var lab = state.lab;
+        if (!lab || lab.auto_result === 'none') return '';
+        var h = '<div class="border-top mt-3 pt-2" id="bjdLabResult">';
+        var out = lab.outcome;
+        var cls = out === 'pass' ? 'bg-success-subtle text-success-emphasis' : out === 'hold' ? 'bg-warning-subtle text-warning-emphasis' : 'bg-danger-subtle text-danger-emphasis';
+        var label = out === 'pass' ? 'Pass' : out === 'hold' ? 'Hold' : out === 'reject' ? 'Reject' : 'Fail';
+        var rv = lab.review;
+        var manual = rv && rv.current && rv.decision !== 'reviewed';
+        h += '<div class="d-flex flex-wrap align-items-center gap-2"><span class="small text-muted">Result</span>' +
+            '<span class="badge border ' + cls + '">' + esc(label) + '</span>' +
+            '<span class="small text-muted">' + (manual ? 'decided by hand' : 'worked out from the spec limits') + '</span></div>';
+        var reasons = (lab.fail_reasons || []).concat(lab.marginal || []);
+        if (reasons.length) h += '<div class="small mt-1">' + reasons.map(esc).join(' · ') + '</div>';
+        if (lab.missing && lab.missing.length) h += '<div class="small text-muted mt-1">Still to capture: ' + esc(lab.missing.join(', ')) + '</div>';
+        if (rv) {
+            h += '<div class="small mt-1' + (rv.current ? '' : ' text-danger') + '">' + esc(DECISION_TEXT[rv.decision] || rv.decision) +
+                ' by ' + esc(rv.by_name || 'someone') + ' on ' + esc(dateText(rv.at, '')) +
+                (rv.note ? ': ' + esc(rv.note) : '') +
+                (rv.current ? '' : ' (the results have changed since, so this no longer counts)') + '</div>';
+        }
+        if (can('intake_results.review')) {
+            h += '<div class="d-flex flex-wrap gap-2 mt-2">' +
+                (lab.overspec ? '<button type="button" class="btn btn-sm btn-primary bjd-touch" data-bjd-act="lab-review" data-decision="reviewed">Mark reviewed</button>' : '') +
+                '<button type="button" class="btn btn-sm btn-outline-secondary bjd-touch" data-bjd-act="lab-review" data-decision="pass">Pass</button>' +
+                '<button type="button" class="btn btn-sm btn-outline-secondary bjd-touch" data-bjd-act="lab-review" data-decision="hold">Hold</button>' +
+                '<button type="button" class="btn btn-sm btn-outline-danger bjd-touch" data-bjd-act="lab-review" data-decision="reject">Reject</button></div>' +
+                '<div class="small text-muted mt-1">This records the decision on the results. Releasing a held batch to production is still done on Grower Intake.</div>';
+        }
+        return h + '</div>';
+    }
+
+    function loadLab(seq, id) {
+        var d = df();
+        if (!d || !d.getKernelIntakeLab) return;
+        d.getKernelIntakeLab(id).then(function (lab) {
+            if (seq !== state.loadSeq || id !== state.kernelId) return;
+            state.lab = lab && lab.success !== false ? lab : null;
+            if (state.section === 'samples' && state.editing !== 'samples' && document.getElementById('bjd-sec-samples')) render();
+        }, function () { state.lab = null; });
+    }
+
+    function labReviewDialog(decision) {
+        var d = df();
+        if (!d || !d.reviewKernelIntakeResults || typeof Swal === 'undefined') return;
+        var needNote = decision === 'hold' || decision === 'reject';
+        Swal.fire({
+            title: decision === 'reviewed' ? 'Mark these results reviewed?' : 'Result: ' + DECISION_TEXT[decision] + '?',
+            input: 'textarea',
+            inputLabel: needNote ? 'Why? (needed)' : 'Note (optional)',
+            showCancelButton: true,
+            confirmButtonText: decision === 'reviewed' ? 'Mark reviewed' : 'Save ' + DECISION_TEXT[decision],
+            inputValidator: function (v) { return needNote && !String(v || '').trim() ? 'Say why.' : undefined; },
+            showLoaderOnConfirm: true,
+            preConfirm: function (note) {
+                return d.reviewKernelIntakeResults(state.kernelId, decision, note || null).then(function (r) {
+                    if (!r || r.success === false) throw new Error((r && r.error) || 'Could not save.');
+                    return r;
+                }).catch(function (e) { Swal.showValidationMessage(e.message || String(e)); return false; });
+            }
+        }).then(function (res) {
+            if (!res.isConfirmed || !res.value) return;
+            state.lab = res.value;
+            toast('Saved', DECISION_TEXT[decision] + ' recorded.');
+            render();
+        });
     }
 
     function fiveKgTile(label, g, pct) {
@@ -2306,6 +2402,7 @@ var _batchJourneyDetail = (function () {
             render();
             // Where each bag is, for the Remove bag / Add a bag buttons. Only the Delivery section is
             // redrawn, and only when nobody is editing it, so typed values elsewhere are never lost.
+            loadLab(seq, id);
             if (delivery()) {
                 loadBagLocations().then(function () {
                     if (seq !== state.loadSeq || id !== state.kernelId || state.editing === 'delivery') return;
@@ -2791,6 +2888,9 @@ var _batchJourneyDetail = (function () {
                 case 'bag-remove':
                     removeBagDialog($t.attr('data-no'));
                     break;
+                case 'lab-review':
+                    labReviewDialog($t.attr('data-decision'));
+                    break;
                 case 'bag-add':
                     addBagDialog();
                     break;
@@ -2897,6 +2997,8 @@ var _batchJourneyDetail = (function () {
         state = freshState();
         state.kernelId = String(kernelId);
         state.hooks = hooks || {};
+        // My Day lab tasks open a batch on its Samples tab (handoff { openKernelId, section }).
+        if (state.hooks.section && SECTION_RENDERERS[state.hooks.section]) state.section = state.hooks.section;
         state.scroll = keepScroll;
         state.row = state.hooks.getBatch ? state.hooks.getBatch(state.kernelId) : null;
         if (state.hooks.showList) state.hooks.showList(false);

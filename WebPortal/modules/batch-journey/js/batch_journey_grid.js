@@ -308,11 +308,12 @@ var _batchJourneyGrid = (function () {
      * Kernel row click → the batch page (batch_journey_detail.js). The list is only hidden, so its search,
      * filter and sort are exactly as they were when the user comes back.
      */
-    function openKernelBatchPage(batchId) {
+    function openKernelBatchPage(batchId, section) {
         var src = 'modules/batch-journey/js/batch_journey_detail.js';
         if (typeof _appRouterWithVersion === 'function') src = _appRouterWithVersion(src);
         withEditDialog('_batchJourneyDetail', src, function () {
             _batchJourneyDetail.open(batchId, {
+                section: section || null,
                 getBatch: function (id) {
                     return scope.batches.find(function (b) { return String(b.id) === String(id); }) || null;
                 },
@@ -738,6 +739,8 @@ var _batchJourneyGrid = (function () {
             // Handoff { tab: 'documents' }: the old Documents menu link lands here.
             var h = (typeof _appRouter !== 'undefined' && _appRouter.takeHandoff) ? _appRouter.takeHandoff('batch-journey') : null;
             if (h && h.tab === 'documents') setActiveStream('documents');
+            // Handoff { openKernelId, section }: My Day lab-result tasks open that delivery's batch page.
+            if (h && h.openKernelId) openKernelBatchPage(h.openKernelId, h.section || null);
 
             if (typeof _appRouter !== 'undefined' && _appRouter.loadContent) {
                 _appRouter.loadContent({
