@@ -22,6 +22,7 @@ var _roleMenuConfig = function () {
                 menus: [
                     'dashboard',
                     'company-calendar',
+                    'shell',
                     'customers',
                     'suppliers',
                     'batch-journey',
@@ -45,6 +46,7 @@ var _roleMenuConfig = function () {
                 menus: [
                     'dashboard',
                     'company-calendar',
+                    'shell',
                     'customers',
                     'suppliers',
                     'batch-journey',
@@ -70,6 +72,7 @@ var _roleMenuConfig = function () {
                 menus: [
                     'dashboard',
                     'company-calendar',
+                    'shell',
                     'customers',
                     'suppliers',
                     'batch-journey',
@@ -90,6 +93,7 @@ var _roleMenuConfig = function () {
                 menus: [
                     'dashboard',
                     'company-calendar',
+                    'shell',
                     'customers',
                     'suppliers',
                     'batch-journey',
@@ -136,6 +140,7 @@ var _roleMenuConfig = function () {
                 menus: [
                     'dashboard',
                     'company-calendar',
+                    'shell',
                     'customers',
                     'suppliers',
                     'batch-journey',
@@ -169,6 +174,7 @@ var _roleMenuConfig = function () {
                 menus: [
                     'dashboard',
                     'company-calendar',
+                    'shell',
                     'customers',
                     'suppliers',
                     'grower-intake-grid',
@@ -182,6 +188,7 @@ var _roleMenuConfig = function () {
                 menus: [
                     'dashboard',
                     'company-calendar',
+                    'shell',
                     'customers',
                     'suppliers',
                     'grower-intake-grid',
@@ -201,6 +208,7 @@ var _roleMenuConfig = function () {
                 menus: [
                     'dashboard',
                     'company-calendar',
+                    'shell',
                     'customers',
                     'suppliers',
                     'quality-assurance-grid',
@@ -220,6 +228,7 @@ var _roleMenuConfig = function () {
                 menus: [
                     'dashboard',
                     'company-calendar',
+                    'shell',
                     'customers',
                     'suppliers',
                     'stock-management-kernel',
@@ -237,6 +246,7 @@ var _roleMenuConfig = function () {
                 menus: [
                     'dashboard',
                     'company-calendar',
+                    'shell',
                     'customers',
                     'suppliers',
                     'sales-forecasting-grid',
@@ -253,6 +263,7 @@ var _roleMenuConfig = function () {
                 menus: [
                     'dashboard',
                     'company-calendar',
+                    'shell',
                     'customers',
                     'suppliers',
                     'financial-management-grid',
@@ -267,6 +278,7 @@ var _roleMenuConfig = function () {
                 menus: [
                     'dashboard',
                     'company-calendar',
+                    'shell',
                     'customers',
                     'suppliers',
                     'document-management-grid',
@@ -280,6 +292,7 @@ var _roleMenuConfig = function () {
                 menus: [
                     'dashboard',
                     'company-calendar',
+                    'shell',
                     'customers',
                     'suppliers',
                     'grower-intake-grid',
@@ -453,6 +466,12 @@ var _roleMenuConfig = function () {
                 label: 'Transporters',
                 category: 'kernel',
                 parent: 'kernelCollapse'
+            },
+            'shell': {
+                route: 'shell',
+                icon: 'fas fa-recycle',
+                label: 'Shell',
+                category: 'main'
             },
             'customers': {
                 route: 'customers',
@@ -671,6 +690,7 @@ var _roleMenuConfig = function () {
             'oil-production-forecast-grid',
             'suppliers',
             'customers',
+            'shell',
             'crm-grid',
             'crm-whatsapp-grid',
             'quality-assurance-grid',
