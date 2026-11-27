@@ -512,6 +512,11 @@ var _appRouter = function () {
                         _customers.init();
                     }
                 },
+                'shell': () => {
+                    if (typeof _shell !== 'undefined' && _shell.init) {
+                        _shell.init();
+                    }
+                },
                 'company-calendar': () => {
                     if (typeof _companyCalendar !== 'undefined' && _companyCalendar.init) {
                         _companyCalendar.init();

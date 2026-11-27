@@ -734,6 +734,18 @@
                 "css/customers.css"
             ]
         },
+        "shell": {
+            "description": "Shell",
+            "path": "shell",
+            "html": "html/shell.html",
+            "js": [
+                "../../js/period-presets.js",
+                "js/shell.js"
+            ],
+            "css": [
+                "css/shell.css"
+            ]
+        },
         "company-calendar": {
             "description": "Calendar",
             "path": "company-calendar",

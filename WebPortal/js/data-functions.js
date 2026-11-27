@@ -2114,6 +2114,26 @@ var _dataFunctions = function () {
                 return null;
             }
         },
+        /** Shell screen: bags by batch (from cracking sheets) and every shell sale. Prices empty for roles without them. */
+        getShellOverview: async function (token = null) {
+            try {
+                var r = this._kpUnwrap(await this.callFunction('get_shell_overview', {}, token, { useCache: false }));
+                return r && r.success !== false ? r : null;
+            } catch (e) {
+                return null;
+            }
+        },
+        /** Add (sale.id null) or change a shell sale. Server refuses more bags than are on hand. */
+        saveShellSale: async function (sale, token = null) {
+            return this._kpUnwrap(await this.callFunction('save_shell_sale', {
+                p_id: sale.id || null, p_sale_date: sale.date, p_customer_id: sale.customerId || null, p_customer_name: sale.customerName,
+                p_invoice_number: sale.invoice || null, p_bags: sale.bags, p_price_per_bag: sale.price, p_notes: sale.notes || null
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
+        /** Take a shell sale back (kept, marked void); its bags return to stock. */
+        voidShellSale: async function (id, reason, token = null) {
+            return this._kpUnwrap(await this.callFunction('void_shell_sale', { p_id: id, p_reason: reason || null }, token, { useCache: false, preserveNullParams: true }));
+        },
         /** Save (or clear, with nulls) a supplier's / customer's map pin. */
         setContactLocation: async function (contactId, lat, lng, token = null) {
             return this._kpUnwrap(await this.callFunction('set_contact_location', {

@@ -1,0 +1,3 @@
+/* Shell (modules/shell) — MacView round 3. Colours are design tokens only. */
+#shlModule .shl-scroll { max-height: 420px; overflow-y: auto; }
+#shlModule .shl-table thead th { position: sticky; top: 0; background: var(--mac-panel); z-index: 1; white-space: nowrap; }
