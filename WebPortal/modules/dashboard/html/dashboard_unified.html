@@ -213,6 +213,20 @@
             </div>
         </div>
 
+        <!-- "Needs attention" (MacView): no data-dashboard-widget on purpose (see CLAUDE.md); shown by
+             hasAction('dashboard.needs_attention') in _executiveDashboard.loadNeedsAttention. -->
+        <div class="card mb-4 mac-section-collapse-card exec-hidden" id="execNeedsAttentionCard">
+            <div class="card-header">
+                <button type="button" class="btn btn-link text-decoration-none p-0 mac-section-collapse-toggle" data-bs-toggle="collapse" data-bs-target="#execNeedsAttentionCollapse" aria-expanded="true" aria-controls="execNeedsAttentionCollapse">
+                    <h5 class="mb-0"><i class="fas fa-triangle-exclamation me-2"></i>Needs attention <span class="badge text-bg-secondary ms-1" id="execNeedsAttentionCount">0</span> <i class="fas fa-chevron-up ms-2 mac-section-collapse-icon"></i></h5>
+                </button>
+                <div class="small text-muted mt-1">Lab failures and holds, missing results, truck checks, stock not released or near best-before, low recovery</div>
+            </div>
+            <div class="collapse show" id="execNeedsAttentionCollapse">
+                <div class="card-body" id="execNeedsAttentionList"><p class="text-muted small mb-0">Loading…</p></div>
+            </div>
+        </div>
+
         <div class="card mb-4 mac-section-collapse-card" data-dashboard-widget="execStockAlerts">
             <div class="card-header bg-warning text-dark">
                 <button type="button" class="btn btn-link text-decoration-none p-0 mac-section-collapse-toggle text-dark" data-bs-toggle="collapse" data-bs-target="#execAlertsCollapse" aria-expanded="true" aria-controls="execAlertsCollapse">
