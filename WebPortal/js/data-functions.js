@@ -2084,6 +2084,22 @@ var _dataFunctions = function () {
                 p_kernel_id: kernelId, p_rate_zar: rateZar, p_route_id: routeId || null, p_override_reason: reason || null
             }, token, { useCache: false, preserveNullParams: true }));
         },
+        // ---- Intake lab results checked and reviewed (migration 20261127110000) ----
+        /** Bands, automatic Pass / Fail with reasons, and the review for one delivery; null if not available. */
+        getKernelIntakeLab: async function (kernelId, token = null) {
+            try {
+                var r = this._kpUnwrap(await this.callFunction('get_kernel_intake_lab', { p_kernel_id: kernelId }, token, { useCache: false }));
+                return r && r.success !== false ? r : null;
+            } catch (e) {
+                return null;
+            }
+        },
+        /** decision: 'pass' | 'hold' | 'reject' | 'reviewed'. A note is needed for hold and reject. */
+        reviewKernelIntakeResults: async function (kernelId, decision, note, token = null) {
+            return this._kpUnwrap(await this.callFunction('review_kernel_intake_results', {
+                p_kernel_id: kernelId, p_decision: decision, p_note: note || null, p_user_id: this.getCurrentUserId() || null
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
         upsertSiloCapacity: async function (siloNumber, capacityKg, token = null) {
             return this._kpUnwrap(await this.callFunction('upsert_silo_capacity', { p_silo_number: siloNumber, p_capacity_kg: capacityKg }, token, { useCache: false }));
         },
