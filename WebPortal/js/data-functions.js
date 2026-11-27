@@ -2093,6 +2093,38 @@ var _dataFunctions = function () {
                 p_kernel_id: kernelId, p_rate_zar: rateZar, p_route_id: routeId || null, p_override_reason: reason || null
             }, token, { useCache: false, preserveNullParams: true }));
         },
+        // ---- Batch stages (migration 20261127210000) ----
+        /** { stages: [{no,name,hint,count,kg}], batches: [...] }; completed batches only when asked. null on error. */
+        getBatchStages: async function (includeCompleted, token = null) {
+            try {
+                var r = this._kpUnwrap(await this.callFunction('get_batch_stages', { p_include_completed: !!includeCompleted }, token, { useCache: false }));
+                return r && r.success !== false ? r : null;
+            } catch (e) {
+                return null;
+            }
+        },
+        getKernelStageHistory: async function (kernelId, token = null) {
+            try {
+                return this._kpUnwrap(await this.callFunction('get_kernel_stage_history', { p_kernel_id: kernelId }, token, { useCache: false }));
+            } catch (e) {
+                return null;
+            }
+        },
+        requestKernelInvoice: async function (kernelId, note, token = null) {
+            return this._kpUnwrap(await this.callFunction('request_kernel_invoice', {
+                p_kernel_id: kernelId, p_note: note || null, p_user_id: this.getCurrentUserId() || null
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
+        markKernelInvoiced: async function (kernelId, invoiceRef, token = null) {
+            return this._kpUnwrap(await this.callFunction('mark_kernel_invoiced', {
+                p_kernel_id: kernelId, p_invoice_ref: invoiceRef || null, p_user_id: this.getCurrentUserId() || null
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
+        moveKernelStageBack: async function (kernelId, note, token = null) {
+            return this._kpUnwrap(await this.callFunction('move_kernel_stage_back', {
+                p_kernel_id: kernelId, p_note: note || null, p_user_id: this.getCurrentUserId() || null
+            }, token, { useCache: false, preserveNullParams: true }));
+        },
         // ---- Home "Needs attention" (migration 20261127170000) ----
         /** { items: [{severity bad|warn|info, kind, kernel_id, batch_number, section, text}], recovery_target }; null on error. */
         getNeedsAttention: async function (token = null) {

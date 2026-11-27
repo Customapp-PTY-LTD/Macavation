@@ -623,7 +623,8 @@ var _workflowViews = function () {
             transport_rate_expiring: 'Transport rates expired or expiring',
             transporter_docs_expiring: 'Transporter documents expired or expiring',
             intake_results_missing: 'Moisture, PV & FFA results to capture',
-            intake_results_overspec: 'PV / FFA overspec, needs review'
+            intake_results_overspec: 'PV / FFA overspec, needs review',
+            invoice_request: 'Raise a batch invoice'
         },
 
         _kindAction: function (task) {
@@ -650,6 +651,8 @@ var _workflowViews = function () {
                 // Intake lab results (20261127110000): subject_id is the delivery (kernel row).
                 case 'intake_results_missing': return { label: 'Enter results', route: 'batch-journey', params: { openKernelId: sid, section: 'samples' } };
                 case 'intake_results_overspec': return { label: 'Open results', route: 'batch-journey', params: { openKernelId: sid, section: 'samples' } };
+                // Batch stages (20261127210000): title is "Raise the invoice · <batch> · <supplier>".
+                case 'invoice_request': return { label: 'Open batch stages', route: 'batch-journey', params: { tab: 'stages', search: String(task.title || '').split(' · ')[1] || '' } };
             }
             return null;
         },

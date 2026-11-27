@@ -35,6 +35,16 @@
 
     /* --- Semantic --- */
     --mac-success: #2DA44E;
+    /* Batch stages (Mike's MacView STAGE_COL; Find a batch > Batch stages). Accents, same in light and dark. */
+    --mac-stage-1: #5b8def;
+    --mac-stage-2: #e0a43a;
+    --mac-stage-3: #e8743b;
+    --mac-stage-4: #a76be0;
+    --mac-stage-5: #d4b72c;
+    --mac-stage-6: #3fb97a;
+    --mac-stage-7: #27b3b0;
+    --mac-stage-8: #e0629a;
+    --mac-stage-9: #8b8f97;
     --mac-success-rgb: 45, 164, 78;
     --mac-success-light: rgba(45, 164, 78, 0.08);
     --mac-warning: #D4A72C;
